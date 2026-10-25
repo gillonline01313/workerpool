@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="WorkerPool connects temporary residents in Canada and foreign workers abroad with Canadian employers and licensed immigration professionals. Free for candidates.">
+<meta property="og:title" content="WorkerPool">
+<meta property="og:description" content="Your skills, seen by the people who can use them. Free candidate profiles for temporary residents and workers abroad.">
+<meta property="og:url" content="https://workerpool.ca/">
+<meta name="theme-color" content="#3f7a72">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%233f7a72'/%3E%3Ccircle cx='10' cy='12' r='2.4' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2.4' fill='white' opacity='.75'/%3E%3Ccircle cx='20' cy='12' r='2.4' fill='white' opacity='.5'/%3E%3Cpath d='M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Create your profile · WorkerPool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: single centred card that walks the candidate step by step; slim progress rail on top */
+:root{
+  --bg:#eef2f1; --surface:#ffffff; --fg:#1f2a2c; --muted:#5d6b6d; --line:#d5dedc;
+  --accent:#3f7a72; --accent-soft:#e0ece9; --accent-fg:#ffffff; --warn:#9a6a2e; --warn-soft:#f6ecdd;
+  --field:#f7faf9;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Figtree", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141a1b; --surface:#1c2426; --fg:#e4ecea; --muted:#9aaaa8; --line:#2e3a3c;
+  --accent:#7fbcb2; --accent-soft:#233532; --accent-fg:#102220; --warn:#e0b27a; --warn-soft:#33291c;
+  --field:#172022; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#141a1b; --surface:#1c2426; --fg:#e4ecea; --muted:#9aaaa8; --line:#2e3a3c;
+  --accent:#7fbcb2; --accent-soft:#233532; --accent-fg:#102220; --warn:#e0b27a; --warn-soft:#33291c;
+  --field:#172022; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:620px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:650;font-size:1.15rem}
+.brand svg{flex:none}
+.who{font-size:.85rem;color:var(--muted);display:flex;gap:10px;align-items:center}
+.linkbtn{background:none;border:0;color:var(--accent);font:inherit;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
+.hero h1{font-family:var(--display);font-weight:650;font-size:clamp(1.6rem,5vw,2.1rem);line-height:1.15;margin:0 0 6px;text-wrap:balance}
+.hero p{margin:0;color:var(--muted);max-width:60ch}
+.rail{display:flex;gap:4px}
+.rail span{flex:1;height:4px;border-radius:2px;background:var(--line);transition:background .3s}
+.rail span.on{background:var(--accent)}
+.steplabel{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 20px;display:flex;flex-direction:column;gap:16px}
+.card h2{font-family:var(--display);font-weight:600;font-size:1.3rem;margin:0;text-wrap:balance}
+.card .sub{margin:-8px 0 0;color:var(--muted);font-size:.92rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:520px){.grid{grid-template-columns:1fr}}
+.f{display:flex;flex-direction:column;gap:6px;min-width:0}
+.f.full{grid-column:1/-1}
+label,.lab{font-size:.85rem;font-weight:600}
+input,select{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:9px;padding:11px 12px;width:100%;min-width:0}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.hint{font-size:.8rem;color:var(--muted)}
+.err{font-size:.82rem;color:var(--warn);min-height:0}
+.check{display:flex;gap:8px;align-items:center;font-size:.88rem;font-weight:500}
+.check input{width:auto}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.choices{grid-template-columns:1fr}}
+.choice{text-align:left;font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:12px;padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.choice b{font-family:var(--display);font-weight:600;font-size:1.05rem}
+.choice small{color:var(--muted)}
+.choice[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.yn{display:flex;gap:10px}
+.yn button{flex:1;font:inherit;font-weight:600;padding:11px;border-radius:9px;border:1px solid var(--line);background:var(--field);color:var(--fg);cursor:pointer}
+.yn button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.q{display:flex;flex-direction:column;gap:10px;padding:14px 0;border-top:1px solid var(--line)}
+.q:first-of-type{border-top:0;padding-top:0}
+.q p{margin:0;font-weight:600}
+.actions{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;padding:12px 20px;border-radius:10px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg)}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.job{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.job-h{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tabs{display:flex;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tabs button{flex:1;font:inherit;font-weight:600;border:0;background:none;color:var(--muted);padding:9px;border-radius:7px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.note{background:var(--accent-soft);border-radius:10px;padding:14px;font-size:.92rem}
+.note.warn{background:var(--warn-soft)}
+.price{display:flex;align-items:baseline;gap:8px}
+.price b{font-family:var(--display);font-size:2.4rem;font-weight:650;font-variant-numeric:tabular-nums}
+.price span{color:var(--muted)}
+ul.tick{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.mail{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px;white-space:pre-wrap;overflow-x:auto;max-height:260px;overflow-y:auto}
+details summary{cursor:pointer;font-size:.85rem;color:var(--muted)}
+.done-ic{width:44px;height:44px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.sec{display:flex;flex-direction:column;gap:12px;padding-top:14px;border-top:1px solid var(--line)}
+.sec:first-of-type{border-top:0;padding-top:0}
+.sec .q:first-of-type{border-top:0;padding-top:0}
+.eyebrow{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.testbox{background:var(--field);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.testbox input,.testbox select{background:var(--surface)}
+.scores{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.scores{grid-template-columns:1fr 1fr}}
+.scores input{font-variant-numeric:tabular-nums}
+.contact{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.contact div{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+.lines{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px}
+.line{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line)}
+.line:first-child{border-top:0}
+.line div{display:flex;flex-direction:column;min-width:0}
+.line.total{background:var(--accent-soft);border-radius:0 0 11px 11px}
+.amt{font-family:var(--display);font-weight:600;font-size:1.1rem;font-variant-numeric:tabular-nums}
+.check.top{align-items:flex-start;line-height:1.4}
+.check.top input{margin-top:3px;flex:none}
+.req{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--warn);font-weight:600;margin-left:4px;white-space:nowrap}
+.opt{font-weight:400;color:var(--muted)}
+.consent,.resume{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--line)}
+.note.muted{background:var(--field);color:var(--muted);font-size:.85rem}
+.filerow{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.filerow div{display:flex;gap:10px;align-items:center;min-width:0}
+.filerow b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.filerow svg{flex:none;color:var(--accent)}
+footer{font-size:.78rem;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="/" style="text-decoration:none;color:inherit">
+      <svg width="28" height="28" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="9" fill="var(--accent)"/><circle cx="10" cy="12" r="2.4" fill="var(--accent-fg)"/><circle cx="15" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".75"/><circle cx="20" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".5"/><path d="M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0" fill="none" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round"/></svg>
+      WorkerPool
+    </a>
+    <div class="who" id="who" hidden><span id="whoName"></span><button class="linkbtn" id="logout">Sign out</button></div>
+  </header>
+
+  <section class="hero" id="hero">
+    <h1>Your next step in Canada starts with a short profile</h1>
+    <p>For temporary residents in Canada and foreign workers abroad. Tell us where you stand, and connect with a licensed immigration consultant or get matched with employers. Free for candidates.</p>
+  </section>
+
+  <div id="progress" hidden>
+    <div class="rail" id="rail"></div>
+    <div class="steplabel" id="stepLabel"></div>
+  </div>
+
+  <main id="view"></main>
+  <footer>WorkerPool collects and processes candidate information. We are not immigration representatives and do not give immigration advice. Your details are shared only with your consent.</footer>
+</div>
+
+<script>window.wpaSection=function(n){(window.__wpaq=window.__wpaq||[]).push(n)};</script>
+<script>
+(function(){
+const ADMIN_EMAIL = "admin@workerpool.ca"; // replace once the domain is set
+const BRAND = "WorkerPool"; // swap for the final name
+const PROVINCES = ["Alberta","British Columbia","Manitoba","New Brunswick","Newfoundland and Labrador","Northwest Territories","Nova Scotia","Nunavut","Ontario","Prince Edward Island","Quebec","Saskatchewan","Yukon"];
+const STATUSES = [["closed","Closed work permit (employer-specific)"],["open","Open work permit"],["visitor","Visitor"],["oos","Out of status"]];
+const GENDERS = ["Female","Male","Non-binary","Another gender","Prefer not to say"];
+const COMMON = ["India","Philippines","Nigeria","Pakistan","Bangladesh","Nepal","Sri Lanka","Vietnam","Mexico","United Arab Emirates"];
+const COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo","Congo (Democratic Republic)","Costa Rica","Côte d'Ivoire","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hong Kong","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","São Tomé and Príncipe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Türkiye","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+
+/* Language tests. Abilities in IRCC order: Listening, Reading, Writing, Speaking */
+const AB = [["L","Listening"],["R","Reading"],["W","Writing"],["S","Speaking"]];
+const AB_FR = {L:"Listening (compréhension orale)",R:"Reading (compréhension écrite)",W:"Writing (expression écrite)",S:"Speaking (expression orale)"};
+const ielts = []; for(let b=0;b<=9;b+=0.5) ielts.push(b.toFixed(1));
+const celpip = ["M","1","2","3","4","5","6","7","8","9","10","11","12"];
+const EN_TESTS = {
+  ielts_gt:{name:"IELTS General Training",scale:{kind:"select",vals:ielts},hint:"Band scores 0 to 9, in half bands."},
+  ielts_ac:{name:"IELTS Academic",scale:{kind:"select",vals:ielts},hint:"Band scores 0 to 9.",warn:"IELTS Academic is not accepted for most permanent residence programs. IELTS General Training is."},
+  celpip_g:{name:"CELPIP-General",scale:{kind:"select",vals:celpip},hint:"CELPIP levels M (minimal) to 12."},
+  pte_core:{name:"PTE Core",scale:{kind:"num",min:10,max:90},hint:"Scores 10 to 90."},
+  pte_ac:{name:"PTE Academic",scale:{kind:"num",min:10,max:90},hint:"Scores 10 to 90.",warn:"PTE Academic is not accepted for permanent residence. PTE Core is the Pearson test IRCC accepts."}
+};
+const FR_TESTS = {
+  tef:{name:"TEF Canada",scale:{kind:"num",range:{L:[0,360],R:[0,300],W:[0,450],S:[0,450]}},
+    hint:"Enter the scores from the \"Old score equivalence\" column on your certificate. That is the scale IRCC uses: Listening 0–360, Reading 0–300, Writing 0–450, Speaking 0–450."},
+  tcf:{name:"TCF Canada",scale:{kind:"num",range:{L:[0,699],R:[0,699],W:[0,20],S:[0,20]}},
+    hint:"Listening and Reading are scored 0–699. Writing and Speaking are scored 0–20."}
+};
+
+const store = {
+  get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
+  del(k){try{localStorage.removeItem(k)}catch(e){}}
+};
+let users = store.get("wp_users") || {};
+let session = store.get("wp_session");
+let p = null, step = null;
+
+const $ = s => document.querySelector(s);
+const view = $("#view");
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money = n => "$"+n.toFixed(2);
+const fmtDate = d => d ? new Date(d+"T12:00:00").toLocaleDateString("en-CA",{year:"numeric",month:"short",day:"numeric"}) : "";
+const plus2y = d => { if(!d) return ""; const x=new Date(d+"T12:00:00"); x.setFullYear(x.getFullYear()+2); return x.toISOString().slice(0,10); };
+const today = () => new Date().toISOString().slice(0,10);
+
+const LABELS = {basics:"Basics",location:"Location",province:"Province & city",country:"Country & city",status:"Status",work:"Work experience",lang:"Language tests",services:"Services"};
+function seq(){ const s=["basics","location"];
+  if(p.location==="outside") s.push("country"); else s.push("province","status");
+  s.push("work","lang","services"); return s; }
+
+function save(){ if(session){ users[session].profile=p; users[session].step=step; store.set("wp_users",users);} }
+
+function header(){
+  const u = session && users[session];
+  $("#who").hidden=!u; if(u) $("#whoName").textContent=u.name;
+  $("#hero").hidden = !!u;
+  const s = u ? seq() : [], i = s.indexOf(step);
+  $("#progress").hidden = i<0;
+  if(i>=0){
+    $("#rail").innerHTML = s.map((_,k)=>`<span class="${k<=i?'on':''}"></span>`).join("");
+    $("#stepLabel").textContent = `Step ${i+1} of ${s.length} · ${LABELS[step]}`;
+  }
+}
+
+/* ---------- AUTH ---------- */
+async function hashPass(email,pass){
+  const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("wp|"+email+"|"+pass));
+  return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function renderAuth(mode){
+  mode=mode||"signup";
+  if(window.wpaSection) wpaSection(mode==="signup"?"Create account":"Sign in");
+  view.innerHTML=`
+  <div class="card">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tSign" aria-selected="${mode==='signup'}">Create account</button>
+      <button role="tab" id="tLog" aria-selected="${mode==='login'}">Sign in</button>
+    </div>
+    <form id="authForm" class="grid" novalidate>
+      ${mode==='signup'?`
+      <div class="f full"><label for="aName">Full name</label><input id="aName" autocomplete="name" placeholder="As shown on your passport"></div>
+      <div class="f full"><label for="aPhone">Phone number</label><input id="aPhone" type="tel" autocomplete="tel" placeholder="+1 780 555 0123"><span class="hint">Include your country code.</span></div>`:""}
+      <div class="f full"><label for="aEmail">Email</label><input id="aEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+      <div class="f full"><label for="aPass">Password</label><input id="aPass" type="password" autocomplete="${mode==='signup'?'new-password':'current-password'}" placeholder="${mode==='signup'?'At least 8 characters':''}"></div>
+      <div class="err full" id="aErr"></div>
+      <div class="f full"><button class="btn" type="submit">${mode==='signup'?'Create account and start':'Sign in'}</button></div>
+    </form>
+  </div>`;
+  $("#tSign").onclick=()=>renderAuth("signup");
+  $("#tLog").onclick=()=>renderAuth("login");
+  $("#authForm").onsubmit=async e=>{
+    e.preventDefault();
+    const email=$("#aEmail").value.trim().toLowerCase(), pass=$("#aPass").value;
+    const err=m=>{$("#aErr").textContent=m};
+    if(!/^\S+@\S+\.\S+$/.test(email)) return err("Enter a valid email address.");
+    if(mode==="signup"){
+      const name=$("#aName").value.trim(), phone=$("#aPhone").value.trim();
+      if(!name) return err("Enter your full name.");
+      if(phone.replace(/\D/g,"").length<7) return err("Enter a phone number we can reach you on.");
+      if(pass.length<8) return err("Password needs at least 8 characters.");
+      if(users[email]) return err("An account with this email already exists. Sign in instead.");
+      users[email]={name,phone,passHash:await hashPass(email,pass),step:"basics",profile:{email,phone,jobs:[]}};
+    } else if(!users[email]||users[email].passHash!==await hashPass(email,pass)) return err("Email or password doesn't match on this device. Check both and try again.");
+    store.set("wp_users",users);
+    session=email; store.set("wp_session",session);
+    p=users[email].profile;
+    const st=users[email].step; go(RENDER[st]?st:"basics");
+  };
+}
+
+/* ---------- helpers ---------- */
+function opts(list,val,ph){return `<option value="">${ph}</option>`+list.map(o=>{const [v,l]=Array.isArray(o)?o:[o,o];return `<option value="${esc(v)}" ${v===val?'selected':''}>${esc(l)}</option>`}).join("")}
+function nav(label){return `<div class="err" id="err"></div><div class="actions">${step!=="basics"?'<button class="btn ghost" id="back" type="button">Back</button>':'<span></span>'}<button class="btn" id="next" type="button">${label||'Continue'}</button></div>`}
+function prevStep(){ const s=seq(), i=s.indexOf(step); return i>0?s[i-1]:(step==="checkout"?"services":"basics"); }
+function nextStep(){ const s=seq(); return s[s.indexOf(step)+1]; }
+function wire(onNext){ const b=$("#back"); if(b) b.onclick=()=>go(prevStep()); $("#next").onclick=()=>{const m=onNext(); if(m) $("#err").textContent=m;} }
+const yn=(k)=>`<div class="yn"><button type="button" data-k="${k}" data-v="yes" aria-pressed="${p[k]==='yes'}">Yes</button><button type="button" data-k="${k}" data-v="no" aria-pressed="${p[k]==='no'}">No</button></div>`;
+function wireYN(onChange){ view.querySelectorAll(".yn button").forEach(b=>b.onclick=()=>{p[b.dataset.k]=b.dataset.v; view.querySelectorAll(`.yn [data-k="${b.dataset.k}"]`).forEach(x=>x.setAttribute("aria-pressed",x===b)); save(); onChange&&onChange(b.dataset.k);}); }
+
+/* ---------- STEPS ---------- */
+function basics(){
+  const u=users[session];
+  const ages=[]; for(let a=18;a<=65;a++) ages.push(String(a)); ages.push("66+");
+  view.innerHTML=`<div class="card"><h2>About you</h2><p class="sub">Basic details so we can review your profile.</p>
+  <div class="grid">
+    <div class="f"><label for="age">Age</label><select id="age">${opts(ages,p.age,"Select age")}</select></div>
+    <div class="f"><label for="gender">Gender</label><select id="gender">${opts(GENDERS,p.gender,"Select gender")}</select></div>
+    <div class="f full"><label for="email">Email</label><input id="email" type="email" value="${esc(p.email||session)}"></div>
+    <div class="f full"><label for="phone">Phone number</label><input id="phone" type="tel" value="${esc(p.phone||u.phone)}">
+      <label class="check"><input type="checkbox" id="samePhone" ${(!p.phone||p.phone===u.phone)?'checked':''}> Use the phone number from my account</label></div>
+  </div>${nav()}</div>`;
+  const ph=$("#phone"), cb=$("#samePhone");
+  const sync=()=>{ if(cb.checked){ph.value=u.phone; ph.readOnly=true;} else ph.readOnly=false; };
+  cb.onchange=sync; sync();
+  wire(()=>{
+    if(!$("#age").value) return "Select your age.";
+    if(!$("#gender").value) return "Select your gender.";
+    const em=$("#email").value.trim(); if(!/^\S+@\S+\.\S+$/.test(em)) return "Enter a valid email address.";
+    if(ph.value.replace(/\D/g,"").length<7) return "Enter a valid phone number.";
+    Object.assign(p,{age:$("#age").value,gender:$("#gender").value,email:em,phone:ph.value.trim()});
+    go("location");
+  });
+}
+
+function location(){
+  view.innerHTML=`<div class="card"><h2>Where are you right now?</h2><p class="sub">This decides which questions come next.</p>
+  <div class="choices">
+    <button class="choice" data-v="inside" aria-pressed="${p.location==='inside'}"><b>Inside Canada</b><small>On a work permit, visiting, or out of status</small></button>
+    <button class="choice" data-v="outside" aria-pressed="${p.location==='outside'}"><b>Outside Canada</b><small>Foreign worker looking to come to Canada</small></button>
+  </div>${nav()}</div>`;
+  view.querySelectorAll(".choice").forEach(c=>c.onclick=()=>{p.location=c.dataset.v;view.querySelectorAll(".choice").forEach(x=>x.setAttribute("aria-pressed",x===c));save();header();});
+  wire(()=>{ if(!p.location) return "Choose Inside Canada or Outside Canada."; go(nextStep()); });
+}
+
+function province(){
+  view.innerHTML=`<div class="card"><h2>Where in Canada?</h2>
+  <div class="grid">
+    <div class="f"><label for="prov">Province or territory</label><select id="prov">${opts(PROVINCES,p.province,"Select province")}</select></div>
+    <div class="f"><label for="city">City or town</label><input id="city" value="${esc(p.location==='inside'?p.city:'')}" placeholder="e.g. Surrey"></div>
+  </div>${nav()}</div>`;
+  wire(()=>{ if(!$("#prov").value) return "Select your province or territory."; if(!$("#city").value.trim()) return "Enter your city or town.";
+    p.province=$("#prov").value; p.city=$("#city").value.trim(); p.country="Canada"; go("status"); });
+}
+
+function country(){
+  const rest=COUNTRIES.filter(c=>!COMMON.includes(c));
+  const sel=(c)=>`<option ${c===p.country?'selected':''}>${esc(c)}</option>`;
+  view.innerHTML=`<div class="card"><h2>Where do you live now?</h2>
+  <div class="grid">
+    <div class="f"><label for="ctry">Country</label><select id="ctry"><option value="">Select country</option>
+      <optgroup label="Most common">${COMMON.map(sel).join("")}</optgroup><optgroup label="All countries">${rest.map(sel).join("")}</optgroup></select></div>
+    <div class="f"><label for="city">City or town</label><input id="city" value="${esc(p.location==='outside'?p.city:'')}" placeholder="e.g. Ludhiana"></div>
+  </div>
+  <div class="contact"><div><span class="hint">Email</span><b>${esc(p.email)}</b></div><div><span class="hint">Phone</span><b>${esc(p.phone)}</b></div>
+    <button class="linkbtn" id="editContact" type="button">Change</button></div>
+  ${nav()}</div>`;
+  $("#editContact").onclick=()=>go("basics");
+  wire(()=>{ if(!$("#ctry").value) return "Select your country."; if(!$("#city").value.trim()) return "Enter your city or town.";
+    p.country=$("#ctry").value; p.city=$("#city").value.trim(); p.province=""; p.status=""; p.expiry=""; go("work"); });
+}
+
+function status(){
+  view.innerHTML=`<div class="card"><h2>Your current status in Canada</h2>
+  <div class="grid">
+    <div class="f full"><label for="status">Status</label><select id="status">${opts(STATUSES,p.status,"Select status")}</select></div>
+    <div class="f full" id="expWrap"><label for="exp">Expiry date on your document</label><input id="exp" type="date" value="${esc(p.expiry)}"><span class="hint">The "valid until" date on your permit or visitor record.</span></div>
+  </div><div id="stNote"></div>${nav()}</div>`;
+  const st=$("#status");
+  const upd=()=>{ $("#expWrap").hidden=!st.value||st.value==="oos";
+    let n="";
+    if(st.value&&st.value!=="oos"&&$("#exp").value){ const d=(new Date($("#exp").value)-new Date())/864e5;
+      if(d<0) n=`<div class="note warn">This date has passed. If you haven't applied to extend, you may need to restore your status. Say yes to immigration help on the last step.</div>`;
+      else if(d<90) n=`<div class="note warn">Your status expires in about ${Math.ceil(d)} days. Apply to extend before that date.</div>`; }
+    if(st.value==="oos") n=`<div class="note warn">You may still have options, such as restoration within 90 days of losing status. Say yes to immigration help on the last step.</div>`;
+    $("#stNote").innerHTML=n; };
+  st.onchange=upd; $("#exp").onchange=upd; upd();
+  wire(()=>{ if(!st.value) return "Select your status.";
+    if(st.value!=="oos"&&!$("#exp").value) return "Enter the expiry date.";
+    p.status=st.value; p.expiry=st.value==="oos"?"":$("#exp").value; go("work"); });
+}
+
+function resumeHTML(){
+  if(!p.resume) return `<div><button class="btn ghost" id="resumeUp" type="button">Upload resume</button></div>`;
+  const kb=p.resume.size>1048576?(p.resume.size/1048576).toFixed(1)+" MB":Math.max(1,Math.round(p.resume.size/1024))+" KB";
+  return `<div class="filerow"><div><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l5 5v15H6z M14 2v5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><b>${esc(p.resume.name)}</b><span class="hint">${kb}</span></div><button class="linkbtn" id="resumeRm" type="button">Remove</button></div>`;
+}
+function work(){
+  if(!p.jobs||!p.jobs.length) p.jobs=[{}];
+  const job=(j,i)=>`<div class="job" data-i="${i}">
+    <div class="job-h"><span>Job ${i+1}</span>${p.jobs.length>1?`<button class="linkbtn rm" data-i="${i}" type="button">Remove</button>`:""}</div>
+    <div class="grid">
+      <div class="f"><label for="jt${i}">Job title</label><input id="jt${i}" data-k="title" value="${esc(j.title)}" placeholder="e.g. Cook"></div>
+      <div class="f"><label for="je${i}">Employer name</label><input id="je${i}" data-k="employer" value="${esc(j.employer)}"></div>
+      <div class="f"><label for="js${i}">Start date</label><input id="js${i}" type="date" data-k="start" value="${esc(j.start)}"></div>
+      <div class="f"><label for="jn${i}">End date</label><input id="jn${i}" type="date" data-k="end" value="${esc(j.end)}" ${j.current?'disabled':''}>
+        <label class="check"><input type="checkbox" data-k="current" ${j.current?'checked':''}> I work here now</label></div>
+      <div class="f full"><label for="jl${i}">Location</label><input id="jl${i}" data-k="location" value="${esc(j.location)}" placeholder="City, province or country"></div>
+    </div></div>`;
+  view.innerHTML=`<div class="card"><h2>Work experience</h2><p class="sub">Every job in the last 3 years, most recent first. Include part-time work.</p>
+  <div class="stack">${p.jobs.map(job).join("")}</div>
+  <button class="btn ghost" id="add" type="button">Add another job</button>
+  <label class="check"><input type="checkbox" id="nowork" ${p.noWork?'checked':''}> I have not worked in the last 3 years</label>
+  <div class="resume"><span class="lab">Resume <span class="opt">(optional)</span></span>
+    <span class="hint">PDF, DOC or DOCX, up to 5 MB. Employers see it only if you agree to share your profile.</span>
+    <div id="resumeBox">${resumeHTML()}</div>
+    <input id="resumeFile" type="file" accept=".pdf,.doc,.docx" hidden>
+  </div>
+  ${nav()}</div>`;
+  const collect=()=>{ view.querySelectorAll(".job").forEach(el=>{const i=+el.dataset.i; el.querySelectorAll("[data-k]").forEach(inp=>{p.jobs[i][inp.dataset.k]=inp.type==="checkbox"?inp.checked:inp.value.trim();}); if(p.jobs[i].current) p.jobs[i].end="";}); };
+  view.querySelectorAll('[data-k="current"]').forEach(cb=>cb.onchange=()=>{collect();work();});
+  view.querySelectorAll(".rm").forEach(b=>b.onclick=()=>{collect();p.jobs.splice(+b.dataset.i,1);work();});
+  $("#add").onclick=()=>{collect();p.jobs.push({});work();};
+  const rf=$("#resumeFile");
+  const wireResume=()=>{ const up=$("#resumeUp"); if(up) up.onclick=()=>rf.click();
+    const rm=$("#resumeRm"); if(rm) rm.onclick=()=>{p.resume=null;save();$("#resumeBox").innerHTML=resumeHTML();wireResume();}; };
+  rf.onchange=()=>{ const f=rf.files[0]; if(!f) return; const e=$("#err");
+    if(!/\.(pdf|docx?)$/i.test(f.name)){ e.textContent="Upload a PDF, DOC or DOCX file."; rf.value=""; return; }
+    if(f.size>5*1024*1024){ e.textContent="That file is over 5 MB. Upload a smaller version."; rf.value=""; return; }
+    e.textContent=""; p.resume={name:f.name,size:f.size}; save(); $("#resumeBox").innerHTML=resumeHTML(); wireResume(); rf.value=""; };
+  wireResume();
+  wire(()=>{ collect(); p.noWork=$("#nowork").checked;
+    if(!p.noWork){ for(const [i,j] of p.jobs.entries()){
+      if(!j.title||!j.employer||!j.start||!j.location||(!j.end&&!j.current)) return `Complete every field for Job ${i+1}.`;
+      if(j.end&&j.end<j.start) return `Job ${i+1}: end date is before the start date.`; } }
+    else p.jobs=[{}];
+    go("lang"); });
+}
+
+/* Language test block: key = "eng" or "fr" */
+function testBlock(key, tests, title){
+  const t=p[key]||(p[key]={});
+  const def=tests[t.type];
+  let scores="";
+  if(def){
+    scores=`<div class="scores">${AB.map(([a,lab])=>{
+      const label=key==="fr"?AB_FR[a]:lab;
+      if(def.scale.kind==="select") return `<div class="f"><label for="${key}${a}">${label}</label><select id="${key}${a}" data-a="${a}">${opts(def.scale.vals,t[a],"—")}</select></div>`;
+      const [mn,mx]=def.scale.range?def.scale.range[a]:[def.scale.min,def.scale.max];
+      return `<div class="f"><label for="${key}${a}">${label}</label><input id="${key}${a}" data-a="${a}" type="number" inputmode="numeric" min="${mn}" max="${mx}" value="${esc(t[a])}" placeholder="${mn}–${mx}"></div>`;
+    }).join("")}</div><span class="hint">${def.hint}</span>${def.warn?`<div class="note warn">${def.warn}</div>`:""}
+    <div class="grid">
+      <div class="f"><label for="${key}Date">Test date</label><input id="${key}Date" type="date" value="${esc(t.testDate)}"></div>
+      <div class="f"><label for="${key}Exp">Result expiry date</label><input id="${key}Exp" type="date" value="${esc(t.expiry)}"><span class="hint">Results are valid for 2 years from the test date. Filled in for you.</span></div>
+    </div>`;
+  }
+  return `<div class="testbox" data-key="${key}"><span class="lab">${title}</span>
+    <div class="f"><label for="${key}Type">Test type</label><select id="${key}Type">${opts(Object.entries(tests).map(([k,v])=>[k,v.name]),t.type,"Select test")}</select></div>
+    ${scores}</div>`;
+}
+function collectTest(key){
+  const t=p[key]; if(!t) return;
+  const box=view.querySelector(`.testbox[data-key="${key}"]`); if(!box) return;
+  t.type=$(`#${key}Type`).value;
+  box.querySelectorAll("[data-a]").forEach(el=>t[el.dataset.a]=el.value);
+  const d=$(`#${key}Date`), e=$(`#${key}Exp`);
+  if(d){ t.testDate=d.value; t.expiry=e.value; }
+}
+function validateTest(key, tests, label){
+  const t=p[key], def=tests[t&&t.type];
+  if(!def) return `Select the ${label} test type.`;
+  for(const [a,lab] of AB){
+    const v=t[a]; if(v===""||v==null) return `Enter your ${label} ${lab.toLowerCase()} score.`;
+    if(def.scale.kind==="num"){ const [mn,mx]=def.scale.range?def.scale.range[a]:[def.scale.min,def.scale.max]; const n=+v;
+      if(isNaN(n)||n<mn||n>mx) return `${def.name} ${lab.toLowerCase()} must be between ${mn} and ${mx}.`; }
+  }
+  if(!t.testDate) return `Enter your ${label} test date.`;
+  if(!t.expiry) return `Enter your ${label} result expiry date.`;
+  return null;
+}
+
+function lang(){
+  const showEngTest = p.engValid==="yes" || (p.engValid==="no" && p.engExpired==="yes");
+  const engTitle = p.engValid==="yes" ? "Current English test" : "Expired English test";
+  const showFrTest = p.frStudied==="yes" && p.frTested==="yes";
+  view.innerHTML=`<div class="card"><h2>Language tests</h2><p class="sub">Language scores are one of the biggest factors in most Canadian immigration programs.</p>
+    <div class="sec"><span class="eyebrow">English</span>
+      <div class="q"><p>Do you have a valid IELTS, CELPIP or PTE score?</p><span class="hint">Valid means the test was taken less than 2 years ago.</span>${yn("engValid")}</div>
+      ${p.engValid==="no"?`<div class="q"><p>Do you have an expired English test score?</p>${yn("engExpired")}</div>`:""}
+      ${showEngTest?testBlock("eng",EN_TESTS,engTitle):""}
+    </div>
+    <div class="sec"><span class="eyebrow">French</span>
+      <div class="q"><p>Have you ever studied French?</p>${yn("frStudied")}</div>
+      ${p.frStudied==="yes"?`<div class="q"><p>Have you taken the TEF Canada or TCF Canada test?</p>${yn("frTested")}</div>`:""}
+      ${showFrTest?testBlock("fr",FR_TESTS,"French test result"):""}
+    </div>
+    <div id="langNote"></div>
+    ${nav()}</div>`;
+  const keep=()=>{collectTest("eng");collectTest("fr");};
+  wireYN(()=>{keep();lang();});
+  ["eng","fr"].forEach(key=>{
+    const ty=$(`#${key}Type`); if(ty) ty.onchange=()=>{keep(); const t=p[key]; AB.forEach(([a])=>t[a]=""); lang();};
+    const d=$(`#${key}Date`); if(d) d.onchange=()=>{ $(`#${key}Exp`).value=plus2y(d.value); keep(); checkNote(); };
+    const e=$(`#${key}Exp`); if(e) e.onchange=()=>{keep();checkNote();};
+  });
+  function checkNote(){
+    const t=p.eng; let n="";
+    if(p.engValid==="yes"&&t&&t.expiry&&t.expiry<today()) n=`<div class="note warn">The English result you entered has already expired. You can still continue; we'll note it as expired.</div>`;
+    $("#langNote").innerHTML=n;
+  }
+  checkNote();
+  wire(()=>{ keep();
+    if(!p.engValid) return "Tell us whether you have a valid English test score.";
+    if(p.engValid==="no"&&!p.engExpired) return "Tell us whether you have an expired English test score.";
+    if(showEngTest){ const m=validateTest("eng",EN_TESTS,"English"); if(m) return m; } else p.eng=null;
+    if(!p.frStudied) return "Tell us whether you have studied French.";
+    if(p.frStudied==="yes"&&!p.frTested) return "Tell us whether you have taken TEF Canada or TCF Canada.";
+    if(showFrTest){ const m=validateTest("fr",FR_TESTS,"French"); if(m) return m; } else p.fr=null;
+    go("services"); });
+}
+
+function services(){
+  view.innerHTML=`<div class="card"><h2>How can we help?</h2>
+  <div class="q"><p>Would you like a call from a licensed immigration consultant?</p>
+    <span class="hint">We pass your profile to a licensed partner (a regulated consultant or lawyer) who contacts you. Submitting is free. Any fee for their advice is agreed directly between you and them.</span>${yn("wantsImm")}</div>
+  <div class="q"><p>Would you like to join Employer Match?</p>
+    <span class="hint">Free for candidates. For 2 months, we share your profile with Canadian employers who are hiring and send you at least 5 potential employer matches.</span>${yn("wantsMatch")}</div>
+  <div class="consent"><span class="lab">Your consent</span>
+    <label class="check top"><input type="checkbox" id="cData" ${p.cData?'checked':''}><span>I agree that ${BRAND} may collect, store and process the information in this profile to provide the services I choose. <span class="req">Required</span></span></label>
+    <label class="check top" id="cImmWrap"><input type="checkbox" id="cImm" ${p.cImm?'checked':''}><span>I agree to my profile being shared with a licensed immigration consultant or lawyer so they can contact me.</span></label>
+    <label class="check top" id="cEmpWrap"><input type="checkbox" id="cEmp" ${p.cEmp?'checked':''}><span>I agree to my profile${p.resume?" and resume":""} being shared with employers for Employer Match.</span></label>
+    <label class="check top"><input type="checkbox" id="cMkt" ${p.cMkt?'checked':''}><span>Send me occasional emails about new jobs and services. Optional, and you can unsubscribe any time.</span></label>
+  </div>
+  <div class="note muted">${BRAND} collects and processes candidate information. We are not immigration representatives and do not give immigration advice.</div>
+  ${nav("Submit")}</div>`;
+  const vis=()=>{ $("#cImmWrap").hidden=p.wantsImm!=="yes"; $("#cEmpWrap").hidden=p.wantsMatch!=="yes"; };
+  wireYN(vis); vis();
+  ["cData","cImm","cEmp","cMkt"].forEach(id=>$("#"+id).onchange=e=>{p[id]=e.target.checked;save();});
+  wire(()=>{ if(!p.wantsImm||!p.wantsMatch) return "Answer both questions.";
+    if(!p.cData) return "Tick the required consent to submit your profile.";
+    if(p.wantsImm==="yes"&&!p.cImm) return "To get a call from a consultant, agree to share your profile with them, or answer No.";
+    if(p.wantsMatch==="yes"&&!p.cEmp) return "To join Employer Match, agree to share your profile with employers, or answer No.";
+    p.submittedAt=new Date().toISOString();
+    p.matchStart = p.wantsMatch==="yes" ? p.submittedAt : null;
+    const btn=$("#next"); btn.disabled=true; btn.textContent="Submitting…";
+    fetch("/api/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...p,name:users[session].name})})
+      .then(r=>r.json().then(j=>({ok:r.ok,j})))
+      .then(({ok,j})=>{ if(ok&&j.ok){ p.sent=true; go("done"); } else throw new Error(j.error||""); })
+      .catch(x=>{ btn.disabled=false; btn.textContent="Submit"; $("#err").textContent=(x&&x.message)||"We couldn't submit your profile. Check your connection and try again."; });
+    return ""; });
+}
+
+/* ---------- OUTCOME ---------- */
+function testLine(t,tests){
+  if(!t||!tests[t.type]) return "  None";
+  const exp = t.expiry && t.expiry<today() ? " (expired)" : "";
+  return `  ${tests[t.type].name}: L ${t.L} · R ${t.R} · W ${t.W} · S ${t.S}\n  Test date ${t.testDate} · valid until ${t.expiry}${exp}`;
+}
+function adminEmail(){
+  const st=Object.fromEntries(STATUSES)[p.status]||"";
+  const out=p.location==="outside";
+  const jobs=(p.noWork?[]:p.jobs||[]).map((j,i)=>`  ${i+1}. ${j.title} at ${j.employer}, ${j.location} (${j.start} to ${j.current?'present':j.end})`).join("\n")||"  None in last 3 years";
+  return `To: ${ADMIN_EMAIL}
+Subject: New lead: ${users[session].name} (${out?p.country:p.province+", "+st})
+
+Name: ${users[session].name}
+Email: ${p.email}
+Phone: ${p.phone}
+Age: ${p.age}   Gender: ${p.gender}
+Location: ${out?`Outside Canada, ${p.city}, ${p.country}`:`Inside Canada, ${p.city}, ${p.province}`}
+${out?"":`Status: ${st}${p.expiry?` (expires ${p.expiry})`:""}\n`}
+Work experience, last 3 years:
+${jobs}
+
+English test:
+${testLine(p.eng,EN_TESTS)}
+French: ${p.frStudied==="yes"?"has studied French":"has not studied French"}
+${testLine(p.fr,FR_TESTS)}
+
+Resume: ${p.resume?p.resume.name:"Not uploaded"}
+
+Consultant call requested: ${p.wantsImm.toUpperCase()}
+Employer Match: ${p.wantsMatch.toUpperCase()}
+Consent: data processing YES · share with consultant ${p.wantsImm==="yes"&&p.cImm?"YES":"NO"} · share with employers ${p.wantsMatch==="yes"&&p.cEmp?"YES":"NO"} · marketing emails ${p.cMkt?"YES":"NO"}
+Submitted: ${new Date(p.submittedAt).toLocaleString("en-CA")}`;
+}
+
+function done(){
+  const end=p.matchStart?(()=>{const d=new Date(p.matchStart);d.setMonth(d.getMonth()+2);return d.toLocaleDateString("en-CA",{month:"long",day:"numeric",year:"numeric"})})():"";
+  const lines=[];
+  if(p.wantsImm==="yes") lines.push(`<div class="note"><strong>Consultant call:</strong> thank you. A licensed immigration consultant will get back to you shortly at ${esc(p.email)} or ${esc(p.phone)}.</div>`);
+  if(p.wantsMatch==="yes"&&p.matchStart) lines.push(`<div class="note"><strong>Employer Match is active</strong> until ${end}. We'll email at least 5 potential employers to ${esc(p.email)}.</div>`);
+  if(!lines.length) lines.push(`<div class="note">Your profile is saved. If you need help later, sign in and update your answers.</div>`);
+  const notify = p.wantsImm==="yes"||p.wantsMatch==="yes";
+  view.innerHTML=`<div class="card">
+    <div class="done-ic"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <h2>You're all set, ${esc(users[session].name.split(" ")[0])}</h2>
+    ${lines.join("")}
+    <div class="actions"><button class="btn ghost" id="edit" type="button">Edit my answers</button></div>
+  </div>`;
+  $("#edit").onclick=()=>go("basics");
+}
+
+const RENDER={basics,location,province,country,status,work,lang,services,done};
+function go(n){ step=n; save(); header(); RENDER[n](); if(window.wpaSection) wpaSection(n==="done"?"Submitted":(LABELS[n]||n)); window.scrollTo({top:0,behavior:"smooth"}); }
+
+$("#logout").onclick=()=>{ store.del("wp_session"); session=null; p=null; step=null; header(); renderAuth("login"); };
+
+if(session&&users[session]){ p=users[session].profile; const st=users[session].step; go(RENDER[st]?st:"basics"); }
+else { session=null; header(); renderAuth(location.hash==="#signin"?"login":"signup"); }
+})();
+</script>
+<script>window.WPA_PAGE="questionnaire";</script>
+<script src="/assets/wpa.js" defer></script>
+</body>
+</html>

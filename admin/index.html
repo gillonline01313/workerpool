@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin · WorkerPool</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#f3f6f5;--surface:#fff;--fg:#1b2628;--muted:#5a696b;--line:#d3dcda;--accent:#3f7a72;--accent-soft:#dcebe7;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;--body:"Figtree","Segoe UI",system-ui,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#121819;--surface:#1d2729;--fg:#e3ebe9;--muted:#97a7a5;--line:#2c3a3c;--accent:#7fbcb2;--accent-soft:#213431;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px}
+
+/* WorkerPool analytics: owner-only dashboard */
+.wpa-entry{font:inherit;font-size:.82rem;font-weight:600;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:6px 12px;cursor:pointer}
+.wpa-entry:hover{color:var(--fg);border-color:var(--fg)}
+.wpa-ov{background:var(--bg);overflow-y:auto;padding-block:max(16px,env(safe-area-inset-top,0px)) max(32px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-family:var(--body);color:var(--fg)}
+.wpa{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.wpa-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.wpa-top h2{font-family:var(--display);font-size:1.6rem;font-weight:650;margin:0;letter-spacing:-.01em}
+.wpa-top p{margin:2px 0 0;color:var(--muted);font-size:.85rem}
+.wpa-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.wpa-seg{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.wpa-seg button{font:inherit;font-size:.82rem;font-weight:600;border:0;background:none;color:var(--muted);padding:6px 12px;border-radius:999px;cursor:pointer}
+.wpa-seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.wpa-close{font:inherit;font-weight:600;font-size:.85rem;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:7px 14px;cursor:pointer}
+.wpa-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.wpa-kpis{grid-template-columns:1fr 1fr}}
+.wpa-kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.wpa-kpi small{display:block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.wpa-kpi b{display:block;font-family:var(--display);font-size:1.9rem;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:4px}
+.wpa-kpi span{font-size:.8rem;color:var(--muted)}
+.wpa-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:820px){.wpa-grid{grid-template-columns:1fr}}
+.wpa-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.wpa-card.wide{grid-column:1/-1}
+.wpa-card h3{font-family:var(--display);font-size:1rem;font-weight:600;margin:0}
+.wpa-card .sub{font-size:.8rem;color:var(--muted);margin-top:-8px}
+.wpa-bars{display:flex;flex-direction:column;gap:7px}
+.wpa-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 46px;gap:10px;align-items:center;font-size:.85rem}
+.wpa-row .l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wpa-row .t{height:8px;border-radius:4px;background:var(--accent-soft);overflow:hidden}
+.wpa-row .t i{display:block;height:100%;border-radius:4px;background:var(--accent)}
+.wpa-row .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.wpa-chart{position:relative;overflow-x:auto}
+.wpa-chart svg{display:block;width:100%;min-width:520px;height:auto}
+.wpa-chart rect.b{fill:var(--accent)}
+.wpa-chart rect.b:hover{opacity:.75}
+.wpa-chart text{fill:var(--muted);font-size:11px;font-family:var(--body)}
+.wpa-chart line{stroke:var(--line)}
+.wpa-tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font-size:.75rem;padding:4px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-110%)}
+.wpa-tbl{overflow-x:auto}
+.wpa-tbl table{width:100%;border-collapse:collapse;font-size:.82rem;min-width:620px}
+.wpa-tbl th{text-align:left;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+.wpa-tbl td{padding:8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.wpa-empty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:28px;color:var(--muted);text-align:center}
+.wpa-note{font-size:.78rem;color:var(--muted)}
+
+.gate{max-width:380px;margin:12vh auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:14px}
+.gate h1{font-family:var(--display);margin:0;font-size:1.5rem}
+.gate input{font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
+.gate button,.dl{font:inherit;font-weight:600;padding:11px 16px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--surface);cursor:pointer}
+.dl{padding:7px 14px;font-size:.82rem;background:transparent;color:var(--fg);border-color:var(--line)}
+.err{color:#b4552d;font-size:.85rem}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{font:inherit;font-weight:600;font-size:.88rem;border:1px solid var(--line);background:var(--surface);color:var(--muted);padding:8px 14px;border-radius:999px;cursor:pointer}
+.tabs button[aria-pressed="true"]{color:var(--fg);border-color:var(--fg)}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--fg)}
+.wpa-tbl td details summary{cursor:pointer;color:var(--accent)}
+.wpa-tbl pre{white-space:pre-wrap;font-size:.75rem;max-width:520px}
+</style>
+</head>
+<body>
+<div class="wpa-ov">
+<form class="gate" id="gate">
+  <h1>WorkerPool admin</h1>
+  <p style="margin:0;color:var(--muted)">Enter the admin key you set in Cloudflare.</p>
+  <input id="key" type="password" autocomplete="current-password" placeholder="Admin key">
+  <div class="err" id="gErr"></div>
+  <button type="submit">Open dashboard</button>
+</form>
+<div class="wpa" id="app" hidden>
+  <div class="wpa-top"><div><h2>WorkerPool admin</h2><p>Live data from workerpool.ca. Refreshes every minute.</p></div>
+    <div class="wpa-ctl"><div class="tabs" id="tabs">
+      <button type="button" data-t="analytics" aria-pressed="true">Analytics</button>
+      <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
+      <button type="button" data-t="interest" aria-pressed="false">Employer interest</button></div>
+      <button class="wpa-close" type="button" id="out">Lock</button></div></div>
+  <div id="ctl" class="wpa-ctl"></div>
+  <div id="wpaBody"></div>
+</div>
+</div>
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtDur=s=>!s?"–":s<60?s+"s":Math.floor(s/60)+"m "+String(s%60).padStart(2,"0")+"s";
+const when=t=>new Date(t).toLocaleString("en-CA",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+let KEY=""; try{KEY=sessionStorage.getItem("wp_admin")||"";}catch(e){}
+let tab="analytics", range=7, pageF="all", data={};
+async function api(path){
+  const r=await fetch("/api/admin/"+path,{headers:{"x-admin-key":KEY}});
+  if(r.status===401) throw new Error("auth");
+  const j=await r.json(); if(!j.ok) throw new Error(j.error||"Request failed"); return j.rows;
+}
+async function load(){
+  const days = range===0?3650:Math.max(range,1);
+  try{
+    if(tab==="analytics") data.visits=await api("visits?days="+days);
+    else data[tab]=await api(tab);
+    render();
+  }catch(e){
+    if(e.message==="auth"){ lock("That admin key isn't right."); return; }
+    $("#wpaBody").innerHTML=`<div class="wpa-empty">Couldn't load data: ${esc(e.message)}</div>`;
+  }
+}
+function lock(msg){ KEY=""; try{sessionStorage.removeItem("wp_admin");}catch(e){} $("#app").hidden=true; $("#gate").hidden=false; $("#gErr").textContent=msg||""; }
+$("#gate").onsubmit=e=>{ e.preventDefault(); KEY=$("#key").value.trim(); if(!KEY) return; try{sessionStorage.setItem("wp_admin",KEY);}catch(x){} start(); };
+$("#out").onclick=()=>lock("");
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
+let iv=null;
+function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); }
+function seg(name,opts,cur,cb){ return `<div class="wpa-seg" data-seg="${name}">${opts.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${String(v)===String(cur)}">${l}</button>`).join("")}</div>`; }
+function controls(){
+  const c=$("#ctl");
+  if(tab==="analytics"){
+    c.innerHTML=seg("range",[[1,"Today"],[7,"7 days"],[30,"30 days"],[90,"90 days"],[0,"All"]],range)+seg("page",[["all","All pages"],["home","Home"],["questionnaire","Questionnaire"]],pageF);
+    c.querySelectorAll('[data-seg="range"] button').forEach(b=>b.onclick=()=>{range=+b.dataset.v; controls(); load();});
+    c.querySelectorAll('[data-seg="page"] button').forEach(b=>b.onclick=()=>{pageF=b.dataset.v; controls(); render();});
+  } else {
+    c.innerHTML=`<button class="dl" type="button" id="csv">Download CSV</button>`;
+    $("#csv").onclick=()=>csv(tab);
+  }
+}
+function csv(t){
+  const rows=data[t]||[]; if(!rows.length) return;
+  const cols=Object.keys(rows[0]).filter(k=>k!=="profile");
+  const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+  const text=[cols.join(","),...rows.map(r=>cols.map(c=>q(r[c])).join(","))].join("\n");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type:"text/csv"}));
+  a.download=`workerpool-${t}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function count(arr){ const m=new Map(); arr.forEach(k=>m.set(k,(m.get(k)||0)+1)); return [...m.entries()].sort((a,b)=>b[1]-a[1]); }
+function bars(list,total){
+  if(!list.length) return `<p class="wpa-note">No data in this period.</p>`;
+  const max=Math.max(1,...list.map(x=>x[1]));
+  return `<div class="wpa-bars">${list.map(([l,v])=>`<div class="wpa-row"><span class="l" title="${esc(l)}">${esc(l)}</span><span class="t"><i style="width:${(v/max*100).toFixed(1)}%"></i></span><span class="v">${total?Math.round(v/total*100)+"%":v}</span></div>`).join("")}</div>`;
+}
+function colChart(values,labels,every,tipFmt){
+  const W=720,H=180,pl=34,pr=8,pt=10,pb=26,n=values.length,max=Math.max(1,...values);
+  const step=Math.max(1,Math.ceil(max/4)),top=step*Math.ceil(max/step),bw=(W-pl-pr)/n,y=v=>pt+(H-pt-pb)*(1-v/top);
+  let g="";for(let v=0;v<=top;v+=step)g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}"/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  const b=values.map((v,i)=>{const h=Math.max(0,y(0)-y(v)),x=pl+i*bw+bw*.18,w=Math.max(2,bw*.64);return v?`<rect class="b" x="${x.toFixed(1)}" y="${(y(0)-h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" data-tip="${esc(tipFmt(i,v))}"/>`:"";}).join("");
+  const lx=labels.map((l,i)=>i%every===0?`<text x="${(pl+i*bw+bw/2).toFixed(1)}" y="${H-8}" text-anchor="middle">${esc(l)}</text>`:"").join("");
+  return `<div class="wpa-chart"><svg viewBox="0 0 ${W} ${H}" role="img">${g}${b}${lx}</svg></div>`;
+}
+function wireTips(root){
+  root.querySelectorAll(".wpa-chart").forEach(c=>{const tip=document.createElement("div");tip.className="wpa-tip";tip.hidden=true;c.appendChild(tip);
+    c.addEventListener("pointermove",e=>{const r=e.target.closest("rect.b");if(!r){tip.hidden=true;return;}const cr=c.getBoundingClientRect(),rr=r.getBoundingClientRect();tip.textContent=r.dataset.tip;tip.hidden=false;tip.style.left=(rr.left-cr.left+rr.width/2+c.scrollLeft)+"px";tip.style.top=(rr.top-cr.top)+"px";});
+    c.addEventListener("pointerleave",()=>tip.hidden=true);});
+}
+const J=s=>{try{return JSON.parse(s||"[]")}catch(e){return []}};
+const place=v=>v.city?`${v.city}, ${v.country||"?"}`:(v.country||(v.tz&&v.tz.split("/").pop().replace(/_/g," "))||"Unknown");
+
+function render(){
+  const body=$("#wpaBody");
+  if(tab==="interest") return renderInterest(body);
+  if(tab==="submissions") return renderSubs(body);
+  const now=new Date(), startDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const from=range===0?0:range===1?startDay.getTime():startDay.getTime()-(range-1)*864e5;
+  const V=(data.visits||[]).map(v=>({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk)})).filter(v=>v.ts>=from&&(pageF==="all"||v.page===pageF)).sort((a,b)=>b.ts-a.ts);
+  if(!V.length){ body.innerHTML=`<div class="wpa-empty">No visits in this period yet.</div>`; return; }
+  const uids=new Set(V.map(v=>v.vid)), perUser=count(V.map(v=>v.vid));
+  const wd=V.filter(v=>v.dur>0), avg=wd.length?Math.round(wd.reduce((s,v)=>s+v.dur,0)/wd.length):0;
+  const ret=perUser.filter(([,n])=>n>1).length;
+  let timeChart;
+  if(range===1){ const h=new Array(24).fill(0); V.forEach(v=>h[new Date(v.ts).getHours()]++); timeChart=colChart(h,h.map((_,i)=>String(i)),3,(i,v)=>`${i}:00 · ${v} visit${v>1?"s":""}`); }
+  else { const days=range===0?Math.min(90,Math.max(7,Math.ceil((startDay-new Date(new Date(V[V.length-1].ts).toDateString()))/864e5)+1)):range;
+    const c=new Array(days).fill(0),L=[]; for(let i=0;i<days;i++){const d=new Date(startDay.getTime()-(days-1-i)*864e5);L.push(d.toLocaleDateString("en-CA",{month:"short",day:"numeric"}));}
+    V.forEach(v=>{const d=new Date(new Date(v.ts).toDateString());const i=days-1-Math.round((startDay-d)/864e5);if(i>=0&&i<days)c[i]++;});
+    timeChart=colChart(c,L,days<=10?1:Math.ceil(days/8),(i,v)=>`${L[i]} · ${v} visit${v>1?"s":""}`); }
+  const hours=new Array(24).fill(0); V.forEach(v=>hours[new Date(v.ts).getHours()]++);
+  const freq=[["1 visit",0],["2–3 visits",0],["4–9 visits",0],["10+ visits",0]]; perUser.forEach(([,n])=>{freq[n===1?0:n<=3?1:n<=9?2:3][1]++;});
+  const cm=new Map(); V.forEach(v=>v.clk.forEach(c=>cm.set(c.l,(cm.get(c.l)||0)+c.n)));
+  body.innerHTML=`
+  <div class="wpa-kpis">
+    <div class="wpa-kpi"><small>Visits</small><b>${V.length}</b><span>page loads</span></div>
+    <div class="wpa-kpi"><small>Unique visitors</small><b>${uids.size}</b><span>${(V.length/uids.size).toFixed(1)} visits each</span></div>
+    <div class="wpa-kpi"><small>Avg. time on page</small><b>${fmtDur(avg)}</b><span>active time</span></div>
+    <div class="wpa-kpi"><small>Returning</small><b>${Math.round(ret/uids.size*100)}%</b><span>visited more than once</span></div>
+  </div>
+  <div class="wpa-grid">
+    <div class="wpa-card wide"><h3>${range===1?"Visits by hour today":"Visits per day"}</h3>${timeChart}</div>
+    <div class="wpa-card"><h3>Pages</h3>${bars(count(V.map(v=>v.page==="home"?"Home":v.page==="questionnaire"?"Questionnaire":v.page)))}</div>
+    <div class="wpa-card"><h3>Sections and steps reached</h3><p class="sub">Share of visits that reached each part</p>${bars(count(V.flatMap(v=>v.sec)).slice(0,16),V.length)}</div>
+    <div class="wpa-card"><h3>Most clicked</h3><p class="sub">Buttons and links, with their section</p>${bars([...cm.entries()].sort((a,b)=>b[1]-a[1]).slice(0,12))}</div>
+    <div class="wpa-card"><h3>Countries</h3>${bars(count(V.map(v=>v.country||"Unknown")).slice(0,10))}</div>
+    <div class="wpa-card"><h3>Cities</h3>${bars(count(V.map(place)).slice(0,10))}</div>
+    <div class="wpa-card"><h3>How they arrived</h3>${bars(count(V.map(v=>v.src||"Direct")).slice(0,8))}</div>
+    <div class="wpa-card"><h3>Device</h3>${bars(count(V.map(v=>v.dev||"Unknown")))}</div>
+    <div class="wpa-card"><h3>Visit frequency</h3><p class="sub">Visitors by number of visits in this period</p>${bars(freq.filter(f=>f[1]))}</div>
+    <div class="wpa-card"><h3>Busiest hours</h3><p class="sub">Your local time</p>${colChart(hours,hours.map((_,i)=>String(i)),3,(i,v)=>`${i}:00 · ${v} visit${v>1?"s":""}`)}</div>
+    <div class="wpa-card"><h3>Language</h3>${bars(count(V.map(v=>v.lang||"unknown")).slice(0,8))}</div>
+    <div class="wpa-card wide"><h3>Recent visits</h3><div class="wpa-tbl"><table><thead><tr><th>When</th><th>Page</th><th>From</th><th>Device</th><th>Arrived via</th><th>Sections</th><th>Clicks</th><th>Time</th></tr></thead><tbody>
+      ${V.slice(0,25).map(v=>`<tr><td>${when(v.ts)}</td><td>${esc(v.page)}</td><td>${esc(place(v))}</td><td>${esc(v.dev)}</td><td>${esc(v.src)}</td><td>${v.sec.length}</td><td>${v.clk.reduce((s,c)=>s+c.n,0)}</td><td>${fmtDur(v.dur)}</td></tr>`).join("")}
+    </tbody></table></div></div>
+  </div>
+  <p class="wpa-note">Country and city come from Cloudflare's network data. IP addresses are not stored.</p>`;
+  wireTips(body);
+}
+function renderInterest(body){
+  const R=data.interest||[];
+  if(!R.length){ body.innerHTML=`<div class="wpa-empty">No employer or partner sign-ups yet.</div>`; return; }
+  body.innerHTML=`<div class="wpa-card wide"><h3>${R.length} registration${R.length>1?"s":""}</h3><div class="wpa-tbl"><table><thead><tr><th>When</th><th>Type</th><th>Business</th><th>Email</th><th>Phone</th><th>Country</th></tr></thead><tbody>
+  ${R.map(r=>`<tr><td>${when(r.created)}</td><td><span class="pill">${esc(r.type)}</span></td><td>${esc(r.business)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td>${esc(r.country)}</td></tr>`).join("")}</tbody></table></div></div>`;
+}
+function renderSubs(body){
+  const R=data.submissions||[];
+  if(!R.length){ body.innerHTML=`<div class="wpa-empty">No candidate profiles yet.</div>`; return; }
+  const yes=v=>v?"Yes":"–";
+  body.innerHTML=`<div class="wpa-card wide"><h3>${R.length} candidate${R.length>1?"s":""}</h3><div class="wpa-tbl"><table><thead><tr><th>When</th><th>Name</th><th>Email</th><th>Phone</th><th>Location</th><th>Consultant call</th><th>Employer Match</th><th>Profile</th></tr></thead><tbody>
+  ${R.map(r=>{ let p={}; try{p=JSON.parse(r.profile||"{}")}catch(e){}
+    const jobs=(p.jobs||[]).filter(j=>j.title).map(j=>`${j.title} at ${j.employer} (${j.start} to ${j.current?"present":j.end})`).join("\n")||"None";
+    const t=x=>x&&x.type?`${x.type}: L ${x.L} R ${x.R} W ${x.W} S ${x.S}, valid until ${x.expiry}`:"None";
+    const det=`Age ${p.age||"?"} · ${p.gender||"?"}\nStatus: ${p.status||"–"}${p.expiry?" until "+p.expiry:""}\nCity: ${p.city||"–"}\n\nWork:\n${jobs}\n\nEnglish: ${t(p.eng)}\nFrench: ${t(p.fr)}\nResume: ${p.resume?p.resume.name:"none"}\nShare with consultant: ${yes(r.consent_imm)} · employers: ${yes(r.consent_emp)} · marketing: ${yes(r.consent_mkt)}`;
+    return `<tr><td>${when(r.created)}</td><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td>${esc(r.location==="outside"?r.country:(r.province||"")+", Canada")}</td><td>${yes(r.wants_imm)}</td><td>${yes(r.wants_match)}</td><td><details><summary>View</summary><pre>${esc(det)}</pre></details></td></tr>`;}).join("")}</tbody></table></div></div>`;
+}
+if(KEY) start();
+})();
+</script>
+</body>
+</html>
