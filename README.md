@@ -19,7 +19,7 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `functions/api/resume.js` | Resume upload and removal (private R2 storage) |
 | `b2b/` | B2B Data Entry client portal: application type, information sheet, document checklist |
 | `assets/b2b-config.js` | Application types, info sheet sections and document checklists (edit here to add types) |
-| `functions/api/b2b/*` | B2B applications: create, save, upload documents, submit (emails admin) |
+| `functions/api/b2b/*` | B2B applications: create, save, upload documents, submit (emails admin), reopen a submitted application for edits (emails admin to hold processing; resubmit sends an "Updated" email) |
 | `tools/bc/`, `tools/ab/`, `tools/mb/` | Pathway Checks for BC, Alberta and Manitoba: disclaimer, optional consent to share with a licensed RCIC, sign-up, then CRS / FSW / provincial EOI (BC PNP SIRS, AAIP, MPNP) / RCIP community scores and 2026 draws. Built from `tools/src/` with `python3 tools/src/build.py` |
 | `functions/api/tools/assessment.js` | Saves an assessment the candidate agreed to share (one per province per account) and emails the admin |
 | `privacy/`, `terms/`, `reset/` | Privacy policy, terms of use, password reset page |

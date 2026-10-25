@@ -261,11 +261,11 @@ function renderAssess(body){
 function renderB2B(body){
   const R=data.b2b||[], D=data.b2bDocs||[], C=window.B2B;
   if(!R.length){ body.innerHTML=`<div class="wpa-empty">No B2B applications yet.</div>`; return; }
-  const sub=R.filter(r=>r.status==="submitted").length;
+  const sub=R.filter(r=>r.status==="submitted").length, editing=R.filter(r=>r.status==="editing").length;
   const label=(sk,k)=>{ const f=C&&C.SECTIONS[sk]&&C.SECTIONS[sk].fields.find(x=>x[0]===k); return f?f[1]:k; };
   const secTitle=sk=>C&&C.SECTIONS[sk]?C.SECTIONS[sk].title:sk;
   const docLabel=(r,k)=>{ const t=C&&C.findType(r.category,r.stream,r.app_type); const d=t&&t.docs.find(x=>x[0]===k); return d?d[1]:k; };
-  body.innerHTML=`<div class="wpa-card wide"><h3>${R.length} application${R.length>1?"s":""} · ${sub} submitted</h3><div class="wpa-tbl"><table><thead><tr><th>Submitted</th><th>Applicant</th><th>Application</th><th>Account</th><th>Status</th><th>Details</th></tr></thead><tbody>
+  body.innerHTML=`<div class="wpa-card wide"><h3>${R.length} application${R.length>1?"s":""} · ${sub} submitted${editing?` · ${editing} reopened for edits`:""}</h3><div class="wpa-tbl"><table><thead><tr><th>Submitted</th><th>Applicant</th><th>Application</th><th>Account</th><th>Status</th><th>Details</th></tr></thead><tbody>
   ${R.map(r=>{ let d={}; try{d=JSON.parse(r.data||"{}")}catch(e){}
     const p=d.personal||{}; const name=[p.given_names,p.family_name].filter(Boolean).join(" ")||"(not entered yet)";
     const docs=D.filter(x=>x.app_id===r.id);
@@ -273,7 +273,7 @@ function renderB2B(body){
       if(Array.isArray(v)) return `<b>${esc(secTitle(sk))}</b>\n`+(v.length?v.map((row,i)=>`  ${i+1}. `+Object.entries(row).filter(([,x])=>x).map(([k,x])=>`${label(sk,k)}: ${x}`).join(" · ")).join("\n"):"  none");
       return `<b>${esc(secTitle(sk))}</b>\n`+Object.entries(v||{}).filter(([,x])=>x).map(([k,x])=>`  ${label(sk,k)}: ${x}`).join("\n"); }).join("\n\n");
     const docList=docs.length?docs.map(f=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin:4px 0"><span>${esc(docLabel(r,f.doc_key))}: ${esc(f.name)}</span><button class="dl" type="button" data-docid="${esc(f.id)}" data-name="${esc(f.name)}">Download</button></div>`).join(""):"<p>No documents uploaded.</p>";
-    return `<tr><td>${r.submitted?when(r.submitted):"–"}</td><td>${esc(name)}</td><td>${esc(r.app_name)}<br><span class="pill">${esc(r.category)} · ${esc(r.stream)}</span></td><td>${esc(r.acct_name)}<br>${esc(r.acct_email)}<br>${esc(r.acct_phone)}</td><td><span class="pill">${esc(r.status)}</span></td>
+    return `<tr><td>${r.submitted?when(r.submitted):"–"}</td><td>${esc(name)}</td><td>${esc(r.app_name)}<br><span class="pill">${esc(r.category)} · ${esc(r.stream)}</span></td><td>${esc(r.acct_name)}<br>${esc(r.acct_email)}<br>${esc(r.acct_phone)}</td><td><span class="pill">${r.status==="editing"?"editing (hold)":esc(r.status)}</span></td>
       <td><details><summary>View</summary><pre>${secs.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/&lt;b>/g,"<b>").replace(/&lt;\/b>/g,"</b>")}</pre><h4 style="margin:8px 0 4px">Documents (${docs.length})</h4>${docList}</details></td></tr>`;}).join("")}</tbody></table></div></div>`;
 }
 document.addEventListener("click",async e=>{

@@ -73,6 +73,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{out
 .app span{font-size:.84rem;color:var(--muted)}
 .pill{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--field);border:1px solid var(--line);color:var(--muted)}
 .pill.sub{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.pill.edit{background:var(--warn-soft);border-color:transparent;color:var(--fg)}
 .sec{border:1px solid var(--line);border-radius:14px;background:var(--surface)}
 .sec>summary{list-style:none;cursor:pointer;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 .sec>summary::-webkit-details-marker{display:none}
@@ -190,8 +191,8 @@ async function dash() {
   const list = r.j.apps || [];
   view.innerHTML = `<div class="actions"><div><span class="eyebrow">Client portal</span><h1>Your applications</h1></div><button class="btn" id="new" type="button">Start a new application</button></div>
     <div class="apps" style="margin-top:22px">${list.length ? list.map((a) => `
-      <div class="app"><div><b>${esc(a.app_name)}</b><span>${esc(CATEGORY_LABELS[a.category])} · ${esc(STREAM_LABELS[a.stream])} · ${a.status === "submitted" ? "Submitted " + new Date(a.submitted).toLocaleDateString("en-CA") : "Last saved " + new Date(a.updated).toLocaleDateString("en-CA")}</span></div>
-      <div style="display:flex;gap:10px;align-items:center"><span class="pill ${a.status === "submitted" ? "sub" : ""}">${a.status === "submitted" ? "Submitted" : "Draft"}</span><button class="btn sm ${a.status === "submitted" ? "ghost" : ""}" data-open="${esc(a.id)}" type="button">${a.status === "submitted" ? "View" : "Continue"}</button></div></div>`).join("")
+      <div class="app"><div><b>${esc(a.app_name)}</b><span>${esc(CATEGORY_LABELS[a.category])} · ${esc(STREAM_LABELS[a.stream])} · ${a.status === "submitted" ? "Submitted " + new Date(a.submitted).toLocaleDateString("en-CA") : a.status === "editing" ? "Being edited · resubmit when done" : "Last saved " + new Date(a.updated).toLocaleDateString("en-CA")}</span></div>
+      <div style="display:flex;gap:10px;align-items:center"><span class="pill ${a.status === "submitted" ? "sub" : a.status === "editing" ? "edit" : ""}">${a.status === "submitted" ? "Submitted" : a.status === "editing" ? "Editing" : "Draft"}</span><button class="btn sm ${a.status === "submitted" ? "ghost" : ""}" data-open="${esc(a.id)}" type="button">${a.status === "submitted" ? "View" : "Continue"}</button></div></div>`).join("")
       : `<div class="card"><h3>No applications yet</h3><p class="saved" style="margin:0">Start one to choose your application type and get your information sheet and document checklist.</p></div>`}</div>`;
   $("#new").onclick = picker;
   view.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => openApp(b.dataset.open));
@@ -263,6 +264,7 @@ function secStatus(sk) {
 function sheet() {
   mark("B2B information sheet");
   view.innerHTML = `<span class="eyebrow">${esc(CATEGORY_LABELS[app.category])} · ${esc(STREAM_LABELS[app.stream])}</span><h1>${esc(app.app_name)}</h1>${rail(1)}
+    ${app.status === "editing" ? `<div class="note warn" style="margin-bottom:10px">You're editing a submitted application. Processing is paused until you resubmit. Make your changes, then go to documents and choose <b>Resubmit</b>.</div>` : ""}
     <div class="note">Fill in each section. Your answers save automatically. Fields marked <span class="req">*</span> are required. Enter details exactly as they appear on official documents.</div>
     <div class="stack" style="margin-top:16px" id="secs">${type.sections.map((sk, i) => secHTML(sk, i === 0)).join("")}</div>
     <div class="err" id="err" style="margin-top:12px"></div>
@@ -359,7 +361,7 @@ function checklist() {
     ${opt.length ? `<h2 style="margin-top:22px">If applicable</h2><div class="stack" style="margin-top:10px">${opt.map(docHTML).join("")}</div>` : ""}
     <input type="file" id="fileIn" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple hidden>
     <div class="err" id="err" style="margin-top:14px"></div>
-    <div class="actions"><button class="btn ghost" id="back" type="button">Back to information sheet</button><button class="btn" id="submit" type="button">Upload and submit</button></div>`;
+    <div class="actions"><button class="btn ghost" id="back" type="button">Back to information sheet</button><button class="btn" id="submit" type="button">${app.status === "editing" ? "Resubmit" : "Upload and submit"}</button></div>`;
   const fi = $("#fileIn"); let target = null;
   view.querySelectorAll("[data-up]").forEach((b) => b.onclick = () => { target = b.dataset.up; fi.value = ""; fi.click(); });
   fi.onchange = async () => {
@@ -383,9 +385,9 @@ function checklist() {
   $("#submit").onclick = async () => {
     const miss = req.find((d) => !docs.some((x) => x.doc_key === d[0]));
     if (miss) { $("#err").textContent = `Upload the required document: ${miss[1]}.`; view.querySelector(`[data-doc="${miss[0]}"]`).scrollIntoView({ behavior: "smooth", block: "center" }); return; }
-    const b = $("#submit"); b.disabled = true; b.textContent = "Submitting…";
+    const b = $("#submit"); const label = b.textContent; b.disabled = true; b.textContent = "Submitting…";
     const r = await api("/api/b2b/submit", { method: "POST", body: JSON.stringify({ id: app.id }) });
-    if (!r.ok) { b.disabled = false; b.textContent = "Upload and submit"; return $("#err").textContent = r.j.error || "Couldn't submit. Try again."; }
+    if (!r.ok) { b.disabled = false; b.textContent = label; return $("#err").textContent = r.j.error || "Couldn't submit. Try again."; }
     app.status = "submitted"; app.submitted = new Date().toISOString(); mark("B2B submitted"); doneView();
   };
 }
@@ -394,9 +396,17 @@ function checklist() {
 function doneView() {
   view.innerHTML = `<span class="eyebrow">${esc(app.app_name)}</span><h1>Submitted for processing</h1>${rail(4)}
     <div class="card"><p style="margin:0">Thank you. Your information sheet and ${docs.length} document${docs.length === 1 ? "" : "s"} were received${app.submitted ? " on " + new Date(app.submitted).toLocaleDateString("en-CA", { month: "long", day: "numeric", year: "numeric" }) : ""}. Our processing team has been notified and will contact you if anything else is needed.</p>
-    <p class="saved" style="margin:0">A confirmation was sent to ${esc(me.email)}. Submitted applications are locked; contact us if something needs to change.</p>
-    <div><button class="btn" id="home" type="button">Back to your applications</button></div></div>`;
+    <p class="saved" style="margin:0">A confirmation was sent to ${esc(me.email)}. Need to fix or add something? Choose <b>Edit application</b>. Processing pauses until you resubmit.</p>
+    <div class="err" id="err"></div>
+    <div class="actions"><button class="btn ghost" id="edit" type="button">Edit application</button><button class="btn" id="home" type="button">Back to your applications</button></div></div>`;
   $("#home").onclick = dash;
+  $("#edit").onclick = async () => {
+    if (!confirm("Reopen this application for editing? Our processing team will pause work on it until you resubmit.")) return;
+    const b = $("#edit"); b.disabled = true; b.textContent = "Opening…";
+    const r = await api("/api/b2b/reopen", { method: "POST", body: JSON.stringify({ id: app.id }) });
+    if (!r.ok) { b.disabled = false; b.textContent = "Edit application"; return $("#err").textContent = r.j.error || "Couldn't reopen it. Try again."; }
+    app.status = "editing"; mark("B2B reopened"); sheet();
+  };
 }
 
 async function boot() {

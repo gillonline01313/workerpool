@@ -24,12 +24,13 @@ export async function onRequestPost({ request, env }) {
   const missing = t.docs.filter((d) => d[2] && !have.has(d[0]));
   if (missing.length) return json({ ok: false, error: `Upload the required document: ${missing[0][1]}.` }, 400);
   const now = new Date().toISOString();
+  const resub = a.status === "editing";
   await env.DB.prepare(`UPDATE applications SET status = 'submitted', submitted = ?1, updated = ?1 WHERE id = ?2`).bind(now, a.id).run();
   const p = data.personal || {};
   const who = [p.given_names, p.family_name].filter(Boolean).join(" ") || u.name;
-  await sendEmail(env, env.ADMIN_EMAIL, `New B2B application: ${t.name} – ${who}`,
-    `A client submitted an application for processing.\n\nApplicant: ${who}\nAccount: ${u.name} (${u.email}, ${u.phone})\nType: ${CATEGORY_LABELS[a.category]} · ${STREAM_LABELS[a.stream]} · ${t.name}\nDocuments uploaded: ${docs.results.length}\nSubmitted: ${now}\n\nOpen it in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (B2B applications tab)`);
-  await sendEmail(env, u.email, `We received your ${t.name} information`,
-    `Hi ${u.name.split(" ")[0]},\n\nThanks. We received your information and documents for: ${t.name}.\nOur processing team will review them and contact you if anything else is needed.\n\nWorkerPool Data Entry`);
+  await sendEmail(env, env.ADMIN_EMAIL, `${resub ? "Updated" : "New"} B2B application: ${t.name} – ${who}`,
+    `${resub ? `A client edited and resubmitted an application (first submitted ${a.submitted || "–"}). Process the updated version.` : "A client submitted an application for processing."}\n\nApplicant: ${who}\nAccount: ${u.name} (${u.email}, ${u.phone})\nType: ${CATEGORY_LABELS[a.category]} · ${STREAM_LABELS[a.stream]} · ${t.name}\nDocuments uploaded: ${docs.results.length}\nSubmitted: ${now}\n\nOpen it in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (B2B applications tab)`);
+  await sendEmail(env, u.email, `We received your ${resub ? "updated " : ""}${t.name} information`,
+    `Hi ${u.name.split(" ")[0]},\n\nThanks. We received your ${resub ? "updated " : ""}information and documents for: ${t.name}.\nOur processing team will review them and contact you if anything else is needed.\n\nWorkerPool Data Entry`);
   return json({ ok: true });
 }
