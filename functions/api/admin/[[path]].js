@@ -22,5 +22,15 @@ export async function onRequestGet({ request, env, params }) {
     const r = await env.DB.prepare(`SELECT * FROM submissions ORDER BY created DESC LIMIT 2000`).all();
     return json({ ok: true, rows: r.results });
   }
+  if (route === "resume") {
+    const key = url.searchParams.get("key") || "";
+    if (!/^resumes\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(pdf|docx?)$/.test(key) || !env.RESUMES) return json({ ok: false, error: "Not found." }, 404);
+    const obj = await env.RESUMES.get(key);
+    if (!obj) return json({ ok: false, error: "That resume was replaced or removed." }, 404);
+    const name = ((obj.customMetadata && obj.customMetadata.name) || "resume").replace(/"/g, "");
+    return new Response(obj.body, { headers: {
+      "content-type": (obj.httpMetadata && obj.httpMetadata.contentType) || "application/octet-stream",
+      "content-disposition": `attachment; filename="${name}"`, "cache-control": "no-store", "x-content-type-options": "nosniff" } });
+  }
   return json({ ok: false, error: "Not found." }, 404);
 }

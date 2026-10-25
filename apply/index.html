@@ -397,7 +397,7 @@ function work(){
   <button class="btn ghost" id="add" type="button">Add another job</button>
   <label class="check"><input type="checkbox" id="nowork" ${p.noWork?'checked':''}> I have not worked in the last 3 years</label>
   <div class="resume"><span class="lab">Resume <span class="opt">(optional)</span></span>
-    <span class="hint">PDF, DOC or DOCX, up to 5 MB. Employers see it only if you agree to share your profile.</span>
+    <span class="hint">PDF, DOC or DOCX, up to 5 MB. Stored privately. Employers see it only if you agree to share your profile.</span>
     <div id="resumeBox">${resumeHTML()}</div>
     <input id="resumeFile" type="file" accept=".pdf,.doc,.docx" hidden>
   </div>
@@ -408,11 +408,19 @@ function work(){
   $("#add").onclick=()=>{collect();p.jobs.push({});work();};
   const rf=$("#resumeFile");
   const wireResume=()=>{ const up=$("#resumeUp"); if(up) up.onclick=()=>rf.click();
-    const rm=$("#resumeRm"); if(rm) rm.onclick=()=>{p.resume=null;save();$("#resumeBox").innerHTML=resumeHTML();wireResume();}; };
-  rf.onchange=()=>{ const f=rf.files[0]; if(!f) return; const e=$("#err");
+    const rm=$("#resumeRm"); if(rm) rm.onclick=async()=>{ rm.disabled=true; rm.textContent="Removing…";
+      try{ await fetch("/api/resume",{method:"DELETE"}); }catch(x){}
+      p.resume=null; save(); $("#resumeBox").innerHTML=resumeHTML(); wireResume(); }; };
+  rf.onchange=async()=>{ const f=rf.files[0]; if(!f) return; const e=$("#err");
     if(!/\.(pdf|docx?)$/i.test(f.name)){ e.textContent="Upload a PDF, DOC or DOCX file."; rf.value=""; return; }
     if(f.size>5*1024*1024){ e.textContent="That file is over 5 MB. Upload a smaller version."; rf.value=""; return; }
-    e.textContent=""; p.resume={name:f.name,size:f.size}; save(); $("#resumeBox").innerHTML=resumeHTML(); wireResume(); rf.value=""; };
+    e.textContent=""; $("#resumeBox").innerHTML=`<div class="filerow"><div><b>${esc(f.name)}</b><span class="hint">Uploading…</span></div></div>`;
+    try{
+      const r=await fetch("/api/resume",{method:"POST",headers:{"Content-Type":"application/octet-stream","X-File-Name":encodeURIComponent(f.name)},body:f});
+      const j=await r.json();
+      if(r.ok&&j.ok){ p.resume=j.resume; save(); } else e.textContent=j.error||"The upload didn't work. Try again.";
+    }catch(x){ e.textContent="The upload didn't work. Check your connection and try again."; }
+    $("#resumeBox").innerHTML=resumeHTML(); wireResume(); rf.value=""; };
   wireResume();
   wire(()=>{ collect(); p.noWork=$("#nowork").checked;
     if(!p.noWork){ for(const [i,j] of p.jobs.entries()){

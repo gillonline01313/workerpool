@@ -16,6 +16,7 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `functions/api/admin/[[path]].js` | Admin data API, protected by `ADMIN_KEY` |
 | `functions/api/auth/*` | Accounts: sign up, sign in, sign out, forgot and reset password |
 | `functions/api/profile.js` | Saves a candidate's questionnaire as they go |
+| `functions/api/resume.js` | Resume upload and removal (private R2 storage) |
 | `privacy/`, `terms/`, `reset/` | Privacy policy, terms of use, password reset page |
 | `schema.sql` | All database tables (`schema-accounts.sql` adds just the account tables) |
 
@@ -31,6 +32,10 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 6. **Add the domain.** Custom domains → Set up a custom domain → `workerpool.ca` (and `www.workerpool.ca`).
 
 Then open `https://workerpool.ca/admin/` and enter your admin key.
+
+## Resume storage
+
+Cloudflare → R2 Object Storage → Create bucket `workerpool-resumes` (keep it private; no public access). Then Pages project → Settings → Bindings → Add → R2 bucket → Variable name `RESUMES` → bucket `workerpool-resumes`. Run `schema-resumes.sql` in the D1 console once, then redeploy.
 
 ## Email
 
@@ -51,5 +56,4 @@ Redeploy after changing settings.
 
 ## Next phases
 
-- Resume file storage (currently only the file name is saved).
 - Delete and export tools on the admin page for privacy requests.

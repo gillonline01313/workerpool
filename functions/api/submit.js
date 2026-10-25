@@ -7,6 +7,7 @@ export async function onRequestPost({ request, env }) {
   if (!p || typeof p !== "object") return json({ ok: false, error: "Invalid request." }, 400);
   if (p.cData !== true) return json({ ok: false, error: "Consent is required to submit a profile." }, 400);
   const now = new Date().toISOString();
+  if (u.resume_key) p.resume = { name: u.resume_name, size: u.resume_size, key: u.resume_key }; else delete p.resume;
   const wantsImm = p.wantsImm === "yes", wantsMatch = p.wantsMatch === "yes";
   await env.DB.batch([
     env.DB.prepare(

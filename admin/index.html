@@ -225,8 +225,19 @@ function renderSubs(body){
     const jobs=(p.jobs||[]).filter(j=>j.title).map(j=>`${j.title} at ${j.employer} (${j.start} to ${j.current?"present":j.end})`).join("\n")||"None";
     const t=x=>x&&x.type?`${x.type}: L ${x.L} R ${x.R} W ${x.W} S ${x.S}, valid until ${x.expiry}`:"None";
     const det=`Age ${p.age||"?"} · ${p.gender||"?"}\nStatus: ${p.status||"–"}${p.expiry?" until "+p.expiry:""}\nCity: ${p.city||"–"}\n\nWork:\n${jobs}\n\nEnglish: ${t(p.eng)}\nFrench: ${t(p.fr)}\nResume: ${p.resume?p.resume.name:"none"}\nShare with consultant: ${yes(r.consent_imm)} · employers: ${yes(r.consent_emp)} · marketing: ${yes(r.consent_mkt)}`;
-    return `<tr><td>${when(r.created)}</td><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td>${esc(r.location==="outside"?r.country:(r.province||"")+", Canada")}</td><td>${yes(r.wants_imm)}</td><td>${yes(r.wants_match)}</td><td><details><summary>View</summary><pre>${esc(det)}</pre></details></td></tr>`;}).join("")}</tbody></table></div></div>`;
+    return `<tr><td>${when(r.created)}</td><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td>${esc(r.location==="outside"?r.country:(r.province||"")+", Canada")}</td><td>${yes(r.wants_imm)}</td><td>${yes(r.wants_match)}</td><td><details><summary>View</summary><pre>${esc(det)}</pre>${p.resume&&p.resume.key?`<button class="dl" type="button" data-key="${esc(p.resume.key)}" data-name="${esc(p.resume.name)}">Download resume</button>`:""}</details></td></tr>`;}).join("")}</tbody></table></div></div>`;
 }
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("button[data-key]"); if(!b) return;
+  const label=b.textContent; b.disabled=true; b.textContent="Downloading…";
+  try{
+    const r=await fetch("/api/admin/resume?key="+encodeURIComponent(b.dataset.key),{headers:{"x-admin-key":KEY}});
+    if(!r.ok){ let j={}; try{j=await r.json();}catch(x){} throw new Error(j.error||"Download failed."); }
+    const a=document.createElement("a"); a.href=URL.createObjectURL(await r.blob()); a.download=b.dataset.name||"resume"; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),3000); b.textContent=label;
+  }catch(x){ b.textContent=x.message; }
+  b.disabled=false;
+});
 if(KEY) start();
 })();
 </script>
