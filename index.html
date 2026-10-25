@@ -183,6 +183,30 @@ details p{color:var(--muted);margin-top:10px;max-width:68ch}
 .mok{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
 .mok .tick{width:48px;height:48px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
 .small{font-size:.78rem!important}
+/* human call-back highlight */
+.human{padding-block:clamp(40px,7vw,72px)}
+.human-card{position:relative;overflow:hidden;border-radius:28px;background:var(--surface);border:1px solid var(--line);display:grid;grid-template-columns:1.05fr .95fr;box-shadow:0 30px 60px -40px rgba(30,60,55,.35)}
+@media (max-width:860px){.human-card{grid-template-columns:1fr}}
+.human-copy{padding:clamp(28px,5vw,56px);display:flex;flex-direction:column;gap:18px;min-width:0}
+.human-badge{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--sand);color:var(--sand-fg)}
+.human-badge i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.human h2{font-size:clamp(1.9rem,4.4vw,2.9rem);font-weight:750;line-height:1.05;letter-spacing:-.025em}
+.human h2 s{text-decoration-thickness:3px;text-decoration-color:var(--accent);color:var(--muted);font-weight:650}
+.human h2 em{font-style:normal;color:var(--accent)}
+.human-copy p{color:var(--muted);font-size:1.04rem;max-width:52ch}
+.human-sign{display:flex;align-items:center;gap:12px;margin-top:4px;font-size:.92rem;color:var(--fg);font-weight:600}
+.human-sign .av{width:40px;height:40px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.human-compare{background:var(--band);padding:clamp(24px,4vw,44px);display:flex;flex-direction:column;gap:14px;justify-content:center;min-width:0}
+.cmp{border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.cmp h3{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;font-family:var(--body);font-weight:600}
+.cmp ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:.95rem}
+.cmp li{display:flex;gap:10px;align-items:flex-start}
+.cmp li svg{flex:none;margin-top:3px}
+.cmp.old{background:transparent;border:1px dashed var(--line);color:var(--muted)}
+.cmp.old h3{color:var(--muted)}
+.cmp.new{background:var(--accent-deep);color:var(--bg)}
+.cmp.new h3{color:var(--accent-soft)}
+.cmp.new li{color:color-mix(in srgb,var(--bg) 92%,transparent)}
 footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem;color:var(--muted)}
 .fgrid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:28px}
 @media (max-width:760px){.fgrid{grid-template-columns:1fr 1fr}}
@@ -225,6 +249,7 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
         <div class="hero-meta">
           <span><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Free for candidates</span>
           <span><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Shared only with your consent</span>
+          <span><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>A real person calls you back</span>
           <span><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>About 10 minutes</span>
         </div>
       </div>
@@ -246,6 +271,30 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
           <span class="chip off">Marketing emails off</span>
         </div>
       </aside>
+    </div>
+  </section>
+
+  <section class="human" id="human" data-sec="Real person call back">
+    <div class="in">
+      <div class="human-card">
+        <div class="human-copy">
+          <span class="human-badge"><i></i>The WorkerPool difference</span>
+          <h2><s>Upload and hope.</s><br>Upload and <em>hear back.</em></h2>
+          <p>You've probably sent a resume into a job portal and never heard a word. That silence isn't you. It's how most portals work.</p>
+          <p>WorkerPool works differently. Every profile you submit gets a personal call back from a real member of our team. Not an AI, not a chatbot, not a call centre script. Someone who has read your profile and talks to you about it.</p>
+          <div class="human-sign"><span class="av"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15 15 0 006.6 6.6l2.2-2.2a1 1 0 011-.25 11.4 11.4 0 003.6.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.6a1 1 0 01-.25 1z" fill="currentColor"/></svg></span>A real conversation, with a real person.</div>
+        </div>
+        <div class="human-compare">
+          <div class="cmp old"><h3>The usual job portal</h3><ul>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Your resume joins thousands of others</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Automated replies, or none at all</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>No idea if anyone looked</li></ul></div>
+          <div class="cmp new"><h3>With WorkerPool</h3><ul>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>A person reviews your profile</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>You get a call back, guaranteed</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Real answers about your next step</li></ul></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -376,6 +425,7 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
       <div class="sec-head"><span class="eyebrow">Questions</span><h2>Frequently asked</h2></div>
       <div class="faq">
         <details><summary>Is WorkerPool really free for candidates?</summary><p>Yes. Creating a profile, joining Employer Match and requesting a call from a licensed consultant are all free. Employers pay to access candidate profiles.</p></details>
+        <details><summary>Will someone actually get back to me?</summary><p>Yes. Every submitted profile gets a call back from a real person on the WorkerPool team, not an automated system or a call centre. They'll go over your profile with you and explain what happens next.</p></details>
         <details><summary>Do you guarantee a job or a visa?</summary><p>No. We share your profile with employers and licensed professionals. Hiring decisions belong to employers, and immigration decisions belong to the Government of Canada.</p></details>
         <details><summary>Are you immigration consultants?</summary><p>No. We are a data processing company. If you ask for help, we pass your profile, with your consent, to a licensed consultant or lawyer, and they advise you directly.</p></details>
         <details><summary>Who can see my information?</summary><p>Only the groups you approve. You can choose employers, a licensed consultant, both or neither, and change your mind later.</p></details>
