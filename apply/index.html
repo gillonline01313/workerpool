@@ -142,7 +142,7 @@ footer{font-size:.78rem;color:var(--muted);text-align:center}
   </div>
 
   <main id="view"></main>
-  <footer>WorkerPool collects and processes candidate information. We are not immigration representatives and do not give immigration advice. Your details are shared only with your consent.</footer>
+  <footer>WorkerPool collects and processes candidate information. We are not immigration representatives and do not give immigration advice. Your details are shared only with your consent. <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></footer>
 </div>
 
 <script>window.wpaSection=function(n){(window.__wpaq=window.__wpaq||[]).push(n)};</script>
@@ -180,8 +180,7 @@ const store = {
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
   del(k){try{localStorage.removeItem(k)}catch(e){}}
 };
-let users = store.get("wp_users") || {};
-let session = store.get("wp_session");
+let me = null; // signed-in account: {name,email,phone}
 let p = null, step = null;
 
 const $ = s => document.querySelector(s);
@@ -197,10 +196,16 @@ function seq(){ const s=["basics","location"];
   if(p.location==="outside") s.push("country"); else s.push("province","status");
   s.push("work","lang","services"); return s; }
 
-function save(){ if(session){ users[session].profile=p; users[session].step=step; store.set("wp_users",users);} }
+let saveTimer=null;
+function save(){
+  if(!me||!p) return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{ fetch("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({profile:p,step})})
+    .then(r=>{ if(r.status===401){ me=null; header(); renderAuth("login","Your session ended. Sign in to continue where you left off."); } }).catch(()=>{}); },600);
+}
 
 function header(){
-  const u = session && users[session];
+  const u = me;
   $("#who").hidden=!u; if(u) $("#whoName").textContent=u.name;
   $("#hero").hidden = !!u;
   const s = u ? seq() : [], i = s.indexOf(step);
@@ -212,19 +217,40 @@ function header(){
 }
 
 /* ---------- AUTH ---------- */
-async function hashPass(email,pass){
-  const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("wp|"+email+"|"+pass));
-  return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("");
+async function post(url,body){
+  const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});
+  let j={}; try{ j=await r.json(); }catch(e){}
+  return {ok:r.ok&&j.ok!==false, j};
 }
-function renderAuth(mode){
+async function loadMe(){
+  try{ const r=await fetch("/api/auth/me"); const j=await r.json(); return j&&j.user?j:null; }catch(e){ return null; }
+}
+function renderAuth(mode,notice){
   mode=mode||"signup";
-  if(window.wpaSection) wpaSection(mode==="signup"?"Create account":"Sign in");
+  if(window.wpaSection) wpaSection(mode==="signup"?"Create account":mode==="forgot"?"Forgot password":"Sign in");
+  if(mode==="forgot"){
+    view.innerHTML=`<div class="card"><h2>Reset your password</h2><p class="sub">Enter the email you signed up with. We'll send you a link to choose a new password.</p>
+      <form id="fForm" class="grid" novalidate>
+        <div class="f full"><label for="fEmail">Email</label><input id="fEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+        <div class="err full" id="fErr"></div>
+        <div class="f full"><button class="btn" type="submit">Send reset link</button></div>
+      </form><button class="linkbtn" id="fBack" type="button">Back to sign in</button></div>`;
+    $("#fBack").onclick=()=>renderAuth("login");
+    $("#fForm").onsubmit=async e=>{ e.preventDefault();
+      const email=$("#fEmail").value.trim().toLowerCase(); if(!/^\S+@\S+\.\S+$/.test(email)) return $("#fErr").textContent="Enter a valid email address.";
+      const btn=e.target.querySelector("button"); btn.disabled=true; btn.textContent="Sending…";
+      await post("/api/auth/forgot",{email});
+      view.innerHTML=`<div class="card"><h2>Check your email</h2><p class="sub">If an account exists for ${esc(email)}, a reset link is on its way. It works for 1 hour. Check your spam folder if you don't see it.</p><button class="btn ghost" id="fDone" type="button">Back to sign in</button></div>`;
+      $("#fDone").onclick=()=>renderAuth("login"); };
+    return;
+  }
   view.innerHTML=`
   <div class="card">
     <div class="tabs" role="tablist">
       <button role="tab" id="tSign" aria-selected="${mode==='signup'}">Create account</button>
       <button role="tab" id="tLog" aria-selected="${mode==='login'}">Sign in</button>
     </div>
+    ${notice?`<div class="note">${esc(notice)}</div>`:""}
     <form id="authForm" class="grid" novalidate>
       ${mode==='signup'?`
       <div class="f full"><label for="aName">Full name</label><input id="aName" autocomplete="name" placeholder="As shown on your passport"></div>
@@ -233,27 +259,28 @@ function renderAuth(mode){
       <div class="f full"><label for="aPass">Password</label><input id="aPass" type="password" autocomplete="${mode==='signup'?'new-password':'current-password'}" placeholder="${mode==='signup'?'At least 8 characters':''}"></div>
       <div class="err full" id="aErr"></div>
       <div class="f full"><button class="btn" type="submit">${mode==='signup'?'Create account and start':'Sign in'}</button></div>
+      ${mode==='login'?`<div class="f full"><button class="linkbtn" id="aForgot" type="button">Forgot your password?</button></div>`:`<p class="hint full">By creating an account you agree to our <a href="/terms/">terms</a> and <a href="/privacy/">privacy policy</a>.</p>`}
     </form>
   </div>`;
   $("#tSign").onclick=()=>renderAuth("signup");
   $("#tLog").onclick=()=>renderAuth("login");
+  const fg=$("#aForgot"); if(fg) fg.onclick=()=>renderAuth("forgot");
   $("#authForm").onsubmit=async e=>{
     e.preventDefault();
     const email=$("#aEmail").value.trim().toLowerCase(), pass=$("#aPass").value;
     const err=m=>{$("#aErr").textContent=m};
     if(!/^\S+@\S+\.\S+$/.test(email)) return err("Enter a valid email address.");
+    const body={email,password:pass};
     if(mode==="signup"){
-      const name=$("#aName").value.trim(), phone=$("#aPhone").value.trim();
-      if(!name) return err("Enter your full name.");
-      if(phone.replace(/\D/g,"").length<7) return err("Enter a phone number we can reach you on.");
+      body.name=$("#aName").value.trim(); body.phone=$("#aPhone").value.trim();
+      if(!body.name) return err("Enter your full name.");
+      if(body.phone.replace(/\D/g,"").length<7) return err("Enter a phone number we can reach you on.");
       if(pass.length<8) return err("Password needs at least 8 characters.");
-      if(users[email]) return err("An account with this email already exists. Sign in instead.");
-      users[email]={name,phone,passHash:await hashPass(email,pass),step:"basics",profile:{email,phone,jobs:[]}};
-    } else if(!users[email]||users[email].passHash!==await hashPass(email,pass)) return err("Email or password doesn't match on this device. Check both and try again.");
-    store.set("wp_users",users);
-    session=email; store.set("wp_session",session);
-    p=users[email].profile;
-    const st=users[email].step; go(RENDER[st]?st:"basics");
+    } else if(!pass) return err("Enter your password.");
+    const btn=e.target.querySelector('button[type="submit"]'); btn.disabled=true; btn.textContent=mode==="signup"?"Creating account…":"Signing in…";
+    let res; try{ res=await post(mode==="signup"?"/api/auth/signup":"/api/auth/login",body); }catch(x){ res={ok:false,j:{error:"Couldn't reach WorkerPool. Check your connection and try again."}}; }
+    if(!res.ok){ btn.disabled=false; btn.textContent=mode==="signup"?"Create account and start":"Sign in"; return err(res.j.error||"Something went wrong. Try again."); }
+    await boot();
   };
 }
 
@@ -268,13 +295,13 @@ function wireYN(onChange){ view.querySelectorAll(".yn button").forEach(b=>b.oncl
 
 /* ---------- STEPS ---------- */
 function basics(){
-  const u=users[session];
+  const u=me;
   const ages=[]; for(let a=18;a<=65;a++) ages.push(String(a)); ages.push("66+");
   view.innerHTML=`<div class="card"><h2>About you</h2><p class="sub">Basic details so we can review your profile.</p>
   <div class="grid">
     <div class="f"><label for="age">Age</label><select id="age">${opts(ages,p.age,"Select age")}</select></div>
     <div class="f"><label for="gender">Gender</label><select id="gender">${opts(GENDERS,p.gender,"Select gender")}</select></div>
-    <div class="f full"><label for="email">Email</label><input id="email" type="email" value="${esc(p.email||session)}"></div>
+    <div class="f full"><label for="email">Email</label><input id="email" type="email" value="${esc(p.email||me.email)}"></div>
     <div class="f full"><label for="phone">Phone number</label><input id="phone" type="tel" value="${esc(p.phone||u.phone)}">
       <label class="check"><input type="checkbox" id="samePhone" ${(!p.phone||p.phone===u.phone)?'checked':''}> Use the phone number from my account</label></div>
   </div>${nav()}</div>`;
@@ -501,7 +528,7 @@ function services(){
     p.submittedAt=new Date().toISOString();
     p.matchStart = p.wantsMatch==="yes" ? p.submittedAt : null;
     const btn=$("#next"); btn.disabled=true; btn.textContent="Submitting…";
-    fetch("/api/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...p,name:users[session].name})})
+    fetch("/api/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)})
       .then(r=>r.json().then(j=>({ok:r.ok,j})))
       .then(({ok,j})=>{ if(ok&&j.ok){ p.sent=true; go("done"); } else throw new Error(j.error||""); })
       .catch(x=>{ btn.disabled=false; btn.textContent="Submit"; $("#err").textContent=(x&&x.message)||"We couldn't submit your profile. Check your connection and try again."; });
@@ -519,9 +546,9 @@ function adminEmail(){
   const out=p.location==="outside";
   const jobs=(p.noWork?[]:p.jobs||[]).map((j,i)=>`  ${i+1}. ${j.title} at ${j.employer}, ${j.location} (${j.start} to ${j.current?'present':j.end})`).join("\n")||"  None in last 3 years";
   return `To: ${ADMIN_EMAIL}
-Subject: New lead: ${users[session].name} (${out?p.country:p.province+", "+st})
+Subject: New lead: ${me.name} (${out?p.country:p.province+", "+st})
 
-Name: ${users[session].name}
+Name: ${me.name}
 Email: ${p.email}
 Phone: ${p.phone}
 Age: ${p.age}   Gender: ${p.gender}
@@ -552,7 +579,7 @@ function done(){
   const notify = p.wantsImm==="yes"||p.wantsMatch==="yes";
   view.innerHTML=`<div class="card">
     <div class="done-ic"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <h2>You're all set, ${esc(users[session].name.split(" ")[0])}</h2>
+    <h2>You're all set, ${esc(me.name.split(" ")[0])}</h2>
     ${lines.join("")}
     <div class="actions"><button class="btn ghost" id="edit" type="button">Edit my answers</button></div>
   </div>`;
@@ -562,10 +589,15 @@ function done(){
 const RENDER={basics,location,province,country,status,work,lang,services,done};
 function go(n){ step=n; save(); header(); RENDER[n](); if(window.wpaSection) wpaSection(n==="done"?"Submitted":(LABELS[n]||n)); window.scrollTo({top:0,behavior:"smooth"}); }
 
-$("#logout").onclick=()=>{ store.del("wp_session"); session=null; p=null; step=null; header(); renderAuth("login"); };
+$("#logout").onclick=async()=>{ try{ await post("/api/auth/logout"); }catch(e){} me=null; p=null; step=null; header(); renderAuth("login"); };
 
-if(session&&users[session]){ p=users[session].profile; const st=users[session].step; go(RENDER[st]?st:"basics"); }
-else { session=null; header(); renderAuth(location.hash==="#signin"?"login":"signup"); }
+async function boot(){
+  const j=await loadMe();
+  if(j){ me=j.user; p=Object.assign({email:me.email,phone:me.phone,jobs:[]}, j.profile||{}); go(RENDER[j.step]?j.step:"basics"); }
+  else { me=null; header(); renderAuth(location.hash==="#signin"?"login":"signup"); }
+}
+view.innerHTML=`<div class="card"><p class="sub" style="margin:0">Loading…</p></div>`;
+boot();
 })();
 </script>
 <script>window.WPA_PAGE="questionnaire";</script>

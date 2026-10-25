@@ -1,5 +1,5 @@
 // Employer / partner "register your interest" form.
-import { json, str, isEmail, readJson, id } from "../_lib.js";
+import { json, str, isEmail, readJson, id, sendEmail } from "../_lib.js";
 const TYPES = ["employer", "consultant", "lawyer"];
 export async function onRequestPost({ request, env }) {
   const b = await readJson(request, 5000);
@@ -13,5 +13,7 @@ export async function onRequestPost({ request, env }) {
   await env.DB.prepare(
     `INSERT INTO interest (id, type, business, email, phone, country, created) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
   ).bind(id(), type, business, email, phone, str(cf.country, 4), new Date().toISOString()).run();
+  await sendEmail(env, env.ADMIN_EMAIL, `New ${type} interest: ${business}`,
+    `${business} (${type})\n${email} · ${phone}\n\nSee all registrations: ${env.SITE_URL || "https://workerpool.ca"}/admin/`);
   return json({ ok: true });
 }

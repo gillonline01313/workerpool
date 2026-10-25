@@ -14,7 +14,10 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `functions/api/interest.js` | Saves employer and partner interest |
 | `functions/api/submit.js` | Saves candidate profiles |
 | `functions/api/admin/[[path]].js` | Admin data API, protected by `ADMIN_KEY` |
-| `schema.sql` | Database tables |
+| `functions/api/auth/*` | Accounts: sign up, sign in, sign out, forgot and reset password |
+| `functions/api/profile.js` | Saves a candidate's questionnaire as they go |
+| `privacy/`, `terms/`, `reset/` | Privacy policy, terms of use, password reset page |
+| `schema.sql` | All database tables (`schema-accounts.sql` adds just the account tables) |
 
 ## Deploy on Cloudflare (one time)
 
@@ -29,9 +32,24 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 
 Then open `https://workerpool.ca/admin/` and enter your admin key.
 
+## Email
+
+- **Receiving** (admin@, hello@, privacy@workerpool.ca): Cloudflare → workerpool.ca → Email → Email Routing. Forward each address to your own inbox.
+- **Sending** (password resets, new-lead alerts): a free Resend account. Add workerpool.ca in Resend, add the DNS records it shows to Cloudflare, then create an API key.
+
+## Settings (Pages project → Settings → Variables and Secrets)
+
+| Name | Type | Value |
+|---|---|---|
+| `ADMIN_KEY` | Secret | Your admin dashboard password |
+| `RESEND_API_KEY` | Secret | API key from Resend |
+| `ADMIN_EMAIL` | Text | Where new-lead alerts go, e.g. admin@workerpool.ca |
+| `MAIL_FROM` | Text | `WorkerPool <noreply@workerpool.ca>` |
+| `SITE_URL` | Text | `https://workerpool.ca` |
+
+Redeploy after changing settings.
+
 ## Next phases
 
-- Real accounts (sign-up, sign-in, password reset) instead of device-only sign-in.
 - Resume file storage (currently only the file name is saved).
-- Admin email on each new profile or interest registration.
-- Privacy policy and terms pages.
+- Delete and export tools on the admin page for privacy requests.

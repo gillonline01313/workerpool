@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reset password · WorkerPool</title>
+<meta name="description" content="Choose a new WorkerPool password.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%233f7a72'/%3E%3Ccircle cx='10' cy='12' r='2.4' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2.4' fill='white' opacity='.75'/%3E%3Ccircle cx='20' cy='12' r='2.4' fill='white' opacity='.5'/%3E%3Cpath d='M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#f3f6f5;--surface:#fff;--fg:#1b2628;--muted:#5a696b;--line:#d3dcda;--accent:#3f7a72;--accent-soft:#dcebe7;--accent-fg:#fff;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;--body:"Figtree","Segoe UI",system-ui,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#121819;--surface:#1d2729;--fg:#e3ebe9;--muted:#97a7a5;--line:#2c3a3c;--accent:#7fbcb2;--accent-soft:#213431;--accent-fg:#0f2220;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;padding:0 max(20px,env(safe-area-inset-right,0px)) 0 max(20px,env(safe-area-inset-left,0px))}
+.top{max-width:760px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding-block:20px;border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:1.15rem;text-decoration:none;color:inherit}
+.top a.cta{font-weight:600;font-size:.9rem;color:var(--accent);text-decoration:none}
+main{max-width:760px;margin:0 auto;padding-block:40px 64px}
+h1{font-family:var(--display);font-size:clamp(1.9rem,5vw,2.6rem);line-height:1.1;margin:0 0 8px;letter-spacing:-.02em}
+h2{font-family:var(--display);font-size:1.25rem;margin:36px 0 8px}
+p,li{color:var(--fg);max-width:68ch}
+.meta{color:var(--muted);font-size:.9rem;margin-bottom:24px}
+.box{background:var(--accent-soft);border-radius:12px;padding:16px 18px;margin:20px 0}
+a{color:var(--accent)}
+ul{padding-left:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:440px;display:flex;flex-direction:column;gap:14px}
+label{font-weight:600;font-size:.88rem;display:flex;flex-direction:column;gap:6px}
+input{font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
+input:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn{font:inherit;font-weight:600;padding:12px 18px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);cursor:pointer;text-decoration:none;text-align:center}
+.err{color:#b4552d;font-size:.88rem}
+footer{max-width:760px;margin:0 auto;border-top:1px solid var(--line);padding-block:24px 40px;color:var(--muted);font-size:.85rem;display:flex;gap:16px;flex-wrap:wrap}
+footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="top"><a class="logo" href="/"><svg width="28" height="28" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="9" fill="var(--accent)"/><circle cx="10" cy="12" r="2.4" fill="var(--accent-fg)"/><circle cx="15" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".75"/><circle cx="20" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".5"/><path d="M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0" fill="none" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round"/></svg>WorkerPool</a><a class="cta" href="/apply/">Create free profile</a></header>
+<main>
+
+<h1>Choose a new password</h1>
+<p class="meta">Use at least 8 characters.</p>
+<form class="card" id="rForm" novalidate>
+  <label>New password<input id="p1" type="password" autocomplete="new-password"></label>
+  <label>Type it again<input id="p2" type="password" autocomplete="new-password"></label>
+  <div class="err" id="rErr"></div>
+  <button class="btn" type="submit">Save new password</button>
+</form>
+<div class="card" id="rDone" hidden><p style="margin:0">Your password is updated. For your security, you've been signed out everywhere.</p><a class="btn" href="/apply/#signin">Sign in</a></div>
+<script>
+(function(){
+  const t=new URLSearchParams(location.search).get("t")||"";
+  const err=m=>document.getElementById("rErr").textContent=m;
+  if(!t) err("This link is missing its code. Request a new reset link from the sign-in page.");
+  history.replaceState(null,"",location.pathname);
+  document.getElementById("rForm").onsubmit=async e=>{
+    e.preventDefault();
+    const a=document.getElementById("p1").value,b=document.getElementById("p2").value;
+    if(a.length<8) return err("Password needs at least 8 characters.");
+    if(a!==b) return err("The two passwords don't match.");
+    const btn=e.target.querySelector("button"); btn.disabled=true; btn.textContent="Saving…";
+    try{
+      const r=await fetch("/api/auth/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:t,password:a})});
+      const j=await r.json();
+      if(r.ok&&j.ok){ e.target.hidden=true; document.getElementById("rDone").hidden=false; return; }
+      err(j.error||"Something went wrong. Try again.");
+    }catch(x){ err("Couldn't reach WorkerPool. Check your connection and try again."); }
+    btn.disabled=false; btn.textContent="Save new password";
+  };
+})();
+</script>
+</main>
+<footer><span>© 2026 WorkerPool · Alberta, Canada</span><a href="/">Home</a><a href="/privacy/">Privacy policy</a><a href="/terms/">Terms of use</a><span>privacy@workerpool.ca</span></footer>
+<script>window.WPA_PAGE="reset";</script><script src="/assets/wpa.js" defer></script>
+</body>
+</html>
