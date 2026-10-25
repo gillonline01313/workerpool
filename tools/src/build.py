@@ -80,7 +80,40 @@ HEAD = '''<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="@@META@@">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%233f7a72'/%3E%3Ccircle cx='10' cy='12' r='2.4' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2.4' fill='white' opacity='.75'/%3E%3Ccircle cx='20' cy='12' r='2.4' fill='white' opacity='.5'/%3E%3Cpath d='M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
-<title>@@TITLE@@ · WorkerPool</title>'''
+<title>@@SEOTITLE@@</title>
+<link rel="canonical" href="https://workerpool.ca/tools/@@KEY@@/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="WorkerPool">
+<meta property="og:locale" content="en_CA">
+<meta property="og:title" content="@@SEOTITLE@@">
+<meta property="og:description" content="@@META@@">
+<meta property="og:url" content="https://workerpool.ca/tools/@@KEY@@/">
+<meta property="og:image" content="https://workerpool.ca/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="@@SEOTITLE@@">
+<meta name="twitter:description" content="@@META@@">
+<meta name="twitter:image" content="https://workerpool.ca/assets/og.png">
+@@LD@@'''
+
+SEO = {
+    "bc": "BC PNP &amp; Express Entry CRS Calculator 2026 – Free BC Pathway Check | WorkerPool",
+    "ab": "AAIP &amp; Express Entry CRS Calculator 2026 – Free Alberta Pathway Check | WorkerPool",
+    "mb": "MPNP &amp; Express Entry CRS Calculator 2026 – Free Manitoba Pathway Check | WorkerPool",
+}
+import json
+def ld_for(key, cfg):
+    url = f"https://workerpool.ca/tools/{key}/"
+    g = {"@context": "https://schema.org", "@graph": [
+        {"@type": "WebApplication", "name": cfg["TITLE"], "url": url, "applicationCategory": "UtilitiesApplication",
+         "operatingSystem": "Any", "inLanguage": "en-CA", "isAccessibleForFree": True, "description": cfg["META"],
+         "offers": {"@type": "Offer", "price": "0", "priceCurrency": "CAD"},
+         "publisher": {"@type": "Organization", "name": "WorkerPool", "url": "https://workerpool.ca/"}},
+        {"@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "WorkerPool", "item": "https://workerpool.ca/"},
+            {"@type": "ListItem", "position": 2, "name": cfg["TITLE"], "item": url}]}]}
+    return '<script type="application/ld+json">' + json.dumps(g, separators=(",", ":")) + "</script>"
 
 for key, cfg in P.items():
     s = T.replace("@@PROVINCE_JS@@*/", "*/\n" + open(f"{SRC}/prov_{key}.js").read())
@@ -92,7 +125,7 @@ for key, cfg in P.items():
     pass
     # website page
     w = s.replace(f'<title>{cfg["TITLE"]}</title>\n<meta name="claude:viewport-fit-sides" content="cover">',
-                  HEAD.replace("@@META@@", cfg["META"]).replace("@@TITLE@@", cfg["TITLE"]), 1)
+                  HEAD.replace("@@LD@@", ld_for(key, cfg)).replace("@@META@@", cfg["META"]).replace("@@SEOTITLE@@", SEO[key]).replace("@@KEY@@", key), 1)
     w = w.replace("body{background:var(--bg)", "body{margin:0;background:var(--bg)", 1)
     w = w.replace("</style>\n\n<div class=\"gate\"", "</style>\n</head>\n<body>\n<div class=\"gate\"", 1)
     w = w.rstrip() + f'\n<script>window.WPA_PAGE="{cfg["PAGE"]}";</script>\n<script src="/assets/wpa.js" defer></script>\n</body>\n</html>\n'
