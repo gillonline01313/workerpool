@@ -24,7 +24,7 @@ export async function onRequestPost({ request, env }) {
   if (wantsImm || wantsMatch) {
     const where = p.location === "outside" ? `${str(p.city, 60)}, ${str(p.country, 80)}` : `${str(p.city, 60)}, ${str(p.province, 60)}`;
     await sendEmail(env, env.ADMIN_EMAIL, `New candidate: ${u.name} (${where})`,
-      `${u.name}\n${u.email} · ${str(p.phone, 40) || u.phone}\n${where}\n\nConsultant call: ${wantsImm ? "YES" : "no"}\nEmployer Match: ${wantsMatch ? "YES" : "no"}\n\nFull profile: ${env.SITE_URL || "https://workerpool.ca"}/admin/`);
+      `${u.name}\n${u.email} · ${str(p.phone, 40) || u.phone}\n${where}\n\nConsultant call: ${wantsImm ? "YES" : "no"}\nEmployer Match: ${wantsMatch ? "YES" : "no"}\n\nFull profile: ${env.SITE_URL || "https://workerpool.ca"}/admin/`, u.email);
   }
   return json({ ok: true });
 }

@@ -19,7 +19,7 @@ export async function onRequestPost({ request, env }) {
       .bind(id(), u.id, prov, str(b.name, 120), summary, inputs, now).run();
     const s = b.summary || {};
     await sendEmail(env, env.ADMIN_EMAIL, `Shared ${prov} assessment: ${str(b.name, 80) || u.name}`,
-      `${u.name} (${u.email}, ${u.phone}) agreed to share their ${prov} pathway assessment with a licensed RCIC organization.\n\nCandidate: ${str(b.name, 120)}\nCRS: ${s.crs ?? "-"} · FSW grid: ${s.fsw ?? "-"}\n${s.pnpLabel || "Provincial score"}: ${s.pnp ?? "-"}\nRCIP: ${s.rcip ? `${s.rcip} (${s.rcipPoints != null ? s.rcipPoints + " community points" : "first come, first served"})` : "-"}\n\nFull details: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Shared assessments tab)`);
+      `${u.name} (${u.email}, ${u.phone}) agreed to share their ${prov} pathway assessment with a licensed RCIC organization.\n\nCandidate: ${str(b.name, 120)}\nCRS: ${s.crs ?? "-"} · FSW grid: ${s.fsw ?? "-"}\n${s.pnpLabel || "Provincial score"}: ${s.pnp ?? "-"}\nRCIP: ${s.rcip ? `${s.rcip} (${s.rcipPoints != null ? s.rcipPoints + " community points" : "first come, first served"})` : "-"}\n\nFull details: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Shared assessments tab)`, u.email);
   }
   return json({ ok: true });
 }

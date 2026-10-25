@@ -14,6 +14,6 @@ export async function onRequestPost({ request, env }) {
     `INSERT INTO interest (id, type, business, email, phone, country, created) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
   ).bind(id(), type, business, email, phone, str(cf.country, 4), new Date().toISOString()).run();
   await sendEmail(env, env.ADMIN_EMAIL, `New ${type} interest: ${business}`,
-    `${business} (${type})\n${email} · ${phone}\n\nSee all registrations: ${env.SITE_URL || "https://workerpool.ca"}/admin/`);
+    `${business} (${type})\n${email} · ${phone}\n\nSee all registrations: ${env.SITE_URL || "https://workerpool.ca"}/admin/`, email);
   return json({ ok: true });
 }

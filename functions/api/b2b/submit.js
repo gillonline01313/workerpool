@@ -29,7 +29,7 @@ export async function onRequestPost({ request, env }) {
   const p = data.personal || {};
   const who = [p.given_names, p.family_name].filter(Boolean).join(" ") || u.name;
   await sendEmail(env, env.ADMIN_EMAIL, `${resub ? "Updated" : "New"} B2B application: ${t.name} – ${who}`,
-    `${resub ? `A client edited and resubmitted an application (first submitted ${a.submitted || "–"}). Process the updated version.` : "A client submitted an application for processing."}\n\nApplicant: ${who}\nAccount: ${u.name} (${u.email}, ${u.phone})\nType: ${CATEGORY_LABELS[a.category]} · ${STREAM_LABELS[a.stream]} · ${t.name}\nDocuments uploaded: ${docs.results.length}\nSubmitted: ${now}\n\nOpen it in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (B2B applications tab)`);
+    `${resub ? `A client edited and resubmitted an application (first submitted ${a.submitted || "–"}). Process the updated version.` : "A client submitted an application for processing."}\n\nApplicant: ${who}\nAccount: ${u.name} (${u.email}, ${u.phone})\nType: ${CATEGORY_LABELS[a.category]} · ${STREAM_LABELS[a.stream]} · ${t.name}\nDocuments uploaded: ${docs.results.length}\nSubmitted: ${now}\n\nOpen it in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (B2B applications tab)`, u.email);
   await sendEmail(env, u.email, `We received your ${resub ? "updated " : ""}${t.name} information`,
     `Hi ${u.name.split(" ")[0]},\n\nThanks. We received your ${resub ? "updated " : ""}information and documents for: ${t.name}.\nOur processing team will review them and contact you if anything else is needed.\n\nWorkerPool Data Entry`);
   return json({ ok: true });

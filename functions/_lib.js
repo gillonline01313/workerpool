@@ -67,13 +67,16 @@ export async function getUser(request, env) {
 export const publicUser = (u) => ({ name: u.name, email: u.email, phone: u.phone });
 
 /* ---------- email (Resend) ---------- */
-export async function sendEmail(env, to, subject, text) {
+// Replies never go back to the noreply sender: by default they reach REPLY_TO (or ADMIN_EMAIL).
+// Admin alerts pass the candidate's own email as replyTo, so hitting Reply answers them directly.
+export async function sendEmail(env, to, subject, text, replyTo) {
   if (!env.RESEND_API_KEY || !to) return false;
+  const reply = [replyTo, env.REPLY_TO, env.ADMIN_EMAIL].find((e) => e && isEmail(e) && e !== to) || env.REPLY_TO || env.ADMIN_EMAIL;
   try {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: env.MAIL_FROM || "WorkerPool <noreply@workerpool.ca>", to: [to], subject, text }),
+      body: JSON.stringify({ from: env.MAIL_FROM || "WorkerPool <noreply@workerpool.ca>", to: [to], subject, text, ...(reply ? { reply_to: reply } : {}) }),
     });
     return r.ok;
   } catch { return false; }
@@ -99,7 +102,7 @@ export async function chatNotify(env, t, { open, isNew, text }) {
   if (!(isNew || !open || !t.last_notified || Date.now() - Date.parse(t.last_notified) > 6e5)) return;
   await env.DB.prepare(`UPDATE chat_threads SET last_notified = ?1 WHERE id = ?2`).bind(new Date().toISOString(), t.id).run();
   await sendEmail(env, env.ADMIN_EMAIL, `${open ? "Live chat" : "Offline chat message"} from ${t.name}`,
-    `${t.name}${t.email ? " (" + t.email + ")" : ""} ${isNew ? "started a chat" : "sent a message"}${open ? "" : " outside live hours"}:\n\n${text}\n\nReply in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Live chat tab)`);
+    `${t.name}${t.email ? " (" + t.email + ")" : ""} ${isNew ? "started a chat" : "sent a message"}${open ? "" : " outside live hours"}:\n\n${text}\n\nReply in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Live chat tab)`, t.email);
 }
 
 /* ---------- uploaded file checks (PDF, JPG, PNG, DOC, DOCX up to 10 MB) ---------- */

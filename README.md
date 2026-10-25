@@ -61,7 +61,7 @@ To update draws or rules, edit `tools/src/prov_bc.js`, `prov_ab.js` or `prov_mb.
 
 ## Email
 
-- **Receiving** (admin@, hello@, privacy@workerpool.ca): Cloudflare → workerpool.ca → Email → Email Routing. Forward each address to your own inbox.
+- **Receiving** (admin@, hello@, privacy@workerpool.ca): Cloudflare → workerpool.ca → Email → Email Routing. Forward each address to your own inbox. Also add **noreply@workerpool.ca** (or turn on the catch-all) so any reply sent straight to that address still reaches you instead of bouncing.
 - **Sending** (password resets, new-lead alerts): a free Resend account. Add workerpool.ca in Resend, add the DNS records it shows to Cloudflare, then create an API key.
 
 ## Settings (Pages project → Settings → Variables and Secrets)
@@ -72,6 +72,7 @@ To update draws or rules, edit `tools/src/prov_bc.js`, `prov_ab.js` or `prov_mb.
 | `RESEND_API_KEY` | Secret | API key from Resend |
 | `ADMIN_EMAIL` | Text | Where new-lead alerts go, e.g. admin@workerpool.ca |
 | `MAIL_FROM` | Text | `WorkerPool <noreply@workerpool.ca>` |
+| `REPLY_TO` | Text | Optional. Where replies to site emails go (defaults to `ADMIN_EMAIL`), e.g. your personal email |
 | `SITE_URL` | Text | `https://workerpool.ca` |
 
 Redeploy after changing settings.

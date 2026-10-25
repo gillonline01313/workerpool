@@ -16,6 +16,6 @@ export async function onRequestPost({ request, env }) {
   const p = data.personal || {};
   const who = [p.given_names, p.family_name].filter(Boolean).join(" ") || u.name;
   await sendEmail(env, env.ADMIN_EMAIL, `B2B application reopened for edits: ${a.app_name} – ${who}`,
-    `A client reopened a submitted application to make changes. Hold processing until they resubmit.\n\nApplicant: ${who}\nAccount: ${u.name} (${u.email}, ${u.phone})\nType: ${CATEGORY_LABELS[a.category] || a.category} · ${STREAM_LABELS[a.stream] || a.stream} · ${(t && t.name) || a.app_name}\nOriginally submitted: ${a.submitted || "–"}\nReopened: ${now}\n\nAdmin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (B2B applications tab)`);
+    `A client reopened a submitted application to make changes. Hold processing until they resubmit.\n\nApplicant: ${who}\nAccount: ${u.name} (${u.email}, ${u.phone})\nType: ${CATEGORY_LABELS[a.category] || a.category} · ${STREAM_LABELS[a.stream] || a.stream} · ${(t && t.name) || a.app_name}\nOriginally submitted: ${a.submitted || "–"}\nReopened: ${now}\n\nAdmin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (B2B applications tab)`, u.email);
   return json({ ok: true });
 }
