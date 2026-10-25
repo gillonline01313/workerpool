@@ -20,6 +20,7 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `b2b/` | B2B Data Entry client portal: application type, information sheet, document checklist |
 | `assets/b2b-config.js` | Application types, info sheet sections and document checklists (edit here to add types) |
 | `functions/api/b2b/*` | B2B applications: create, save, upload documents, submit (emails admin) |
+| `tools/bc/` | BC Pathway Check: disclaimer, sign-up, CRS / FSW / BC PNP SIRS / RCIP community scores, 2026 draws (draw data at the top of the script) |
 | `privacy/`, `terms/`, `reset/` | Privacy policy, terms of use, password reset page |
 | `schema.sql` | All database tables (`schema-accounts.sql` adds just the account tables) |
 

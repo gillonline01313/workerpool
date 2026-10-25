@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Free BC immigration self-assessment: tentative Express Entry CRS, Federal Skilled Worker, BC PNP SIRS and RCIP community scores, plus every 2026 draw. Not legal advice.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%233f7a72'/%3E%3Ccircle cx='10' cy='12' r='2.4' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2.4' fill='white' opacity='.75'/%3E%3Ccircle cx='20' cy='12' r='2.4' fill='white' opacity='.5'/%3E%3Cpath d='M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>BC Pathway Check · WorkerPool</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: two-column assessment desk; inputs in numbered panels on the left, results sheet on the right (stacks on phones) */
+:root{
+  --bg:#f1f5f4; --surface:#ffffff; --fg:#17292b; --muted:#566a6c; --line:#d2dcda; --field:#f7faf9;
+  --accent:#3f7a72; --deep:#24514b; --soft:#dcebe7; --accent-fg:#ffffff;
+  --good:#2f7a4f; --good-soft:#e1f1e7; --warn:#9a5b1e; --warn-soft:#f6ebdc; --bad:#a3412f; --bad-soft:#f7e3de;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif; --body:"Figtree","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111819; --surface:#1b2527; --fg:#e3ebea; --muted:#98a8a7; --line:#2d3b3d; --field:#162022;
+  --accent:#7fbcb2; --deep:#9fd0c7; --soft:#213432; --accent-fg:#0f2220;
+  --good:#7fcf9e; --good-soft:#1c3226; --warn:#e3b27c; --warn-soft:#33281b; --bad:#ef9a87; --bad-soft:#3a221d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111819; --surface:#1b2527; --fg:#e3ebea; --muted:#98a8a7; --line:#2d3b3d; --field:#162022;
+  --accent:#7fbcb2; --deep:#9fd0c7; --soft:#213432; --accent-fg:#0f2220;
+  --good:#7fcf9e; --good-soft:#1c3226; --warn:#e3b27c; --warn-soft:#33281b; --bad:#ef9a87; --bad-soft:#3a221d; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 56px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.015em;text-wrap:balance}
+h1{font-size:clamp(1.8rem,4.5vw,2.6rem);line-height:1.08}
+h2{font-size:1.2rem}
+h3{font-size:1rem}
+.eyebrow{font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--accent)}
+.lede{color:var(--muted);max-width:70ch;margin:8px 0 0}
+.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap}
+.rules{display:flex;flex-direction:column;gap:6px;font-size:.85rem;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg button{font:inherit;font-size:.84rem;font-weight:600;border:0;background:none;color:var(--muted);padding:6px 12px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:22px;align-items:start}
+@media (max-width:980px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.panel>summary{list-style:none;cursor:pointer;padding:16px 18px;display:flex;gap:12px;align-items:center}
+.panel>summary::-webkit-details-marker{display:none}
+.num{flex:none;width:28px;height:28px;border-radius:50%;background:var(--soft);color:var(--deep);display:grid;place-items:center;font-weight:700;font-size:.85rem}
+.panel>summary h2{flex:1}
+.panel>summary .hint{font-size:.8rem;color:var(--muted)}
+.panel .body{padding:0 18px 18px;display:flex;flex-direction:column;gap:14px}
+.inputs{display:flex;flex-direction:column;gap:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:560px){.grid,.grid.three{grid-template-columns:1fr}.grid.four{grid-template-columns:1fr 1fr}}
+.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+.f.full{grid-column:1/-1}
+label{font-size:.84rem;font-weight:600}
+.sub{font-size:.78rem;color:var(--muted)}
+input,select{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:9px;padding:9px 11px;width:100%;min-width:0}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:.88rem;font-weight:500}
+.check input{width:auto;margin-top:3px;flex:none}
+.box{border:1px dashed var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.box h3{font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-family:var(--body);font-weight:600}
+.clbline{font-size:.8rem;color:var(--muted)}
+.clbline b{color:var(--fg);font-variant-numeric:tabular-nums}
+.go{position:sticky;bottom:12px;display:flex;gap:10px;justify-content:flex-end;z-index:2}
+.btn{font:inherit;font-weight:600;padding:12px 22px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);cursor:pointer;box-shadow:0 10px 24px -14px rgba(20,60,55,.6)}
+.btn.ghost{background:var(--surface);color:var(--fg);border-color:var(--line);box-shadow:none}
+.results{display:flex;flex-direction:column;gap:14px;position:sticky;top:16px}
+@media (max-width:980px){.results{position:static}}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:16px;padding:28px;color:var(--muted)}
+.empty ul{margin:10px 0 0;padding-left:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card-h{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.score{font-family:var(--display);font-size:2.2rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;text-align:right}
+.score small{display:block;font-family:var(--body);font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:4px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.02em}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.neutral{background:var(--field);color:var(--muted);border:1px solid var(--line)}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.bd{width:100%;border-collapse:collapse;font-size:.85rem}
+.bd td{padding:6px 0;border-bottom:1px solid var(--line)}
+.bd td:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.bd tr.tot td{border-bottom:0;font-weight:700}
+.meter{height:8px;border-radius:4px;background:var(--field);border:1px solid var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.cmp{font-size:.86rem;color:var(--muted)}
+.cmp b{color:var(--fg)}
+ul.reasons{margin:0;padding-left:18px;font-size:.86rem;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+details.more summary{cursor:pointer;font-size:.84rem;color:var(--accent);font-weight:600}
+.draws{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.dtabs{display:flex;gap:6px;flex-wrap:wrap}
+.tbl{overflow-x:auto;max-height:440px;overflow-y:auto;border:1px solid var(--line);border-radius:12px}
+.tbl table{width:100%;border-collapse:collapse;font-size:.84rem;min-width:520px}
+.tbl th{position:sticky;top:0;background:var(--field);text-align:left;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+.tbl td{padding:7px 10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.tbl tr.you td{background:var(--soft)}
+.note{font-size:.8rem;color:var(--muted)}
+.disclaimer{font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+.chart{overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:520px;height:auto}
+.chart text{fill:var(--muted);font-size:11px;font-family:var(--body)}
+.chart line.g{stroke:var(--line)}
+.chart circle{fill:var(--accent)}
+.chart line.you{stroke:var(--warn);stroke-dasharray:4 4;stroke-width:1.5}
+.gate{max-width:640px;margin:4vh auto 0;display:flex;flex-direction:column;gap:18px}
+.gate .card{gap:14px;padding:24px}
+.gate .warnbox{background:var(--warn-soft);border-radius:12px;padding:14px 16px;font-size:.92rem;display:flex;flex-direction:column;gap:6px}
+.gate ul{margin:0;padding-left:18px;color:var(--muted);font-size:.92rem;display:flex;flex-direction:column;gap:4px}
+.tabs{display:flex;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:4px}
+.tabs button{flex:1;font:inherit;font-weight:600;border:0;background:none;color:var(--muted);padding:9px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.err{color:var(--bad);font-size:.86rem;min-height:1.2em}
+.linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.userbar{display:flex;gap:10px;align-items:center;font-size:.84rem;color:var(--muted)}
+.banner{background:var(--warn-soft);border-radius:12px;padding:10px 14px;font-size:.86rem;display:flex;gap:10px;align-items:flex-start}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <div><span class="eyebrow">WorkerPool tools · British Columbia</span><h1 style="margin-top:6px">BC Pathway Check</h1></div>
+  <div class="card" id="gateNotice">
+    <h2>Before you start</h2>
+    <div class="warnbox"><b>This is not legal or immigration advice.</b><span>BC Pathway Check is a free, self-interactive tool. It shows roughly where a person stands across Express Entry, the BC PNP and the Rural Community Immigration Pilot, based only on the details you enter.</span></div>
+    <ul>
+      <li>Scores are tentative estimates. Official scores are set by IRCC, the BC PNP and each community after reviewing documents.</li>
+      <li>Program rules and draw results change often. Always check official government sources before acting.</li>
+      <li>For advice on a specific case, speak with a licensed immigration consultant (CICC) or lawyer.</li>
+      <li>WorkerPool is a data processing company, not an immigration representative.</li>
+    </ul>
+    <label class="check"><input type="checkbox" id="ack"> I understand this is a self-assessment tool and not legal or immigration advice.</label>
+    <div class="err" id="ackErr"></div>
+    <button class="btn" type="button" id="ackGo" style="align-self:flex-start">Continue</button>
+  </div>
+  <div class="card" id="gateAuth" hidden>
+    <h2>Sign up to use the tool</h2>
+    <p class="cmp" style="margin:0">It's free. Already have a WorkerPool account? Sign in with it.</p>
+    <div class="tabs" role="tablist"><button type="button" role="tab" id="tS" aria-selected="true">Sign up</button><button type="button" role="tab" id="tL" aria-selected="false">Sign in</button></div>
+    <form id="authForm" class="inputs" novalidate>
+      <div class="f" id="nmWrap"><label for="aName">Full name</label><input id="aName" autocomplete="name"></div>
+      <div class="f" id="phWrap"><label for="aPhone">Phone number</label><input id="aPhone" type="tel" autocomplete="tel" placeholder="+1 780 555 0123"></div>
+      <div class="f"><label for="aEmail">Email</label><input id="aEmail" type="email" autocomplete="email"></div>
+      <div class="f"><label for="aPass">Password</label><input id="aPass" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
+      <div class="err" id="aErr"></div>
+      <button class="btn" type="submit" id="aGo" style="align-self:flex-start">Create account and start</button>
+      <p class="note" id="aFoot" style="margin:0">By signing up you agree to our <a href="/terms/">terms</a> and <a href="/privacy/">privacy policy</a>.</p>
+      <button class="linkbtn" type="button" id="aForgot" hidden style="align-self:flex-start">Forgot your password?</button>
+    </form>
+  </div>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <div class="top">
+    <div>
+      <span class="eyebrow">British Columbia · Express Entry · BC PNP · RCIP</span>
+      <h1>BC Pathway Check</h1>
+      <p class="lede">Enter a candidate's details, then press Analyze. You'll get a tentative score for each permanent residence pathway open in British Columbia, and every draw held so far in 2026.</p>
+    </div>
+    <div class="rules">
+      <div class="userbar"><span id="who"></span><button class="linkbtn" type="button" id="logout">Sign out</button></div>
+      <span>CRS rules to apply</span>
+      <div class="seg" id="ruleSeg">
+        <button type="button" data-r="new" aria-pressed="true">From Nov 3, 2026</button>
+        <button type="button" data-r="old" aria-pressed="false">Until Nov 2, 2026</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="banner"><span>⚠️</span><span><b>Self-assessment only, not legal or immigration advice.</b> Results are tentative estimates of where a person stands. Official decisions are made by IRCC, the BC PNP and RCIP communities.</span></div>
+  <div class="layout">
+    <form class="inputs" id="form" novalidate>
+
+      <details class="panel" open><summary><span class="num">1</span><h2>Candidate</h2><span class="hint">Name, age, family</span></summary><div class="body">
+        <div class="grid">
+          <div class="f"><label for="name">Candidate name</label><input id="name" placeholder="e.g. Harpreet Singh" value="Sample: Priya Sharma"></div>
+          <div class="f"><label for="age">Age (at time of application)</label><input id="age" type="number" min="16" max="70" value="29"></div>
+          <div class="f"><label for="marital">Marital status</label><select id="marital"><option value="single">Single / divorced / widowed</option><option value="married">Married or common-law</option></select></div>
+          <div class="f" id="accWrap"><label for="spouseAcc">Spouse coming to Canada?</label><select id="spouseAcc"><option value="yes">Yes, accompanying</option><option value="no">No, or spouse is a Canadian citizen/PR</option></select></div>
+          <div class="f"><label for="sibling">Sibling in Canada (citizen or PR, 18+)?</label><select id="sibling"><option value="no">No</option><option value="yes">Yes</option></select></div>
+          <div class="f"><label for="inCanada">Current location</label><select id="inCanada"><option value="wp">In Canada on a work permit</option><option value="other">In Canada, other status</option><option value="out">Outside Canada</option></select></div>
+        </div>
+      </div></details>
+
+      <details class="panel" open><summary><span class="num">2</span><h2>Education</h2><span class="hint">Highest credential</span></summary><div class="body">
+        <div class="grid">
+          <div class="f full"><label for="edu">Highest level of education</label><select id="edu">
+            <option value="none">Less than secondary (high school)</option>
+            <option value="hs">Secondary diploma (high school)</option>
+            <option value="one">One-year post-secondary program</option>
+            <option value="two">Two-year post-secondary program</option>
+            <option value="bach" selected>Bachelor's degree or 3+ year program</option>
+            <option value="twoplus">Two or more credentials, one is 3+ years</option>
+            <option value="master">Master's or professional degree (medicine, law, etc.)</option>
+            <option value="phd">Doctoral degree (PhD)</option></select></div>
+          <div class="f"><label for="pgcert">Post-graduate certificate after a bachelor's?</label><select id="pgcert"><option value="no">No</option><option value="yes">Yes</option></select><span class="sub">Counts for BC PNP education points</span></div>
+          <div class="f"><label for="cdnEdu">Canadian post-secondary education</label><select id="cdnEdu"><option value="none">None</option><option value="short">1 or 2-year credential</option><option value="long">3+ years, master's or PhD</option></select></div>
+          <div class="f"><label for="eduWhere">Where was the highest credential earned?</label><select id="eduWhere"><option value="abroad">Outside Canada</option><option value="bc">In British Columbia</option><option value="canada">In Canada, outside BC</option></select></div>
+          <div class="f"><label for="eca">Foreign credential assessed (ECA)?</label><select id="eca"><option value="yes">Yes, or education is Canadian</option><option value="no">Not yet</option></select></div>
+        </div>
+      </div></details>
+
+      <details class="panel" open><summary><span class="num">3</span><h2>Language tests</h2><span class="hint">English and French</span></summary><div class="body">
+        <div class="box"><h3>English</h3>
+          <div class="grid"><div class="f full"><label for="enTest">Test</label><select id="enTest"><option value="ielts">IELTS General Training</option><option value="celpip">CELPIP-General</option><option value="pte">PTE Core</option><option value="clb">I know the CLB levels</option><option value="none">No test</option></select></div></div>
+          <div class="grid four" id="enScores"></div>
+          <div class="clbline" id="enClb"></div>
+        </div>
+        <div class="box"><h3>French</h3>
+          <div class="grid"><div class="f full"><label for="frTest">Test</label><select id="frTest"><option value="none">No test</option><option value="tef">TEF Canada (old score scale)</option><option value="tcf">TCF Canada</option><option value="clb">I know the NCLC levels</option></select></div></div>
+          <div class="grid four" id="frScores"></div>
+          <div class="clbline" id="frClb"></div>
+        </div>
+      </div></details>
+
+      <details class="panel" open><summary><span class="num">4</span><h2>Work experience</h2><span class="hint">Skilled work, last 10 years</span></summary><div class="body">
+        <div class="grid">
+          <div class="f"><label for="cdnYears">Canadian skilled work (TEER 0–3), years</label><select id="cdnYears"><option value="0">None or under 1 year</option><option value="1" selected>1 year</option><option value="2">2 years</option><option value="3">3 years</option><option value="4">4 years</option><option value="5">5 years or more</option></select><span class="sub">Paid, full-time or equivalent, while authorized</span></div>
+          <div class="f"><label for="cdnRecent">Was at least 1 year of it in the last 3 years?</label><select id="cdnRecent"><option value="yes">Yes</option><option value="no">No</option></select></div>
+          <div class="f"><label for="forYears">Foreign skilled work, years</label><select id="forYears"><option value="0">None or under 1 year</option><option value="1">1 year</option><option value="2" selected>2 years</option><option value="3">3 years or more</option></select></div>
+          <div class="f"><label for="teer">TEER of main occupation</label><select id="teer"><option value="0">TEER 0 (management)</option><option value="1" selected>TEER 1 (university degree jobs)</option><option value="2">TEER 2 (college diploma, apprenticeship 2+ yrs)</option><option value="3">TEER 3 (college under 2 yrs, apprenticeship)</option><option value="4">TEER 4 (high school)</option><option value="5">TEER 5 (short demonstration)</option></select></div>
+          <div class="f full"><label for="occ">Occupation group (for Express Entry categories and BC PNP priorities)</label><select id="occ">
+            <option value="other">Other occupation</option>
+            <option value="health">Health care or social services</option>
+            <option value="physician">Physician (doctor)</option>
+            <option value="ece">Early childhood educator or assistant</option>
+            <option value="teacherFr">Teacher (French-speaking)</option>
+            <option value="vet">Veterinary care</option>
+            <option value="stem" selected>STEM (science, technology, engineering, math)</option>
+            <option value="trades">Construction or other skilled trade</option>
+            <option value="transport">Transport</option>
+            <option value="seniormgr">Senior manager</option>
+            <option value="researcher">Researcher</option></select></div>
+          <div class="f"><label for="hwTier">High-wage level of Canadian occupation</label><select id="hwTier"><option value="0">Not on the high-wage list / unsure</option><option value="13">1.3× median wage or more</option><option value="15">1.5× median wage or more</option><option value="20">2× median wage or more</option></select><span class="sub">Needs 12+ months in that occupation. Check IRCC's high-wage list.</span></div>
+          <div class="f"><label for="cert">Canadian trade certificate of qualification?</label><select id="cert"><option value="no">No</option><option value="yes">Yes</option></select></div>
+        </div>
+      </div></details>
+
+      <details class="panel" open><summary><span class="num">5</span><h2>Job offer in British Columbia</h2><span class="hint">Needed for BC PNP and RCIP</span></summary><div class="body">
+        <div class="grid">
+          <div class="f full"><label for="bcOffer">Does the candidate have a full-time, ongoing BC job offer?</label><select id="bcOffer"><option value="yes" selected>Yes</option><option value="no">No</option></select></div>
+        </div>
+        <div class="grid" id="offerFields">
+          <div class="f"><label for="wage">Hourly wage offered (CAD)</label><input id="wage" type="number" min="0" step="0.01" value="38"></div>
+          <div class="f"><label for="offerTeer">TEER of the job offer</label><select id="offerTeer"><option value="0">TEER 0</option><option value="1" selected>TEER 1</option><option value="2">TEER 2</option><option value="3">TEER 3</option><option value="4">TEER 4</option><option value="5">TEER 5</option></select></div>
+          <div class="f full"><label for="area">Work location</label><select id="area"><option value="1">Metro Vancouver Regional District</option><option value="2">Squamish, Abbotsford, Agassiz, Mission or Chilliwack</option><option value="3" selected>Anywhere else in BC</option></select></div>
+          <div class="f"><label for="regional">Regional experience or regional alumni?</label><select id="regional"><option value="no">No</option><option value="yes">Yes</option></select><span class="sub">1 year work outside Metro Vancouver in last 5 years, or recent regional BC graduate</span></div>
+          <div class="f"><label for="drYears">Directly related experience (same occupation), years</label><select id="drYears"><option value="0">None</option><option value="0.5">Less than 1 year</option><option value="1">1 year</option><option value="2">2 years</option><option value="3" selected>3 years</option><option value="4">4 years</option><option value="5">5 years or more</option></select></div>
+          <div class="f"><label for="drCdn">At least 1 year of that in Canada?</label><select id="drCdn"><option value="yes" selected>Yes</option><option value="no">No</option></select></div>
+          <div class="f"><label for="current">Currently working full-time for this BC employer in this job?</label><select id="current"><option value="no">No</option><option value="yes" selected>Yes</option></select></div>
+          <div class="f"><label for="designation">Eligible BC professional designation?</label><select id="designation"><option value="no">No</option><option value="yes">Yes</option></select><span class="sub">e.g. SkilledTradesBC certificate, registered nurse licence</span></div>
+          <div class="f"><label for="ha">Is the employer a BC public health authority?</label><select id="ha"><option value="no">No</option><option value="yes">Yes</option></select></div>
+          <div class="f full"><label for="offerTier">High-wage level of the job offer (for CRS from Nov 3)</label><select id="offerTier"><option value="0">Not on the high-wage list / unsure</option><option value="13">1.3× median wage or more</option><option value="15">1.5× median wage or more</option><option value="20">2× median wage or more</option></select></div>
+          <div class="f full"><label for="rcip">Rural Community Immigration Pilot (RCIP) community of the job</label><select id="rcip"><option value="">Not in an RCIP community</option><option value="nos">North Okanagan Shuswap (Vernon, Salmon Arm, Armstrong, Enderby, Sicamous)</option><option value="pl">Peace Liard (Fort St. John, Dawson Creek, Chetwynd, Tumbler Ridge, Fort Nelson)</option><option value="wk">West Kootenay (Trail, Castlegar, Rossland, Nelson)</option></select></div>
+          <div class="f full" id="desWrap"><label for="designated">Is the employer designated by that RCIP community?</label><select id="designated"><option value="yes">Yes</option><option value="no">No / unsure</option></select></div>
+        </div>
+      </div></details>
+
+      <details class="panel" id="commPanel" open><summary><span class="num">6</span><h2>Community connection (RCIP)</h2><span class="hint">Community points</span></summary><div class="body">
+        <p class="sub" style="margin:0">RCIP communities rank candidates on their own points grid (out of 125). These details add community points.</p>
+        <div class="grid">
+          <div class="f full"><label for="cNoc">Occupation (NOC) of the job offer</label><select id="cNoc"></select><span class="sub" id="cNocHint"></span></div>
+          <div class="f"><label for="cYears">Years already worked or studied in the community</label><select id="cYears"><option value="0">None</option><option value="1">1 year</option><option value="2">2 years</option><option value="3">3 years or more</option></select></div>
+          <div class="f"><label for="cGrad">Graduated from a public college or university in the community?</label><select id="cGrad"><option value="no">No</option><option value="yes">Yes, within the last 18 months</option></select><span class="sub">Can replace the work experience requirement</span></div>
+          <div class="f"><label for="cFamily">Close family living in the community (citizen or PR, 12+ months)?</label><select id="cFamily"><option value="no">No</option><option value="yes">Yes</option></select></div>
+          <div class="f"><label for="cVol">Volunteering or professional networks in the community?</label><select id="cVol"><option value="no">No</option><option value="yes">Yes</option></select></div>
+          <div class="f"><label for="cHome">Renting or owning a home in the community?</label><select id="cHome"><option value="no">No</option><option value="yes">Yes</option></select></div>
+          <div class="f"><label for="cSpouse">Spouse has 6+ months of work or study in the community?</label><select id="cSpouse"><option value="no">No</option><option value="yes">Yes</option></select></div>
+          <div class="f full"><label for="cIntent">Written statement of intent to live in the community?</label><select id="cIntent"><option value="yes">Yes, will provide one</option><option value="no">No</option></select></div>
+        </div>
+      </div></details>
+
+      <details class="panel"><summary><span class="num">7</span><h2>Spouse and funds</h2><span class="hint">Optional details</span></summary><div class="body">
+        <div class="grid" id="spouseFields">
+          <div class="f"><label for="spEdu">Spouse's education</label><select id="spEdu"><option value="none">Less than secondary</option><option value="hs">Secondary</option><option value="one">One-year program</option><option value="two">Two-year program</option><option value="bach" selected>Bachelor's / 3+ years</option><option value="twoplus">Two or more credentials</option><option value="master">Master's or professional</option><option value="phd">PhD</option></select></div>
+          <div class="f"><label for="spClb">Spouse's lowest English/French CLB</label><select id="spClb"><option value="0">No test / below CLB 5</option><option value="5">CLB 5–6</option><option value="7" selected>CLB 7–8</option><option value="9">CLB 9+</option></select></div>
+          <div class="f"><label for="spCdn">Spouse's Canadian work experience</label><select id="spCdn"><option value="0">None</option><option value="1">1 year</option><option value="2">2 years</option><option value="3">3 years</option><option value="4">4 years</option><option value="5">5+ years</option></select></div>
+          <div class="f"><label for="spStudy">Spouse studied 2+ years in Canada?</label><select id="spStudy"><option value="no">No</option><option value="yes">Yes</option></select></div>
+        </div>
+        <div class="grid">
+          <div class="f"><label for="family">Family size (including candidate)</label><input id="family" type="number" min="1" max="12" value="1"></div>
+          <div class="f"><label for="funds">Settlement funds available (CAD)</label><input id="funds" type="number" min="0" step="100" value="16000"></div>
+        </div>
+      </div></details>
+
+      <div class="go"><button class="btn ghost" type="button" id="reset">Clear</button><button class="btn" type="submit">Analyze</button></div>
+    </form>
+
+    <div class="results" id="results" aria-live="polite">
+      <div class="empty"><h2 style="margin-bottom:6px">Results appear here</h2>
+        The form is filled with a sample candidate so you can see how it works. Change the details and press <b>Analyze</b> to see:
+        <ul><li>Express Entry CRS score, with a full breakdown</li><li>Federal Skilled Worker 67-point grid</li><li>Eligibility for CEC, FSW, FST and 2026 categories</li><li>BC PNP Skills Immigration (SIRS) score and priority group</li><li>RCIP eligibility in BC's three communities</li></ul></div>
+    </div>
+  </div>
+
+  <section class="draws" id="draws">
+    <div class="card-h"><div><span class="eyebrow">2026 draws</span><h2>Every invitation round this year</h2></div></div>
+    <div class="dtabs"><div class="seg" id="drawSeg"><button type="button" data-d="ee" aria-pressed="true">Express Entry</button><button type="button" data-d="bc" aria-pressed="false">BC PNP Skills</button><button type="button" data-d="ent" aria-pressed="false">BC PNP Entrepreneur</button></div>
+      <select id="drawFilter" style="width:auto"></select></div>
+    <div class="chart" id="drawChart"></div>
+    <div class="tbl" id="drawTable"></div>
+    <p class="note" id="drawNote"></p>
+  </section>
+
+  <p class="disclaimer">This tool gives a tentative estimate for general information only. It is not immigration advice and doesn't guarantee an invitation, nomination or visa. Scores depend on documents that IRCC and the BC PNP verify. Express Entry scoring follows IRCC's Comprehensive Ranking System, including the changes announced for November 3, 2026; the full revised grid had not been published by IRCC at the time of writing, so the high-wage parts are estimates. BC PNP scoring follows the Skills Immigration Program Guide (Part 8). Proof-of-funds amounts are IRCC's July 2025 figures; IRCC updates them yearly. Draw data: Express Entry to October 16, 2026; BC PNP to October 8, 2026. For advice on a specific case, consult a licensed immigration consultant (CICC) or lawyer.</p>
+</div>
+
+<script>
+(function(){
+/* ======================= DATA ======================= */
+const EE_DRAWS = [ // [round, date, category, invitations, cutoff]
+ [450,"2026-10-16","French",5000,435],[449,"2026-10-15","CEC",2500,519],[448,"2026-10-13","PNP",752,772],[447,"2026-10-01","Trades",3500,476],
+ [446,"2026-09-29","CEC",2000,518],[445,"2026-09-28","PNP",733,725],[444,"2026-09-16","Senior managers",250,389],[443,"2026-09-15","CEC",2000,519],
+ [442,"2026-09-14","PNP",576,734],[441,"2026-09-04","Healthcare",3500,475],[440,"2026-09-03","Physicians",229,198],[439,"2026-09-01","CEC",2000,521],
+ [438,"2026-08-31","PNP",562,697],[437,"2026-08-19","French",5000,382],[436,"2026-08-18","CEC",1000,523],[435,"2026-08-17","PNP",442,760],
+ [434,"2026-08-07","Transport",300,470],[433,"2026-08-06","French",5000,391],[432,"2026-08-05","CEC",3000,516],[431,"2026-08-04","PNP",507,768],
+ [430,"2026-07-23","Military",4,368],[429,"2026-07-22","French",5000,399],[428,"2026-07-21","CEC",2000,516],[427,"2026-07-20","PNP",511,744],
+ [426,"2026-07-10","Senior managers",500,392],[425,"2026-07-09","French",5000,420],[424,"2026-07-07","CEC",2000,517],[423,"2026-07-06","PNP",534,708],
+ [422,"2026-06-25","Healthcare",4000,475],[421,"2026-06-24","Physicians",271,223],[420,"2026-06-23","CEC",4000,516],[419,"2026-06-22","PNP",955,730],
+ [418,"2026-05-28","French",4500,409],[417,"2026-05-27","CEC",3000,518],[416,"2026-05-25","PNP",334,805],[415,"2026-05-11","PNP",380,798],
+ [414,"2026-04-29","French",4000,400],[413,"2026-04-28","CEC",2000,514],[412,"2026-04-27","PNP",473,795],[411,"2026-04-15","French",4000,419],
+ [410,"2026-04-14","CEC",2000,515],[409,"2026-04-13","PNP",324,786],[408,"2026-04-02","Trades",3000,477],[407,"2026-03-31","CEC",2250,509],
+ [406,"2026-03-30","PNP",356,802],[405,"2026-03-18","French",4000,393],[404,"2026-03-17","CEC",4000,507],[403,"2026-03-16","PNP",362,742],
+ [402,"2026-03-05","Senior managers",250,429],[401,"2026-03-04","French",5500,397],[400,"2026-03-03","CEC",4000,508],[399,"2026-03-02","PNP",264,710],
+ [398,"2026-02-20","Healthcare",4000,467],[397,"2026-02-19","Physicians",391,169],[396,"2026-02-17","CEC",6000,508],[395,"2026-02-16","PNP",279,789],
+ [394,"2026-02-06","French",8500,400],[393,"2026-02-03","PNP",423,749],[392,"2026-01-21","CEC",6000,509],[391,"2026-01-20","PNP",681,746],
+ [390,"2026-01-07","CEC",8000,511],[389,"2026-01-05","PNP",574,711]];
+const EE_LABEL = {CEC:"Canadian Experience Class",PNP:"Provincial Nominee Program",French:"French-language proficiency",Trades:"Trade occupations",Healthcare:"Healthcare and social services",Physicians:"Physicians with Canadian work experience","Senior managers":"Senior managers with Canadian work experience",Transport:"Transport occupations",Military:"Skilled military recruits"};
+const BC_DRAWS = [ // [date, priority group, min score or null (wage-based), invitations as text]
+ ["2026-10-08","Care: Childcare",99,"86"],["2026-10-08","Care: Health",76,"82"],["2026-10-08","Care: Veterinary care",86,"<5"],["2026-10-08","Build: Construction trades",94,"115"],
+ ["2026-09-24","Innovate: High economic impact (wage-based)",null,"426"],["2026-09-24","Innovate: High economic impact (points)",131,"288"],
+ ["2026-09-17","Rural/remote health support initiative",60,"33"],
+ ["2026-09-10","Care: Childcare",99,"182"],["2026-09-10","Care: Health",76,"143"],["2026-09-10","Care: Veterinary care",90,"<5"],["2026-09-10","Build: Construction trades",94,"104"],
+ ["2026-08-20","Innovate: High economic impact (wage-based)",null,"337"],["2026-08-20","Innovate: High economic impact (points)",132,"265"],
+ ["2026-08-06","Care: Childcare",102,"183"],["2026-08-06","Care: Health",84,"124"],["2026-08-06","Care: Education",68,"<5"],["2026-08-06","Care: Veterinary care",72,"6"],["2026-08-06","Build: Construction trades",88,"187"],
+ ["2026-07-23","Rural/remote health support initiative",50,"60"],
+ ["2026-07-16","Innovate: High economic impact (wage-based)",null,"223"],["2026-07-16","Innovate: High economic impact (points)",132,"346"],
+ ["2026-07-09","Care: Childcare",108,"91"],["2026-07-09","Care: Health",96,"116"],["2026-07-09","Care: Veterinary care",88,"<5"],["2026-07-09","Build: Construction trades",97,"136"],
+ ["2026-06-18","Innovate: High economic impact (wage-based)",null,"130"],["2026-06-18","Innovate: High economic impact (points)",136,"149"],
+ ["2026-06-02","Care: Childcare",111,"91"],["2026-06-02","Care: Health",100,"117"],["2026-06-02","Care: Veterinary care",92,"6"],["2026-06-02","Build: Construction trades",101,"128"],
+ ["2026-05-14","Innovate: High economic impact (wage-based)",null,"225"],["2026-05-14","Innovate: High economic impact (points)",135,"212"],
+ ["2026-05-06","Care: Childcare",115,"86"],["2026-05-06","Care: Health",108,"117"],["2026-05-06","Care: Veterinary care",100,"9"],["2026-05-06","Build: Construction trades",108,"121"],
+ ["2026-04-22","Innovate: High economic impact (wage-based)",null,"252"],["2026-04-22","Innovate: High economic impact (points)",138,"232"],
+ ["2026-02-11","Innovate: High economic impact (wage-based)",null,"195"],["2026-02-11","Innovate: High economic impact (points)",135,"265"],
+ ["2026-02-04","Innovate: High economic impact (wage-based)",null,"206"],["2026-02-04","Innovate: High economic impact (points)",138,"223"]];
+const ENT_DRAWS = [["2026-09-22","Base",119,"10"],["2026-09-22","Regional",119,"<5"],["2026-08-25","Base",116,"11"],["2026-08-25","Regional",116,"5"],["2026-07-28","Base",117,"10"],
+ ["2026-06-30","Base",118,"14"],["2026-06-30","Regional",113,"<5"],["2026-06-02","Base",117,"15"],["2026-06-02","Regional",117,"<5"],["2026-05-05","Base",115,"8"],["2026-05-05","Regional",115,"<5"],
+ ["2026-04-14","Base",115,"14"],["2026-03-10","Base",117,"7"],["2026-03-10","Regional",129,"<5"],["2026-02-10","Base",121,"13"],["2026-02-10","Regional",105,"<5"],["2026-01-13","Base",115,"7"]];
+const FUNDS = [0,15263,19001,23360,28362,32168,36280,40392]; const FUNDS_EXTRA = 4112;
+const RCIP = {
+  nos:{name:"North Okanagan Shuswap",status:"Accepting: last 2026 intake window Nov 8–15. Community ranks candidates; recent cut-offs 91–94 on its own points grid.",open:true},
+  pl:{name:"Peace Liard",status:"Second 2026 intake Oct 13–20, limited to designated employers without a recommendation yet this year.",open:true},
+  wk:{name:"West Kootenay",status:"Closed for 2026 after its September intake. Next intake in 2027.",open:false}};
+
+/* ================= LANGUAGE CONVERSION (to CLB / NCLC) =================
+   Each row: minimum score for CLB 10, 9, 8, 7, 6, 5, 4. Abilities L, R, W, S. */
+const CONV = {
+  ielts:{L:[8.5,8,7.5,6,5.5,5,4.5],R:[8,7,6.5,6,5,4,3.5],W:[7.5,7,6.5,6,5.5,5,4],S:[7.5,7,6.5,6,5.5,5,4]},
+  pte:{L:[89,82,71,60,50,39,28],R:[88,78,69,60,51,42,33],W:[90,88,79,69,60,51,41],S:[89,84,76,68,59,51,42]},
+  tef:{L:[316,298,280,249,217,181,145],R:[263,248,233,207,181,151,121],W:[393,371,349,310,271,226,181],S:[393,371,349,310,271,226,181]},
+  tcf:{L:[549,523,503,458,398,369,331],R:[549,524,499,453,406,375,342],W:[16,14,12,10,7,6,4],S:[16,14,12,10,7,6,4]}};
+const AB=[["L","Listening"],["R","Reading"],["W","Writing"],["S","Speaking"]];
+function toClb(test,ab,v){
+  if(v===""||v==null||isNaN(+v)) return 0; v=+v;
+  if(test==="clb") return Math.max(0,Math.min(12,Math.floor(v)));
+  if(test==="celpip") return Math.max(0,Math.min(12,Math.floor(v)));
+  const t=CONV[test]; if(!t) return 0; const row=t[ab];
+  for(let i=0;i<row.length;i++) if(v>=row[i]) return 10-i;
+  return 0;
+}
+const SCORE_HINT={ielts:"0–9",celpip:"M or 1–12",pte:"10–90",tef:"see certificate",tcf:"L/R 0–699, W/S 0–20",clb:"1–12"};
+const SAMPLE={en:{test:"ielts",L:"8",R:"7",W:"7",S:"7"},fr:{test:"none"}};
+function renderScores(kind){
+  const test=document.getElementById(kind+"Test").value, box=document.getElementById(kind+"Scores");
+  if(test==="none"){ box.innerHTML=""; box.hidden=true; updClb(kind); return; }
+  box.hidden=false;
+  const prev={}; box.querySelectorAll("input").forEach(i=>prev[i.dataset.a]=i.value);
+  const s=SAMPLE[kind];
+  box.innerHTML=AB.map(([a,l])=>`<div class="f"><label for="${kind}${a}">${l}</label><input id="${kind}${a}" data-a="${a}" inputmode="decimal" placeholder="${SCORE_HINT[test]}" value="${prev[a]??(s.test===test&&s[a]!=null?s[a]:"")}"></div>`).join("");
+  box.querySelectorAll("input").forEach(i=>i.oninput=()=>updClb(kind));
+  updClb(kind);
+}
+function readClb(kind){
+  const test=document.getElementById(kind+"Test").value;
+  if(test==="none") return null;
+  const o={}; AB.forEach(([a])=>{ const el=document.getElementById(kind+a); o[a]=toClb(test,a,el?el.value.trim():""); });
+  o.min=Math.min(o.L,o.R,o.W,o.S); return o;
+}
+function updClb(kind){
+  const c=readClb(kind), el=document.getElementById(kind+"Clb");
+  el.innerHTML = c ? `${kind==="en"?"CLB":"NCLC"}: L <b>${c.L}</b> · R <b>${c.R}</b> · W <b>${c.W}</b> · S <b>${c.S}</b> · lowest <b>${c.min}</b>` : "";
+}
+
+/* ======================= SCORING ======================= */
+const AGE_W=[0,90,95,100,100,100,100,100,100,100,100,100,100,95,90,85,80,75,70,65,60,55,50,45,35,25,15,5]; // ages 17..44
+const AGE_WO=[0,99,105,110,110,110,110,110,110,110,110,110,110,105,99,94,88,83,77,72,66,61,55,50,39,28,17,6];
+const EDU_W={none:0,hs:28,one:84,two:91,bach:112,twoplus:119,master:126,phd:140};
+const EDU_WO={none:0,hs:30,one:90,two:98,bach:120,twoplus:128,master:135,phd:150};
+const CDN_W=[0,35,46,56,63,70], CDN_WO=[0,40,53,64,72,80];
+const SP_EDU={none:0,hs:2,one:6,two:7,bach:8,twoplus:9,master:10,phd:10};
+const SP_CDN=[0,5,7,8,9,10];
+function l1(c,sp){ if(c<4) return 0; if(c<=5) return 6; if(c===6) return sp?8:9; if(c===7) return sp?16:17; if(c===8) return sp?22:23; if(c===9) return sp?29:31; return sp?32:34; }
+function l2(c){ if(c<=4) return 0; if(c<=6) return 1; if(c<=8) return 3; return 6; }
+function langPts(first,second,sp){
+  const a=first?AB.reduce((s,[k])=>s+l1(first[k],sp),0):0;
+  const b=second?Math.min(sp?22:24,AB.reduce((s,[k])=>s+l2(second[k]),0)):0;
+  return {first:a,second:b};
+}
+
+function crs(p){
+  const sp=p.withSpouse, rows=[];
+  const age=p.age<17?0:p.age>=45?0:(sp?AGE_W:AGE_WO)[p.age-17];
+  const edu=(sp?EDU_W:EDU_WO)[p.edu];
+  // first official language = whichever gives more points
+  let opt1=langPts(p.en,p.fr,sp), opt2=langPts(p.fr,p.en,sp);
+  const useFr = p.fr && (opt2.first+opt2.second > opt1.first+opt1.second);
+  const L=useFr?opt2:opt1, first=useFr?p.fr:p.en;
+  const cy=p.cdnYears, lenPts=(sp?CDN_W:CDN_WO)[Math.min(cy,5)];
+  let cdn=lenPts, cdnLabel="Canadian work experience";
+  if(p.rules==="new"){
+    const bonus = cy>=1 ? ({0:0,13:20,15:40,20:70}[p.hwTier]) : 0;
+    const offer = p.bcOffer ? ({0:0,13:50,15:70,20:100}[p.offerTier]) : 0;
+    const o1=lenPts+bonus;
+    cdn=Math.min(sp?140:150,Math.max(o1,offer));
+    cdnLabel = offer>o1 ? "Labour market factor (high-wage job offer)" : (bonus?"Labour market factor (Canadian experience + high-wage)":"Labour market factor (Canadian experience)");
+  }
+  rows.push(["Age",age],["Education",edu],["First official language ("+(useFr?"French":"English")+")",L.first],["Second official language",L.second],[cdnLabel,cdn]);
+  const core=age+edu+L.first+L.second+cdn;
+  // spouse
+  let spouse=0;
+  if(sp){
+    const sl=p.spClb>=9?5:p.spClb>=7?3:p.spClb>=5?1:0;
+    spouse=SP_EDU[p.spEdu]+Math.min(20,sl*4)+SP_CDN[Math.min(p.spCdn,5)];
+    rows.push(["Spouse factors",spouse]);
+  }
+  // skill transferability (uses first official language and length of Canadian experience)
+  const m=first?first.min:0, all7=m>=7, all9=m>=9;
+  const strong=["twoplus","master","phd"].includes(p.edu), postsec=["one","two","bach"].includes(p.edu);
+  const A=strong?(all9?50:all7?25:0):postsec?(all9?25:all7?13:0):0;
+  const B=strong?(cy>=2?50:cy>=1?25:0):postsec?(cy>=2?25:cy>=1?13:0):0;
+  const fy=p.forYears;
+  const C=fy>=3?(all9?50:all7?25:0):fy>=1?(all9?25:all7?13:0):0;
+  const D=fy>=3?(cy>=2?50:cy>=1?25:0):fy>=1?(cy>=2?25:cy>=1?13:0):0;
+  const E=p.cert?(all7?50:m>=5?25:0):0;
+  const skill=Math.min(100,Math.min(50,A+B)+Math.min(50,C+D)+Math.min(50,E));
+  rows.push(["Skill transferability",skill]);
+  // additional
+  let add=0; const addRows=[];
+  if(p.pnp){ add+=600; addRows.push(["Provincial nomination",600]); }
+  if(p.sibling){ add+=15; addRows.push(["Sibling in Canada",15]); }
+  if(p.fr && p.fr.min>=7){ const enOk=p.en && p.en.min>=5; const v=enOk?50:25; add+=v; addRows.push(["French-language skills",v]); }
+  if(p.cdnEdu==="short"){ add+=15; addRows.push(["Canadian education (1–2 years)",15]); }
+  if(p.cdnEdu==="long"){ add+=30; addRows.push(["Canadian education (3+ years)",30]); }
+  add=Math.min(600,add);
+  rows.push(...addRows);
+  return {total:core+spouse+skill+add, rows, core, firstMin:m, useFr};
+}
+
+function fsw(p){
+  const first = (p.en && (!p.fr || p.en.min>=p.fr.min)) ? p.en : p.fr; const second = first===p.en ? p.fr : p.en;
+  const reasons=[]; let ok=true;
+  if(!first || first.min<7){ ok=false; reasons.push("Needs CLB 7 in all four abilities in English or French"); }
+  const skilled=+p.cdnYears+ +p.forYears;
+  if(skilled<1 || p.teer>3){ ok=false; reasons.push("Needs 1 year of continuous skilled work (TEER 0–3) in the last 10 years"); }
+  if(!p.ecaOk){ ok=false; reasons.push("Foreign education needs an ECA (or a Canadian credential)"); }
+  const lp=first?AB.reduce((s,[k])=>s+(first[k]>=9?6:first[k]===8?5:first[k]===7?4:0),0):0;
+  const l2p=second && second.min>=5?4:0;
+  const ed={none:0,hs:5,one:15,two:19,bach:21,twoplus:22,master:23,phd:25}[p.edu];
+  const ex=skilled>=6?15:skilled>=4?13:skilled>=2?11:skilled>=1?9:0;
+  const ag=p.age<18?0:p.age<=35?12:p.age>=47?0:12-(p.age-35);
+  const ae=p.bcOffer&&p.offerTeer<=3?10:0;
+  let ad=0;
+  if(p.withSpouse && p.spClb>=4) ad+=5;
+  if(p.cdnEdu!=="none") ad+=5;
+  if(p.withSpouse && p.spStudy) ad+=5;
+  if(p.cdnYears>=1) ad+=10;
+  if(p.withSpouse && p.spCdn>=1) ad+=5;
+  if(ae) ad+=5;
+  if(p.sibling) ad+=5;
+  ad=Math.min(10,ad);
+  const total=lp+l2p+ed+ex+ag+ae+ad;
+  if(total<67){ ok=false; reasons.push(`Scores ${total} of 100; at least 67 is needed`); }
+  const need=FUNDS[Math.min(p.family,7)]+(p.family>7?(p.family-7)*FUNDS_EXTRA:0);
+  const exempt=p.bcOffer && p.inCanada==="wp";
+  if(!exempt && p.funds<need){ ok=false; reasons.push(`Needs $${need.toLocaleString("en-CA")} in settlement funds for a family of ${p.family}`); }
+  return {ok,total,reasons,rows:[["Language (first)",lp],["Language (second)",l2p],["Education",ed],["Experience",ex],["Age",ag],["Arranged employment",ae],["Adaptability",ad]],need,exempt};
+}
+
+function eeEligibility(p){
+  const first = (p.en && (!p.fr || p.en.min>=p.fr.min)) ? p.en : p.fr;
+  const m = first?first.min:0;
+  const cec = { ok: p.cdnYears>=1 && p.cdnRecent && p.teer<=3 && (p.teer<=1 ? m>=7 : m>=5),
+    why: p.cdnYears<1||!p.cdnRecent ? "Needs 1 year of Canadian skilled work in the last 3 years" : p.teer>3 ? "Experience must be TEER 0–3" : (p.teer<=1 && m<7) ? "Needs CLB 7 for TEER 0–1 work" : m<5 ? "Needs CLB 5 for TEER 2–3 work" : "" };
+  const lang = first ? (first.S>=5 && first.L>=5 && first.R>=4 && first.W>=4) : false;
+  const tradeExp = p.occ==="trades" && (+p.cdnYears + +p.forYears)>=2;
+  const fst = { ok: tradeExp && lang && (p.cert || (p.bcOffer && p.offerTeer<=3)),
+    why: p.occ!=="trades" ? "Only for skilled trade occupations" : !tradeExp ? "Needs 2 years of trade experience in the last 5 years" : !lang ? "Needs CLB 5 speaking/listening and CLB 4 reading/writing" : "Needs a job offer or a Canadian certificate of qualification" };
+  return {cec,fst,firstMin:m};
+}
+
+function categories(p){
+  const out=[]; const yrsAny=(+p.cdnYears + +p.forYears)>=1;
+  if(p.fr && p.fr.min>=7) out.push({k:"French",why:"NCLC 7+ in all four French abilities"});
+  if(p.occ==="health" && yrsAny) out.push({k:"Healthcare",why:"Healthcare or social services occupation"});
+  if(p.occ==="physician" && p.cdnYears>=1) out.push({k:"Physicians",why:"Physician with Canadian experience"});
+  if(p.occ==="trades" && yrsAny) out.push({k:"Trades",why:"Eligible trade occupation"});
+  if(p.occ==="transport" && yrsAny) out.push({k:"Transport",why:"Transport occupation"});
+  if(p.occ==="seniormgr" && p.cdnYears>=1) out.push({k:"Senior managers",why:"Senior manager with Canadian experience"});
+  if(p.occ==="stem" && yrsAny) out.push({k:"STEM",why:"STEM occupation (no STEM-only round held yet in 2026)"});
+  if((p.occ==="teacherFr"||p.occ==="ece") && yrsAny) out.push({k:"Education",why:"Education occupation (no education round held yet in 2026)"});
+  if(p.occ==="researcher" && p.cdnYears>=1) out.push({k:"Researchers",why:"Researcher with Canadian experience (no round held yet in 2026)"});
+  return out;
+}
+function drawStats(cat){
+  const d=EE_DRAWS.filter(x=>x[2]===cat); if(!d.length) return null;
+  const cut=d.map(x=>x[4]); return {latest:d[0], min:Math.min(...cut), max:Math.max(...cut), n:d.length};
+}
+
+function sirs(p){
+  const rows=[];
+  const wage=Math.max(0,Math.min(55,Math.floor(p.wage)-15));
+  let area={1:0,2:5,3:15}[p.area]; const reg=(p.area!==1 && p.regional)?10:0;
+  const dr={0:0,0.5:1,1:4,2:8,3:12,4:16,5:20}[p.drYears] + (p.drCdn&&p.drYears>=1?10:0) + (p.current?10:0);
+  let ed={none:0,hs:0,one:5,two:5,bach:15,twoplus:15,master:22,phd:27}[p.edu];
+  if(p.pgcert && ed<15) ed=15;
+  if(p.edu!=="none" && p.edu!=="hs"){ ed += p.eduWhere==="bc"?8:p.eduWhere==="canada"?6:0; }
+  if(p.designation) ed+=5;
+  ed=Math.min(40,ed);
+  const best = [p.en,p.fr].filter(Boolean).reduce((a,c)=>Math.max(a,c.min),0);
+  let lg = best>=9?30:best===8?25:best===7?20:best===6?15:best===5?10:best===4?5:0;
+  if(p.en && p.fr && p.en.min>=4 && p.fr.min>=4) lg+=10;
+  lg=Math.min(40,lg);
+  const drC=Math.min(40,dr);
+  rows.push(["Directly related work experience",drC],["Education",ed],["Language",lg],["Hourly wage",wage],["Area of employment",area+reg]);
+  return {total:drC+ed+lg+wage+area+reg, rows, human:drC+ed+lg, econ:wage+area+reg};
+}
+function bcPriority(p){
+  const map={health:"Care: Health",physician:"Care: Health",ece:"Care: Childcare",vet:"Care: Veterinary care",teacherFr:"Care: Education",trades:"Build: Construction trades"};
+  if(map[p.occ]) return map[p.occ];
+  if(p.occ==="stem"||p.occ==="seniormgr"||p.occ==="researcher") return "Innovate: High economic impact (points)";
+  return null;
+}
+
+/* RCIP community points (max 125, 25 per factor). West Kootenay and North Okanagan Shuswap
+   publish their grids; Peace Liard does not, so its score is an estimate on the same structure. */
+const SECTOR_PTS={"1":[15,"Business, finance and administration"],"2":[15,"Natural and applied sciences"],"3":[20,"Health"],"4":[20,"Education, law, social, community and government services"],"6":[10,"Sales and service"],"7":[20,"Trades, transport and equipment operators"],"8":[15,"Natural resources and agriculture"],"9":[15,"Manufacturing and utilities"]};
+const NOCS={
+ wk:[["11100","Financial auditors and accountants",10],["12200","Accounting technicians and bookkeepers",5],["13110","Administrative assistants",5],["31301","Registered nurses",5],["32101","Licensed practical nurses",5],["33102","Nurse aides, orderlies, patient service associates",5],["42201","Social and community service workers",5],["42202","Early childhood educators and assistants",5],["60020","Retail and wholesale trade managers",5],["60030","Restaurant and food service managers",5],["62200","Chefs",5],["63100","Insurance agents and brokers",5],["72400","Construction millwrights and industrial mechanics",5],["72410","Automotive service technicians and mechanics",5],["73300","Transport truck drivers",5],["94140","Process control and machine operators, food and beverage",5],["44101","Home support workers and caregivers",0],["63200","Cooks",0],["63202","Bakers",0],["64314","Hotel front desk clerks",0],["65200","Food and beverage servers",0],["73112","Painters and decorators",0],["75101","Material handlers",0],["75110","Construction trades helpers and labourers",0],["95109","Other labourers in processing and manufacturing",0],["14100","General office support workers (secondary)",0],["65201","Food counter attendants, kitchen helpers (secondary)",0],["65310","Light duty cleaners (secondary)",0],["72310","Carpenters (secondary)",0],["72401","Heavy-duty equipment mechanics (secondary)",0],["75119","Other trades helpers and labourers (secondary)",0]],
+ nos:[["12200","Accounting technicians and bookkeepers",22],["13100","Administrative officers",24.64],["13111","Legal administrative assistants",22],["14200","Accounting and related clerks",22],["21321","Industrial and manufacturing engineers",32.92],["32124","Pharmacy technicians",22],["33100","Dental assistants",29],["33101","Medical laboratory assistants",23.99],["33102","Nurse aides, orderlies, patient service associates",23],["42201","Social and community service workers",22],["42202","Early childhood educators",22],["60030","Restaurant and food service managers",25],["62010","Retail sales supervisors",22],["62021","Executive housekeepers",25],["63100","Insurance agents and brokers",22],["63202","Bakers",22],["65310","Light duty cleaners",22],["72310","Carpenters",26],["72402","HVAC and refrigeration mechanics",30],["72410","Automotive service technicians and mechanics",22],["73300","Transport truck drivers",22],["75110","Construction trades helpers",22],["90010","Manufacturing managers",35.54],["94140","Process control and machine operators, food and beverage",22],["94212","Plastic products assemblers, finishers, inspectors",22]],
+ pl:[["60031","Accommodation service managers"],["12200","Accounting technicians and bookkeepers"],["13110","Administrative assistants"],["13100","Administrative officers"],["72404","Aircraft mechanics and inspectors"],["72600","Air pilots, flight engineers and instructors"],["72410","Automotive service technicians and mechanics"],["65100","Cashiers"],["42201","Social and community service workers"],["22220","Computer network and web technicians"],["63200","Cooks"],["42202","Early childhood educators and assistants"],["62020","Food service supervisors"],["64314","Hotel front desk clerks"],["73201","Building maintenance workers and superintendents"],["14100","General office support workers"],["21222","Information systems specialists"],["65310","Light duty cleaners"],["33109","Other assisting occupations in health services"],["33103","Pharmacy technical assistants"],["60030","Restaurant and food service managers"],["60020","Retail and wholesale trade managers"],["62010","Retail sales supervisors"],["14401","Storekeepers and partspersons"],["73300","Transport truck drivers (local)"]]};
+function fillNocs(){
+  const k=$("rcip").value, sel=$("cNoc"), prev=sel.value;
+  const list=NOCS[k]||[];
+  sel.innerHTML=`<option value="">Choose the job offer's NOC…</option>`+list.map(n=>`<option value="${n[0]}">${n[0]} · ${esc(n[1])}</option>`).join("")+`<option value="other">Other NOC (not on the community's priority list)</option>`;
+  if([...sel.options].some(o=>o.value===prev)) sel.value=prev;
+  $("cNocHint").textContent = k==="nos" ? "North Okanagan Shuswap sets a minimum wage per NOC and gives up to 5 points for paying above it." : k==="wk" ? "West Kootenay gives sector points plus NOC points, capped at 25." : k==="pl" ? "Peace Liard ranks with a scoring grid it shares only with applicants, so its score here is an estimate." : "";
+}
+function communityPoints(p){
+  if(!p.rcip) return null;
+  const k=p.rcip, rows=[], notes=[];
+  const noc=p.cNoc, entry=(NOCS[k]||[]).find(n=>n[0]===noc);
+  const sector=noc&&noc!=="other"?SECTOR_PTS[noc[0]]:null;
+  // job offer
+  let job=0;
+  if(!noc){ notes.push("Choose the job offer's NOC to score the job offer factor."); }
+  else if(noc==="other"){ job=0; notes.push("Occupations outside the priority list are rarely recommended; most communities cap these."); }
+  else {
+    const sp=sector?sector[0]:0;
+    if(k==="wk"){ job=Math.min(25,sp+(entry?entry[2]:0)); rows.push(["Job offer: sector ("+(sector?sector[1]:"not a priority sector")+")",sp],["Job offer: NOC "+noc,entry?entry[2]:0]); }
+    else if(k==="nos"){
+      const min=entry?entry[2]:22, over=p.wage-min, wb=over>=5?5:over>=2?3:0;
+      if(p.wage<min) notes.push(`The wage must be at least $${min.toFixed(2)}/hour for this NOC.`);
+      job=Math.min(25,sp+wb); rows.push(["Job offer: NOC category (estimated from sector)",sp],[`Wage above the $${min.toFixed(2)} community minimum`,wb]);
+    } else { job=Math.min(25,sp); rows.push(["Job offer: sector (estimate)",sp]); }
+  }
+  // work experience
+  const yrs=p.drYears>=4?4:p.drYears>=1?Math.floor(p.drYears):0;
+  let we={0:0,1:10,2:15,3:20,4:25}[yrs]; if(!we && p.cGrad) we=10;
+  rows.push(["Work experience"+(p.cGrad&&p.drYears<1?" (graduate exemption)":""),we]);
+  // language (lowest CLB of best language) by job TEER
+  const first=[p.en,p.fr].filter(Boolean).reduce((a,c)=>c.min>a?c.min:a,0), t=p.offerTeer;
+  const tbl = t<=1?{6:10,7:15,8:20,9:25} : t<=3?{5:10,6:15,7:20,8:25} : {4:10,5:15,6:20,7:25};
+  const keys=Object.keys(tbl).map(Number), top=Math.max(...keys);
+  const lang = first>=top ? 25 : (tbl[first]||0);
+  rows.push([`Language (lowest CLB ${first}, TEER ${t} job)`,lang]);
+  // education
+  const ed={none:0,hs:10,one:15,two:15,bach:20,twoplus:20,master:25,phd:25}[p.edu];
+  rows.push(["Education",ed]);
+  // intent to reside + community ties
+  let ties=({0:0,1:2,2:4,3:6}[p.cYears])+(p.cFamily?2:0)+(p.cVol?2:0)+(p.cHome?2:0)+(p.withSpouse&&p.cSpouse?3:0);
+  ties=Math.min(15,ties);
+  const intent=p.cIntent?10+ties:0;
+  rows.push(["Intent to reside (statement)",p.cIntent?10:0],["Community ties",p.cIntent?ties:0]);
+  const total=job+we+lang+ed+intent;
+  const factors=[job,we,lang,ed,intent];
+  const minEach = k==="wk" ? factors.every(f=>f>=10) : true;
+  const pass = total>=50 && minEach;
+  if(k==="wk" && !minEach) notes.push("West Kootenay needs at least 10 points in every factor.");
+  if(!p.cIntent) notes.push("A written statement of intent to reside is required.");
+  return {total,rows,pass,notes,estimate:k==="pl"||k==="nos"};
+}
+
+function rcip(p){
+  if(!p.rcip) return null;
+  const c=RCIP[p.rcip], items=[];
+  const need = p.offerTeer<=1?6:p.offerTeer<=3?5:4;
+  const first = (p.en && (!p.fr || p.en.min>=p.fr.min)) ? p.en : p.fr;
+  items.push([p.bcOffer, "Full-time, ongoing job offer in the community"]);
+  items.push([p.designated, "Employer designated by "+c.name]);
+  items.push([p.drYears>=1||p.cGrad, "1 year (1,560 hours) of related work in the last 3 years, at a matching TEER (or a recent graduate exemption)"]);
+  items.push([first && first.min>=need, `Language: CLB ${need} in all four abilities for a TEER ${p.offerTeer} job`]);
+  items.push([p.edu!=="none" && p.ecaOk, "Canadian high school or higher, or a foreign credential with an ECA"]);
+  items.push([p.inCanada==="wp" || p.funds>=10507, "Settlement funds (about $10,507 for one person), unless working in Canada"]);
+  const met=items.filter(i=>i[0]).length;
+  return {c,items,met,total:items.length,ok:met===items.length};
+}
+
+/* ======================= READ FORM ======================= */
+const $=id=>document.getElementById(id);
+let RULES="new";
+function read(){
+  const married=$("marital").value==="married";
+  const en=readClb("en"), fr=readClb("fr");
+  return {
+    name:$("name").value.trim()||"Candidate", age:Math.max(0,parseInt($("age").value)||0),
+    withSpouse: married && $("spouseAcc").value==="yes", sibling:$("sibling").value==="yes", inCanada:$("inCanada").value,
+    edu:$("edu").value, pgcert:$("pgcert").value==="yes", cdnEdu:$("cdnEdu").value, eduWhere:$("eduWhere").value, ecaOk:$("eca").value==="yes",
+    en:(en&&en.min>0)||(en&&(en.L||en.R||en.W||en.S))?en:null, fr:(fr&&(fr.L||fr.R||fr.W||fr.S))?fr:null,
+    cdnYears:+$("cdnYears").value, cdnRecent:$("cdnRecent").value==="yes", forYears:+$("forYears").value, teer:+$("teer").value,
+    occ:$("occ").value, hwTier:+$("hwTier").value, cert:$("cert").value==="yes",
+    bcOffer:$("bcOffer").value==="yes", wage:parseFloat($("wage").value)||0, offerTeer:+$("offerTeer").value, area:+$("area").value,
+    regional:$("regional").value==="yes", drYears:+$("drYears").value, drCdn:$("drCdn").value==="yes", current:$("current").value==="yes",
+    designation:$("designation").value==="yes", ha:$("ha").value==="yes", offerTier:+$("offerTier").value,
+    rcip:$("rcip").value, designated:$("designated").value==="yes",
+    spEdu:$("spEdu").value, spClb:+$("spClb").value, spCdn:+$("spCdn").value, spStudy:$("spStudy").value==="yes",
+    cNoc:$("cNoc").value, cYears:+$("cYears").value, cGrad:$("cGrad").value==="yes", cFamily:$("cFamily").value==="yes", cVol:$("cVol").value==="yes",
+    cHome:$("cHome").value==="yes", cSpouse:$("cSpouse").value==="yes", cIntent:$("cIntent").value==="yes",
+    family:Math.max(1,parseInt($("family").value)||1), funds:parseFloat($("funds").value)||0, rules:RULES, pnp:false };
+}
+
+/* ======================= RENDER ======================= */
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pill=(t,cls)=>`<span class="pill ${cls}">${esc(t)}</span>`;
+const table=(rows,total,label)=>`<table class="bd">${rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${r[1]}</td></tr>`).join("")}<tr class="tot"><td>${label||"Total"}</td><td>${total}</td></tr></table>`;
+const fmtD=d=>new Date(d+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"});
+
+function analyze(){
+  const p=read(), out=[];
+  if(!p.en && !p.fr){ $("results").innerHTML=`<div class="card"><h2>Add a language test</h2><p class="cmp">Every program here needs an English or French test result. Enter scores in section 3, then press Analyze again.</p></div>`; return; }
+  const c=crs(p), el=eeEligibility(p), f=fsw(p), cats=categories(p);
+  const eeOk=el.cec.ok||f.ok||el.fst.ok;
+  const cec=drawStats("CEC");
+  // --- Express Entry card
+  const progPills=[el.cec.ok?pill("CEC eligible","good"):pill("CEC: not yet","bad"), f.ok?pill("FSW eligible","good"):pill("FSW: not yet","bad"), el.fst.ok?pill("FST eligible","good"):(p.occ==="trades"?pill("FST: not yet","bad"):pill("FST: n/a","neutral"))];
+  const catLines=cats.map(k=>{ const s=drawStats(k.k); return `<li><b>${esc(EE_LABEL[k.k]||k.k)}</b>: ${esc(k.why)}${s?` · 2026 cut-offs ${s.min}–${s.max}, latest ${s.latest[4]} on ${fmtD(s.latest[1])}${c.total>=s.latest[4]?` · <span style="color:var(--good);font-weight:600">your score is at or above the latest</span>`:""}`:""}</li>`; }).join("");
+  const gap=cec?cec.latest[4]-c.total:0;
+  out.push(`<div class="card">
+    <div class="card-h"><div><span class="eyebrow">Federal · Express Entry</span><h2>Comprehensive Ranking System</h2><div class="pills" style="margin-top:8px">${progPills.join("")}</div></div>
+      <div class="score">${c.total}<small>CRS points</small></div></div>
+    ${cec?`<div class="meter" title="CRS against the latest CEC cut-off"><i style="width:${Math.min(100,c.total/Math.max(cec.latest[4],c.total)*100)}%"></i></div>
+    <p class="cmp">Latest Canadian Experience Class cut-off: <b>${cec.latest[4]}</b> (${fmtD(cec.latest[1])}). ${eeOk? (gap>0?`About <b>${gap}</b> points short for a general CEC round.`:`<b>At or above</b> the latest CEC cut-off.`) : "Becomes relevant once the candidate is eligible for an Express Entry program."}</p>`:""}
+    ${cats.length?`<div><h3 style="margin-bottom:4px">2026 categories the candidate may fit</h3><ul class="reasons">${catLines}</ul></div>`:""}
+    ${!eeOk?`<ul class="reasons">${[el.cec.why&&"CEC: "+el.cec.why, ...f.reasons.map(r=>"FSW: "+r), p.occ==="trades"&&el.fst.why&&"FST: "+el.fst.why].filter(Boolean).map(r=>`<li>${esc(r)}</li>`).join("")}</ul>`:""}
+    <details class="more"><summary>CRS breakdown (${RULES==="new"?"rules from Nov 3, 2026":"rules until Nov 2, 2026"})</summary>${table(c.rows,c.total,"Total CRS")}</details>
+  </div>`);
+  // --- FSW grid
+  out.push(`<div class="card"><div class="card-h"><div><span class="eyebrow">Federal Skilled Worker</span><h2>67-point eligibility grid</h2><div class="pills" style="margin-top:8px">${f.total>=67?pill("Meets 67 points","good"):pill("Below 67","bad")}</div></div><div class="score">${f.total}<small>of 100</small></div></div>
+    <p class="cmp">Settlement funds needed for a family of ${p.family}: <b>$${f.need.toLocaleString("en-CA")}</b>${f.exempt?" (exempt: valid job offer and already working in Canada)":""}. CEC candidates don't need to show funds.</p>
+    <details class="more"><summary>Grid breakdown</summary>${table(f.rows,f.total)}</details></div>`);
+  // --- BC PNP
+  if(p.bcOffer){
+    const s=sirs(p), pr=bcPriority(p);
+    const sw = p.offerTeer<=3 && (+p.cdnYears + +p.forYears)>=2;
+    const lastPr = pr ? BC_DRAWS.find(d=>d[1]===pr) : null;
+    const pills=[];
+    if(p.ha) pills.push(pill("Health Authority stream: apply directly","good"));
+    pills.push(sw?pill("Skilled Worker: meets basics","good"):pill("Skilled Worker: not yet","bad"));
+    if(pr) pills.push(pill(pr,"neutral")); else pills.push(pill("No 2026 priority group","warn"));
+    let cmp="";
+    if(lastPr){ const ok=s.total>=lastPr[2]; cmp=`Latest ${esc(pr)} cut-off: <b>${lastPr[2]}</b> (${fmtD(lastPr[0])}). ${ok?`<b style="color:var(--good)">At or above</b> the latest cut-off.`:`About <b>${lastPr[2]-s.total}</b> points short.`}`; }
+    else cmp="In 2026 the BC PNP has invited only Care, Build and Innovate priority groups (plus a rural health initiative). Candidates outside these groups can register, but no general rounds have been held this year.";
+    const why=[]; if(p.offerTeer>3) why.push("Skilled Worker needs a TEER 0–3 job offer"); if((+p.cdnYears + +p.forYears)<2) why.push("Skilled Worker needs 2 years of skilled work experience");
+    out.push(`<div class="card"><div class="card-h"><div><span class="eyebrow">British Columbia · BC PNP Skills Immigration</span><h2>SIRS registration score</h2><div class="pills" style="margin-top:8px">${pills.join("")}</div></div><div class="score">${s.total}<small>of 200</small></div></div>
+      ${lastPr?`<div class="meter"><i style="width:${Math.min(100,s.total/Math.max(lastPr[2],s.total)*100)}%"></i></div>`:""}
+      <p class="cmp">${cmp}</p>
+      ${why.length?`<ul class="reasons">${why.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`:""}
+      ${eeOk?`<p class="cmp">Eligible for Express Entry, so the candidate could use the BC PNP Express Entry option. A nomination adds 600 CRS points: <b>${c.total} → ${c.total+600}</b>, well above every 2026 PNP round (latest ${drawStats("PNP").latest[4]}).</p>`:""}
+      <details class="more"><summary>SIRS breakdown</summary>${table(s.rows,s.total,"Total SIRS")}<p class="note">Human capital ${s.human}/120 · Economic ${s.econ}/80</p></details></div>`);
+  } else {
+    out.push(`<div class="card"><span class="eyebrow">British Columbia · BC PNP</span><h2>Needs a BC job offer</h2><p class="cmp">Skills Immigration streams need a full-time, ongoing job offer from a BC employer. Add one in section 5 to see a SIRS score.</p></div>`);
+  }
+  // --- RCIP
+  const r=rcip(p);
+  if(r){
+    const cp=communityPoints(p);
+    const cut = p.rcip==="nos" ? `<p class="cmp">Recent North Okanagan Shuswap intake cut-offs: <b>91–94</b>. ${cp.total>=94?`<b style="color:var(--good)">At or above</b> recent cut-offs.`:cp.total>=91?"Within the recent cut-off range.":`About <b>${91-cp.total}</b> points below the lowest recent cut-off.`}</p>` : "";
+    out.push(`<div class="card"><div class="card-h"><div><span class="eyebrow">Rural Community Immigration Pilot</span><h2>${esc(r.c.name)}</h2><div class="pills" style="margin-top:8px">${r.ok?pill("Meets federal requirements","good"):pill(`${r.met} of ${r.total} federal requirements met`,"warn")} ${cp.pass?pill("Meets community minimum (50)","good"):pill("Below community minimum","bad")} ${r.c.open?pill("Intake open","good"):pill("Closed for 2026","bad")}</div></div><div class="score">${cp.total}<small>community points / 125</small></div></div>
+      <div class="meter"><i style="width:${Math.min(100,cp.total/125*100)}%"></i></div>
+      ${cut}
+      ${cp.notes.length?`<ul class="reasons">${cp.notes.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:""}
+      <details class="more"><summary>Community points breakdown${cp.estimate?" (partly estimated)":""}</summary>${table(cp.rows,cp.total,"Total community points")}<p class="note">${p.rcip==="wk"?"Based on West Kootenay's published 2026 scoring grid.":p.rcip==="nos"?"Based on North Okanagan Shuswap's published point factors; NOC category points are estimated from the occupation's sector.":"Peace Liard doesn't publish its grid, so this uses the common RCIP structure as an estimate."}</p></details>
+      <details class="more"><summary>Federal requirements</summary><ul class="reasons" style="list-style:none;padding:0;margin-top:8px">${r.items.map(i=>`<li>${i[0]?"✅":"⬜"} ${esc(i[1])}</li>`).join("")}</ul></details>
+      <p class="note">${esc(r.c.status)}</p></div>`);
+  } else {
+    out.push(`<div class="card"><span class="eyebrow">Rural Community Immigration Pilot</span><h2>Not in an RCIP community</h2><p class="cmp">BC's RCIP communities are North Okanagan Shuswap, Peace Liard and West Kootenay. A job offer from a designated employer there opens this pathway; choose the community in section 5.</p></div>`);
+  }
+  $("results").innerHTML=`<div class="card" style="padding:14px 18px"><span class="eyebrow">Assessment</span><h2>${esc(p.name)}</h2><p class="note">Age ${p.age} · ${p.withSpouse?"with accompanying spouse":"single applicant"} · ${p.en?`English lowest CLB ${p.en.min}`:"no English test"}${p.fr?` · French lowest NCLC ${p.fr.min}`:""} · ${new Date().toLocaleDateString("en-CA",{year:"numeric",month:"long",day:"numeric"})}</p></div>`+out.join("");
+  YOU={crs:c.total, sirs:p.bcOffer?sirs(p).total:null};
+  renderDraws();
+  if(innerWidth<980) $("results").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+/* ======================= DRAWS ======================= */
+let DTAB="ee", YOU={crs:null,sirs:null};
+function renderDraws(){
+  const sel=$("drawFilter");
+  const cats = DTAB==="ee" ? ["All",...new Set(EE_DRAWS.map(d=>d[2]))] : DTAB==="bc" ? ["All",...new Set(BC_DRAWS.map(d=>d[1]))] : ["All","Base","Regional"];
+  const cur=sel.dataset.tab===DTAB?sel.value:"All";
+  sel.innerHTML=cats.map(c=>`<option value="${esc(c)}" ${c===cur?"selected":""}>${esc(c==="All"?"All categories":(EE_LABEL[c]||c))}</option>`).join(""); sel.dataset.tab=DTAB;
+  const f=sel.value;
+  let rows, head, chartPts=[], you=null, ymin, ymax;
+  if(DTAB==="ee"){
+    const d=EE_DRAWS.filter(x=>f==="All"||x[2]===f);
+    head="<tr><th>Round</th><th>Date</th><th>Category</th><th>Invitations</th><th>CRS cut-off</th></tr>";
+    rows=d.map(x=>`<tr${YOU.crs!=null&&YOU.crs>=x[4]?' class="you"':""}><td>#${x[0]}</td><td>${fmtD(x[1])}</td><td>${esc(EE_LABEL[x[2]]||x[2])}</td><td>${x[3].toLocaleString("en-CA")}</td><td><b>${x[4]}</b></td></tr>`).join("");
+    chartPts=d.map(x=>[x[1],x[4],x[2]]); you=YOU.crs;
+    $("drawNote").innerHTML=`${d.length} rounds in 2026 to October 16. Highlighted rows have a cut-off at or below the candidate's CRS${YOU.crs!=null?` (${YOU.crs})`:""}. Invitation rounds pause for up to two weeks after November 3 while IRCC recalculates scores. Check IRCC's rounds of invitations page for new rounds.`;
+  } else {
+    const src=DTAB==="bc"?BC_DRAWS:ENT_DRAWS;
+    const d=src.filter(x=>f==="All"||x[1]===f);
+    head=`<tr><th>Date</th><th>${DTAB==="bc"?"Priority group":"Stream"}</th><th>Minimum score</th><th>Invitations</th></tr>`;
+    rows=d.map(x=>`<tr${DTAB==="bc"&&YOU.sirs!=null&&x[2]!=null&&YOU.sirs>=x[2]?' class="you"':""}><td>${fmtD(x[0])}</td><td>${esc(x[1])}</td><td><b>${x[2]==null?"Wage-based":x[2]}</b></td><td>${esc(x[3])}</td></tr>`).join("");
+    chartPts=d.filter(x=>x[2]!=null).map(x=>[x[0],x[2],x[1]]); you=DTAB==="bc"?YOU.sirs:null;
+    $("drawNote").innerHTML=DTAB==="bc"?`Skills Immigration rounds to October 8, 2026. There were no general rounds in 2026; all invitations targeted priority groups. Highlighted rows have a minimum score at or below the candidate's SIRS${YOU.sirs!=null?` (${YOU.sirs})`:""}. Wage-based rounds invite by job offer wage, not points.`:"Entrepreneur Immigration rounds to September 22, 2026. Entrepreneur scores use a separate system and aren't estimated by this tool.";
+  }
+  $("drawTable").innerHTML=`<table><thead>${head}</thead><tbody>${rows||'<tr><td colspan="5">No rounds in this category in 2026.</td></tr>'}</tbody></table>`;
+  // chart: cut-off over time
+  if(chartPts.length<2){ $("drawChart").innerHTML=""; return; }
+  const W=760,H=200,pl=40,pr=12,pt=12,pb=26;
+  const t0=Date.parse("2026-01-01"),t1=Date.parse("2026-12-31");
+  const vals=chartPts.map(x=>x[1]).concat(you!=null?[you]:[]);
+  ymin=Math.floor(Math.min(...vals)/50)*50; ymax=Math.ceil(Math.max(...vals)/50)*50; if(ymax===ymin) ymax+=50;
+  const X=d=>pl+(Date.parse(d)-t0)/(t1-t0)*(W-pl-pr), Y=v=>pt+(H-pt-pb)*(1-(v-ymin)/(ymax-ymin));
+  const step=Math.max(50,Math.ceil((ymax-ymin)/4/50)*50);
+  let g=""; for(let v=ymin; v<=ymax; v+=step) g+=`<line class="g" x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${pl-6}" y="${Y(v)+4}" text-anchor="end">${v}</text>`;
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const mx=months.map((m,i)=>`<text x="${X(`2026-${String(i+1).padStart(2,"0")}-15`)}" y="${H-8}" text-anchor="middle">${m}</text>`).join("");
+  const dots=chartPts.map(x=>`<circle cx="${X(x[0]).toFixed(1)}" cy="${Y(x[1]).toFixed(1)}" r="4.5"><title>${esc((EE_LABEL[x[2]]||x[2]))} · ${fmtD(x[0])} · ${x[1]}</title></circle>`).join("");
+  const yl=you!=null?`<line class="you" x1="${pl}" x2="${W-pr}" y1="${Y(you)}" y2="${Y(you)}"/><text x="${W-pr}" y="${Y(you)-6}" text-anchor="end" style="fill:var(--warn);font-weight:600">Candidate: ${you}</text>`:"";
+  $("drawChart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cut-off scores in 2026">${g}${mx}${dots}${yl}</svg>`;
+}
+
+/* ======================= WIRING ======================= */
+["en","fr"].forEach(k=>{ $(k+"Test").onchange=()=>renderScores(k); renderScores(k); });
+function toggles(){
+  $("accWrap").hidden=$("marital").value!=="married";
+  $("spouseFields").hidden=!($("marital").value==="married"&&$("spouseAcc").value==="yes");
+  $("offerFields").hidden=$("bcOffer").value!=="yes";
+  $("desWrap").hidden=!$("rcip").value;
+  $("commPanel").hidden=!($("rcip").value && $("bcOffer").value==="yes");
+  fillNocs();
+}
+["marital","spouseAcc","bcOffer","rcip"].forEach(id=>$(id).addEventListener("change",toggles)); toggles();
+$("form").addEventListener("submit",e=>{e.preventDefault(); analyze();});
+$("reset").onclick=()=>{ $("form").reset(); SAMPLE.en={test:"ielts"}; $("name").value=""; ["en","fr"].forEach(k=>{ $(k+"Scores").innerHTML=""; renderScores(k); }); toggles(); $("results").innerHTML='<div class="empty"><h2>Results appear here</h2>Fill in the candidate\'s details and press <b>Analyze</b>.</div>'; YOU={crs:null,sirs:null}; renderDraws(); };
+document.querySelectorAll("#ruleSeg button").forEach(b=>b.onclick=()=>{ RULES=b.dataset.r; document.querySelectorAll("#ruleSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b)); if(YOU.crs!=null) analyze(); });
+document.querySelectorAll("#drawSeg button").forEach(b=>b.onclick=()=>{ DTAB=b.dataset.d; document.querySelectorAll("#drawSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b)); renderDraws(); });
+$("drawFilter").onchange=renderDraws;
+renderDraws();
+
+/* ======================= DISCLAIMER + SIGN-UP GATE ======================= */
+let mode="signup";
+function showApp(user){ $("gate").hidden=true; $("app").hidden=false; $("who").textContent=user?user.name:""; }
+function setMode(m){
+  mode=m; $("tS").setAttribute("aria-selected",m==="signup"); $("tL").setAttribute("aria-selected",m==="login");
+  $("nmWrap").hidden=$("phWrap").hidden=m!=="signup"; $("aFoot").hidden=m!=="signup"; $("aForgot").hidden=m!=="login";
+  $("aPass").autocomplete=m==="signup"?"new-password":"current-password"; $("aPass").placeholder=m==="signup"?"At least 8 characters":"";
+  $("aGo").textContent=m==="signup"?"Create account and start":"Sign in and start"; $("aErr").textContent="";
+}
+$("tS").onclick=()=>setMode("signup"); $("tL").onclick=()=>setMode("login");
+$("ackGo").onclick=async()=>{
+  if(!$("ack").checked){ $("ackErr").textContent="Tick the box to confirm you understand."; return; }
+  try{ sessionStorage.setItem("bc_ack","1"); }catch(e){}
+  $("gateNotice").hidden=true;
+  const u=await me(); if(u) return showApp(u);
+  $("gateAuth").hidden=false; $("aName").focus();
+};
+async function me(){ try{ const r=await fetch("/api/auth/me"); const j=await r.json(); return j&&j.user?j.user:null; }catch(e){ return null; } }
+$("authForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const err=m=>$("aErr").textContent=m;
+  const body={email:$("aEmail").value.trim().toLowerCase(),password:$("aPass").value};
+  if(!/^\S+@\S+\.\S+$/.test(body.email)) return err("Enter a valid email address.");
+  if(mode==="signup"){
+    body.name=$("aName").value.trim(); body.phone=$("aPhone").value.trim();
+    if(!body.name) return err("Enter your full name.");
+    if(body.phone.replace(/\D/g,"").length<7) return err("Enter a phone number we can reach you on.");
+    if(body.password.length<8) return err("Password needs at least 8 characters.");
+  } else if(!body.password) return err("Enter your password.");
+  $("aGo").disabled=true;
+  try{
+    const r=await fetch(mode==="signup"?"/api/auth/signup":"/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||j.ok===false){ $("aGo").disabled=false; return err(j.error||"Something went wrong. Try again."); }
+  }catch(x){ $("aGo").disabled=false; return err("Couldn't reach WorkerPool. Check your connection and try again."); }
+  const u=await me(); showApp(u||{name:body.name||body.email});
+  if(window.wpaSection) wpaSection(mode==="signup"?"BC tool sign up":"BC tool sign in");
+});
+$("aForgot").onclick=async()=>{
+  const email=$("aEmail").value.trim(); if(!/^\S+@\S+\.\S+$/.test(email)){ $("aErr").textContent="Enter your email above, then click Forgot your password."; return; }
+  await fetch("/api/auth/forgot",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})}).catch(()=>{});
+  $("aErr").textContent="If an account exists for that email, a reset link is on its way.";
+};
+$("logout").onclick=async()=>{ try{ await fetch("/api/auth/logout",{method:"POST"}); }catch(e){} location.reload(); };
+setMode("signup");
+(async()=>{ let ack=false; try{ ack=sessionStorage.getItem("bc_ack")==="1"; }catch(e){}
+  if(ack){ $("gateNotice").hidden=true; const u=await me(); if(u) showApp(u); else $("gateAuth").hidden=false; } })();
+
+window.__bc={crs,fsw,sirs,toClb,communityPoints}; // exposed for testing
+})();
+</script>
+<script>window.WPA_PAGE="bc-tool";</script>
+<script src="/assets/wpa.js" defer></script>
+</body>
+</html>
