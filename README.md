@@ -23,6 +23,7 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `tools/bc/`, `tools/ab/`, `tools/mb/` | Pathway Checks for BC, Alberta and Manitoba: disclaimer, optional consent to share with a licensed RCIC, sign-up, then CRS / FSW / provincial EOI (BC PNP SIRS, AAIP, MPNP) / RCIP community scores and 2026 draws. Built from `tools/src/` with `python3 tools/src/build.py` |
 | `functions/api/tools/assessment.js` | Saves an assessment the candidate agreed to share (one per province per account) and emails the admin |
 | `assets/chat.js` | Live chat widget (on the home page; add the same script tag to any other page) |
+| `functions/api/chat-file.js` | Live chat file upload and download for visitors |
 | `functions/api/chat.js` | Live chat for visitors. Live 8:00 to 23:00 Edmonton time daily; outside those hours it takes a message plus email |
 | `privacy/`, `terms/`, `reset/` | Privacy policy, terms of use, password reset page |
 | `schema.sql` | All database tables (`schema-accounts.sql` adds just the account tables) |
@@ -50,7 +51,7 @@ Run `schema-b2b.sql` in the D1 console once. Documents use the same R2 bucket as
 
 ## Live chat
 
-Run `schema-chat.sql` in the D1 console once. Replies happen in the admin dashboard under **Live chat** (it checks for new messages every 5 seconds while open, and shows an unread count on the tab and in the browser tab title). `ADMIN_EMAIL` gets an email for each new chat, every message sent outside live hours, and after 10 quiet minutes on an ongoing chat. If a visitor has left the page when you reply and they gave an email, your reply is emailed to them too. To change the hours, edit `CHAT_OPEN`/`CHAT_CLOSE` in `functions/_lib.js` and `OPEN`/`CLOSE` in `assets/chat.js`.
+Run `schema-chat.sql` in the D1 console once. Replies happen in the admin dashboard under **Live chat** (it checks for new messages every 5 seconds while open, and shows an unread count on the tab and in the browser tab title). `ADMIN_EMAIL` gets an email for each new chat, every message sent outside live hours, and after 10 quiet minutes on an ongoing chat. If a visitor has left the page when you reply and they gave an email, your reply is emailed to them too. Both sides can share files (PDF, JPG, PNG, DOC, DOCX up to 10 MB; visitors up to 25 per chat), stored privately in the `RESUMES` R2 bucket under `chat/`. Visitors can only open files in their own conversation. To change the hours, edit `CHAT_OPEN`/`CHAT_CLOSE` in `functions/_lib.js` and `OPEN`/`CLOSE` in `assets/chat.js`.
 
 ## Pathway Check tools
 

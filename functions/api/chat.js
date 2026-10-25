@@ -1,13 +1,9 @@
 // Live chat for visitors: read your conversation, or send a message to the admin.
 // Live hours are 8:00 to 23:00 Edmonton time; outside them messages are still taken (email required) and answered later.
-import { json, readJson, str, isEmail, id, randomToken, sha256hex, sendEmail, chatOpen } from "../_lib.js";
+import { json, readJson, str, isEmail, id, randomToken, sha256hex, chatOpen, chatThread, chatNotify, CHAT_MSG_SQL } from "../_lib.js";
 const COOKIE = "wp_chat";
-const tokenOf = (req) => { const m = (req.headers.get("cookie") || "").match(/(?:^|;\s*)wp_chat=([A-Za-z0-9_-]+)/); return m ? m[1] : null; };
-async function thread(env, req) {
-  const t = tokenOf(req); if (!t) return null;
-  return env.DB.prepare(`SELECT * FROM chat_threads WHERE token_hash = ?1`).bind(await sha256hex(t)).first();
-}
-const msgs = (env, tid, after) => env.DB.prepare(`SELECT id, sender, body, created FROM chat_messages WHERE thread_id = ?1 AND id > ?2 ORDER BY id LIMIT 300`).bind(tid, after).all();
+const thread = (env, req) => chatThread(env, req);
+const msgs = (env, tid, after) => env.DB.prepare(CHAT_MSG_SQL).bind(tid, after, 300).all();
 
 export async function onRequestGet({ request, env }) {
   const open = chatOpen();
@@ -50,12 +46,7 @@ export async function onRequestPost({ request, env }) {
     if (!t.email && email) t.email = email;
   }
   await env.DB.prepare(`INSERT INTO chat_messages (thread_id, sender, body, created) VALUES (?1, 'visitor', ?2, ?3)`).bind(t.id, body, now).run();
-  // Email the admin for a new chat, any offline message, or after 10 quiet minutes on an existing chat.
-  if (isNew || !open || !t.last_notified || Date.now() - Date.parse(t.last_notified) > 6e5) {
-    await env.DB.prepare(`UPDATE chat_threads SET last_notified = ?1 WHERE id = ?2`).bind(now, t.id).run();
-    await sendEmail(env, env.ADMIN_EMAIL, `${open ? "Live chat" : "Offline chat message"} from ${t.name}`,
-      `${t.name}${t.email ? " (" + t.email + ")" : ""} ${isNew ? "started a chat" : "sent a message"}${open ? "" : " outside live hours"}:\n\n${body}\n\nReply in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Live chat tab)`);
-  }
+  await chatNotify(env, t, { open, isNew, text: body });
   const r = await msgs(env, t.id, Math.max(0, parseInt(b.after) || 0));
   const res = json({ ok: true, open, messages: r.results });
   if (cookie) res.headers.append("set-cookie", cookie);

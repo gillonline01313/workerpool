@@ -38,6 +38,15 @@
 .wpc-foot{display:flex;gap:8px;align-items:flex-end;padding:10px;border-top:1px solid var(--line,#d3dcda);background:var(--surface,#fff)}
 .wpc-foot textarea{max-height:120px}
 .wpc-foot .wpc-go{padding:11px 14px}
+.wpc-clip{flex:none;width:42px;height:42px;border-radius:50%;border:1px solid var(--line,#d3dcda);background:var(--surface,#fff);color:var(--muted,#5a696b);display:grid;place-items:center;cursor:pointer}
+.wpc-clip:hover{color:var(--fg,#1b2628)}
+.wpc-clip:disabled{opacity:.5;cursor:default}
+.wpc-file{display:flex;align-items:center;gap:8px;color:inherit;text-decoration:none;font-weight:600}
+.wpc-file span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.wpc-file em{font-style:normal;font-weight:400;opacity:.75;font-size:.8rem;white-space:nowrap}
+.wpc-img{display:block;max-width:100%;max-height:220px;border-radius:9px;margin:2px 0}
+.wpc-up{font-size:.8rem;color:var(--muted,#5a696b);padding:0 12px 6px;background:var(--surface,#fff)}
+.wpc-up:empty{display:none}
 .wpc-err{color:#c0532b;font-size:.82rem;padding:0 12px 6px;background:var(--surface,#fff)}
 .wpc-err:empty{display:none}
 .wpc [hidden]{display:none!important}`;
@@ -49,11 +58,12 @@
 <div class="wpc-panel" role="dialog" aria-label="Live chat" hidden>
   <div class="wpc-head"><div><b>WorkerPool</b><small><i class="wpc-dot"></i><span class="wpc-status"></span></small></div><button class="wpc-x" type="button" aria-label="Close chat">×</button></div>
   <div class="wpc-body"></div>
-  <div class="wpc-err" role="alert"></div>
-  <div class="wpc-foot" hidden><textarea rows="1" maxlength="2000" placeholder="Type a message" aria-label="Message"></textarea><button class="wpc-go" type="button">Send</button></div>
+  <div class="wpc-err" role="alert"></div><div class="wpc-up" aria-live="polite"></div>
+  <div class="wpc-foot" hidden><button class="wpc-clip" type="button" aria-label="Attach a file" title="Attach a file (PDF, JPG, PNG, DOC, DOCX up to 10 MB)"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.2-8.2a3.4 3.4 0 0 1 4.8 4.8l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.6-7.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button><input type="file" class="wpc-fin" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple hidden><textarea rows="1" maxlength="2000" placeholder="Type a message" aria-label="Message"></textarea><button class="wpc-go" type="button">Send</button></div>
 </div>`;
   document.body.appendChild(root);
   const q = (s) => root.querySelector(s);
+  const kb = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
   const btn = q(".wpc-btn"), panel = q(".wpc-panel"), body = q(".wpc-body"), foot = q(".wpc-foot"), ta = q(".wpc-foot textarea"), errEl = q(".wpc-err"), badge = q(".wpc-badge");
   let started = ls.get("wp_chat") === "1", lastId = 0, msgs = [], thread = null, timer = null, busy = false;
 
@@ -64,13 +74,33 @@
     q(".wpc-lbl").textContent = o ? "Chat with us" : "Leave a message";
     return o;
   }
-  const intro = () => `<div class="wpc-info">${isOpen() ? "Message our team directly. A real person will reply here." : "We're offline right now. Leave a message with your email and we'll reply when we're back."} ${HOURS}.<br>We're not immigration representatives and can't give immigration advice. Please don't share passport or ID numbers in chat.</div>`;
+  const intro = () => `<div class="wpc-info">${isOpen() ? "Message our team directly. A real person will reply here." : "We're offline right now. Leave a message with your email and we'll reply when we're back."} ${HOURS}.<br>You can attach files once the chat starts. They're stored privately and only our team can see them.<br>We're not immigration representatives and can't give immigration advice.</div>`;
   function renderMsgs(scroll) {
     const near = body.scrollHeight - body.scrollTop - body.clientHeight < 80;
-    body.innerHTML = intro() + msgs.map((m) => `<div class="wpc-m ${m.sender === "admin" ? "a" : "v"}">${esc(m.body)}<small>${m.sender === "admin" ? "WorkerPool · " : ""}${time(m.created)}</small></div>`).join("")
+    body.innerHTML = intro() + msgs.map((m) => `<div class="wpc-m ${m.sender === "admin" ? "a" : "v"}">${m.file_id ? fileHTML(m) : esc(m.body)}<small>${m.sender === "admin" ? "WorkerPool · " : ""}${time(m.created)}</small></div>`).join("")
       + (thread && thread.status === "closed" ? `<div class="wpc-info">This conversation was closed. Send a message to start it again.</div>` : "")
       + (!isOpen() && msgs.length && msgs[msgs.length - 1].sender === "visitor" ? `<div class="wpc-info">Thanks. We're offline now and will reply ${thread && thread.hasEmail ? "here and by email" : "here"} after 8:00 a.m. Mountain Time.</div>` : "");
     if (scroll || near) body.scrollTop = body.scrollHeight;
+  }
+  function fileHTML(m) {
+    const url = "/api/chat-file?id=" + encodeURIComponent(m.file_id);
+    if (/^image\//.test(m.file_type)) return `<a href="${url}" target="_blank" rel="noopener"><img class="wpc-img" src="${url}" alt="${esc(m.file_name)}" loading="lazy"></a>`;
+    return `<a class="wpc-file" href="${url}" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>${esc(m.file_name)}</span><em>${kb(m.file_size || 0)}</em></a>`;
+  }
+  async function uploadFiles(files) {
+    const up = q(".wpc-up"), clip = q(".wpc-clip"); errEl.textContent = ""; clip.disabled = true;
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (f.size > 10485760) { errEl.textContent = `${f.name} is over 10 MB.`; continue; }
+      up.textContent = `Sending ${f.name}${files.length > 1 ? ` (${i + 1} of ${files.length})` : ""}…`;
+      try {
+        const r = await fetch("/api/chat-file", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(f.name) }, body: f });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) { errEl.textContent = `${f.name}: ${j.error || "couldn't send."}`; if (j.needEmail) askEmail(); }
+      } catch (e) { errEl.textContent = `${f.name}: couldn't send. Check your connection.`; }
+    }
+    up.textContent = ""; clip.disabled = false; track("Chat file sent");
+    await poll(); renderMsgs(true);
   }
   function renderStart() {
     const o = isOpen();
@@ -146,6 +176,9 @@
     go.disabled = false;
     if (r) { ta.value = ""; ta.style.height = ""; if (em && em.value.trim() && thread) thread.hasEmail = true; if (thread) thread.status = "open"; renderMsgs(true); }
   }
+  const fin = q(".wpc-fin");
+  q(".wpc-clip").onclick = () => { fin.value = ""; fin.click(); };
+  fin.onchange = () => { const f = [...fin.files]; if (f.length) uploadFiles(f); };
   btn.onclick = openPanel;
   q(".wpc-x").onclick = closePanel;
   q(".wpc-foot .wpc-go").onclick = sendText;

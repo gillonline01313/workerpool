@@ -45,3 +45,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT, thread_id TEXT NOT NULL, sender TEXT NOT NULL, body TEXT, created TEXT
 );
 CREATE INDEX IF NOT EXISTS chat_messages_thread ON chat_messages (thread_id, id);
+CREATE TABLE IF NOT EXISTS chat_files (
+  id TEXT PRIMARY KEY, thread_id TEXT NOT NULL, msg_id INTEGER, sender TEXT, name TEXT, size INTEGER, type TEXT, r2_key TEXT, created TEXT
+);
+CREATE INDEX IF NOT EXISTS chat_files_msg ON chat_files (msg_id);

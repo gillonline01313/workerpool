@@ -85,3 +85,49 @@ export function chatOpen(d = new Date()) {
   const h = parseInt(new Intl.DateTimeFormat("en-CA", { timeZone: CHAT_TZ, hour: "numeric", hourCycle: "h23" }).format(d));
   return h >= CHAT_OPEN && h < CHAT_CLOSE;
 }
+
+/* ---------- chat helpers ---------- */
+export async function chatThread(env, request) {
+  const m = (request.headers.get("cookie") || "").match(/(?:^|;\s*)wp_chat=([A-Za-z0-9_-]+)/);
+  if (!m) return null;
+  return env.DB.prepare(`SELECT * FROM chat_threads WHERE token_hash = ?1`).bind(await sha256hex(m[1])).first();
+}
+export const CHAT_MSG_SQL = `SELECT m.id, m.sender, m.body, m.created, f.id AS file_id, f.name AS file_name, f.size AS file_size, f.type AS file_type
+  FROM chat_messages m LEFT JOIN chat_files f ON f.msg_id = m.id WHERE m.thread_id = ?1 AND m.id > ?2 ORDER BY m.id LIMIT ?3`;
+// Email the admin for a new chat, any message outside live hours, or after 10 quiet minutes on an ongoing chat.
+export async function chatNotify(env, t, { open, isNew, text }) {
+  if (!(isNew || !open || !t.last_notified || Date.now() - Date.parse(t.last_notified) > 6e5)) return;
+  await env.DB.prepare(`UPDATE chat_threads SET last_notified = ?1 WHERE id = ?2`).bind(new Date().toISOString(), t.id).run();
+  await sendEmail(env, env.ADMIN_EMAIL, `${open ? "Live chat" : "Offline chat message"} from ${t.name}`,
+    `${t.name}${t.email ? " (" + t.email + ")" : ""} ${isNew ? "started a chat" : "sent a message"}${open ? "" : " outside live hours"}:\n\n${text}\n\nReply in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Live chat tab)`);
+}
+
+/* ---------- uploaded file checks (PDF, JPG, PNG, DOC, DOCX up to 10 MB) ---------- */
+export const FILE_MAX = 10 * 1024 * 1024;
+const FILE_TYPES = {
+  pdf: ["application/pdf", (b) => b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46],
+  jpg: ["image/jpeg", (b) => b[0] === 0xff && b[1] === 0xd8],
+  jpeg: ["image/jpeg", (b) => b[0] === 0xff && b[1] === 0xd8],
+  png: ["image/png", (b) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47],
+  docx: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", (b) => b[0] === 0x50 && b[1] === 0x4b],
+  doc: ["application/msword", (b) => b[0] === 0xd0 && b[1] === 0xcf],
+};
+export function fileName(request) {
+  try { return decodeURIComponent(request.headers.get("x-file-name") || "file").replace(/[^\w .()\-]/g, "_").slice(0, 120) || "file"; } catch { return "file"; }
+}
+// Returns { ext, type } for an allowed file, or { error }.
+export function fileCheck(name, buf) {
+  const ext = ((name.match(/\.([a-z0-9]+)$/i) || [])[1] || "").toLowerCase();
+  const k = FILE_TYPES[ext];
+  if (!k) return { error: "Send a PDF, JPG, PNG, DOC or DOCX file." };
+  if (buf.byteLength > FILE_MAX) return { error: "That file is over 10 MB." };
+  if (buf.byteLength < 8 || !k[1](new Uint8Array(buf, 0, 8))) return { error: "That file doesn't match its type. Try saving it again as a PDF." };
+  return { ext, type: k[0] };
+}
+export function fileResponse(obj, name, type) {
+  const inline = /^image\/(png|jpeg)$/.test(type);
+  return new Response(obj.body, { headers: {
+    "content-type": type || "application/octet-stream",
+    "content-disposition": `${inline ? "inline" : "attachment"}; filename="${String(name || "file").replace(/"/g, "")}"`,
+    "cache-control": "private, no-store", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox" } });
+}

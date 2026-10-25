@@ -1,5 +1,5 @@
 // Admin data API. Every request must carry the ADMIN_KEY secret set in Cloudflare.
-import { json, readJson, str, sendEmail, chatOpen } from "../../_lib.js";
+import { json, readJson, str, sendEmail, chatOpen, CHAT_MSG_SQL, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
 function same(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
   let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0;
@@ -48,7 +48,7 @@ export async function onRequestGet({ request, env, params }) {
     const r = await env.DB.prepare(
       `SELECT t.id, t.name, t.email, t.page, t.status, t.created, t.updated, t.visitor_seen,
         (SELECT COUNT(*) FROM chat_messages m WHERE m.thread_id = t.id AND m.sender = 'visitor' AND m.id > t.admin_read) AS unread,
-        (SELECT body FROM chat_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_body,
+        (SELECT COALESCE(NULLIF(m.body, ''), '📎 ' || (SELECT f.name FROM chat_files f WHERE f.msg_id = m.id)) FROM chat_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_body,
         (SELECT sender FROM chat_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_sender
        FROM chat_threads t ORDER BY t.updated DESC LIMIT 200`
     ).all();
@@ -56,9 +56,16 @@ export async function onRequestGet({ request, env, params }) {
   }
   if (route === "chat-thread") {
     const tid = url.searchParams.get("id") || "", after = Math.max(0, parseInt(url.searchParams.get("after")) || 0);
-    const r = await env.DB.prepare(`SELECT id, sender, body, created FROM chat_messages WHERE thread_id = ?1 AND id > ?2 ORDER BY id LIMIT 500`).bind(tid, after).all();
+    const r = await env.DB.prepare(CHAT_MSG_SQL).bind(tid, after, 500).all();
     if (r.results.length) await env.DB.prepare(`UPDATE chat_threads SET admin_read = MAX(admin_read, ?1) WHERE id = ?2`).bind(r.results[r.results.length - 1].id, tid).run();
     return json({ ok: true, rows: r.results });
+  }
+  if (route === "chat-file") {
+    const f = await env.DB.prepare(`SELECT * FROM chat_files WHERE id = ?1`).bind(url.searchParams.get("id") || "").first();
+    if (!f || !env.RESUMES) return json({ ok: false, error: "Not found." }, 404);
+    const obj = await env.RESUMES.get(f.r2_key);
+    if (!obj) return json({ ok: false, error: "That file was removed." }, 404);
+    return fileResponse(obj, f.name, f.type);
   }
   if (route === "resume") {
     const key = url.searchParams.get("key") || "";
@@ -77,6 +84,7 @@ export async function onRequestGet({ request, env, params }) {
 export async function onRequestPost({ request, env, params }) {
   if (!env.ADMIN_KEY || !same(request.headers.get("x-admin-key") || "", env.ADMIN_KEY)) return json({ ok: false, error: "Wrong admin key." }, 401);
   const route = (params.path || []).join("/");
+  if (route === "chat-file") return adminFile(request, env);
   const b = await readJson(request, 6000);
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
   const t = await env.DB.prepare(`SELECT * FROM chat_threads WHERE id = ?1`).bind(str(b.id, 64)).first();
@@ -88,11 +96,7 @@ export async function onRequestPost({ request, env, params }) {
     const ins = await env.DB.prepare(`INSERT INTO chat_messages (thread_id, sender, body, created) VALUES (?1, 'admin', ?2, ?3)`).bind(t.id, body, now).run();
     await env.DB.prepare(`UPDATE chat_threads SET status = 'open', updated = ?1, admin_read = (SELECT MAX(id) FROM chat_messages WHERE thread_id = ?2) WHERE id = ?2`).bind(now, t.id).run();
     // If the visitor has left the page (no check-in for 2 minutes), send the reply by email too.
-    let emailed = false;
-    if (t.email && (!t.visitor_seen || Date.now() - Date.parse(t.visitor_seen) > 12e4)) {
-      emailed = await sendEmail(env, t.email, "WorkerPool replied to your message",
-        `Hi ${String(t.name || "").split(" ")[0] || "there"},\n\n${body}\n\nTo continue, open the chat at ${env.SITE_URL || "https://workerpool.ca"}/#chat on the same device, or email hello@workerpool.ca.\nLive chat hours: 8:00 a.m. to 11:00 p.m. Mountain Time, daily.\n\nWorkerPool`);
-    }
+    const emailed = await emailIfAway(env, t, body);
     return json({ ok: true, id: ins.meta && ins.meta.last_row_id, emailed });
   }
   if (route === "chat-close") {
@@ -100,4 +104,29 @@ export async function onRequestPost({ request, env, params }) {
     return json({ ok: true });
   }
   return json({ ok: false, error: "Not found." }, 404);
+}
+
+// If the visitor has left the page (no check-in for 2 minutes) and gave an email, send the reply there too.
+async function emailIfAway(env, t, text) {
+  if (!t.email || (t.visitor_seen && Date.now() - Date.parse(t.visitor_seen) <= 12e4)) return false;
+  return sendEmail(env, t.email, "WorkerPool replied to your message",
+    `Hi ${String(t.name || "").split(" ")[0] || "there"},\n\n${text}\n\nTo continue, open the chat at ${env.SITE_URL || "https://workerpool.ca"}/#chat on the same device, or email hello@workerpool.ca.\nLive chat hours: 8:00 a.m. to 11:00 p.m. Mountain Time, daily.\n\nWorkerPool`);
+}
+// Send a file to a visitor in their chat.
+async function adminFile(request, env) {
+  if (!env.RESUMES) return json({ ok: false, error: "R2 storage (RESUMES binding) isn't connected." }, 503);
+  const t = await env.DB.prepare(`SELECT * FROM chat_threads WHERE id = ?1`).bind(request.headers.get("x-thread-id") || "").first();
+  if (!t) return json({ ok: false, error: "Chat not found." }, 404);
+  if (parseInt(request.headers.get("content-length") || "0") > FILE_MAX) return json({ ok: false, error: "That file is over 10 MB." }, 413);
+  const name = fileName(request), buf = await request.arrayBuffer();
+  const k = fileCheck(name, buf);
+  if (k.error) return json({ ok: false, error: k.error }, 400);
+  const now = new Date().toISOString(), fid = crypto.randomUUID(), key = `chat/${t.id}/${fid}.${k.ext}`;
+  await env.RESUMES.put(key, buf, { httpMetadata: { contentType: k.type }, customMetadata: { name, thread: t.id, sender: "admin" } });
+  const ins = await env.DB.prepare(`INSERT INTO chat_messages (thread_id, sender, body, created) VALUES (?1, 'admin', '', ?2)`).bind(t.id, now).run();
+  await env.DB.prepare(`INSERT INTO chat_files (id, thread_id, msg_id, sender, name, size, type, r2_key, created) VALUES (?1, ?2, ?3, 'admin', ?4, ?5, ?6, ?7, ?8)`)
+    .bind(fid, t.id, ins.meta.last_row_id, name, buf.byteLength, k.type, key, now).run();
+  await env.DB.prepare(`UPDATE chat_threads SET status = 'open', updated = ?1, admin_read = ?2 WHERE id = ?3`).bind(now, ins.meta.last_row_id, t.id).run();
+  const emailed = await emailIfAway(env, t, `We sent you a file in the chat: ${name}. Open the chat to download it.`);
+  return json({ ok: true, emailed });
 }
