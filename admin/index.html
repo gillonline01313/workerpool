@@ -70,6 +70,27 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
 .pill{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--fg)}
 .wpa-tbl td details summary{cursor:pointer;color:var(--accent)}
 .wpa-tbl pre{white-space:pre-wrap;font-size:.75rem;max-width:520px}
+.chat-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:12px;min-height:480px}
+@media (max-width:760px){.chat-grid{grid-template-columns:1fr}}
+.chat-list{display:flex;flex-direction:column;gap:6px;max-height:640px;overflow-y:auto}
+.chat-item{font:inherit;text-align:left;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.chat-item[aria-current="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.chat-item .r1{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.chat-item small{color:var(--muted);font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-unread{background:#d4572f;color:#fff;border-radius:999px;font-size:.7rem;font-weight:700;padding:1px 7px}
+.chat-conv{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;min-height:480px}
+.chat-top{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.chat-top small{display:block;color:var(--muted);font-size:.78rem}
+.chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--bg);max-height:520px}
+.chat-m{max-width:80%;padding:8px 12px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word;font-size:.9rem}
+.chat-m small{display:block;font-size:.7rem;opacity:.7;margin-top:2px}
+.chat-m.v{align-self:flex-start;background:var(--surface);border:1px solid var(--line)}
+.chat-m.a{align-self:flex-end;background:var(--accent);color:var(--surface)}
+.chat-reply{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);align-items:flex-end}
+.chat-reply textarea{flex:1;font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);resize:vertical;min-height:44px}
+.chat-live{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted)}
+.chat-live i{width:9px;height:9px;border-radius:50%;background:#3fae6c}
+.chat-live i.off{background:#b9c2c1}
 </style>
 </head>
 <body>
@@ -88,7 +109,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
       <button type="button" data-t="b2b" aria-pressed="false">B2B applications</button>
-      <button type="button" data-t="assessments" aria-pressed="false">Shared assessments</button></div>
+      <button type="button" data-t="assessments" aria-pressed="false">Shared assessments</button>
+      <button type="button" data-t="chat" aria-pressed="false" id="chatTab">Live chat</button></div>
       <button class="wpa-close" type="button" id="out">Lock</button></div></div>
   <div id="ctl" class="wpa-ctl"></div>
   <div id="wpaBody"></div>
@@ -110,6 +132,7 @@ async function api(path){
 async function load(){
   const days = range===0?3650:Math.max(range,1);
   try{
+    if(tab==="chat"){ await chatList(); render(); return; }
     if(tab==="analytics") data.visits=await api("visits?days="+days);
     else if(tab==="b2b"){
       const r=await fetch("/api/admin/b2b",{headers:{"x-admin-key":KEY}});
@@ -130,7 +153,7 @@ $("#gate").onsubmit=e=>{ e.preventDefault(); KEY=$("#key").value.trim(); if(!KEY
 $("#out").onclick=()=>lock("");
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
 let iv=null;
-function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); }
+function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); }
 function seg(name,opts,cur,cb){ return `<div class="wpa-seg" data-seg="${name}">${opts.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${String(v)===String(cur)}">${l}</button>`).join("")}</div>`; }
 function controls(){
   const c=$("#ctl");
@@ -138,6 +161,8 @@ function controls(){
     c.innerHTML=seg("range",[[1,"Today"],[7,"7 days"],[30,"30 days"],[90,"90 days"],[0,"All"]],range)+seg("page",[["all","All pages"],["home","Home"],["questionnaire","Questionnaire"]],pageF);
     c.querySelectorAll('[data-seg="range"] button').forEach(b=>b.onclick=()=>{range=+b.dataset.v; controls(); load();});
     c.querySelectorAll('[data-seg="page"] button').forEach(b=>b.onclick=()=>{pageF=b.dataset.v; controls(); render();});
+  } else if(tab==="chat"){
+    c.innerHTML=`<span class="chat-live"><i id="chatDot"></i><span id="chatHrs"></span></span>`; chatStatus();
   } else {
     c.innerHTML=`<button class="dl" type="button" id="csv">Download CSV</button>`;
     $("#csv").onclick=()=>csv(tab);
@@ -179,6 +204,7 @@ function render(){
   if(tab==="submissions") return renderSubs(body);
   if(tab==="b2b") return renderB2B(body);
   if(tab==="assessments") return renderAssess(body);
+  if(tab==="chat") return renderChat(body);
   const now=new Date(), startDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const from=range===0?0:range===1?startDay.getTime():startDay.getTime()-(range-1)*864e5;
   const V=(data.visits||[]).map(v=>({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk)})).filter(v=>v.ts>=from&&(pageF==="all"||v.page===pageF)).sort((a,b)=>b.ts-a.ts);
@@ -275,6 +301,80 @@ function renderB2B(body){
     const docList=docs.length?docs.map(f=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin:4px 0"><span>${esc(docLabel(r,f.doc_key))}: ${esc(f.name)}</span><button class="dl" type="button" data-docid="${esc(f.id)}" data-name="${esc(f.name)}">Download</button></div>`).join(""):"<p>No documents uploaded.</p>";
     return `<tr><td>${r.submitted?when(r.submitted):"–"}</td><td>${esc(name)}</td><td>${esc(r.app_name)}<br><span class="pill">${esc(r.category)} · ${esc(r.stream)}</span></td><td>${esc(r.acct_name)}<br>${esc(r.acct_email)}<br>${esc(r.acct_phone)}</td><td><span class="pill">${r.status==="editing"?"editing (hold)":esc(r.status)}</span></td>
       <td><details><summary>View</summary><pre>${secs.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/&lt;b>/g,"<b>").replace(/&lt;\/b>/g,"</b>")}</pre><h4 style="margin:8px 0 4px">Documents (${docs.length})</h4>${docList}</details></td></tr>`;}).join("")}</tbody></table></div></div>`;
+}
+/* ---------- live chat ---------- */
+const chat={rows:[],open:false,cur:null,msgs:[],last:0}; let chatIv=null, chatTick=0, chatBusy=false;
+async function chatFetch(path,opts={}){
+  const r=await fetch("/api/admin/"+path,{...opts,headers:{"x-admin-key":KEY,"Content-Type":"application/json"}});
+  if(r.status===401) throw new Error("auth");
+  const j=await r.json().catch(()=>({})); if(!r.ok||!j.ok) throw new Error(j.error||"Request failed"); return j;
+}
+function chatStatus(){ const d=$("#chatDot"), h=$("#chatHrs"); if(!d) return; d.classList.toggle("off",!chat.open); h.textContent=(chat.open?"Live now":"Offline (visitors can leave a message)")+" · hours 8:00 to 23:00 Mountain Time, daily"; }
+function chatBadge(){
+  const n=chat.rows.reduce((s,r)=>s+(r.id===chat.cur&&tab==="chat"?0:(r.unread||0)),0);
+  $("#chatTab").textContent="Live chat"+(n?` (${n})`:""); document.title=(n?`(${n}) `:"")+"Admin · WorkerPool";
+}
+async function chatList(){ const j=await chatFetch("chat"); chat.rows=j.rows; chat.open=j.open; chatBadge(); chatStatus(); }
+function chatStart(){
+  clearInterval(chatIv); chatTick=0;
+  chatList().catch(e=>{ if(e.message==="auth") lock("That admin key isn't right."); });
+  chatIv=setInterval(async()=>{
+    if(!KEY||chatBusy) return; chatTick++;
+    if(tab!=="chat"&&chatTick%4) return; // every 20s in the background, every 5s on the chat tab
+    chatBusy=true;
+    try{ await chatList(); if(tab==="chat"){ renderChatList(); if(chat.cur) await chatThread(); } }catch(e){ if(e.message==="auth") lock("That admin key isn't right."); }
+    chatBusy=false;
+  },5000);
+}
+function renderChat(body){
+  if(!$("#chatWrap")){
+    body.innerHTML=`<div class="wpa-card wide" id="chatWrap"><h3 id="chatHead"></h3><div class="chat-grid"><div class="chat-list" id="chatList"></div><div class="chat-conv" id="chatConv"><div class="wpa-empty" style="margin:auto;border:0">Pick a conversation.</div></div></div></div>`;
+    if(chat.cur) chatOpen(chat.cur);
+  }
+  renderChatList();
+}
+function renderChatList(){
+  const L=$("#chatList"); if(!L) return;
+  const unread=chat.rows.filter(r=>r.unread&&r.id!==chat.cur).length;
+  $("#chatHead").textContent=`${chat.rows.length} conversation${chat.rows.length===1?"":"s"}${unread?` · ${unread} with new messages`:""}`;
+  L.innerHTML=chat.rows.length?chat.rows.map(r=>`<button class="chat-item" type="button" data-chat="${esc(r.id)}" aria-current="${r.id===chat.cur}">
+    <span class="r1"><b>${esc(r.name||"Visitor")}</b>${r.unread&&r.id!==chat.cur?`<span class="chat-unread">${r.unread}</span>`:`<small>${when(r.updated)}</small>`}</span>
+    <small>${r.last_sender==="admin"?"You: ":""}${esc((r.last_body||"").slice(0,80))}</small>
+    ${r.status==="closed"?`<small>Closed</small>`:""}</button>`).join(""):`<div class="wpa-empty">No chats yet. Visitors start them from the home page.</div>`;
+  L.querySelectorAll("[data-chat]").forEach(b=>b.onclick=()=>chatOpen(b.dataset.chat));
+}
+function chatOpen(id){
+  const r=chat.rows.find(x=>x.id===id); if(!r) return;
+  chat.cur=id; chat.msgs=[]; chat.last=0;
+  const seen=r.visitor_seen&&Date.now()-Date.parse(r.visitor_seen)<12e4;
+  $("#chatConv").innerHTML=`<div class="chat-top"><div><b>${esc(r.name||"Visitor")}</b><small>${r.email?esc(r.email):"No email given"} · started ${when(r.created)}${r.page?" on "+(r.page==="/"?"the home page":esc(r.page)):""} · <span id="chatSeen">${seen?"on the page now":"not on the page"}</span></small></div>
+    <button class="dl" type="button" id="chatClose">${r.status==="closed"?"Reopen":"Close chat"}</button></div>
+    <div class="chat-msgs" id="chatMsgs"></div><div class="err" id="chatErr" style="padding:0 12px"></div>
+    <div class="chat-reply"><textarea id="chatText" rows="2" maxlength="2000" placeholder="Reply to ${esc(r.name||"visitor")} (Enter to send, Shift+Enter for a new line)"></textarea><button class="gate-btn dl" type="button" id="chatSend" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">Send</button></div>`;
+  $("#chatSend").onclick=chatSend;
+  $("#chatText").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); chatSend(); } });
+  $("#chatClose").onclick=async()=>{ try{ await chatFetch("chat-close",{method:"POST",body:JSON.stringify({id,reopen:r.status==="closed"})}); await chatList(); renderChatList(); chatOpen(id); }catch(e){ $("#chatErr").textContent=e.message; } };
+  renderChatList(); chatThread().then(()=>$("#chatText")&&$("#chatText").focus());
+}
+async function chatThread(){
+  const id=chat.cur; if(!id||!$("#chatMsgs")) return;
+  const j=await chatFetch(`chat-thread?id=${encodeURIComponent(id)}&after=${chat.last}`);
+  if(id!==chat.cur) return;
+  const r=chat.rows.find(x=>x.id===id); if(r) r.unread=0; chatBadge();
+  const s=$("#chatSeen"); if(s&&r) s.textContent=r.visitor_seen&&Date.now()-Date.parse(r.visitor_seen)<12e4?"on the page now":"not on the page (replies are also emailed if they gave an email)";
+  if(!j.rows.length&&chat.msgs.length) return;
+  j.rows.forEach(m=>{ if(m.id>chat.last){ chat.msgs.push(m); chat.last=m.id; } });
+  const box=$("#chatMsgs"); const near=box.scrollHeight-box.scrollTop-box.clientHeight<80||!box.childElementCount;
+  box.innerHTML=chat.msgs.map(m=>`<div class="chat-m ${m.sender==="admin"?"a":"v"}">${esc(m.body)}<small>${m.sender==="admin"?"You · ":""}${when(m.created)}</small></div>`).join("")||`<div class="wpa-note">No messages.</div>`;
+  if(near) box.scrollTop=box.scrollHeight;
+}
+async function chatSend(){
+  const t=$("#chatText"), b=$("#chatSend"), text=t.value.trim(); if(!text) return;
+  b.disabled=true; $("#chatErr").textContent="";
+  try{ const j=await chatFetch("chat-reply",{method:"POST",body:JSON.stringify({id:chat.cur,body:text})}); t.value=""; await chatThread();
+    if(j.emailed) $("#chatErr").innerHTML=`<span style="color:var(--muted)">They've left the page, so your reply was also emailed to them.</span>`;
+  }catch(e){ $("#chatErr").textContent=e.message==="auth"?"Admin key expired. Unlock again.":e.message; }
+  b.disabled=false; t.focus();
 }
 document.addEventListener("click",async e=>{
   const b=e.target.closest("button[data-docid]"); if(!b) return;

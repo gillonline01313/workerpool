@@ -78,3 +78,10 @@ export async function sendEmail(env, to, subject, text) {
     return r.ok;
   } catch { return false; }
 }
+
+/* ---------- live chat hours (8:00 to 23:00 Edmonton time, daily) ---------- */
+export const CHAT_TZ = "America/Edmonton", CHAT_OPEN = 8, CHAT_CLOSE = 23;
+export function chatOpen(d = new Date()) {
+  const h = parseInt(new Intl.DateTimeFormat("en-CA", { timeZone: CHAT_TZ, hour: "numeric", hourCycle: "h23" }).format(d));
+  return h >= CHAT_OPEN && h < CHAT_CLOSE;
+}
