@@ -2,5 +2,6 @@ User-agent: *
 Disallow: /admin/
 Disallow: /reset/
 Disallow: /api/
+Disallow: /tools/src/
 
 Sitemap: https://workerpool.ca/sitemap.xml

@@ -87,7 +87,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="analytics" aria-pressed="true">Analytics</button>
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
-      <button type="button" data-t="b2b" aria-pressed="false">B2B applications</button></div>
+      <button type="button" data-t="b2b" aria-pressed="false">B2B applications</button>
+      <button type="button" data-t="assessments" aria-pressed="false">Shared assessments</button></div>
       <button class="wpa-close" type="button" id="out">Lock</button></div></div>
   <div id="ctl" class="wpa-ctl"></div>
   <div id="wpaBody"></div>
@@ -177,6 +178,7 @@ function render(){
   if(tab==="interest") return renderInterest(body);
   if(tab==="submissions") return renderSubs(body);
   if(tab==="b2b") return renderB2B(body);
+  if(tab==="assessments") return renderAssess(body);
   const now=new Date(), startDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const from=range===0?0:range===1?startDay.getTime():startDay.getTime()-(range-1)*864e5;
   const V=(data.visits||[]).map(v=>({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk)})).filter(v=>v.ts>=from&&(pageF==="all"||v.page===pageF)).sort((a,b)=>b.ts-a.ts);
@@ -247,6 +249,15 @@ document.addEventListener("click",async e=>{
   }catch(x){ b.textContent=x.message; }
   b.disabled=false;
 });
+function renderAssess(body){
+  const R=data.assessments||[];
+  if(!R.length){ body.innerHTML=`<div class="wpa-empty">No shared assessments yet. They appear when tool users agree to share with a licensed RCIC.</div>`; return; }
+  const yn=v=>v?"Yes":"No";
+  body.innerHTML=`<div class="wpa-card wide"><h3>${R.length} shared assessment${R.length>1?"s":""}</h3><p class="sub">Each person agreed to share these details with a licensed RCIC organization.</p><div class="wpa-tbl"><table><thead><tr><th>Updated</th><th>Prov.</th><th>Candidate</th><th>Contact</th><th>CRS</th><th>Provincial</th><th>RCIP</th><th>Details</th></tr></thead><tbody>
+  ${R.map(r=>{ let s={},i={}; try{s=JSON.parse(r.summary||"{}")}catch(e){} try{i=JSON.parse(r.inputs||"{}")}catch(e){}
+    const det=`Programs: CEC ${yn(s.cec)} · FSW ${yn(s.fswOk)} (grid ${s.fsw}) · FST ${yn(s.fst)}\nCategories: ${(s.categories||[]).join(", ")||"none"}\nCRS rules: ${s.rules==="old"?"until Nov 2, 2026":"from Nov 3, 2026"}\n\nAge ${i.age} · ${i.withSpouse?"with spouse":"single"} · education ${i.edu}\nEnglish lowest CLB ${i.en?i.en.min:"-"} · French lowest NCLC ${i.fr?i.fr.min:"-"}\nCanadian work ${i.cdnYears} yrs · foreign ${i.forYears} yrs · TEER ${i.teer} · ${i.occ}\nJob offer: ${i.bcOffer?`yes, $${i.wage}/hr, TEER ${i.offerTeer}`:"no"}\nRCIP community: ${i.rcip||"none"}`;
+    return `<tr><td>${when(r.updated)}</td><td><span class="pill">${esc(r.province)}</span></td><td>${esc(r.name)}</td><td>${esc(r.acct_name)}<br>${esc(r.acct_email)}<br>${esc(r.acct_phone)}</td><td>${s.crs??"–"}</td><td>${s.pnp??"–"}<br><span class="sub">${esc(s.pnpLabel||"")}</span></td><td>${s.rcip?esc(s.rcip)+"<br>"+(s.rcipPoints!=null?s.rcipPoints+" pts":"first come, first served"):"–"}</td><td><details><summary>View</summary><pre>${esc(det)}</pre></details></td></tr>`;}).join("")}</tbody></table></div></div>`;
+}
 function renderB2B(body){
   const R=data.b2b||[], D=data.b2bDocs||[], C=window.B2B;
   if(!R.length){ body.innerHTML=`<div class="wpa-empty">No B2B applications yet.</div>`; return; }

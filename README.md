@@ -20,7 +20,8 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `b2b/` | B2B Data Entry client portal: application type, information sheet, document checklist |
 | `assets/b2b-config.js` | Application types, info sheet sections and document checklists (edit here to add types) |
 | `functions/api/b2b/*` | B2B applications: create, save, upload documents, submit (emails admin) |
-| `tools/bc/` | BC Pathway Check: disclaimer, sign-up, CRS / FSW / BC PNP SIRS / RCIP community scores, 2026 draws (draw data at the top of the script) |
+| `tools/bc/`, `tools/ab/`, `tools/mb/` | Pathway Checks for BC, Alberta and Manitoba: disclaimer, optional consent to share with a licensed RCIC, sign-up, then CRS / FSW / provincial EOI (BC PNP SIRS, AAIP, MPNP) / RCIP community scores and 2026 draws. Built from `tools/src/` with `python3 tools/src/build.py` |
+| `functions/api/tools/assessment.js` | Saves an assessment the candidate agreed to share (one per province per account) and emails the admin |
 | `privacy/`, `terms/`, `reset/` | Privacy policy, terms of use, password reset page |
 | `schema.sql` | All database tables (`schema-accounts.sql` adds just the account tables) |
 
@@ -44,6 +45,12 @@ Cloudflare → R2 Object Storage → Create bucket `workerpool-resumes` (keep it
 ## B2B Data Entry portal
 
 Run `schema-b2b.sql` in the D1 console once. Documents use the same R2 bucket as resumes (`RESUMES` binding), under `b2b/`.
+
+## Pathway Check tools
+
+Run `schema-assessments.sql` in the D1 console once. Assessments a candidate agrees to share appear on the admin page under **Shared assessments**, and the first share from each candidate emails `ADMIN_EMAIL`.
+
+To update draws or rules, edit `tools/src/prov_bc.js`, `prov_ab.js` or `prov_mb.js` (province data and scoring) or `tools/src/template.html` (shared form, Express Entry and RCIP), then run `python3 tools/src/build.py` and commit the regenerated `tools/*/index.html`.
 
 ## Email
 

@@ -3,6 +3,8 @@
   <url><loc>https://workerpool.ca/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
   <url><loc>https://workerpool.ca/apply/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://workerpool.ca/tools/bc/</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://workerpool.ca/tools/ab/</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://workerpool.ca/tools/mb/</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://workerpool.ca/b2b/</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://workerpool.ca/privacy/</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://workerpool.ca/terms/</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>

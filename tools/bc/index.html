@@ -137,6 +137,15 @@ details.more summary{cursor:pointer;font-size:.84rem;color:var(--accent);font-we
     <div class="err" id="ackErr"></div>
     <button class="btn" type="button" id="ackGo" style="align-self:flex-start">Continue</button>
   </div>
+  <div class="card" id="gateConsent" hidden>
+    <h2>Talk it over with a licensed professional?</h2>
+    <p class="cmp" style="margin:0">WorkerPool works with licensed immigration consultants (RCICs). If you agree, we'll share your assessment with an RCIC organization so they can contact you and discuss your profile in detail. Any advice, and any fee for it, is between you and them.</p>
+    <label class="check"><input type="radio" name="share" value="yes"> <span><b>Yes,</b> share my assessment details and contact information with a licensed RCIC organization so they can discuss my profile with me.</span></label>
+    <label class="check"><input type="radio" name="share" value="no"> <span><b>No,</b> just let me use the tool. Don't share my details.</span></label>
+    <p class="note" style="margin:0">You can change your mind later. See our <a href="/privacy/">privacy policy</a> for how we handle your information.</p>
+    <div class="err" id="shareErr"></div>
+    <button class="btn" type="button" id="shareGo" style="align-self:flex-start">Continue to sign up</button>
+  </div>
   <div class="card" id="gateAuth" hidden>
     <h2>Sign up to use the tool</h2>
     <p class="cmp" style="margin:0">It's free. Already have a WorkerPool account? Sign in with it.</p>
@@ -199,7 +208,7 @@ details.more summary{cursor:pointer;font-size:.84rem;color:var(--accent);font-we
             <option value="phd">Doctoral degree (PhD)</option></select></div>
           <div class="f"><label for="pgcert">Post-graduate certificate after a bachelor's?</label><select id="pgcert"><option value="no">No</option><option value="yes">Yes</option></select><span class="sub">Counts for BC PNP education points</span></div>
           <div class="f"><label for="cdnEdu">Canadian post-secondary education</label><select id="cdnEdu"><option value="none">None</option><option value="short">1 or 2-year credential</option><option value="long">3+ years, master's or PhD</option></select></div>
-          <div class="f"><label for="eduWhere">Where was the highest credential earned?</label><select id="eduWhere"><option value="abroad">Outside Canada</option><option value="bc">In British Columbia</option><option value="canada">In Canada, outside BC</option></select></div>
+          <div class="f"><label for="eduWhere">Where was the highest credential earned?</label><select id="eduWhere"><option value="abroad">Outside Canada</option><option value="prov">In British Columbia</option><option value="canada">In Canada, outside BC</option></select></div>
           <div class="f"><label for="eca">Foreign credential assessed (ECA)?</label><select id="eca"><option value="yes">Yes, or education is Canadian</option><option value="no">Not yet</option></select></div>
         </div>
       </div></details>
@@ -242,7 +251,7 @@ details.more summary{cursor:pointer;font-size:.84rem;color:var(--accent);font-we
 
       <details class="panel" open><summary><span class="num">5</span><h2>Job offer in British Columbia</h2><span class="hint">Needed for BC PNP and RCIP</span></summary><div class="body">
         <div class="grid">
-          <div class="f full"><label for="bcOffer">Does the candidate have a full-time, ongoing BC job offer?</label><select id="bcOffer"><option value="yes" selected>Yes</option><option value="no">No</option></select></div>
+          <div class="f full"><label for="jobOffer">Does the candidate have a full-time, ongoing BC job offer?</label><select id="jobOffer"><option value="yes" selected>Yes</option><option value="no">No</option></select></div>
         </div>
         <div class="grid" id="offerFields">
           <div class="f"><label for="wage">Hourly wage offered (CAD)</label><input id="wage" type="number" min="0" step="0.01" value="38"></div>
@@ -299,7 +308,7 @@ details.more summary{cursor:pointer;font-size:.84rem;color:var(--accent);font-we
 
   <section class="draws" id="draws">
     <div class="card-h"><div><span class="eyebrow">2026 draws</span><h2>Every invitation round this year</h2></div></div>
-    <div class="dtabs"><div class="seg" id="drawSeg"><button type="button" data-d="ee" aria-pressed="true">Express Entry</button><button type="button" data-d="bc" aria-pressed="false">BC PNP Skills</button><button type="button" data-d="ent" aria-pressed="false">BC PNP Entrepreneur</button></div>
+    <div class="dtabs"><div class="seg" id="drawSeg"><button type="button" data-d="ee" aria-pressed="true">Express Entry</button></div>
       <select id="drawFilter" style="width:auto"></select></div>
     <div class="chart" id="drawChart"></div>
     <div class="tbl" id="drawTable"></div>
@@ -330,7 +339,12 @@ const EE_DRAWS = [ // [round, date, category, invitations, cutoff]
  [394,"2026-02-06","French",8500,400],[393,"2026-02-03","PNP",423,749],[392,"2026-01-21","CEC",6000,509],[391,"2026-01-20","PNP",681,746],
  [390,"2026-01-07","CEC",8000,511],[389,"2026-01-05","PNP",574,711]];
 const EE_LABEL = {CEC:"Canadian Experience Class",PNP:"Provincial Nominee Program",French:"French-language proficiency",Trades:"Trade occupations",Healthcare:"Healthcare and social services",Physicians:"Physicians with Canadian work experience","Senior managers":"Senior managers with Canadian work experience",Transport:"Transport occupations",Military:"Skilled military recruits"};
-const BC_DRAWS = [ // [date, priority group, min score or null (wage-based), invitations as text]
+const FUNDS = [0,15263,19001,23360,28362,32168,36280,40392]; const FUNDS_EXTRA = 4112;
+
+/**/
+/* ======================= PROVINCE: BRITISH COLUMBIA ======================= */
+const PROVINCE="BC";
+const PNP_DRAWS = [ // [date, priority group, min score or null (wage-based), invitations as text]
  ["2026-10-08","Care: Childcare",99,"86"],["2026-10-08","Care: Health",76,"82"],["2026-10-08","Care: Veterinary care",86,"<5"],["2026-10-08","Build: Construction trades",94,"115"],
  ["2026-09-24","Innovate: High economic impact (wage-based)",null,"426"],["2026-09-24","Innovate: High economic impact (points)",131,"288"],
  ["2026-09-17","Rural/remote health support initiative",60,"33"],
@@ -350,11 +364,71 @@ const BC_DRAWS = [ // [date, priority group, min score or null (wage-based), inv
 const ENT_DRAWS = [["2026-09-22","Base",119,"10"],["2026-09-22","Regional",119,"<5"],["2026-08-25","Base",116,"11"],["2026-08-25","Regional",116,"5"],["2026-07-28","Base",117,"10"],
  ["2026-06-30","Base",118,"14"],["2026-06-30","Regional",113,"<5"],["2026-06-02","Base",117,"15"],["2026-06-02","Regional",117,"<5"],["2026-05-05","Base",115,"8"],["2026-05-05","Regional",115,"<5"],
  ["2026-04-14","Base",115,"14"],["2026-03-10","Base",117,"7"],["2026-03-10","Regional",129,"<5"],["2026-02-10","Base",121,"13"],["2026-02-10","Regional",105,"<5"],["2026-01-13","Base",115,"7"]];
-const FUNDS = [0,15263,19001,23360,28362,32168,36280,40392]; const FUNDS_EXTRA = 4112;
+const PNP_TABS=[
+  {key:"pnp",label:"BC PNP Skills",data:PNP_DRAWS,group:"Priority group",scored:true,nullLabel:"Wage-based",
+    note:you=>`Skills Immigration rounds to October 8, 2026. There were no general rounds in 2026; all invitations targeted priority groups. Highlighted rows have a minimum score at or below the candidate's SIRS${you!=null?` (${you})`:""}. Wage-based rounds invite by job offer wage, not points.`},
+  {key:"ent",label:"BC PNP Entrepreneur",data:ENT_DRAWS,group:"Stream",scored:false,
+    note:()=>"Entrepreneur Immigration rounds to September 22, 2026. Entrepreneur scores use a separate system and aren't estimated by this tool."}];
 const RCIP = {
-  nos:{name:"North Okanagan Shuswap",status:"Accepting: last 2026 intake window Nov 8–15. Community ranks candidates; recent cut-offs 91–94 on its own points grid.",open:true},
-  pl:{name:"Peace Liard",status:"Second 2026 intake Oct 13–20, limited to designated employers without a recommendation yet this year.",open:true},
-  wk:{name:"West Kootenay",status:"Closed for 2026 after its September intake. Next intake in 2027.",open:false}};
+  nos:{grid:"nos",cutoffs:[91,94],gridNote:"Based on North Okanagan Shuswap's published point factors; NOC category points are estimated from the occupation's sector.",hint:"North Okanagan Shuswap sets a minimum wage per NOC and gives up to 5 points for paying above it.",name:"North Okanagan Shuswap",status:"Accepting: last 2026 intake window Nov 8–15. Community ranks candidates; recent cut-offs 91–94 on its own points grid.",open:true},
+  pl:{grid:"generic",gridNote:"Peace Liard doesn't publish its grid, so this uses the common RCIP structure as an estimate.",hint:"Peace Liard ranks with a scoring grid it shares only with applicants, so its score here is an estimate.",name:"Peace Liard",status:"Its second 2026 intake ran October 13–20 for designated employers without a recommendation yet this year. Watch for the 2027 intake dates.",open:false},
+  wk:{grid:"wk",gridNote:"Based on West Kootenay's published 2026 scoring grid.",hint:"West Kootenay gives sector points plus NOC points, capped at 25.",name:"West Kootenay",status:"Closed for 2026 after its September intake. Next intake in 2027.",open:false}};
+const NOCS={
+ wk:[["11100","Financial auditors and accountants",10],["12200","Accounting technicians and bookkeepers",5],["13110","Administrative assistants",5],["31301","Registered nurses",5],["32101","Licensed practical nurses",5],["33102","Nurse aides, orderlies, patient service associates",5],["42201","Social and community service workers",5],["42202","Early childhood educators and assistants",5],["60020","Retail and wholesale trade managers",5],["60030","Restaurant and food service managers",5],["62200","Chefs",5],["63100","Insurance agents and brokers",5],["72400","Construction millwrights and industrial mechanics",5],["72410","Automotive service technicians and mechanics",5],["73300","Transport truck drivers",5],["94140","Process control and machine operators, food and beverage",5],["44101","Home support workers and caregivers",0],["63200","Cooks",0],["63202","Bakers",0],["64314","Hotel front desk clerks",0],["65200","Food and beverage servers",0],["73112","Painters and decorators",0],["75101","Material handlers",0],["75110","Construction trades helpers and labourers",0],["95109","Other labourers in processing and manufacturing",0],["14100","General office support workers (secondary)",0],["65201","Food counter attendants, kitchen helpers (secondary)",0],["65310","Light duty cleaners (secondary)",0],["72310","Carpenters (secondary)",0],["72401","Heavy-duty equipment mechanics (secondary)",0],["75119","Other trades helpers and labourers (secondary)",0]],
+ nos:[["12200","Accounting technicians and bookkeepers",22],["13100","Administrative officers",24.64],["13111","Legal administrative assistants",22],["14200","Accounting and related clerks",22],["21321","Industrial and manufacturing engineers",32.92],["32124","Pharmacy technicians",22],["33100","Dental assistants",29],["33101","Medical laboratory assistants",23.99],["33102","Nurse aides, orderlies, patient service associates",23],["42201","Social and community service workers",22],["42202","Early childhood educators",22],["60030","Restaurant and food service managers",25],["62010","Retail sales supervisors",22],["62021","Executive housekeepers",25],["63100","Insurance agents and brokers",22],["63202","Bakers",22],["65310","Light duty cleaners",22],["72310","Carpenters",26],["72402","HVAC and refrigeration mechanics",30],["72410","Automotive service technicians and mechanics",22],["73300","Transport truck drivers",22],["75110","Construction trades helpers",22],["90010","Manufacturing managers",35.54],["94140","Process control and machine operators, food and beverage",22],["94212","Plastic products assemblers, finishers, inspectors",22]],
+ pl:[["60031","Accommodation service managers"],["12200","Accounting technicians and bookkeepers"],["13110","Administrative assistants"],["13100","Administrative officers"],["72404","Aircraft mechanics and inspectors"],["72600","Air pilots, flight engineers and instructors"],["72410","Automotive service technicians and mechanics"],["65100","Cashiers"],["42201","Social and community service workers"],["22220","Computer network and web technicians"],["63200","Cooks"],["42202","Early childhood educators and assistants"],["62020","Food service supervisors"],["64314","Hotel front desk clerks"],["73201","Building maintenance workers and superintendents"],["14100","General office support workers"],["21222","Information systems specialists"],["65310","Light duty cleaners"],["33109","Other assisting occupations in health services"],["33103","Pharmacy technical assistants"],["60030","Restaurant and food service managers"],["60020","Retail and wholesale trade managers"],["62010","Retail sales supervisors"],["14401","Storekeepers and partspersons"],["73300","Transport truck drivers (local)"]]};
+for(const k in RCIP) RCIP[k].nocs=NOCS[k];
+const RCIP_NONE="BC's RCIP communities are North Okanagan Shuswap, Peace Liard and West Kootenay. A job offer from a designated employer there opens this pathway; choose the community in section 5.";
+function readProv(){ return {area:+$("area").value, regional:$("regional").value==="yes", designation:$("designation").value==="yes", ha:$("ha").value==="yes"}; }
+function sirs(p){
+  const rows=[];
+  const wage=Math.max(0,Math.min(55,Math.floor(p.wage)-15));
+  let area={1:0,2:5,3:15}[p.area]; const reg=(p.area!==1 && p.regional)?10:0;
+  const dr={0:0,0.5:1,1:4,2:8,3:12,4:16,5:20}[p.drYears] + (p.drCdn&&p.drYears>=1?10:0) + (p.current?10:0);
+  let ed={none:0,hs:0,one:5,two:5,bach:15,twoplus:15,master:22,phd:27}[p.edu];
+  if(p.pgcert && ed<15) ed=15;
+  if(p.edu!=="none" && p.edu!=="hs"){ ed += p.eduWhere==="prov"?8:p.eduWhere==="canada"?6:0; }
+  if(p.designation) ed+=5;
+  ed=Math.min(40,ed);
+  const best = [p.en,p.fr].filter(Boolean).reduce((a,c)=>Math.max(a,c.min),0);
+  let lg = best>=9?30:best===8?25:best===7?20:best===6?15:best===5?10:best===4?5:0;
+  if(p.en && p.fr && p.en.min>=4 && p.fr.min>=4) lg+=10;
+  lg=Math.min(40,lg);
+  const drC=Math.min(40,dr);
+  rows.push(["Directly related work experience",drC],["Education",ed],["Language",lg],["Hourly wage",wage],["Area of employment",area+reg]);
+  return {total:drC+ed+lg+wage+area+reg, rows, human:drC+ed+lg, econ:wage+area+reg};
+}
+function bcPriority(p){
+  const map={health:"Care: Health",physician:"Care: Health",ece:"Care: Childcare",vet:"Care: Veterinary care",teacherFr:"Care: Education",trades:"Build: Construction trades"};
+  if(map[p.occ]) return map[p.occ];
+  if(p.occ==="stem"||p.occ==="seniormgr"||p.occ==="researcher") return "Innovate: High economic impact (points)";
+  return null;
+}
+const pnpScore=sirs;
+function pnpCard(p,c,eeOk){
+  if(p.jobOffer){
+    const s=sirs(p), pr=bcPriority(p);
+    const sw = p.offerTeer<=3 && (+p.cdnYears + +p.forYears)>=2;
+    const lastPr = pr ? PNP_DRAWS.find(d=>d[1]===pr) : null;
+    const pills=[];
+    if(p.ha) pills.push(pill("Health Authority stream: apply directly","good"));
+    pills.push(sw?pill("Skilled Worker: meets basics","good"):pill("Skilled Worker: not yet","bad"));
+    if(pr) pills.push(pill(pr,"neutral")); else pills.push(pill("No 2026 priority group","warn"));
+    let cmp="";
+    if(lastPr){ const ok=s.total>=lastPr[2]; cmp=`Latest ${esc(pr)} cut-off: <b>${lastPr[2]}</b> (${fmtD(lastPr[0])}). ${ok?`<b style="color:var(--good)">At or above</b> the latest cut-off.`:`About <b>${lastPr[2]-s.total}</b> points short.`}`; }
+    else cmp="In 2026 the BC PNP has invited only Care, Build and Innovate priority groups (plus a rural health initiative). Candidates outside these groups can register, but no general rounds have been held this year.";
+    const why=[]; if(p.offerTeer>3) why.push("Skilled Worker needs a TEER 0–3 job offer"); if((+p.cdnYears + +p.forYears)<2) why.push("Skilled Worker needs 2 years of skilled work experience");
+    return {score:s.total,label:"BC PNP SIRS",extra:pr,html:`<div class="card"><div class="card-h"><div><span class="eyebrow">British Columbia · BC PNP Skills Immigration</span><h2>SIRS registration score</h2><div class="pills" style="margin-top:8px">${pills.join("")}</div></div><div class="score">${s.total}<small>of 200</small></div></div>
+      ${lastPr?`<div class="meter"><i style="width:${Math.min(100,s.total/Math.max(lastPr[2],s.total)*100)}%"></i></div>`:""}
+      <p class="cmp">${cmp}</p>
+      ${why.length?`<ul class="reasons">${why.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`:""}
+      ${eeOk?`<p class="cmp">Eligible for Express Entry, so the candidate could use the BC PNP Express Entry option. A nomination adds 600 CRS points: <b>${c.total} → ${c.total+600}</b>, well above every 2026 PNP round (latest ${drawStats("PNP").latest[4]}).</p>`:""}
+      <details class="more"><summary>SIRS breakdown</summary>${table(s.rows,s.total,"Total SIRS")}<p class="note">Human capital ${s.human}/120 · Economic ${s.econ}/80</p></details></div>`};
+  } else {
+    return {score:null,label:"BC PNP SIRS",html:`<div class="card"><span class="eyebrow">British Columbia · BC PNP</span><h2>Needs a BC job offer</h2><p class="cmp">Skills Immigration streams need a full-time, ongoing job offer from a BC employer. Add one in section 5 to see a SIRS score.</p></div>`};
+  }
+}
+
 
 /* ================= LANGUAGE CONVERSION (to CLB / NCLC) =================
    Each row: minimum score for CLB 10, 9, 8, 7, 6, 5, 4. Abilities L, R, W, S. */
@@ -423,7 +497,7 @@ function crs(p){
   let cdn=lenPts, cdnLabel="Canadian work experience";
   if(p.rules==="new"){
     const bonus = cy>=1 ? ({0:0,13:20,15:40,20:70}[p.hwTier]) : 0;
-    const offer = p.bcOffer ? ({0:0,13:50,15:70,20:100}[p.offerTier]) : 0;
+    const offer = p.jobOffer ? ({0:0,13:50,15:70,20:100}[p.offerTier]) : 0;
     const o1=lenPts+bonus;
     cdn=Math.min(sp?140:150,Math.max(o1,offer));
     cdnLabel = offer>o1 ? "Labour market factor (high-wage job offer)" : (bonus?"Labour market factor (Canadian experience + high-wage)":"Labour market factor (Canadian experience)");
@@ -472,7 +546,7 @@ function fsw(p){
   const ed={none:0,hs:5,one:15,two:19,bach:21,twoplus:22,master:23,phd:25}[p.edu];
   const ex=skilled>=6?15:skilled>=4?13:skilled>=2?11:skilled>=1?9:0;
   const ag=p.age<18?0:p.age<=35?12:p.age>=47?0:12-(p.age-35);
-  const ae=p.bcOffer&&p.offerTeer<=3?10:0;
+  const ae=p.jobOffer&&p.offerTeer<=3?10:0;
   let ad=0;
   if(p.withSpouse && p.spClb>=4) ad+=5;
   if(p.cdnEdu!=="none") ad+=5;
@@ -485,7 +559,7 @@ function fsw(p){
   const total=lp+l2p+ed+ex+ag+ae+ad;
   if(total<67){ ok=false; reasons.push(`Scores ${total} of 100; at least 67 is needed`); }
   const need=FUNDS[Math.min(p.family,7)]+(p.family>7?(p.family-7)*FUNDS_EXTRA:0);
-  const exempt=p.bcOffer && p.inCanada==="wp";
+  const exempt=p.jobOffer && p.inCanada==="wp";
   if(!exempt && p.funds<need){ ok=false; reasons.push(`Needs $${need.toLocaleString("en-CA")} in settlement funds for a family of ${p.family}`); }
   return {ok,total,reasons,rows:[["Language (first)",lp],["Language (second)",l2p],["Education",ed],["Experience",ex],["Age",ag],["Arranged employment",ae],["Adaptability",ad]],need,exempt};
 }
@@ -497,7 +571,7 @@ function eeEligibility(p){
     why: p.cdnYears<1||!p.cdnRecent ? "Needs 1 year of Canadian skilled work in the last 3 years" : p.teer>3 ? "Experience must be TEER 0–3" : (p.teer<=1 && m<7) ? "Needs CLB 7 for TEER 0–1 work" : m<5 ? "Needs CLB 5 for TEER 2–3 work" : "" };
   const lang = first ? (first.S>=5 && first.L>=5 && first.R>=4 && first.W>=4) : false;
   const tradeExp = p.occ==="trades" && (+p.cdnYears + +p.forYears)>=2;
-  const fst = { ok: tradeExp && lang && (p.cert || (p.bcOffer && p.offerTeer<=3)),
+  const fst = { ok: tradeExp && lang && (p.cert || (p.jobOffer && p.offerTeer<=3)),
     why: p.occ!=="trades" ? "Only for skilled trade occupations" : !tradeExp ? "Needs 2 years of trade experience in the last 5 years" : !lang ? "Needs CLB 5 speaking/listening and CLB 4 reading/writing" : "Needs a job offer or a Canadian certificate of qualification" };
   return {cec,fst,firstMin:m};
 }
@@ -520,58 +594,34 @@ function drawStats(cat){
   const cut=d.map(x=>x[4]); return {latest:d[0], min:Math.min(...cut), max:Math.max(...cut), n:d.length};
 }
 
-function sirs(p){
-  const rows=[];
-  const wage=Math.max(0,Math.min(55,Math.floor(p.wage)-15));
-  let area={1:0,2:5,3:15}[p.area]; const reg=(p.area!==1 && p.regional)?10:0;
-  const dr={0:0,0.5:1,1:4,2:8,3:12,4:16,5:20}[p.drYears] + (p.drCdn&&p.drYears>=1?10:0) + (p.current?10:0);
-  let ed={none:0,hs:0,one:5,two:5,bach:15,twoplus:15,master:22,phd:27}[p.edu];
-  if(p.pgcert && ed<15) ed=15;
-  if(p.edu!=="none" && p.edu!=="hs"){ ed += p.eduWhere==="bc"?8:p.eduWhere==="canada"?6:0; }
-  if(p.designation) ed+=5;
-  ed=Math.min(40,ed);
-  const best = [p.en,p.fr].filter(Boolean).reduce((a,c)=>Math.max(a,c.min),0);
-  let lg = best>=9?30:best===8?25:best===7?20:best===6?15:best===5?10:best===4?5:0;
-  if(p.en && p.fr && p.en.min>=4 && p.fr.min>=4) lg+=10;
-  lg=Math.min(40,lg);
-  const drC=Math.min(40,dr);
-  rows.push(["Directly related work experience",drC],["Education",ed],["Language",lg],["Hourly wage",wage],["Area of employment",area+reg]);
-  return {total:drC+ed+lg+wage+area+reg, rows, human:drC+ed+lg, econ:wage+area+reg};
-}
-function bcPriority(p){
-  const map={health:"Care: Health",physician:"Care: Health",ece:"Care: Childcare",vet:"Care: Veterinary care",teacherFr:"Care: Education",trades:"Build: Construction trades"};
-  if(map[p.occ]) return map[p.occ];
-  if(p.occ==="stem"||p.occ==="seniormgr"||p.occ==="researcher") return "Innovate: High economic impact (points)";
-  return null;
-}
 
 /* RCIP community points (max 125, 25 per factor). West Kootenay and North Okanagan Shuswap
    publish their grids; Peace Liard does not, so its score is an estimate on the same structure. */
 const SECTOR_PTS={"1":[15,"Business, finance and administration"],"2":[15,"Natural and applied sciences"],"3":[20,"Health"],"4":[20,"Education, law, social, community and government services"],"6":[10,"Sales and service"],"7":[20,"Trades, transport and equipment operators"],"8":[15,"Natural resources and agriculture"],"9":[15,"Manufacturing and utilities"]};
-const NOCS={
- wk:[["11100","Financial auditors and accountants",10],["12200","Accounting technicians and bookkeepers",5],["13110","Administrative assistants",5],["31301","Registered nurses",5],["32101","Licensed practical nurses",5],["33102","Nurse aides, orderlies, patient service associates",5],["42201","Social and community service workers",5],["42202","Early childhood educators and assistants",5],["60020","Retail and wholesale trade managers",5],["60030","Restaurant and food service managers",5],["62200","Chefs",5],["63100","Insurance agents and brokers",5],["72400","Construction millwrights and industrial mechanics",5],["72410","Automotive service technicians and mechanics",5],["73300","Transport truck drivers",5],["94140","Process control and machine operators, food and beverage",5],["44101","Home support workers and caregivers",0],["63200","Cooks",0],["63202","Bakers",0],["64314","Hotel front desk clerks",0],["65200","Food and beverage servers",0],["73112","Painters and decorators",0],["75101","Material handlers",0],["75110","Construction trades helpers and labourers",0],["95109","Other labourers in processing and manufacturing",0],["14100","General office support workers (secondary)",0],["65201","Food counter attendants, kitchen helpers (secondary)",0],["65310","Light duty cleaners (secondary)",0],["72310","Carpenters (secondary)",0],["72401","Heavy-duty equipment mechanics (secondary)",0],["75119","Other trades helpers and labourers (secondary)",0]],
- nos:[["12200","Accounting technicians and bookkeepers",22],["13100","Administrative officers",24.64],["13111","Legal administrative assistants",22],["14200","Accounting and related clerks",22],["21321","Industrial and manufacturing engineers",32.92],["32124","Pharmacy technicians",22],["33100","Dental assistants",29],["33101","Medical laboratory assistants",23.99],["33102","Nurse aides, orderlies, patient service associates",23],["42201","Social and community service workers",22],["42202","Early childhood educators",22],["60030","Restaurant and food service managers",25],["62010","Retail sales supervisors",22],["62021","Executive housekeepers",25],["63100","Insurance agents and brokers",22],["63202","Bakers",22],["65310","Light duty cleaners",22],["72310","Carpenters",26],["72402","HVAC and refrigeration mechanics",30],["72410","Automotive service technicians and mechanics",22],["73300","Transport truck drivers",22],["75110","Construction trades helpers",22],["90010","Manufacturing managers",35.54],["94140","Process control and machine operators, food and beverage",22],["94212","Plastic products assemblers, finishers, inspectors",22]],
- pl:[["60031","Accommodation service managers"],["12200","Accounting technicians and bookkeepers"],["13110","Administrative assistants"],["13100","Administrative officers"],["72404","Aircraft mechanics and inspectors"],["72600","Air pilots, flight engineers and instructors"],["72410","Automotive service technicians and mechanics"],["65100","Cashiers"],["42201","Social and community service workers"],["22220","Computer network and web technicians"],["63200","Cooks"],["42202","Early childhood educators and assistants"],["62020","Food service supervisors"],["64314","Hotel front desk clerks"],["73201","Building maintenance workers and superintendents"],["14100","General office support workers"],["21222","Information systems specialists"],["65310","Light duty cleaners"],["33109","Other assisting occupations in health services"],["33103","Pharmacy technical assistants"],["60030","Restaurant and food service managers"],["60020","Retail and wholesale trade managers"],["62010","Retail sales supervisors"],["14401","Storekeepers and partspersons"],["73300","Transport truck drivers (local)"]]};
 function fillNocs(){
-  const k=$("rcip").value, sel=$("cNoc"), prev=sel.value;
-  const list=NOCS[k]||[];
-  sel.innerHTML=`<option value="">Choose the job offer's NOC…</option>`+list.map(n=>`<option value="${n[0]}">${n[0]} · ${esc(n[1])}</option>`).join("")+`<option value="other">Other NOC (not on the community's priority list)</option>`;
+  const k=$("rcip").value, sel=$("cNoc"), prev=sel.value, c=RCIP[k];
+  const list=(c&&c.nocs)||[];
+  const opts = list.length
+    ? list.map(n=>`<option value="${n[0]}">${n[0]} · ${esc(n[1])}</option>`).join("")+`<option value="other">Other NOC (not on the community's priority list)</option>`
+    : Object.entries(SECTOR_PTS).map(([d,v])=>`<option value="sec${d}">NOC starting with ${d} · ${esc(v[1])}</option>`).join("")+`<option value="sec0">NOC starting with 0 · Management</option><option value="sec5">NOC starting with 5 · Art, culture, recreation and sport</option>`;
+  sel.innerHTML=`<option value="">Choose the job offer's ${list.length?"NOC":"occupation group"}…</option>`+opts;
   if([...sel.options].some(o=>o.value===prev)) sel.value=prev;
-  $("cNocHint").textContent = k==="nos" ? "North Okanagan Shuswap sets a minimum wage per NOC and gives up to 5 points for paying above it." : k==="wk" ? "West Kootenay gives sector points plus NOC points, capped at 25." : k==="pl" ? "Peace Liard ranks with a scoring grid it shares only with applicants, so its score here is an estimate." : "";
+  $("cNocHint").textContent = c ? (c.hint||"") : "";
 }
 function communityPoints(p){
   if(!p.rcip) return null;
-  const k=p.rcip, rows=[], notes=[];
-  const noc=p.cNoc, entry=(NOCS[k]||[]).find(n=>n[0]===noc);
-  const sector=noc&&noc!=="other"?SECTOR_PTS[noc[0]]:null;
+  const k=p.rcip, rows=[], notes=[], C=RCIP[k], G=C.grid||"generic";
+  if(G==="fcfs") return {total:null,rows:[],pass:true,notes:[C.gridNote],estimate:false,fcfs:true};
+  const noc=p.cNoc, entry=(C.nocs||[]).find(n=>n[0]===noc);
+  const sector=!noc||noc==="other"?null:noc.startsWith("sec")?SECTOR_PTS[noc[3]]||null:SECTOR_PTS[noc[0]];
   // job offer
   let job=0;
   if(!noc){ notes.push("Choose the job offer's NOC to score the job offer factor."); }
   else if(noc==="other"){ job=0; notes.push("Occupations outside the priority list are rarely recommended; most communities cap these."); }
   else {
     const sp=sector?sector[0]:0;
-    if(k==="wk"){ job=Math.min(25,sp+(entry?entry[2]:0)); rows.push(["Job offer: sector ("+(sector?sector[1]:"not a priority sector")+")",sp],["Job offer: NOC "+noc,entry?entry[2]:0]); }
-    else if(k==="nos"){
+    if(G==="wk"){ job=Math.min(25,sp+(entry?entry[2]:0)); rows.push(["Job offer: sector ("+(sector?sector[1]:"not a priority sector")+")",sp],["Job offer: NOC "+noc,entry?entry[2]:0]); }
+    else if(G==="nos"){
       const min=entry?entry[2]:22, over=p.wage-min, wb=over>=5?5:over>=2?3:0;
       if(p.wage<min) notes.push(`The wage must be at least $${min.toFixed(2)}/hour for this NOC.`);
       job=Math.min(25,sp+wb); rows.push(["Job offer: NOC category (estimated from sector)",sp],[`Wage above the $${min.toFixed(2)} community minimum`,wb]);
@@ -597,11 +647,11 @@ function communityPoints(p){
   rows.push(["Intent to reside (statement)",p.cIntent?10:0],["Community ties",p.cIntent?ties:0]);
   const total=job+we+lang+ed+intent;
   const factors=[job,we,lang,ed,intent];
-  const minEach = k==="wk" ? factors.every(f=>f>=10) : true;
+  const minEach = G==="wk" ? factors.every(f=>f>=10) : true;
   const pass = total>=50 && minEach;
-  if(k==="wk" && !minEach) notes.push("West Kootenay needs at least 10 points in every factor.");
+  if(G==="wk" && !minEach) notes.push(C.name+" needs at least 10 points in every factor.");
   if(!p.cIntent) notes.push("A written statement of intent to reside is required.");
-  return {total,rows,pass,notes,estimate:k==="pl"||k==="nos"};
+  return {total,rows,pass,notes,estimate:G!=="wk"};
 }
 
 function rcip(p){
@@ -609,7 +659,7 @@ function rcip(p){
   const c=RCIP[p.rcip], items=[];
   const need = p.offerTeer<=1?6:p.offerTeer<=3?5:4;
   const first = (p.en && (!p.fr || p.en.min>=p.fr.min)) ? p.en : p.fr;
-  items.push([p.bcOffer, "Full-time, ongoing job offer in the community"]);
+  items.push([p.jobOffer, "Full-time, ongoing job offer in the community"]);
   items.push([p.designated, "Employer designated by "+c.name]);
   items.push([p.drYears>=1||p.cGrad, "1 year (1,560 hours) of related work in the last 3 years, at a matching TEER (or a recent graduate exemption)"]);
   items.push([first && first.min>=need, `Language: CLB ${need} in all four abilities for a TEER ${p.offerTeer} job`]);
@@ -632,9 +682,8 @@ function read(){
     en:(en&&en.min>0)||(en&&(en.L||en.R||en.W||en.S))?en:null, fr:(fr&&(fr.L||fr.R||fr.W||fr.S))?fr:null,
     cdnYears:+$("cdnYears").value, cdnRecent:$("cdnRecent").value==="yes", forYears:+$("forYears").value, teer:+$("teer").value,
     occ:$("occ").value, hwTier:+$("hwTier").value, cert:$("cert").value==="yes",
-    bcOffer:$("bcOffer").value==="yes", wage:parseFloat($("wage").value)||0, offerTeer:+$("offerTeer").value, area:+$("area").value,
-    regional:$("regional").value==="yes", drYears:+$("drYears").value, drCdn:$("drCdn").value==="yes", current:$("current").value==="yes",
-    designation:$("designation").value==="yes", ha:$("ha").value==="yes", offerTier:+$("offerTier").value,
+    jobOffer:$("jobOffer").value==="yes", wage:parseFloat($("wage").value)||0, offerTeer:+$("offerTeer").value,
+    drYears:+$("drYears").value, drCdn:$("drCdn").value==="yes", current:$("jobOffer").value==="yes"&&$("current").value==="yes", offerTier:+$("offerTier").value, ...readProv(),
     rcip:$("rcip").value, designated:$("designated").value==="yes",
     spEdu:$("spEdu").value, spClb:+$("spClb").value, spCdn:+$("spCdn").value, spStudy:$("spStudy").value==="yes",
     cNoc:$("cNoc").value, cYears:+$("cYears").value, cGrad:$("cGrad").value==="yes", cFamily:$("cFamily").value==="yes", cVol:$("cVol").value==="yes",
@@ -667,58 +716,65 @@ function analyze(){
     ${!eeOk?`<ul class="reasons">${[el.cec.why&&"CEC: "+el.cec.why, ...f.reasons.map(r=>"FSW: "+r), p.occ==="trades"&&el.fst.why&&"FST: "+el.fst.why].filter(Boolean).map(r=>`<li>${esc(r)}</li>`).join("")}</ul>`:""}
     <details class="more"><summary>CRS breakdown (${RULES==="new"?"rules from Nov 3, 2026":"rules until Nov 2, 2026"})</summary>${table(c.rows,c.total,"Total CRS")}</details>
   </div>`);
+  const pc=pnpCard(p,c,eeOk);
   // --- FSW grid
   out.push(`<div class="card"><div class="card-h"><div><span class="eyebrow">Federal Skilled Worker</span><h2>67-point eligibility grid</h2><div class="pills" style="margin-top:8px">${f.total>=67?pill("Meets 67 points","good"):pill("Below 67","bad")}</div></div><div class="score">${f.total}<small>of 100</small></div></div>
     <p class="cmp">Settlement funds needed for a family of ${p.family}: <b>$${f.need.toLocaleString("en-CA")}</b>${f.exempt?" (exempt: valid job offer and already working in Canada)":""}. CEC candidates don't need to show funds.</p>
     <details class="more"><summary>Grid breakdown</summary>${table(f.rows,f.total)}</details></div>`);
-  // --- BC PNP
-  if(p.bcOffer){
-    const s=sirs(p), pr=bcPriority(p);
-    const sw = p.offerTeer<=3 && (+p.cdnYears + +p.forYears)>=2;
-    const lastPr = pr ? BC_DRAWS.find(d=>d[1]===pr) : null;
-    const pills=[];
-    if(p.ha) pills.push(pill("Health Authority stream: apply directly","good"));
-    pills.push(sw?pill("Skilled Worker: meets basics","good"):pill("Skilled Worker: not yet","bad"));
-    if(pr) pills.push(pill(pr,"neutral")); else pills.push(pill("No 2026 priority group","warn"));
-    let cmp="";
-    if(lastPr){ const ok=s.total>=lastPr[2]; cmp=`Latest ${esc(pr)} cut-off: <b>${lastPr[2]}</b> (${fmtD(lastPr[0])}). ${ok?`<b style="color:var(--good)">At or above</b> the latest cut-off.`:`About <b>${lastPr[2]-s.total}</b> points short.`}`; }
-    else cmp="In 2026 the BC PNP has invited only Care, Build and Innovate priority groups (plus a rural health initiative). Candidates outside these groups can register, but no general rounds have been held this year.";
-    const why=[]; if(p.offerTeer>3) why.push("Skilled Worker needs a TEER 0–3 job offer"); if((+p.cdnYears + +p.forYears)<2) why.push("Skilled Worker needs 2 years of skilled work experience");
-    out.push(`<div class="card"><div class="card-h"><div><span class="eyebrow">British Columbia · BC PNP Skills Immigration</span><h2>SIRS registration score</h2><div class="pills" style="margin-top:8px">${pills.join("")}</div></div><div class="score">${s.total}<small>of 200</small></div></div>
-      ${lastPr?`<div class="meter"><i style="width:${Math.min(100,s.total/Math.max(lastPr[2],s.total)*100)}%"></i></div>`:""}
-      <p class="cmp">${cmp}</p>
-      ${why.length?`<ul class="reasons">${why.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`:""}
-      ${eeOk?`<p class="cmp">Eligible for Express Entry, so the candidate could use the BC PNP Express Entry option. A nomination adds 600 CRS points: <b>${c.total} → ${c.total+600}</b>, well above every 2026 PNP round (latest ${drawStats("PNP").latest[4]}).</p>`:""}
-      <details class="more"><summary>SIRS breakdown</summary>${table(s.rows,s.total,"Total SIRS")}<p class="note">Human capital ${s.human}/120 · Economic ${s.econ}/80</p></details></div>`);
-  } else {
-    out.push(`<div class="card"><span class="eyebrow">British Columbia · BC PNP</span><h2>Needs a BC job offer</h2><p class="cmp">Skills Immigration streams need a full-time, ongoing job offer from a BC employer. Add one in section 5 to see a SIRS score.</p></div>`);
-  }
+  out.push(pc.html);
   // --- RCIP
   const r=rcip(p);
   if(r){
     const cp=communityPoints(p);
-    const cut = p.rcip==="nos" ? `<p class="cmp">Recent North Okanagan Shuswap intake cut-offs: <b>91–94</b>. ${cp.total>=94?`<b style="color:var(--good)">At or above</b> recent cut-offs.`:cp.total>=91?"Within the recent cut-off range.":`About <b>${91-cp.total}</b> points below the lowest recent cut-off.`}</p>` : "";
-    out.push(`<div class="card"><div class="card-h"><div><span class="eyebrow">Rural Community Immigration Pilot</span><h2>${esc(r.c.name)}</h2><div class="pills" style="margin-top:8px">${r.ok?pill("Meets federal requirements","good"):pill(`${r.met} of ${r.total} federal requirements met`,"warn")} ${cp.pass?pill("Meets community minimum (50)","good"):pill("Below community minimum","bad")} ${r.c.open?pill("Intake open","good"):pill("Closed for 2026","bad")}</div></div><div class="score">${cp.total}<small>community points / 125</small></div></div>
-      <div class="meter"><i style="width:${Math.min(100,cp.total/125*100)}%"></i></div>
+    const co=r.c.cutoffs;
+    const cut = co&&cp.total!=null ? `<p class="cmp">Recent ${esc(r.c.name)} intake cut-offs: <b>${co[0]}–${co[1]}</b>. ${cp.total>=co[1]?`<b style="color:var(--good)">At or above</b> recent cut-offs.`:cp.total>=co[0]?"Within the recent cut-off range.":`About <b>${co[0]-cp.total}</b> points below the lowest recent cut-off.`}</p>` : "";
+    out.push(`<div class="card"><div class="card-h"><div><span class="eyebrow">Rural Community Immigration Pilot</span><h2>${esc(r.c.name)}</h2><div class="pills" style="margin-top:8px">${r.ok?pill("Meets federal requirements","good"):pill(`${r.met} of ${r.total} federal requirements met`,"warn")} ${cp.fcfs?pill("First come, first served","neutral"):cp.pass?pill("Meets community minimum (50)","good"):pill("Below community minimum","bad")} ${r.c.open?pill("Intake open","good"):pill("Closed for 2026","bad")}</div></div>${cp.fcfs?`<div class="score">${r.met}/${r.total}<small>requirements met</small></div></div>`:`<div class="score">${cp.total}<small>community points / 125</small></div></div>
+      <div class="meter"><i style="width:${Math.min(100,cp.total/125*100)}%"></i></div>`}
       ${cut}
       ${cp.notes.length?`<ul class="reasons">${cp.notes.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:""}
-      <details class="more"><summary>Community points breakdown${cp.estimate?" (partly estimated)":""}</summary>${table(cp.rows,cp.total,"Total community points")}<p class="note">${p.rcip==="wk"?"Based on West Kootenay's published 2026 scoring grid.":p.rcip==="nos"?"Based on North Okanagan Shuswap's published point factors; NOC category points are estimated from the occupation's sector.":"Peace Liard doesn't publish its grid, so this uses the common RCIP structure as an estimate."}</p></details>
+      ${cp.fcfs?"":`<details class="more"><summary>Community points breakdown${cp.estimate?" (partly estimated)":""}</summary>${table(cp.rows,cp.total,"Total community points")}<p class="note">${esc(r.c.gridNote)}</p></details>`}
       <details class="more"><summary>Federal requirements</summary><ul class="reasons" style="list-style:none;padding:0;margin-top:8px">${r.items.map(i=>`<li>${i[0]?"✅":"⬜"} ${esc(i[1])}</li>`).join("")}</ul></details>
       <p class="note">${esc(r.c.status)}</p></div>`);
   } else {
-    out.push(`<div class="card"><span class="eyebrow">Rural Community Immigration Pilot</span><h2>Not in an RCIP community</h2><p class="cmp">BC's RCIP communities are North Okanagan Shuswap, Peace Liard and West Kootenay. A job offer from a designated employer there opens this pathway; choose the community in section 5.</p></div>`);
+    out.push(`<div class="card"><span class="eyebrow">Rural Community Immigration Pilot</span><h2>Not in an RCIP community</h2><p class="cmp">${esc(RCIP_NONE)}</p></div>`);
   }
   $("results").innerHTML=`<div class="card" style="padding:14px 18px"><span class="eyebrow">Assessment</span><h2>${esc(p.name)}</h2><p class="note">Age ${p.age} · ${p.withSpouse?"with accompanying spouse":"single applicant"} · ${p.en?`English lowest CLB ${p.en.min}`:"no English test"}${p.fr?` · French lowest NCLC ${p.fr.min}`:""} · ${new Date().toLocaleDateString("en-CA",{year:"numeric",month:"long",day:"numeric"})}</p></div>`+out.join("");
-  YOU={crs:c.total, sirs:p.bcOffer?sirs(p).total:null};
+  YOU={crs:c.total, pnp:pc.score};
+  LAST={province:PROVINCE, name:p.name, summary:{crs:c.total, rules:RULES, fsw:f.total, cec:el.cec.ok, fswOk:f.ok, fst:el.fst.ok,
+    categories:cats.map(x=>x.k), pnp:pc.score, pnpLabel:pc.label, pnpExtra:pc.extra||null, rcip:r?r.c.name:null, rcipPoints:r?communityPoints(p).total:null}, inputs:p};
+  shareBox();
   renderDraws();
   if(innerWidth<980) $("results").scrollIntoView({behavior:"smooth",block:"start"});
 }
 
+/* ======================= SHARE WITH RCIC ======================= */
+let LAST=null, SHARED=false;
+async function sendShare(){
+  if(!LAST) return false;
+  try{ const r=await fetch("/api/tools/assessment",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...LAST,consent:true})});
+    const j=await r.json().catch(()=>({})); return r.ok&&j.ok!==false; }catch(e){ return false; }
+}
+async function shareBox(){
+  const box=document.createElement("div"); box.className="card"; box.id="shareCard";
+  if(SHARE){
+    box.innerHTML=`<span class="eyebrow">Licensed RCIC review</span><p class="cmp" style="margin:0">Sharing this assessment with a licensed RCIC organization…</p>`;
+    $("results").appendChild(box);
+    const ok=await sendShare(); SHARED=ok;
+    box.innerHTML=ok?`<span class="eyebrow">Licensed RCIC review</span><h2>Shared for a detailed discussion</h2><p class="cmp" style="margin:0">As you agreed, this assessment was shared with a licensed RCIC organization. They'll contact you to go over your profile.</p>`
+      :`<span class="eyebrow">Licensed RCIC review</span><p class="cmp" style="margin:0">We couldn't share your assessment just now. Press Analyze again to retry.</p>`;
+  } else {
+    box.innerHTML=`<span class="eyebrow">Want a professional opinion?</span><h2>Discuss this with a licensed RCIC</h2><p class="cmp" style="margin:0">You chose not to share your details. If you change your mind, we can send this assessment to a licensed RCIC organization so they can contact you.</p><button class="btn" type="button" id="shareNow" style="align-self:flex-start">Share with a licensed RCIC</button>`;
+    $("results").appendChild(box);
+    $("shareNow").onclick=async()=>{ SHARE=true; try{ sessionStorage.setItem("tool_share","yes"); }catch(e){} box.remove(); shareBox(); };
+  }
+}
+
 /* ======================= DRAWS ======================= */
-let DTAB="ee", YOU={crs:null,sirs:null};
+let DTAB="ee", YOU={crs:null,pnp:null};
 function renderDraws(){
   const sel=$("drawFilter");
-  const cats = DTAB==="ee" ? ["All",...new Set(EE_DRAWS.map(d=>d[2]))] : DTAB==="bc" ? ["All",...new Set(BC_DRAWS.map(d=>d[1]))] : ["All","Base","Regional"];
+  const T=PNP_TABS.find(t=>t.key===DTAB);
+  const cats = DTAB==="ee" ? ["All",...new Set(EE_DRAWS.map(d=>d[2]))] : ["All",...new Set(T.data.map(d=>d[1]))];
   const cur=sel.dataset.tab===DTAB?sel.value:"All";
   sel.innerHTML=cats.map(c=>`<option value="${esc(c)}" ${c===cur?"selected":""}>${esc(c==="All"?"All categories":(EE_LABEL[c]||c))}</option>`).join(""); sel.dataset.tab=DTAB;
   const f=sel.value;
@@ -730,12 +786,12 @@ function renderDraws(){
     chartPts=d.map(x=>[x[1],x[4],x[2]]); you=YOU.crs;
     $("drawNote").innerHTML=`${d.length} rounds in 2026 to October 16. Highlighted rows have a cut-off at or below the candidate's CRS${YOU.crs!=null?` (${YOU.crs})`:""}. Invitation rounds pause for up to two weeks after November 3 while IRCC recalculates scores. Check IRCC's rounds of invitations page for new rounds.`;
   } else {
-    const src=DTAB==="bc"?BC_DRAWS:ENT_DRAWS;
+    const src=T.data;
     const d=src.filter(x=>f==="All"||x[1]===f);
-    head=`<tr><th>Date</th><th>${DTAB==="bc"?"Priority group":"Stream"}</th><th>Minimum score</th><th>Invitations</th></tr>`;
-    rows=d.map(x=>`<tr${DTAB==="bc"&&YOU.sirs!=null&&x[2]!=null&&YOU.sirs>=x[2]?' class="you"':""}><td>${fmtD(x[0])}</td><td>${esc(x[1])}</td><td><b>${x[2]==null?"Wage-based":x[2]}</b></td><td>${esc(x[3])}</td></tr>`).join("");
-    chartPts=d.filter(x=>x[2]!=null).map(x=>[x[0],x[2],x[1]]); you=DTAB==="bc"?YOU.sirs:null;
-    $("drawNote").innerHTML=DTAB==="bc"?`Skills Immigration rounds to October 8, 2026. There were no general rounds in 2026; all invitations targeted priority groups. Highlighted rows have a minimum score at or below the candidate's SIRS${YOU.sirs!=null?` (${YOU.sirs})`:""}. Wage-based rounds invite by job offer wage, not points.`:"Entrepreneur Immigration rounds to September 22, 2026. Entrepreneur scores use a separate system and aren't estimated by this tool.";
+    head=`<tr><th>Date</th><th>${esc(T.group)}</th><th>Minimum score</th><th>Invitations</th></tr>`;
+    rows=d.map(x=>`<tr${T.scored&&YOU.pnp!=null&&x[2]!=null&&YOU.pnp>=x[2]?' class="you"':""}><td>${fmtD(x[0])}</td><td>${esc(x[1])}</td><td><b>${x[2]==null?(T.nullLabel||"Not published"):x[2]}</b></td><td>${esc(x[3])}</td></tr>`).join("");
+    chartPts=d.filter(x=>x[2]!=null).map(x=>[x[0],x[2],x[1]]); you=T.scored?YOU.pnp:null;
+    $("drawNote").innerHTML=T.note(YOU.pnp);
   }
   $("drawTable").innerHTML=`<table><thead>${head}</thead><tbody>${rows||'<tr><td colspan="5">No rounds in this category in 2026.</td></tr>'}</tbody></table>`;
   // chart: cut-off over time
@@ -759,15 +815,17 @@ function renderDraws(){
 function toggles(){
   $("accWrap").hidden=$("marital").value!=="married";
   $("spouseFields").hidden=!($("marital").value==="married"&&$("spouseAcc").value==="yes");
-  $("offerFields").hidden=$("bcOffer").value!=="yes";
+  $("offerFields").hidden=$("jobOffer").value!=="yes";
   $("desWrap").hidden=!$("rcip").value;
-  $("commPanel").hidden=!($("rcip").value && $("bcOffer").value==="yes");
+  $("commPanel").hidden=!($("rcip").value && $("jobOffer").value==="yes");
+  if(typeof provToggles==="function") provToggles();
   fillNocs();
 }
-["marital","spouseAcc","bcOffer","rcip"].forEach(id=>$(id).addEventListener("change",toggles)); toggles();
+["marital","spouseAcc","jobOffer","rcip"].forEach(id=>$(id).addEventListener("change",toggles)); toggles();
 $("form").addEventListener("submit",e=>{e.preventDefault(); analyze();});
-$("reset").onclick=()=>{ $("form").reset(); SAMPLE.en={test:"ielts"}; $("name").value=""; ["en","fr"].forEach(k=>{ $(k+"Scores").innerHTML=""; renderScores(k); }); toggles(); $("results").innerHTML='<div class="empty"><h2>Results appear here</h2>Fill in the candidate\'s details and press <b>Analyze</b>.</div>'; YOU={crs:null,sirs:null}; renderDraws(); };
+$("reset").onclick=()=>{ $("form").reset(); SAMPLE.en={test:"ielts"}; $("name").value=""; ["en","fr"].forEach(k=>{ $(k+"Scores").innerHTML=""; renderScores(k); }); toggles(); $("results").innerHTML='<div class="empty"><h2>Results appear here</h2>Fill in the candidate\'s details and press <b>Analyze</b>.</div>'; YOU={crs:null,pnp:null}; renderDraws(); };
 document.querySelectorAll("#ruleSeg button").forEach(b=>b.onclick=()=>{ RULES=b.dataset.r; document.querySelectorAll("#ruleSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b)); if(YOU.crs!=null) analyze(); });
+$("drawSeg").insertAdjacentHTML("beforeend",PNP_TABS.map(t=>`<button type="button" data-d="${t.key}" aria-pressed="false">${esc(t.label)}</button>`).join(""));
 document.querySelectorAll("#drawSeg button").forEach(b=>b.onclick=()=>{ DTAB=b.dataset.d; document.querySelectorAll("#drawSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b)); renderDraws(); });
 $("drawFilter").onchange=renderDraws;
 renderDraws();
@@ -784,8 +842,16 @@ function setMode(m){
 $("tS").onclick=()=>setMode("signup"); $("tL").onclick=()=>setMode("login");
 $("ackGo").onclick=async()=>{
   if(!$("ack").checked){ $("ackErr").textContent="Tick the box to confirm you understand."; return; }
-  try{ sessionStorage.setItem("bc_ack","1"); }catch(e){}
-  $("gateNotice").hidden=true;
+  try{ sessionStorage.setItem("tool_ack","1"); }catch(e){}
+  $("gateNotice").hidden=true; $("gateConsent").hidden=false;
+};
+let SHARE=null;
+try{ const v=sessionStorage.getItem("tool_share"); if(v) SHARE=v==="yes"; }catch(e){}
+$("shareGo").onclick=async()=>{
+  const c=document.querySelector('input[name="share"]:checked');
+  if(!c){ $("shareErr").textContent="Choose Yes or No to continue."; return; }
+  SHARE=c.value==="yes"; try{ sessionStorage.setItem("tool_share",c.value); }catch(e){}
+  $("gateConsent").hidden=true;
   const u=await me(); if(u) return showApp(u);
   $("gateAuth").hidden=false; $("aName").focus();
 };
@@ -817,10 +883,11 @@ $("aForgot").onclick=async()=>{
 };
 $("logout").onclick=async()=>{ try{ await fetch("/api/auth/logout",{method:"POST"}); }catch(e){} location.reload(); };
 setMode("signup");
-(async()=>{ let ack=false; try{ ack=sessionStorage.getItem("bc_ack")==="1"; }catch(e){}
-  if(ack){ $("gateNotice").hidden=true; const u=await me(); if(u) showApp(u); else $("gateAuth").hidden=false; } })();
+(async()=>{ let ack=false; try{ ack=sessionStorage.getItem("tool_ack")==="1"; }catch(e){}
+  if(ack && SHARE!==null){ $("gateNotice").hidden=true; const u=await me(); if(u) showApp(u); else $("gateAuth").hidden=false; }
+  else if(ack){ $("gateNotice").hidden=true; $("gateConsent").hidden=false; } })();
 
-window.__bc={crs,fsw,sirs,toClb,communityPoints}; // exposed for testing
+window.__tool={crs,fsw,toClb,communityPoints,pnpScore,PROVINCE}; // exposed for testing
 })();
 </script>
 <script>window.WPA_PAGE="bc-tool";</script>

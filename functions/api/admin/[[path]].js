@@ -22,6 +22,12 @@ export async function onRequestGet({ request, env, params }) {
     const r = await env.DB.prepare(`SELECT * FROM submissions ORDER BY created DESC LIMIT 2000`).all();
     return json({ ok: true, rows: r.results });
   }
+  if (route === "assessments") {
+    const r = await env.DB.prepare(
+      `SELECT a.*, u.name AS acct_name, u.email AS acct_email, u.phone AS acct_phone FROM assessments a JOIN users u ON u.id = a.user_id ORDER BY a.updated DESC LIMIT 2000`
+    ).all();
+    return json({ ok: true, rows: r.results });
+  }
   if (route === "b2b") {
     const apps = await env.DB.prepare(
       `SELECT a.*, u.name AS acct_name, u.email AS acct_email, u.phone AS acct_phone FROM applications a JOIN users u ON u.id = a.user_id ORDER BY COALESCE(a.submitted, a.updated) DESC LIMIT 1000`

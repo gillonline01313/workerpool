@@ -31,3 +31,7 @@ CREATE TABLE IF NOT EXISTS app_docs (
   id TEXT PRIMARY KEY, app_id TEXT NOT NULL, doc_key TEXT, name TEXT, size INTEGER, r2_key TEXT, uploaded TEXT
 );
 CREATE INDEX IF NOT EXISTS app_docs_app ON app_docs (app_id);
+CREATE TABLE IF NOT EXISTS assessments (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL, province TEXT, name TEXT, summary TEXT, inputs TEXT, consent_at TEXT, created TEXT, updated TEXT
+);
+CREATE INDEX IF NOT EXISTS assessments_user ON assessments (user_id, province);
