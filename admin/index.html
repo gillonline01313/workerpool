@@ -86,7 +86,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
     <div class="wpa-ctl"><div class="tabs" id="tabs">
       <button type="button" data-t="analytics" aria-pressed="true">Analytics</button>
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
-      <button type="button" data-t="interest" aria-pressed="false">Employer interest</button></div>
+      <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
+      <button type="button" data-t="b2b" aria-pressed="false">B2B applications</button></div>
       <button class="wpa-close" type="button" id="out">Lock</button></div></div>
   <div id="ctl" class="wpa-ctl"></div>
   <div id="wpaBody"></div>
@@ -109,6 +110,13 @@ async function load(){
   const days = range===0?3650:Math.max(range,1);
   try{
     if(tab==="analytics") data.visits=await api("visits?days="+days);
+    else if(tab==="b2b"){
+      const r=await fetch("/api/admin/b2b",{headers:{"x-admin-key":KEY}});
+      if(r.status===401) throw new Error("auth");
+      const j=await r.json(); if(!j.ok) throw new Error(j.error||"Request failed");
+      data.b2b=j.rows; data.b2bDocs=j.docs;
+      if(!window.B2B){ try{ window.B2B=await import("/assets/b2b-config.js"); }catch(e){ window.B2B=null; } }
+    }
     else data[tab]=await api(tab);
     render();
   }catch(e){
@@ -168,6 +176,7 @@ function render(){
   const body=$("#wpaBody");
   if(tab==="interest") return renderInterest(body);
   if(tab==="submissions") return renderSubs(body);
+  if(tab==="b2b") return renderB2B(body);
   const now=new Date(), startDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const from=range===0?0:range===1?startDay.getTime():startDay.getTime()-(range-1)*864e5;
   const V=(data.visits||[]).map(v=>({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk)})).filter(v=>v.ts>=from&&(pageF==="all"||v.page===pageF)).sort((a,b)=>b.ts-a.ts);
@@ -234,6 +243,35 @@ document.addEventListener("click",async e=>{
     const r=await fetch("/api/admin/resume?key="+encodeURIComponent(b.dataset.key),{headers:{"x-admin-key":KEY}});
     if(!r.ok){ let j={}; try{j=await r.json();}catch(x){} throw new Error(j.error||"Download failed."); }
     const a=document.createElement("a"); a.href=URL.createObjectURL(await r.blob()); a.download=b.dataset.name||"resume"; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),3000); b.textContent=label;
+  }catch(x){ b.textContent=x.message; }
+  b.disabled=false;
+});
+function renderB2B(body){
+  const R=data.b2b||[], D=data.b2bDocs||[], C=window.B2B;
+  if(!R.length){ body.innerHTML=`<div class="wpa-empty">No B2B applications yet.</div>`; return; }
+  const sub=R.filter(r=>r.status==="submitted").length;
+  const label=(sk,k)=>{ const f=C&&C.SECTIONS[sk]&&C.SECTIONS[sk].fields.find(x=>x[0]===k); return f?f[1]:k; };
+  const secTitle=sk=>C&&C.SECTIONS[sk]?C.SECTIONS[sk].title:sk;
+  const docLabel=(r,k)=>{ const t=C&&C.findType(r.category,r.stream,r.app_type); const d=t&&t.docs.find(x=>x[0]===k); return d?d[1]:k; };
+  body.innerHTML=`<div class="wpa-card wide"><h3>${R.length} application${R.length>1?"s":""} · ${sub} submitted</h3><div class="wpa-tbl"><table><thead><tr><th>Submitted</th><th>Applicant</th><th>Application</th><th>Account</th><th>Status</th><th>Details</th></tr></thead><tbody>
+  ${R.map(r=>{ let d={}; try{d=JSON.parse(r.data||"{}")}catch(e){}
+    const p=d.personal||{}; const name=[p.given_names,p.family_name].filter(Boolean).join(" ")||"(not entered yet)";
+    const docs=D.filter(x=>x.app_id===r.id);
+    const secs=Object.keys(d).map(sk=>{ const v=d[sk];
+      if(Array.isArray(v)) return `<b>${esc(secTitle(sk))}</b>\n`+(v.length?v.map((row,i)=>`  ${i+1}. `+Object.entries(row).filter(([,x])=>x).map(([k,x])=>`${label(sk,k)}: ${x}`).join(" · ")).join("\n"):"  none");
+      return `<b>${esc(secTitle(sk))}</b>\n`+Object.entries(v||{}).filter(([,x])=>x).map(([k,x])=>`  ${label(sk,k)}: ${x}`).join("\n"); }).join("\n\n");
+    const docList=docs.length?docs.map(f=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin:4px 0"><span>${esc(docLabel(r,f.doc_key))}: ${esc(f.name)}</span><button class="dl" type="button" data-docid="${esc(f.id)}" data-name="${esc(f.name)}">Download</button></div>`).join(""):"<p>No documents uploaded.</p>";
+    return `<tr><td>${r.submitted?when(r.submitted):"–"}</td><td>${esc(name)}</td><td>${esc(r.app_name)}<br><span class="pill">${esc(r.category)} · ${esc(r.stream)}</span></td><td>${esc(r.acct_name)}<br>${esc(r.acct_email)}<br>${esc(r.acct_phone)}</td><td><span class="pill">${esc(r.status)}</span></td>
+      <td><details><summary>View</summary><pre>${secs.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/&lt;b>/g,"<b>").replace(/&lt;\/b>/g,"</b>")}</pre><h4 style="margin:8px 0 4px">Documents (${docs.length})</h4>${docList}</details></td></tr>`;}).join("")}</tbody></table></div></div>`;
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("button[data-docid]"); if(!b) return;
+  const label=b.textContent; b.disabled=true; b.textContent="Downloading…";
+  try{
+    const r=await fetch("/api/admin/b2b-doc?id="+encodeURIComponent(b.dataset.docid),{headers:{"x-admin-key":KEY}});
+    if(!r.ok){ let j={}; try{j=await r.json();}catch(x){} throw new Error(j.error||"Download failed."); }
+    const a=document.createElement("a"); a.href=URL.createObjectURL(await r.blob()); a.download=b.dataset.name||"document"; a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),3000); b.textContent=label;
   }catch(x){ b.textContent=x.message; }
   b.disabled=false;

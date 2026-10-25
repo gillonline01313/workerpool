@@ -1,0 +1,320 @@
+/* B2B Data Entry portal: application types, information sheets and document checklists.
+   Field format: [key, label, type, required, options]
+   Types: t text · ta long text · d date · s select · e email · p phone · n number
+   Document format: [key, label, required]
+   Used by both the portal page (/b2b/) and the server (to check required documents). */
+
+const YN = ["Yes", "No"];
+
+export const SECTIONS = {
+  personal: { title: "Personal details", fields: [
+    ["family_name", "Family name (as on passport)", "t", 1],
+    ["given_names", "Given names (as on passport)", "t", 1],
+    ["other_names", "Other names used, if any", "t"],
+    ["sex", "Sex", "s", 1, ["Female", "Male", "Another gender (X)"]],
+    ["dob", "Date of birth", "d", 1],
+    ["birth_city", "City or town of birth", "t", 1],
+    ["birth_country", "Country of birth", "t", 1],
+    ["citizenship", "Country of citizenship", "t", 1],
+    ["marital", "Current marital status", "s", 1, ["Single", "Married", "Common-law", "Separated", "Divorced", "Widowed", "Annulled marriage"]],
+    ["marital_date", "Date of marriage or start of common-law relationship, if applicable", "d"],
+    ["spouse_name", "Spouse or partner's full name, if applicable", "t"],
+    ["prev_married", "Previously married or in a common-law relationship?", "s", 1, YN],
+    ["native_lang", "Native language", "t", 1],
+    ["official_lang", "Can communicate in", "s", 1, ["English", "French", "Both", "Neither"]],
+  ]},
+  passport: { title: "Passport and identity", fields: [
+    ["passport_no", "Passport number", "t", 1],
+    ["passport_country", "Country of issue", "t", 1],
+    ["passport_issue", "Issue date", "d", 1],
+    ["passport_expiry", "Expiry date", "d", 1],
+    ["national_id", "National identity document number, if any", "t"],
+    ["us_pr", "Do you hold a US Permanent Resident card?", "s", 1, YN],
+  ]},
+  contact: { title: "Contact details", fields: [
+    ["email", "Email", "e", 1],
+    ["phone", "Phone number (with country code)", "p", 1],
+    ["res_address", "Current residential address", "ta", 1],
+    ["mail_address", "Mailing address, if different", "ta"],
+  ]},
+  residence: { title: "Country of residence", fields: [
+    ["res_country", "Current country of residence", "t", 1],
+    ["res_status", "Your status in that country", "s", 1, ["Citizen", "Permanent resident", "Worker", "Student", "Visitor", "Protected person", "Other"]],
+    ["res_from", "Living there since", "d", 1],
+    ["res_to", "Status valid until, if applicable", "d"],
+  ]},
+  canada_status: { title: "Current status in Canada", fields: [
+    ["entry_date", "Date you first entered Canada", "d", 1],
+    ["entry_place", "Place of first entry (airport or border crossing)", "t", 1],
+    ["last_entry", "Date of most recent entry", "d"],
+    ["cur_status", "Current status", "s", 1, ["Worker", "Student", "Visitor", "Maintained status", "Status expired (restoration)", "Other"]],
+    ["cur_doc_no", "Current permit or visitor record number", "t"],
+    ["cur_expiry", "Current status expiry date", "d", 1],
+    ["uci", "UCI (client ID), if known", "t"],
+  ]},
+  education: { title: "Education (secondary and post-secondary)", rep: true, fields: [
+    ["school", "School or institution", "t", 1],
+    ["field", "Field of study", "t", 1],
+    ["city_country", "City and country", "t", 1],
+    ["from", "From", "d", 1],
+    ["to", "To", "d", 1],
+    ["credential", "Credential earned", "t"],
+  ]},
+  work: { title: "Work and activity history (last 10 years, include gaps)", rep: true, fields: [
+    ["activity", "Job title or activity (e.g. studying, unemployed)", "t", 1],
+    ["employer", "Employer or organization", "t"],
+    ["city_country", "City and country", "t", 1],
+    ["from", "From", "d", 1],
+    ["to", "To (leave blank if current)", "d"],
+    ["duties", "Main duties", "ta"],
+  ]},
+  travel: { title: "Travel history (last 10 years)", rep: true, fields: [
+    ["country", "Country visited", "t", 1],
+    ["purpose", "Purpose", "t", 1],
+    ["from", "From", "d", 1],
+    ["to", "To", "d", 1],
+  ]},
+  family: { title: "Family members", rep: true, fields: [
+    ["relation", "Relationship", "s", 1, ["Spouse or partner", "Child", "Mother", "Father", "Brother", "Sister"]],
+    ["name", "Full name", "t", 1],
+    ["dob", "Date of birth", "d", 1],
+    ["birth_country", "Country of birth", "t", 1],
+    ["address", "Current address", "t"],
+    ["accompanying", "Coming to Canada with you?", "s", 1, YN],
+  ]},
+  background: { title: "Background questions", fields: [
+    ["bg_tb", "In the past two years, have you or a family member had tuberculosis or been in close contact with someone who has?", "s", 1, YN],
+    ["bg_medical", "Do you have a physical or mental disorder that would require social or health services in Canada?", "s", 1, YN],
+    ["bg_overstay", "Have you ever stayed beyond your authorized stay, or worked or studied without authorization in Canada?", "s", 1, YN],
+    ["bg_refused", "Have you ever been refused a visa or permit, denied entry, or ordered to leave Canada or another country?", "s", 1, YN],
+    ["bg_applied", "Have you previously applied to enter or remain in Canada?", "s", 1, YN],
+    ["bg_crime", "Have you ever committed, been arrested for, charged with or convicted of a criminal offence in any country?", "s", 1, YN],
+    ["bg_military", "Have you served in any military, militia, civil defence unit, security organization or police force?", "s", 1, YN],
+    ["bg_details", "If you answered Yes to any question, give details", "ta"],
+  ]},
+
+  /* type-specific */
+  job_offer: { title: "Job offer", fields: [
+    ["emp_name", "Employer name", "t", 1],
+    ["emp_address", "Employer address", "ta", 1],
+    ["emp_contact", "Employer contact person and phone", "t", 1],
+    ["job_title", "Job title", "t", 1],
+    ["noc", "NOC code and TEER, if known", "t"],
+    ["wage", "Hourly wage (CAD)", "n", 1],
+    ["hours", "Hours per week", "n", 1],
+    ["job_start", "Start date", "d"],
+    ["lmia_no", "LMIA number, or offer of employment number if LMIA-exempt", "t", 1],
+    ["work_location", "Work location (city, province)", "t", 1],
+  ]},
+  study: { title: "Study details", fields: [
+    ["dli_name", "School name", "t", 1],
+    ["dli_no", "DLI number", "t", 1],
+    ["program", "Program name", "t", 1],
+    ["level", "Level of study", "s", 1, ["Certificate", "Diploma", "Bachelor's", "Post-graduate certificate", "Master's", "PhD", "Other"]],
+    ["study_start", "Program start date", "d", 1],
+    ["study_end", "Program end date", "d", 1],
+    ["tuition", "First-year tuition (CAD)", "n", 1],
+    ["pal_no", "Provincial/territorial attestation letter (PAL/TAL) number, if required", "t"],
+    ["funds", "Funds available for your stay (CAD)", "n", 1],
+  ]},
+  visit: { title: "Visit details", fields: [
+    ["purpose", "Purpose of visit", "s", 1, ["Tourism", "Visiting family or friends", "Business", "Medical", "Other"]],
+    ["arrive", "Planned arrival date", "d", 1],
+    ["depart", "Planned departure date", "d", 1],
+    ["host_name", "Person or business you'll visit, if any", "t"],
+    ["host_relation", "Your relationship to them", "t"],
+    ["host_address", "Their address in Canada", "ta"],
+    ["funds", "Funds available for your stay (CAD)", "n", 1],
+    ["paid_by", "Who is paying for the trip?", "s", 1, ["Myself", "Parents", "Spouse", "Host in Canada", "Employer", "Other"]],
+  ]},
+  pgwp: { title: "Graduation details", fields: [
+    ["grad_school", "School you graduated from", "t", 1],
+    ["grad_program", "Program", "t", 1],
+    ["grad_length", "Program length (months)", "n", 1],
+    ["grad_complete", "Date you completed your program", "d", 1],
+    ["grad_letter", "Date of completion letter or final transcript", "d", 1],
+    ["sp_expiry", "Study permit expiry date", "d", 1],
+  ]},
+  sowp: { title: "Spouse or partner details", fields: [
+    ["sp_name", "Spouse or partner's full name", "t", 1],
+    ["sp_status", "Their status in Canada", "s", 1, ["Worker", "Student", "Permanent residence applicant", "Other"]],
+    ["sp_permit_no", "Their permit number", "t"],
+    ["sp_permit_expiry", "Their permit expiry date", "d", 1],
+    ["sp_job", "Their job title and TEER, or program of study", "t", 1],
+    ["sp_employer", "Their employer or school", "t", 1],
+  ]},
+  bowp: { title: "Permanent residence application", fields: [
+    ["pr_program", "PR program applied under", "s", 1, ["Express Entry – Canadian Experience Class", "Express Entry – Federal Skilled Worker", "Express Entry – Federal Skilled Trades", "Provincial Nominee Program", "Other"]],
+    ["pr_app_no", "PR application number", "t", 1],
+    ["aor_date", "Acknowledgement of receipt (AOR) date", "d", 1],
+  ]},
+  vulnerable: { title: "Situation details", fields: [
+    ["vw_employer", "Current employer", "t", 1],
+    ["vw_summary", "Briefly describe the situation with your employer", "ta", 1],
+  ]},
+  restoration: { title: "Restoration details", fields: [
+    ["lost_date", "Date your status expired", "d", 1],
+    ["lost_reason", "Why your status expired", "ta", 1],
+    ["restore_to", "Status you want restored", "s", 1, ["Worker", "Student", "Visitor"]],
+  ]},
+  trp: { title: "Temporary resident permit details", fields: [
+    ["inadmissibility", "Reason you may be inadmissible", "ta", 1],
+    ["trp_reason", "Why you need to enter or stay in Canada", "ta", 1],
+    ["trp_length", "How long you need to stay", "t", 1],
+  ]},
+  supervisa: { title: "Host child or grandchild", fields: [
+    ["host_full", "Child or grandchild's full name", "t", 1],
+    ["host_status", "Their status", "s", 1, ["Canadian citizen", "Permanent resident"]],
+    ["host_income", "Household income last year (CAD)", "n", 1],
+    ["household_size", "Household size (including visitors)", "n", 1],
+    ["insurer", "Canadian medical insurance company", "t", 1],
+  ]},
+  iec: { title: "IEC details", fields: [
+    ["iec_category", "Category", "s", 1, ["Working Holiday", "Young Professionals", "International Co-op"]],
+    ["iec_invite", "Invitation (ITA) date", "d", 1],
+    ["iec_ref", "Profile or reference number", "t"],
+  ]},
+  ee: { title: "Express Entry details", fields: [
+    ["ee_program", "Program", "s", 1, ["Canadian Experience Class", "Federal Skilled Worker", "Federal Skilled Trades", "Category-based selection"]],
+    ["ee_profile", "Express Entry profile number", "t", 1],
+    ["ita_date", "Invitation to apply (ITA) date", "d", 1],
+    ["crs", "CRS score", "n", 1],
+    ["eca", "Education credential assessment (ECA) organization and number", "t"],
+    ["lang_test", "Language test and date", "t", 1],
+  ]},
+  pnp: { title: "Provincial nomination", fields: [
+    ["province", "Nominating province or territory", "t", 1],
+    ["pnp_stream", "Stream", "t", 1],
+    ["nom_no", "Nomination certificate number", "t", 1],
+    ["nom_date", "Nomination date", "d", 1],
+    ["nom_expiry", "Nomination expiry date", "d", 1],
+  ]},
+  sponsor: { title: "Sponsor and relationship", fields: [
+    ["sponsor_name", "Sponsor's full name", "t", 1],
+    ["sponsor_dob", "Sponsor's date of birth", "d", 1],
+    ["sponsor_status", "Sponsor's status", "s", 1, ["Canadian citizen", "Permanent resident", "Registered Indian"]],
+    ["sponsor_address", "Sponsor's address", "ta", 1],
+    ["sponsor_income", "Sponsor's income last year (CAD)", "n"],
+    ["first_met", "Date you first met in person", "d", 1],
+    ["met_where", "Where and how you met", "ta", 1],
+    ["cohab_start", "Date you started living together, if applicable", "d"],
+    ["wedding", "Date and place of marriage, if married", "t"],
+    ["children_together", "Children together?", "s", 1, YN],
+  ]},
+  pgp: { title: "Sponsor details (parents and grandparents)", fields: [
+    ["sponsor_name", "Sponsor's full name", "t", 1],
+    ["sponsor_status", "Sponsor's status", "s", 1, ["Canadian citizen", "Permanent resident"]],
+    ["income_y1", "Sponsor's total income, most recent tax year (CAD)", "n", 1],
+    ["income_y2", "Income, previous year (CAD)", "n", 1],
+    ["income_y3", "Income, year before that (CAD)", "n", 1],
+    ["family_size", "Family size for income test", "n", 1],
+  ]},
+  dependent: { title: "Parent sponsor", fields: [
+    ["sponsor_name", "Sponsoring parent's full name", "t", 1],
+    ["sponsor_status", "Sponsor's status", "s", 1, ["Canadian citizen", "Permanent resident"]],
+    ["sponsor_address", "Sponsor's address", "ta", 1],
+  ]},
+  caregiver: { title: "Caregiver details", fields: [
+    ["cg_type", "Type of care work", "s", 1, ["Child care", "Home support (adults)", "Other"]],
+    ["cg_offer", "Job offer employer, if any", "t"],
+    ["cg_months", "Months of qualifying care work experience", "n", 1],
+  ]},
+  hc: { title: "Humanitarian and compassionate grounds", fields: [
+    ["hc_time", "How long have you lived in Canada?", "t", 1],
+    ["hc_establish", "Your ties in Canada (work, community, family)", "ta", 1],
+    ["hc_children", "Children affected, and how", "ta"],
+    ["hc_hardship", "Hardship you would face if you had to leave", "ta", 1],
+  ]},
+};
+
+const D = {
+  passport: ["passport", "Passport: bio page and all pages with stamps or visas", 1],
+  photo: ["photo", "Digital photo (recent, plain background)", 1],
+  cur_permit: ["cur_permit", "Current permit or visitor record", 1],
+  entry_stamp: ["entry_stamp", "Entry stamp or travel history proof", 0],
+  funds: ["funds", "Proof of funds (bank statements, last 4 months)", 1],
+  marriage: ["marriage", "Marriage certificate or proof of common-law relationship, if applicable", 0],
+  cv: ["cv", "Resume / CV", 1],
+  edu: ["edu", "Education certificates and transcripts", 1],
+  emp_letters: ["emp_letters", "Employment reference letters", 1],
+  paystubs: ["paystubs", "Recent pay stubs", 0],
+  police: ["police", "Police certificates", 1],
+  medical: ["medical", "Medical exam confirmation (IME), if done", 0],
+  lang: ["lang", "Language test results", 1],
+  prev_refusal: ["prev_refusal", "Previous refusal letters, if any", 0],
+};
+const X = (k, l, r = 1) => [k, l, r];
+
+const COMMON_IN = ["personal", "passport", "contact", "canada_status", "education", "work", "travel", "family", "background"];
+const COMMON_OUT = ["personal", "passport", "contact", "residence", "education", "work", "travel", "family", "background"];
+
+export const TYPES = {
+  temporary: {
+    inland: [
+      { key: "wp_ext_lmia", name: "Work permit – employer-specific, LMIA-based (extension or change)", sections: [...COMMON_IN, "job_offer"],
+        docs: [D.passport, D.photo, D.cur_permit, X("lmia", "LMIA approval letter"), X("offer", "Signed job offer or employment contract"), D.cv, D.paystubs, D.marriage] },
+      { key: "wp_ext_exempt", name: "Work permit – employer-specific, LMIA-exempt (inland)", sections: [...COMMON_IN, "job_offer"],
+        docs: [D.passport, D.photo, D.cur_permit, X("offer", "Signed job offer or employment contract"), X("oe_no", "Employer portal offer of employment confirmation"), D.cv, D.marriage] },
+      { key: "pgwp", name: "Post-graduation work permit (PGWP)", sections: [...COMMON_IN, "pgwp"],
+        docs: [D.passport, D.photo, D.cur_permit, X("completion", "Program completion letter"), X("transcript", "Final transcript"), X("field_study", "Proof of field of study eligibility, if required", 0), D.lang] },
+      { key: "sowp_in", name: "Spousal open work permit (inland)", sections: [...COMMON_IN, "sowp"],
+        docs: [D.passport, D.photo, D.cur_permit, X("marriage_req", "Marriage certificate or common-law proof"), X("spouse_permit", "Spouse's work or study permit"), X("spouse_proof", "Spouse's employment letter and pay stubs, or proof of enrolment"), X("relationship", "Proof of genuine relationship (photos, joint documents)")] },
+      { key: "bowp", name: "Bridging open work permit (BOWP)", sections: [...COMMON_IN, "bowp"],
+        docs: [D.passport, D.photo, D.cur_permit, X("aor", "Acknowledgement of receipt (AOR) letter"), D.paystubs] },
+      { key: "vowp", name: "Open work permit for vulnerable workers", sections: [...COMMON_IN, "vulnerable"],
+        docs: [D.passport, D.photo, D.cur_permit, X("evidence", "Evidence supporting your situation (messages, statements, records)")] },
+      { key: "sp_ext", name: "Study permit extension", sections: [...COMMON_IN, "study"],
+        docs: [D.passport, D.photo, D.cur_permit, X("enrolment", "Letter of enrolment or acceptance"), X("transcript", "Latest transcript"), D.funds, X("pal", "PAL/TAL, if required", 0)] },
+      { key: "vr", name: "Visitor record (extend your stay as a visitor)", sections: [...COMMON_IN, "visit"],
+        docs: [D.passport, D.photo, D.cur_permit, D.funds, X("reason", "Letter explaining why you want to extend"), X("return", "Proof of plans to leave (ticket, ties at home)", 0)] },
+      { key: "restoration", name: "Restoration of status", sections: [...COMMON_IN, "restoration"],
+        docs: [D.passport, D.photo, X("last_permit", "Last valid permit or visitor record"), X("explain", "Letter explaining why status expired"), X("support", "Documents for the status being restored (job offer, enrolment, funds)")] },
+      { key: "trp_in", name: "Temporary resident permit (inland)", sections: [...COMMON_IN, "trp"],
+        docs: [D.passport, D.photo, D.cur_permit, X("trp_letter", "Letter explaining inadmissibility and need to stay"), X("court", "Court or police records, if applicable", 0)] },
+    ],
+    outland: [
+      { key: "trv", name: "Visitor visa (TRV)", sections: [...COMMON_OUT, "visit"],
+        docs: [D.passport, D.photo, D.funds, X("emp_home", "Employment letter or business proof in home country"), X("invite", "Invitation letter, if visiting someone", 0), X("itinerary", "Travel itinerary", 0), D.prev_refusal] },
+      { key: "supervisa", name: "Super visa (parents and grandparents)", sections: [...COMMON_OUT, "visit", "supervisa"],
+        docs: [D.passport, D.photo, X("invite_sv", "Signed invitation letter from child or grandchild"), X("host_income", "Host's proof of income (NOA or T4)"), X("host_status", "Host's citizenship or PR proof"), X("relation_proof", "Proof of relationship (birth certificates)"), X("insurance", "Canadian medical insurance (1 year)")] },
+      { key: "sp_out", name: "Study permit (outside Canada)", sections: [...COMMON_OUT, "study"],
+        docs: [D.passport, D.photo, X("loa", "Letter of acceptance"), X("pal", "PAL/TAL, if required", 0), D.funds, X("tuition_paid", "Tuition payment receipt", 0), D.edu, X("sop", "Study plan / statement of purpose"), D.lang] },
+      { key: "wp_lmia_out", name: "Work permit – LMIA-based (outside Canada)", sections: [...COMMON_OUT, "job_offer"],
+        docs: [D.passport, D.photo, X("lmia", "LMIA approval letter"), X("offer", "Signed job offer or employment contract"), D.cv, D.emp_letters, D.edu, X("lang_opt", "Language test results, if required", 0)] },
+      { key: "wp_exempt_out", name: "Work permit – LMIA-exempt (outside Canada)", sections: [...COMMON_OUT, "job_offer"],
+        docs: [D.passport, D.photo, X("offer", "Signed job offer or employment contract"), X("oe_no", "Employer portal offer of employment confirmation"), D.cv, D.emp_letters, D.edu] },
+      { key: "iec", name: "International Experience Canada (IEC)", sections: [...COMMON_OUT, "iec"],
+        docs: [D.passport, D.photo, X("ita", "Invitation to apply (ITA)"), D.police, D.cv, X("insurance", "Health insurance for the full stay"), X("offer_opt", "Job offer, if Young Professionals or Co-op", 0)] },
+      { key: "sowp_out", name: "Spousal open work permit (outside Canada)", sections: [...COMMON_OUT, "sowp"],
+        docs: [D.passport, D.photo, X("marriage_req", "Marriage certificate or common-law proof"), X("spouse_permit", "Spouse's work or study permit"), X("spouse_proof", "Spouse's employment letter and pay stubs, or proof of enrolment"), X("relationship", "Proof of genuine relationship")] },
+      { key: "trp_out", name: "Temporary resident permit (outside Canada)", sections: [...COMMON_OUT, "trp"],
+        docs: [D.passport, D.photo, X("trp_letter", "Letter explaining inadmissibility and need to enter"), X("court", "Court or police records, if applicable", 0), D.funds] },
+    ],
+  },
+  permanent: {
+    all: [
+      { key: "ee", name: "Express Entry (CEC, FSW, FST)", sections: [...COMMON_OUT, "ee"],
+        docs: [D.passport, D.photo, D.lang, X("eca", "Education credential assessment (ECA)", 0), D.edu, D.emp_letters, D.police, D.medical, D.funds, D.marriage] },
+      { key: "pnp", name: "Provincial Nominee Program (PNP)", sections: [...COMMON_OUT, "pnp"],
+        docs: [D.passport, D.photo, X("nomination", "Provincial nomination certificate"), D.lang, D.edu, D.emp_letters, D.police, D.medical, D.funds, D.marriage] },
+      { key: "spousal", name: "Spousal or common-law sponsorship", sections: [...COMMON_OUT, "sponsor"],
+        docs: [D.passport, D.photo, X("marriage_req", "Marriage certificate or common-law proof"), X("sponsor_status", "Sponsor's citizenship or PR proof"), X("relationship", "Proof of genuine relationship (photos, messages, joint documents)"), D.police, D.medical, X("birth_cert", "Birth certificate")] },
+      { key: "pgp", name: "Parents and grandparents sponsorship", sections: [...COMMON_OUT, "pgp"],
+        docs: [D.passport, D.photo, X("sponsor_status", "Sponsor's citizenship or PR proof"), X("noa", "Sponsor's notices of assessment (3 years)"), X("relation_proof", "Proof of relationship (birth certificates)"), D.police, D.medical] },
+      { key: "dependent", name: "Dependent child sponsorship", sections: [...COMMON_OUT, "dependent"],
+        docs: [D.passport, D.photo, X("birth_cert", "Child's birth certificate naming the parents"), X("sponsor_status", "Sponsor's citizenship or PR proof"), X("custody", "Custody or consent documents, if applicable", 0), D.medical] },
+      { key: "caregiver", name: "Home care worker pathways", sections: [...COMMON_OUT, "caregiver"],
+        docs: [D.passport, D.photo, D.lang, D.edu, D.emp_letters, X("offer_opt", "Job offer, if you have one", 0), D.police, D.medical] },
+      { key: "hc", name: "Humanitarian and compassionate (H&C)", sections: [...COMMON_IN, "hc"],
+        docs: [D.passport, D.photo, X("hc_letter", "Personal statement of H&C grounds"), X("establish", "Proof of establishment (employment, tax, community letters)"), X("children_docs", "Documents about children's best interests, if applicable", 0), X("hardship_docs", "Evidence of hardship in home country")] },
+    ],
+  },
+};
+
+export function findType(category, stream, key) {
+  const c = TYPES[category]; if (!c) return null;
+  const list = c[stream]; if (!list) return null;
+  return list.find((t) => t.key === key) || null;
+}
+export const STREAM_LABELS = { inland: "Inland (inside Canada)", outland: "Outland (outside Canada)", all: "Permanent residence" };
+export const CATEGORY_LABELS = { temporary: "Temporary residence", permanent: "Permanent residence" };

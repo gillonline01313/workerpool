@@ -22,6 +22,22 @@ export async function onRequestGet({ request, env, params }) {
     const r = await env.DB.prepare(`SELECT * FROM submissions ORDER BY created DESC LIMIT 2000`).all();
     return json({ ok: true, rows: r.results });
   }
+  if (route === "b2b") {
+    const apps = await env.DB.prepare(
+      `SELECT a.*, u.name AS acct_name, u.email AS acct_email, u.phone AS acct_phone FROM applications a JOIN users u ON u.id = a.user_id ORDER BY COALESCE(a.submitted, a.updated) DESC LIMIT 1000`
+    ).all();
+    const docs = await env.DB.prepare(`SELECT id, app_id, doc_key, name, size, uploaded FROM app_docs`).all();
+    return json({ ok: true, rows: apps.results, docs: docs.results });
+  }
+  if (route === "b2b-doc") {
+    const d = await env.DB.prepare(`SELECT * FROM app_docs WHERE id = ?1`).bind(url.searchParams.get("id") || "").first();
+    if (!d || !env.RESUMES) return json({ ok: false, error: "Not found." }, 404);
+    const obj = await env.RESUMES.get(d.r2_key);
+    if (!obj) return json({ ok: false, error: "That file was removed." }, 404);
+    return new Response(obj.body, { headers: {
+      "content-type": (obj.httpMetadata && obj.httpMetadata.contentType) || "application/octet-stream",
+      "content-disposition": `attachment; filename="${String(d.name).replace(/"/g, "")}"`, "cache-control": "no-store", "x-content-type-options": "nosniff" } });
+  }
   if (route === "resume") {
     const key = url.searchParams.get("key") || "";
     if (!/^resumes\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(pdf|docx?)$/.test(key) || !env.RESUMES) return json({ ok: false, error: "Not found." }, 404);

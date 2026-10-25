@@ -17,6 +17,9 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `functions/api/auth/*` | Accounts: sign up, sign in, sign out, forgot and reset password |
 | `functions/api/profile.js` | Saves a candidate's questionnaire as they go |
 | `functions/api/resume.js` | Resume upload and removal (private R2 storage) |
+| `b2b/` | B2B Data Entry client portal: application type, information sheet, document checklist |
+| `assets/b2b-config.js` | Application types, info sheet sections and document checklists (edit here to add types) |
+| `functions/api/b2b/*` | B2B applications: create, save, upload documents, submit (emails admin) |
 | `privacy/`, `terms/`, `reset/` | Privacy policy, terms of use, password reset page |
 | `schema.sql` | All database tables (`schema-accounts.sql` adds just the account tables) |
 
@@ -36,6 +39,10 @@ Then open `https://workerpool.ca/admin/` and enter your admin key.
 ## Resume storage
 
 Cloudflare → R2 Object Storage → Create bucket `workerpool-resumes` (keep it private; no public access). Then Pages project → Settings → Bindings → Add → R2 bucket → Variable name `RESUMES` → bucket `workerpool-resumes`. Run `schema-resumes.sql` in the D1 console once, then redeploy.
+
+## B2B Data Entry portal
+
+Run `schema-b2b.sql` in the D1 console once. Documents use the same R2 bucket as resumes (`RESUMES` binding), under `b2b/`.
 
 ## Email
 
