@@ -49,3 +49,18 @@ CREATE TABLE IF NOT EXISTS chat_files (
   id TEXT PRIMARY KEY, thread_id TEXT NOT NULL, msg_id INTEGER, sender TEXT, name TEXT, size INTEGER, type TEXT, r2_key TEXT, created TEXT
 );
 CREATE INDEX IF NOT EXISTS chat_files_msg ON chat_files (msg_id);
+
+-- Hot & New ticker
+CREATE TABLE IF NOT EXISTS news (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  summary TEXT,
+  tag TEXT DEFAULT 'new',          -- hot | new | trending | update
+  link TEXT,                       -- /express-entry-2026/#calculator or https://...
+  pinned INTEGER DEFAULT 0,        -- pinned items always lead the ticker
+  status TEXT DEFAULT 'live',      -- live | archived
+  clicks INTEGER DEFAULT 0,        -- ticker clicks, used to rank what's trending
+  expires TEXT,                    -- optional: auto-hides after this date (YYYY-MM-DD)
+  created TEXT, updated TEXT, archived_at TEXT
+);
+CREATE INDEX IF NOT EXISTS news_status ON news (status, created);

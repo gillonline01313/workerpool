@@ -25,6 +25,10 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `assets/chat.js` | Live chat widget (on the home page; add the same script tag to any other page) |
 | `functions/api/chat-file.js` | Live chat file upload and download for visitors |
 | `functions/api/chat.js` | Live chat for visitors. Live 8:00 to 23:00 Edmonton time daily; outside those hours it takes a message plus email |
+| `assets/ticker.js` | "Hot & New" ticker under the home page header (add `<div id="hn"></div>` plus the script tag to show it on any other page) |
+| `functions/api/news.js`, `functions/_news.js` | Ticker feed, click counting, starter items and trending order |
+| `news/` | All updates page (`/news/`), linked from the ticker |
+| `express-entry-2026/` | Express Entry November 2026 guide: choosing a NOC, high-wage NOC checker (IRCC list, 186 NOCs), experience and job offer points, calculator. NOC list is in the page's script (`const NOC`) |
 | `privacy/`, `terms/`, `reset/` | Privacy policy, terms of use, password reset page |
 | `schema.sql` | All database tables (`schema-accounts.sql` adds just the account tables) |
 
@@ -52,6 +56,10 @@ Run `schema-b2b.sql` in the D1 console once. Documents use the same R2 bucket as
 ## Live chat
 
 Run `schema-chat.sql` in the D1 console once. Replies happen in the admin dashboard under **Live chat** (it checks for new messages every 5 seconds while open, and shows an unread count on the tab and in the browser tab title). `ADMIN_EMAIL` gets an email for each new chat, every message sent outside live hours, and after 10 quiet minutes on an ongoing chat. If a visitor has left the page when you reply and they gave an email, your reply is emailed to them too. Both sides can share files (PDF, JPG, PNG, DOC, DOCX up to 10 MB; visitors up to 25 per chat), stored privately in the `RESUMES` R2 bucket under `chat/`. Visitors can only open files in their own conversation. When you change `assets/chat.js`, bump the `?v=` number on its script tag in `index.html`. To change the hours, edit `CHAT_OPEN`/`CHAT_CLOSE` in `functions/_lib.js` and `OPEN`/`CLOSE` in `assets/chat.js`.
+
+## Hot & New ticker
+
+Run `schema-news.sql` in the D1 console once. Manage items in the admin dashboard under **Hot & New**: add (headline, summary, label Hot/New/Trending/Update, link, optional pin and auto-hide date), edit, **Archive** to take an item off the site, **Restore** to bring it back, and delete archived items for good. Until the first item is saved, the site shows 8 starter items about the November 2026 Express Entry changes; the **Add starter items** button saves them so you can edit or archive them. Pinned items lead the ticker; the rest are ranked by clicks weighted toward newer posts, and the two most-clicked items (10+ clicks) get a Trending label automatically. When you change `assets/ticker.js`, bump the `?v=` number on its script tags.
 
 ## Pathway Check tools
 

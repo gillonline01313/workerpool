@@ -95,6 +95,21 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
 .chat-live{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted)}
 .chat-live i{width:9px;height:9px;border-radius:50%;background:#3fae6c}
 .chat-live i.off{background:#b9c2c1}
+.nw-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:700px){.nw-form{grid-template-columns:1fr}}
+.nw-form label{display:flex;flex-direction:column;gap:5px;font-size:.82rem;font-weight:600}
+.nw-form .full{grid-column:1/-1}
+.nw-form input,.nw-form select,.nw-form textarea{font:inherit;font-weight:400;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
+.nw-form .chk{flex-direction:row;align-items:center;gap:8px}
+.nw-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.nw-list{display:flex;flex-direction:column;gap:10px}
+.nw-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--bg)}
+.nw-item.arch{opacity:.7}
+.nw-item b{display:block;font-size:.95rem}
+.nw-item small{color:var(--muted);font-size:.78rem}
+.nw-tag{display:inline-block;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:5px;margin-right:6px;vertical-align:1px}
+.nw-tag.hot{background:#ff5a36;color:#fff}.nw-tag.new{background:#ffd23f;color:#2a2100}.nw-tag.trending{background:#7c5cff;color:#fff}.nw-tag.update{background:var(--accent-soft);color:var(--fg)}
+.nw-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -110,6 +125,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
   <div class="wpa-top"><div><h2>WorkerPool admin</h2><p>Live data from workerpool.ca. Refreshes every minute.</p></div>
     <div class="wpa-ctl"><div class="tabs" id="tabs">
       <button type="button" data-t="analytics" aria-pressed="true">Analytics</button>
+      <button type="button" data-t="news" aria-pressed="false">Hot &amp; New</button>
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
       <button type="button" data-t="b2b" aria-pressed="false">B2B applications</button>
@@ -127,7 +143,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const fmtDur=s=>!s?"–":s<60?s+"s":Math.floor(s/60)+"m "+String(s%60).padStart(2,"0")+"s";
 const when=t=>new Date(t).toLocaleString("en-CA",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
 let KEY=""; try{KEY=sessionStorage.getItem("wp_admin")||"";}catch(e){}
-let tab="analytics", range=7, pageF="all", data={};
+let tab="analytics", range=7, pageF="all", data={}, newsF="live", newsEdit=null;
 async function api(path){
   const r=await fetch("/api/admin/"+path,{headers:{"x-admin-key":KEY}});
   if(r.status===401) throw new Error("auth");
@@ -138,6 +154,7 @@ async function load(){
   try{
     if(tab==="chat"){ await chatList(); render(); return; }
     if(tab==="analytics") data.visits=await api("visits?days="+days);
+    else if(tab==="news"){ if(newsEdit) return; data.news=await api("news"); }
     else if(tab==="b2b"){
       const r=await fetch("/api/admin/b2b",{headers:{"x-admin-key":KEY}});
       if(r.status===401) throw new Error("auth");
@@ -155,7 +172,7 @@ async function load(){
 function lock(msg){ KEY=""; try{sessionStorage.removeItem("wp_admin");}catch(e){} $("#app").hidden=true; $("#gate").hidden=false; $("#gErr").textContent=msg||""; }
 $("#gate").onsubmit=e=>{ e.preventDefault(); KEY=$("#key").value.trim(); if(!KEY) return; try{sessionStorage.setItem("wp_admin",KEY);}catch(x){} start(); };
 $("#out").onclick=()=>lock("");
-document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; newsEdit=null; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
 let iv=null;
 function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); }
 function seg(name,opts,cur,cb){ return `<div class="wpa-seg" data-seg="${name}">${opts.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${String(v)===String(cur)}">${l}</button>`).join("")}</div>`; }
@@ -165,6 +182,10 @@ function controls(){
     c.innerHTML=seg("range",[[1,"Today"],[7,"7 days"],[30,"30 days"],[90,"90 days"],[0,"All"]],range)+seg("page",[["all","All pages"],["home","Home"],["questionnaire","Questionnaire"]],pageF);
     c.querySelectorAll('[data-seg="range"] button').forEach(b=>b.onclick=()=>{range=+b.dataset.v; controls(); load();});
     c.querySelectorAll('[data-seg="page"] button').forEach(b=>b.onclick=()=>{pageF=b.dataset.v; controls(); render();});
+  } else if(tab==="news"){
+    c.innerHTML=seg("nf",[["live","Live"],["archived","Archived"],["all","All"]],newsF)+`<button class="dl" type="button" id="nwAdd">+ Add item</button>`;
+    c.querySelectorAll('[data-seg="nf"] button').forEach(b=>b.onclick=()=>{ newsF=b.dataset.v; newsEdit=null; controls(); render(); });
+    $("#nwAdd").onclick=()=>{ newsEdit={}; render(); };
   } else if(tab==="chat"){
     c.innerHTML=`<span class="chat-live"><i id="chatDot"></i><span id="chatHrs"></span></span>`; chatStatus();
   } else {
@@ -209,6 +230,7 @@ function render(){
   if(tab==="b2b") return renderB2B(body);
   if(tab==="assessments") return renderAssess(body);
   if(tab==="chat") return renderChat(body);
+  if(tab==="news") return renderNews(body);
   const now=new Date(), startDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const from=range===0?0:range===1?startDay.getTime():startDay.getTime()-(range-1)*864e5;
   const V=(data.visits||[]).map(v=>({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk)})).filter(v=>v.ts>=from&&(pageF==="all"||v.page===pageF)).sort((a,b)=>b.ts-a.ts);
@@ -308,6 +330,54 @@ function renderB2B(body){
 }
 /* ---------- live chat ---------- */
 const chat={rows:[],open:false,cur:null,msgs:[],last:0}; let chatIv=null, chatTick=0, chatBusy=false;
+/* ---------- Hot & New ticker ---------- */
+const NTAG={hot:"Hot",new:"New",trending:"Trending",update:"Update"};
+async function newsPost(route,body){
+  const r=await fetch("/api/admin/"+route,{method:"POST",headers:{"x-admin-key":KEY,"content-type":"application/json"},body:JSON.stringify(body)});
+  if(r.status===401) throw new Error("auth");
+  const j=await r.json(); if(!j.ok) throw new Error(j.error||"Couldn't save"); return j;
+}
+function renderNews(body){
+  if(newsEdit) return newsForm(body);
+  const all=data.news||[], live=all.filter(r=>r.status!=="archived").length;
+  const today=new Date().toISOString().slice(0,10);
+  const R=all.filter(r=>newsF==="all"||(newsF==="archived"?r.status==="archived":r.status!=="archived"));
+  const head=`<h3>${live} live item${live===1?"":"s"} on the homepage ticker · ${all.length-live} archived</h3>
+    <p class="sub" style="color:var(--muted);font-size:.85rem;margin:4px 0 14px">Pinned items lead the ticker. The rest are ordered by clicks, weighted toward newer posts; the two most-clicked items (10+ clicks) get a Trending label automatically. Archive an item to take it off the site; restore it any time.</p>`;
+  if(!all.length){ body.innerHTML=`<div class="wpa-card wide">${head}<div class="wpa-empty">No items saved yet, so the site is showing the 8 starter items about the November 2026 Express Entry changes.<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="dl" type="button" id="nwSeed">Add starter items so I can edit them</button></div></div></div>`;
+    $("#nwSeed").onclick=async e=>{ e.target.disabled=true; try{ await newsPost("news-seed",{}); load(); }catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); alert(x.message); e.target.disabled=false; } }; return; }
+  body.innerHTML=`<div class="wpa-card wide">${head}<div class="nw-list">${R.length?R.map(r=>{
+    const arch=r.status==="archived", expired=!arch&&r.expires&&r.expires<today;
+    return `<div class="nw-item${arch?" arch":""}"><div><b><span class="nw-tag ${esc(r.tag)}">${esc(NTAG[r.tag]||r.tag)}</span>${r.pinned?"📌 ":""}${esc(r.title)}</b>
+      <small>${arch?"Archived "+when(r.archived_at):"Posted "+when(r.created)} · ${r.clicks||0} click${r.clicks===1?"":"s"}${r.expires?` · ${expired?"expired":"hides after"} ${esc(r.expires)}`:""}${r.link?` · <a href="${esc(r.link)}" target="_blank" rel="noopener">${esc(r.link)}</a>`:""}</small></div>
+      <div class="nw-btns">${arch?`<button class="dl" data-nr="${esc(r.id)}">Restore</button><button class="dl" data-nd="${esc(r.id)}">Delete</button>`:`<button class="dl" data-ne="${esc(r.id)}">Edit</button><button class="dl" data-na="${esc(r.id)}">Archive</button>`}</div></div>`;
+  }).join(""):`<div class="wpa-empty">Nothing here.</div>`}</div></div>`;
+  const act=async(route,payload,confirmMsg)=>{ if(confirmMsg&&!confirm(confirmMsg)) return; try{ await newsPost(route,payload); load(); }catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); alert(x.message); } };
+  body.querySelectorAll("[data-na]").forEach(b=>b.onclick=()=>act("news-status",{id:b.dataset.na}));
+  body.querySelectorAll("[data-nr]").forEach(b=>b.onclick=()=>act("news-status",{id:b.dataset.nr,restore:true}));
+  body.querySelectorAll("[data-nd]").forEach(b=>b.onclick=()=>act("news-delete",{id:b.dataset.nd},"Delete this item for good? This can't be undone."));
+  body.querySelectorAll("[data-ne]").forEach(b=>b.onclick=()=>{ newsEdit=all.find(r=>r.id===b.dataset.ne)||{}; render(); });
+}
+function newsForm(body){
+  const r=newsEdit, opt=(v,l)=>`<option value="${v}"${(r.tag||"new")===v?" selected":""}>${l}</option>`;
+  body.innerHTML=`<div class="wpa-card wide"><h3>${r.id?"Edit item":"New ticker item"}</h3><form class="nw-form" id="nwForm" style="margin-top:12px">
+    <label class="full">Headline (shown in the ticker)<input id="nwT" maxlength="160" required value="${esc(r.title)}" placeholder="e.g. New Express Entry draw: 2,500 invitations, CRS 512"></label>
+    <label class="full">Summary (shown on the All updates page)<textarea id="nwS" maxlength="400" rows="2">${esc(r.summary)}</textarea></label>
+    <label>Label<select id="nwG">${opt("hot","Hot")}${opt("new","New")}${opt("trending","Trending")}${opt("update","Update")}</select></label>
+    <label>Link<input id="nwL" maxlength="400" value="${esc(r.link)}" placeholder="/express-entry-2026/ or https://…"></label>
+    <label>Hide automatically after (optional)<input id="nwX" type="date" value="${esc(r.expires)}"></label>
+    <label class="chk"><input id="nwP" type="checkbox"${r.pinned?" checked":""}> Pin to the front of the ticker</label>
+    <div class="err full" id="nwErr"></div>
+    <div class="nw-acts full"><button class="dl" type="submit" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">${r.id?"Save changes":"Publish to ticker"}</button><button class="dl" type="button" id="nwCancel">Cancel</button></div>
+  </form></div>`;
+  $("#nwCancel").onclick=()=>{ newsEdit=null; render(); };
+  $("#nwForm").onsubmit=async e=>{ e.preventDefault();
+    const btn=e.target.querySelector("button[type=submit]"); btn.disabled=true;
+    try{ await newsPost("news-save",{id:r.id,title:$("#nwT").value,summary:$("#nwS").value,tag:$("#nwG").value,link:$("#nwL").value.trim(),expires:$("#nwX").value,pinned:$("#nwP").checked});
+      newsEdit=null; newsF="live"; controls(); load();
+    }catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); $("#nwErr").textContent=x.message; btn.disabled=false; } };
+  setTimeout(()=>$("#nwT").focus(),30);
+}
 async function chatFetch(path,opts={}){
   const r=await fetch("/api/admin/"+path,{...opts,headers:{"x-admin-key":KEY,"Content-Type":"application/json"}});
   if(r.status===401) throw new Error("auth");

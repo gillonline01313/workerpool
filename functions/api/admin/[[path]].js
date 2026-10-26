@@ -1,5 +1,6 @@
 // Admin data API. Every request must carry the ADMIN_KEY secret set in Cloudflare.
 import { json, readJson, str, sendEmail, chatOpen, CHAT_MSG_SQL, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
+import { NEWS_SEED } from "../../_news.js";
 function same(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
   let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0;
@@ -13,6 +14,12 @@ export async function onRequestGet({ request, env, params }) {
   if (route === "visits") {
     const r = await env.DB.prepare(`SELECT * FROM visits WHERE t >= ?1 ORDER BY t DESC LIMIT 20000`).bind(since).all();
     return json({ ok: true, rows: r.results });
+  }
+  if (route === "news") {
+    try {
+      const r = await env.DB.prepare(`SELECT * FROM news ORDER BY status = 'archived', pinned DESC, created DESC LIMIT 500`).all();
+      return json({ ok: true, rows: r.results });
+    } catch { return json({ ok: false, error: "Run schema-news.sql in the D1 console first." }, 500); }
   }
   if (route === "interest") {
     const r = await env.DB.prepare(`SELECT * FROM interest ORDER BY created DESC LIMIT 2000`).all();
@@ -87,6 +94,7 @@ export async function onRequestPost({ request, env, params }) {
   if (route === "chat-file") return adminFile(request, env);
   const b = await readJson(request, 6000);
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
+  if (route.startsWith("news-")) return newsAction(env, route, b);
   const t = await env.DB.prepare(`SELECT * FROM chat_threads WHERE id = ?1`).bind(str(b.id, 64)).first();
   if (!t) return json({ ok: false, error: "Chat not found." }, 404);
   const now = new Date().toISOString();
@@ -129,4 +137,49 @@ async function adminFile(request, env) {
   await env.DB.prepare(`UPDATE chat_threads SET status = 'open', updated = ?1, admin_read = ?2 WHERE id = ?3`).bind(now, ins.meta.last_row_id, t.id).run();
   const emailed = await emailIfAway(env, t, `We sent you a file in the chat: ${name}. Open the chat to download it.`);
   return json({ ok: true, emailed });
+}
+
+// "Hot & New" ticker: add, edit, archive, restore, delete, and load starter items.
+const NEWS_TAGS = ["hot", "new", "trending", "update"];
+async function newsAction(env, route, b) {
+  const now = new Date().toISOString();
+  try {
+    if (route === "news-save") {
+      const title = str(b.title, 160), link = str(b.link, 400), expires = str(b.expires, 10);
+      if (!title) return json({ ok: false, error: "Add a headline." }, 400);
+      if (link && !/^(\/|https:\/\/)/.test(link)) return json({ ok: false, error: "Links must start with / (a page on this site) or https://" }, 400);
+      if (expires && !/^\d{4}-\d{2}-\d{2}$/.test(expires)) return json({ ok: false, error: "Use a date like 2026-12-31." }, 400);
+      const tag = NEWS_TAGS.includes(b.tag) ? b.tag : "new", pinned = b.pinned ? 1 : 0, summary = str(b.summary, 400);
+      if (b.id) {
+        await env.DB.prepare(`UPDATE news SET title = ?1, summary = ?2, tag = ?3, link = ?4, pinned = ?5, expires = ?6, updated = ?7 WHERE id = ?8`)
+          .bind(title, summary, tag, link, pinned, expires || null, now, str(b.id, 64)).run();
+        return json({ ok: true });
+      }
+      const nid = crypto.randomUUID();
+      await env.DB.prepare(`INSERT INTO news (id, title, summary, tag, link, pinned, status, clicks, expires, created, updated) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'live', 0, ?7, ?8, ?8)`)
+        .bind(nid, title, summary, tag, link, pinned, expires || null, now).run();
+      return json({ ok: true, id: nid });
+    }
+    if (route === "news-status") {
+      const archive = !b.restore;
+      await env.DB.prepare(`UPDATE news SET status = ?1, archived_at = ?2, updated = ?3 WHERE id = ?4`)
+        .bind(archive ? "archived" : "live", archive ? now : null, now, str(b.id, 64)).run();
+      return json({ ok: true });
+    }
+    if (route === "news-delete") {
+      await env.DB.prepare(`DELETE FROM news WHERE id = ?1 AND status = 'archived'`).bind(str(b.id, 64)).run();
+      return json({ ok: true });
+    }
+    if (route === "news-seed") {
+      // Starter items get staggered times so they keep their intended order.
+      let i = 0;
+      for (const s of NEWS_SEED) {
+        const t = new Date(Date.now() - i++ * 60000).toISOString();
+        await env.DB.prepare(`INSERT INTO news (id, title, summary, tag, link, pinned, status, clicks, created, updated) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'live', 0, ?7, ?7)`)
+          .bind(crypto.randomUUID(), s.title, s.summary, s.tag, s.link, s.pinned ? 1 : 0, t).run();
+      }
+      return json({ ok: true });
+    }
+  } catch { return json({ ok: false, error: "Couldn't save. Run schema-news.sql in the D1 console first." }, 500); }
+  return json({ ok: false, error: "Not found." }, 404);
 }
