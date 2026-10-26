@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NOC Requirements Checker – Education &amp; Experience by NOC Code | WorkerPool</title>
+<meta name="description" content="Free NOC 2021 lookup: enter a NOC code or job title to see education, experience, licensing and provincial requirements, filtered by must have, usually required or may be required.">
+<meta name="theme-color" content="#3f7a72">
+<link rel="canonical" href="https://workerpool.ca/tools/noc/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="WorkerPool">
+<meta property="og:locale" content="en_CA">
+<meta property="og:title" content="NOC Requirements Checker">
+<meta property="og:description" content="Education, experience, licensing and provincial requirements for all 516 NOC 2021 unit groups.">
+<meta property="og:url" content="https://workerpool.ca/tools/noc/">
+<meta property="og:image" content="https://workerpool.ca/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%233f7a72'/%3E%3Ccircle cx='10' cy='12' r='2.4' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2.4' fill='white' opacity='.75'/%3E%3Ccircle cx='20' cy='12' r='2.4' fill='white' opacity='.5'/%3E%3C/svg%3E">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"NOC Requirements Checker","url":"https://workerpool.ca/tools/noc/","applicationCategory":"ReferenceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"CAD"},"publisher":{"@type":"Organization","name":"WorkerPool","url":"https://workerpool.ca/"}}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,750&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#f3f6f5; --band:#e9efed; --surface:#ffffff; --fg:#1b2628; --muted:#5a696b; --line:#d3dcda;
+  --accent:#3f7a72; --accent-deep:#2c5a54; --accent-soft:#dcebe7; --accent-fg:#ffffff;
+  --req:#b42318; --req-bg:#fde8e5; --usu:#8a5a00; --usu-bg:#fbf0d9; --may:#2c5f9e; --may-bg:#e3edfa; --inf:#5a696b; --inf-bg:#e7eceb; --mark:#fff2b3;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif; --f-body:"Figtree","Segoe UI",system-ui,sans-serif; --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121819; --band:#172021; --surface:#1d2729; --fg:#e3ebe9; --muted:#97a7a5; --line:#2c3a3c;
+  --accent:#7fbcb2; --accent-deep:#a4d3cb; --accent-soft:#213431; --accent-fg:#0f2220;
+  --req:#ff8f84; --req-bg:#3a1d1b; --usu:#f2c46b; --usu-bg:#352a14; --may:#8fb8f0; --may-bg:#1b2a40; --inf:#9aa8a6; --inf-bg:#232e30; --mark:#4d4415; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121819; --band:#172021; --surface:#1d2729; --fg:#e3ebe9; --muted:#97a7a5; --line:#2c3a3c;
+  --accent:#7fbcb2; --accent-deep:#a4d3cb; --accent-soft:#213431; --accent-fg:#0f2220;
+  --req:#ff8f84; --req-bg:#3a1d1b; --usu:#f2c46b; --usu-bg:#352a14; --may:#8fb8f0; --may-bg:#1b2a40; --inf:#9aa8a6; --inf-bg:#232e30; --mark:#4d4415; color-scheme:dark}
+[hidden]{display:none!important}
+html{scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.55}
+a{color:inherit}
+header.site{position:sticky;top:0;z-index:9;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.in{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.nav{display:flex;align-items:center;gap:20px;height:60px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:750;font-size:1.15rem;text-decoration:none;letter-spacing:-.02em}
+.navl{margin-left:auto;display:flex;gap:18px;font-size:.9rem}
+.navl a{text-decoration:none;color:var(--muted)}.navl a:hover{color:var(--fg)}
+@media (max-width:820px){.navl{display:none}.nav .btn{margin-left:auto}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-weight:650;font-size:.95rem;padding:11px 20px;border-radius:999px;text-decoration:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);cursor:pointer}
+.btn:hover{background:var(--accent-deep);border-color:var(--accent-deep)}
+.btn.sm{padding:8px 15px;font-size:.86rem}
+a:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.eyebrow{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--accent)}
+.cta{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;background:var(--accent-soft);border-radius:14px;padding:18px}
+.cta p{margin:0;max-width:56ch}
+.cta b{font-family:var(--f-display);font-size:1.1rem;display:block}
+footer.site{padding-block:32px 48px;border-top:1px solid var(--line);font-size:.84rem;color:var(--muted)}
+footer.site p{max-width:92ch;margin:0 0 10px}
+.loading{color:var(--muted);padding:12px 0}
+*{box-sizing:border-box}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:18px;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.intro h1{font-family:var(--f-display);font-size:clamp(1.7rem,4vw,2.4rem);font-weight:750;letter-spacing:-.015em;line-height:1.15;margin:0;text-wrap:balance}
+.intro p{margin:4px 0 0;color:var(--muted);font-size:.9rem}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+/* search */
+.search{position:relative}
+.search input{width:100%;font:inherit;font-size:1rem;padding:13px 14px 13px 42px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)}
+.search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.sugg{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--line);border-radius:10px;z-index:5;max-height:min(60vh,440px);overflow-y:auto;box-shadow:0 12px 30px rgba(0,0,0,.12)}
+.sugg button{display:flex;gap:12px;width:100%;text-align:left;font:inherit;padding:10px 14px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--fg);cursor:pointer;align-items:baseline}
+.sugg button:last-child{border-bottom:0}
+.sugg button:hover,.sugg button.on{background:var(--accent-soft)}
+.sugg .code{font-family:var(--f-mono);font-weight:700;color:var(--accent);flex:none}
+.sugg .t{min-width:0}
+.sugg .m{display:block;font-size:.82rem;color:var(--muted)}
+.sugg .empty{padding:14px;color:var(--muted)}
+/* profile */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.id{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.id .code{font-family:var(--f-mono);font-size:1.5rem;font-weight:700;color:var(--accent);line-height:1.1}
+.id h2{font-family:var(--f-display);font-size:1.3rem;line-height:1.2;margin:0;text-wrap:balance;flex:1 1 260px;min-width:0}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:.86rem;color:var(--muted)}
+.meta b{color:var(--fg);font-weight:600}
+.matched{margin-top:10px;font-size:.88rem;padding:8px 10px;border-radius:8px;background:var(--accent-soft)}
+.ext{color:var(--accent);font-weight:600;text-decoration:none}
+.ext:hover{text-decoration:underline}
+/* summary */
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:16px}
+.sum{border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.sum h3{margin:0 0 6px;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.sum .v{font-size:.9rem;display:flex;flex-wrap:wrap;gap:5px}
+.sum .none{color:var(--muted);font-size:.86rem}
+/* chips & badges */
+.tag{display:inline-flex;align-items:center;font-size:.76rem;padding:2px 8px;border-radius:999px;background:var(--inf-bg);color:var(--fg);white-space:nowrap}
+.tag.prov{background:var(--accent-soft);color:var(--accent);font-family:var(--f-mono);font-weight:700;font-size:.72rem}
+.badge{display:inline-block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;border-radius:5px;white-space:nowrap}
+.b-required{background:var(--req-bg);color:var(--req)}
+.b-usually{background:var(--usu-bg);color:var(--usu)}
+.b-may{background:var(--may-bg);color:var(--may)}
+.b-info{background:var(--inf-bg);color:var(--inf)}
+/* filters */
+.filters{display:flex;flex-direction:column;gap:12px}
+.frow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.frow > span{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;width:100%}
+.chip{font:inherit;font-size:.84rem;padding:6px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.chip .n{font-family:var(--f-mono);font-size:.74rem;color:var(--muted)}
+.chip:focus-visible,.sugg button:focus-visible,select:focus-visible,.tbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chip.lv-required[aria-pressed="true"]{border-color:var(--req);background:var(--req-bg);color:var(--req)}
+.chip.lv-usually[aria-pressed="true"]{border-color:var(--usu);background:var(--usu-bg);color:var(--usu)}
+.chip.lv-may[aria-pressed="true"]{border-color:var(--may);background:var(--may-bg);color:var(--may)}
+.chip.lv-info[aria-pressed="true"]{border-color:var(--inf);background:var(--inf-bg);color:var(--inf)}
+select{font:inherit;font-size:.86rem;padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
+.tbtn{font:inherit;font-size:.86rem;font-weight:650;padding:8px 15px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);cursor:pointer}
+.tbtn.ghost{background:transparent;color:var(--accent)}
+.count{font-size:.86rem;color:var(--muted)}
+/* requirements */
+.group{display:flex;flex-direction:column;gap:0}
+.group h3{font-family:var(--f-display);font-size:1.08rem;margin:0 0 6px;display:flex;align-items:baseline;gap:8px}
+.group h3 .n{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);font-weight:500}
+.req{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:11px 0;border-top:1px solid var(--line)}
+.req .badge{margin-top:2px;min-width:86px;text-align:center}
+.req .txt{min-width:0}
+.req .sub{font-size:.76rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.req .tags{grid-column:2;display:flex;flex-wrap:wrap;gap:5px}
+mark{background:var(--mark);color:inherit;padding:0 2px;border-radius:3px}
+.empty-state{color:var(--muted);text-align:center;padding:20px}
+.subs{display:flex;flex-wrap:wrap;gap:6px}
+.note{font-size:.78rem;color:var(--muted);line-height:1.5}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:.88rem;z-index:20}
+@media (max-width:520px){
+  .req{grid-template-columns:1fr}.req .tags{grid-column:1}.req .badge{justify-self:start;min-width:0}
+  .id .code{font-size:1.25rem}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="in nav">
+    <a class="logo" href="/" aria-label="WorkerPool home">
+      <svg width="28" height="28" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="9" fill="var(--accent)"/><circle cx="10" cy="12" r="2.4" fill="var(--accent-fg)"/><circle cx="15" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".75"/><circle cx="20" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".5"/><path d="M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0" fill="none" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round"/></svg>
+      WorkerPool</a>
+    <nav class="navl" aria-label="Tools"><a href="/tools/bc/">BC Pathway Check</a><a href="/tools/ab/">Alberta</a><a href="/tools/mb/">Manitoba</a><a href="/express-entry-2026/">Express Entry 2026</a></nav>
+    <a class="btn sm" href="/apply/">Create free profile</a>
+  </div>
+</header>
+<div id="hn"></div>
+<main>
+<div class="wrap">
+  <div class="intro">
+    <span class="eyebrow">Free tool · NOC 2021</span>
+    <h1>NOC Requirements Checker</h1>
+    <p>Education, experience and licensing requirements for all 516 NOC 2021 unit groups. Search by NOC code or job title, then filter by must have, usually required or may be required, and by province.</p>
+  </div>
+
+  <div class="search" role="combobox" aria-expanded="false" aria-haspopup="listbox" id="combo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+    <input id="q" type="search" autocomplete="off" placeholder="e.g. 64410, cook, truck driver, early childhood educator" aria-label="NOC code or job title" aria-controls="sugg">
+    <div class="sugg" id="sugg" role="listbox" hidden></div>
+  </div>
+
+  <section class="card" id="profile" aria-live="polite"><div class="loading">Loading 516 NOC unit groups…</div></section>
+
+  <section class="card filters" id="filters" aria-label="Filters">
+    <div class="frow" id="f-level"><span>Requirement level</span></div>
+    <div class="frow" id="f-head"><span>Requirement type</span></div>
+    <div class="frow" id="f-sub" hidden><span>Occupation within this group</span></div>
+    <div class="frow">
+      <span>Province or territory</span>
+      <select id="f-prov" aria-label="Province or territory">
+        <option value="">All lines</option>
+        <option value="__prov">Provincial lines only</option>
+        <option value="AB">Alberta</option><option value="BC">British Columbia</option><option value="MB">Manitoba</option>
+        <option value="NB">New Brunswick</option><option value="NL">Newfoundland and Labrador</option><option value="NS">Nova Scotia</option>
+        <option value="NT">Northwest Territories</option><option value="NU">Nunavut</option><option value="ON">Ontario</option>
+        <option value="PE">Prince Edward Island</option><option value="QC">Quebec</option><option value="SK">Saskatchewan</option><option value="YT">Yukon</option>
+      </select>
+    </div>
+    <div class="toolbar">
+      <span class="count" id="count"></span>
+      <span style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="tbtn ghost" id="reset" type="button">Clear filters</button>
+        <button class="tbtn" id="copy" type="button">Copy requirements</button>
+      </span>
+    </div>
+  </section>
+
+  <section class="card" id="list"></section>
+
+  <div class="cta">
+    <p><b>Found your NOC?</b>Add it to a free WorkerPool profile. A real person calls you back, and with your consent we share your profile with employers hiring in that occupation.</p>
+    <a class="btn" href="/apply/">Create free profile</a>
+  </div>
+
+  <footer class="note">
+    Source: Statistics Canada, National Occupational Classification (NOC) 2021 Version 1.0, employment requirements as published on the ESDC NOC site. Levels and types are tagged automatically from each line's wording ("is required", "usually required", "may be required"); read the full line before relying on a tag. Province filter shows lines naming that province plus lines that apply across provinces ("all provinces", "provincial licensure"). Adapted from Statistics Canada; this does not constitute an endorsement by Statistics Canada.
+  </footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+</main>
+<footer class="site">
+  <div class="in">
+    <p>WorkerPool is a data processing company. We are not immigration representatives and do not provide immigration advice or representation. This tool shows Statistics Canada's published NOC employment requirements and isn't a substitute for advice from a licensed immigration consultant (CICC) or lawyer, or for an employer's own job requirements. <a href="/">Home</a> · <a href="/news/">Hot &amp; New</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></p>
+  </div>
+</footer>
+<script>
+(function(){
+let D = [], BY = {}, IDX = [];
+const TEER = {0:'Management occupations',1:'Usually requires a university degree',2:'College diploma or apprenticeship of 2+ years, or supervisory occupations',3:'College diploma or apprenticeship under 2 years, or 6+ months of on-the-job training',4:'Secondary school diploma, or several weeks of on-the-job training',5:'Short-term work demonstration, no formal education requirements'};
+const BOC = {0:'Legislative and senior management',1:'Business, finance and administration',2:'Natural and applied sciences',3:'Health',4:'Education, law and social, community and government services',5:'Art, culture, recreation and sport',6:'Sales and service',7:'Trades, transport and equipment operators',8:'Natural resources, agriculture and related production',9:'Manufacturing and utilities'};
+const PROV = {AB:'Alberta',BC:'British Columbia',MB:'Manitoba',NB:'New Brunswick',NL:'Newfoundland and Labrador',NS:'Nova Scotia',NT:'Northwest Territories',NU:'Nunavut',ON:'Ontario',PE:'Prince Edward Island',QC:'Quebec',SK:'Saskatchewan',YT:'Yukon'};
+const LEVELS = [['required','Must have'],['usually','Usually required'],['may','May be required'],['info','Other info']];
+const LVL = Object.fromEntries(LEVELS);
+const HEADS = [['education','Education'],['experience','Experience'],['training','Training'],['licensing','Licensing & certification'],['other','Other']];
+const HD = Object.fromEntries(HEADS);
+
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+
+const esc = s => s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let cur = null, matched = null;
+const st = {levels:new Set(), heads:new Set(), sub:'', prov:''};
+
+/* ---------- search ---------- */
+function search(q){
+  if(!IDX.length) return [];
+  const nq = norm(q); if(!nq) return [];
+  const words = nq.split(' ');
+  const out = [];
+  if(/^\d+$/.test(nq)){
+    for(const it of IDX) if(it.n.c.startsWith(nq)) out.push({n:it.n, score:it.n.c===nq?0:1});
+    return out.slice(0,30);
+  }
+  for(const it of IDX){
+    let best=null;
+    const all = w => words.every(x=>w.includes(x));
+    if(it.t===nq) best={score:0};
+    else if(all(it.t)) best={score:it.t.startsWith(nq)?1:2};
+    for(const [e,ne] of it.ex){
+      if(!all(ne)) continue;
+      const s = ne===nq?0.5:(ne.startsWith(nq)?1.5:3) + ne.length/200;
+      if(!best || s<best.score) best={score:s, via:e};
+    }
+    if(best) out.push({n:it.n, score:best.score, via:best.via});
+  }
+  out.sort((a,b)=>a.score-b.score || a.n.c.localeCompare(b.n.c));
+  return out.slice(0,30);
+}
+const qEl = document.getElementById('q'), sEl = document.getElementById('sugg'), combo = document.getElementById('combo');
+let hits=[], sel=-1;
+function showSugg(){
+  const q = qEl.value; hits = search(q); sel = -1;
+  if(!q.trim()){ sEl.hidden = true; combo.setAttribute('aria-expanded','false'); return; }
+  sEl.innerHTML = hits.length ? hits.map((h,i)=>`<button type="button" role="option" data-i="${i}"><span class="code">${h.n.c}</span><span class="t">${esc(h.n.t)}${h.via?`<span class="m">Job title: ${esc(h.via)}</span>`:''}</span></button>`).join('')
+    : `<div class="empty">No NOC code or job title matches "${esc(q)}". Try a shorter word, such as "cook" or "driver".</div>`;
+  sEl.hidden = false; combo.setAttribute('aria-expanded','true');
+}
+function pick(i){ const h = hits[i]; if(!h) return; open(h.n.c, h.via||null); sEl.hidden = true; combo.setAttribute('aria-expanded','false'); qEl.blur(); }
+qEl.addEventListener('input', showSugg);
+qEl.addEventListener('focus', ()=>{ if(qEl.value.trim()) showSugg(); });
+qEl.addEventListener('keydown', e=>{
+  const btns = [...sEl.querySelectorAll('button')];
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); if(!btns.length) return; sel = (sel + (e.key==='ArrowDown'?1:-1) + btns.length) % btns.length; btns.forEach((b,i)=>b.classList.toggle('on',i===sel)); btns[sel].scrollIntoView({block:'nearest'}); }
+  else if(e.key==='Enter'){ e.preventDefault(); pick(sel>=0?sel:0); }
+  else if(e.key==='Escape'){ sEl.hidden = true; }
+});
+sEl.addEventListener('mousedown', e=>{ const b = e.target.closest('button'); if(b){ e.preventDefault(); pick(+b.dataset.i); } });
+document.addEventListener('click', e=>{ if(!combo.contains(e.target)) sEl.hidden = true; });
+
+/* ---------- profile ---------- */
+function teerOf(c){ return +c[1]; }
+function hl(t){
+  return esc(t).replace(/\b(is|are|be) (usually |generally |normally )?(required|needed)\b|\b(may|might) (also )?(be required|require|be needed)\b|\b(usually )?requires?\b|\bmandatory\b|\bcompulsory\b|\bmust\b/gi, m=>`<mark>${m}</mark>`);
+}
+function summaryFor(n){
+  const r = n.req;
+  const rank = {required:0, usually:1, may:2, info:3};
+  const pick = h => r.filter(q=>q.h.includes(h)).sort((a,b)=>rank[a.s[0]]-rank[b.s[0]]);
+  const edu = pick('education'), exp = r.filter(q=>q.h.includes('experience')||q.h.includes('training')), lic = pick('licensing');
+  const levels = [...new Set(edu.flatMap(q=>q.l))];
+  const etypes = [...new Set(exp.flatMap(q=>q.e))];
+  const provs = [...new Set(r.flatMap(q=>q.p))].sort();
+  const generic = r.some(q=>q.g);
+  const box = (title, html) => `<div class="sum"><h3>${title}</h3><div class="v">${html}</div></div>`;
+  const strongest = arr => arr.length ? `<span class="badge b-${arr[0].s[0]}">${LVL[arr[0].s[0]]}</span>` : '';
+  return `<div class="summary">
+    ${box('Education', edu.length ? strongest(edu) + levels.map(l=>`<span class="tag">${esc(l)}</span>`).join('') : '<span class="none">No education line listed</span>')}
+    ${box('Experience & training', exp.length ? etypes.map(l=>`<span class="tag">${esc(l)}</span>`).join('') || strongest(exp) : '<span class="none">No experience line listed</span>')}
+    ${box('Licensing & certification', lic.length ? strongest(lic) + `<span class="tag">${lic.length} line${lic.length>1?'s':''}</span>` : '<span class="none">None listed</span>')}
+    ${box('Provincial', provs.length||generic ? provs.map(p=>`<span class="tag prov" title="${PROV[p]}">${p}</span>`).join('') + (generic?'<span class="tag">Varies by province</span>':'') : '<span class="none">No provincial rules listed</span>')}
+  </div>`;
+}
+function open(code, via){
+  if(!BY[code]) return;
+  cur = BY[code]; matched = via; st.levels.clear(); st.heads.clear(); st.prov=''; document.getElementById('f-prov').value='';
+  st.sub = '';
+  if(via && cur.subs.length){
+    const nv = norm(via);
+    st.sub = cur.subs.find(s=>{ const ns = norm(s).replace(/s\b/g,''); return ns.split(' ').some(w=>w.length>3 && nv.includes(w)); }) || '';
+  }
+  const t = teerOf(code);
+  document.getElementById('profile').innerHTML = `
+    <div class="id"><span class="code">${code}</span><h2>${esc(cur.t)}</h2></div>
+    <div class="meta"><span><b>TEER ${t}</b> · ${TEER[t]}</span><span><b>Category ${code[0]}</b> · ${BOC[code[0]]}</span></div>
+    ${via?`<div class="matched">You searched for <b>${esc(via)}</b>, which is listed under this unit group.</div>`:''}
+    ${summaryFor(cur)}
+    <div class="meta" style="margin-top:14px"><span>${cur.ex.length} job titles in this group</span><a class="ext" href="https://noc.esdc.gc.ca/Structure/NOCProfile?GocTemplateCulture=en-CA&code=${code}&version=2021.0" target="_blank" rel="noopener">Open official NOC profile ↗</a></div>`;
+  qEl.value = '';
+  try{ history.replaceState(null,'','#'+code); document.title = code+' '+BY[code].t+' – NOC Requirements | WorkerPool'; }catch(e){}
+  buildFilters(); renderList();
+}
+
+/* ---------- filters ---------- */
+function buildFilters(){
+  const r = cur.req;
+  const cnt = (f) => r.filter(f).length;
+  const lv = document.getElementById('f-level');
+  lv.innerHTML = '<span>Requirement level</span>' + LEVELS.map(([k,l])=>`<button type="button" class="chip lv-${k}" data-k="${k}" aria-pressed="${st.levels.has(k)}">${l}<span class="n">${cnt(q=>q.s.includes(k))}</span></button>`).join('');
+  const hd = document.getElementById('f-head');
+  hd.innerHTML = '<span>Requirement type</span>' + HEADS.map(([k,l])=>{ const c = cnt(q=>q.h.includes(k)); return c?`<button type="button" class="chip" data-k="${k}" aria-pressed="${st.heads.has(k)}">${l}<span class="n">${c}</span></button>`:''; }).join('');
+  const sb = document.getElementById('f-sub');
+  sb.hidden = !cur.subs.length;
+  sb.innerHTML = '<span>Occupation within this group</span>' + ['',...cur.subs].map(s=>`<button type="button" class="chip" data-k="${esc(s)}" aria-pressed="${st.sub===s}">${s?esc(s):'All occupations'}</button>`).join('');
+}
+document.getElementById('f-level').addEventListener('click', e=>{ const b=e.target.closest('.chip'); if(!b) return; const k=b.dataset.k; st.levels.has(k)?st.levels.delete(k):st.levels.add(k); b.setAttribute('aria-pressed', st.levels.has(k)); renderList(); });
+document.getElementById('f-head').addEventListener('click', e=>{ const b=e.target.closest('.chip'); if(!b) return; const k=b.dataset.k; st.heads.has(k)?st.heads.delete(k):st.heads.add(k); b.setAttribute('aria-pressed', st.heads.has(k)); renderList(); });
+document.getElementById('f-sub').addEventListener('click', e=>{ const b=e.target.closest('.chip'); if(!b) return; st.sub=b.dataset.k; buildFilters(); renderList(); });
+document.getElementById('f-prov').addEventListener('change', e=>{ st.prov=e.target.value; renderList(); });
+document.getElementById('reset').addEventListener('click', ()=>{ st.levels.clear(); st.heads.clear(); st.sub=''; st.prov=''; document.getElementById('f-prov').value=''; buildFilters(); renderList(); });
+
+function visible(){
+  return cur.req.filter(q=>{
+    if(st.levels.size && !q.s.some(s=>st.levels.has(s))) return false;
+    if(st.heads.size && !q.h.some(h=>st.heads.has(h))) return false;
+    if(st.sub && q.sub && q.sub!==st.sub) return false;
+    if(st.prov==='__prov' && !(q.p.length||q.g)) return false;
+    if(st.prov && st.prov!=='__prov' && !(q.p.includes(st.prov)||q.g)) return false;
+    return true;
+  });
+}
+function renderList(){
+  const v = visible();
+  const box = document.getElementById('list');
+  document.getElementById('count').textContent = `Showing ${v.length} of ${cur.req.length} requirement lines`;
+  if(!v.length){ box.innerHTML = `<div class="empty-state">No requirement lines match these filters. Clear a filter to see more.</div>`; return; }
+  const order = st.heads.size ? HEADS.filter(([k])=>st.heads.has(k)) : HEADS;
+  const used = new Set(); let html = '';
+  for(const [k,label] of order){
+    const g = v.filter(q=>!used.has(q) && (st.heads.size ? q.h.includes(k) : q.h[0]===k));
+    if(!g.length) continue; g.forEach(q=>used.add(q));
+    html += `<div class="group"><h3>${label}<span class="n">${g.length}</span></h3>` + g.map(q=>{
+      const others = q.h.filter(h=>h!==k).map(h=>`<span class="tag">Also: ${HD[h]}</span>`);
+      const tags = [...q.p.map(p=>`<span class="tag prov" title="${PROV[p]}">${p}</span>`), ...(q.g&&!q.p.length?['<span class="tag">Provincial rule</span>']:[]), ...q.e.map(e=>`<span class="tag">${esc(e)}</span>`), ...q.l.map(e=>`<span class="tag">${esc(e)}</span>`), ...others];
+      return `<div class="req"><span class="badge b-${q.s[0]}">${LVL[q.s[0]]}</span><div class="txt">${q.sub&&!st.sub?`<div class="sub">${esc(q.sub)}</div>`:''}${hl(q.x)}</div>${tags.length?`<div class="tags">${tags.join('')}</div>`:''}</div>`;
+    }).join('') + `</div>`;
+  }
+  box.innerHTML = `<div style="display:flex;flex-direction:column;gap:22px">${html}</div>`;
+}
+
+/* ---------- copy ---------- */
+const toast = msg => { const t=document.getElementById('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.h); toast.h=setTimeout(()=>t.hidden=true,2200); };
+document.getElementById('copy').addEventListener('click', ()=>{
+  const v = visible();
+  const lines = [`NOC ${cur.c} – ${cur.t} (TEER ${teerOf(cur.c)})`, ...(matched?[`Job title: ${matched}`]:[]), 'Employment requirements (NOC 2021 V1.0):', ...v.map(q=>`- [${LVL[q.s[0]]}] ${q.sub?q.sub+': ':''}${q.x}`)];
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(()=>toast(`Copied ${v.length} lines`)).catch(()=>{
+    const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast(`Copied ${v.length} lines`); }catch(e){ toast('Copy is blocked here. Select the text and copy it manually.'); }
+    ta.remove();
+  });
+});
+
+function boot(){ const h = (location.hash||'').slice(1); open(BY[h] ? h : '64410', null); }
+window.addEventListener('hashchange', ()=>{ const h=(location.hash||'').slice(1); if(BY[h] && (!cur || cur.c!==h)) open(h,null); });
+fetch('/tools/noc/noc-2021.json?v=1').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).then(d=>{
+  D = d; BY = Object.fromEntries(D.map(n=>[n.c,n])); IDX = D.map(n=>({n, t:norm(n.t), ex:n.ex.map(e=>[e,norm(e)])})); boot();
+}).catch(()=>{ document.getElementById('profile').innerHTML = '<div class="loading">The NOC list did not load. Check your connection and refresh the page.</div>'; });
+})();
+</script>
+<script>window.WPA_PAGE="noc";</script>
+<script src="/assets/wpa.js" defer></script>
+<script src="/assets/ticker.js?v=1" defer></script>
+<script src="/assets/chat.js?v=4" defer></script>
+</body>
+</html>

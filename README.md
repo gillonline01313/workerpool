@@ -21,6 +21,7 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `assets/b2b-config.js` | Application types, info sheet sections and document checklists (edit here to add types) |
 | `functions/api/b2b/*` | B2B applications: create, save, upload documents, submit (emails admin), reopen a submitted application for edits (emails admin to hold processing; resubmit sends an "Updated" email) |
 | `tools/bc/`, `tools/ab/`, `tools/mb/` | Pathway Checks for BC, Alberta and Manitoba: disclaimer, optional consent to share with a licensed RCIC, sign-up, then CRS / FSW / provincial EOI (BC PNP SIRS, AAIP, MPNP) / RCIP community scores and 2026 draws. Built from `tools/src/` with `python3 tools/src/build.py` |
+| `tools/noc/` | NOC Requirements Checker (`/tools/noc/`): search all 516 NOC 2021 unit groups by code or job title; filter employment requirements by level (must have / usually / may be required), type (education, experience, training, licensing) and province. Data is `tools/noc/noc-2021.json`, built from Statistics Canada's NOC 2021 V1.0 elements file. Link to a NOC directly with `/tools/noc/#64410` |
 | `functions/api/tools/assessment.js` | Saves an assessment the candidate agreed to share (one per province per account) and emails the admin |
 | `assets/chat.js` | Live chat widget (on the home page; add the same script tag to any other page) |
 | `functions/api/chat-file.js` | Live chat file upload and download for visitors |
