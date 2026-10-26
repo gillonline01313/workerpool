@@ -98,11 +98,11 @@ export async function chatThread(env, request) {
 export const CHAT_MSG_SQL = `SELECT m.id, m.sender, m.body, m.created, f.id AS file_id, f.name AS file_name, f.size AS file_size, f.type AS file_type
   FROM chat_messages m LEFT JOIN chat_files f ON f.msg_id = m.id WHERE m.thread_id = ?1 AND m.id > ?2 ORDER BY m.id LIMIT ?3`;
 // Email the admin for a new chat, any message outside live hours, or after 10 quiet minutes on an ongoing chat.
-export async function chatNotify(env, t, { open, isNew, text }) {
-  if (!(isNew || !open || !t.last_notified || Date.now() - Date.parse(t.last_notified) > 6e5)) return;
+export async function chatNotify(env, t, { open, isNew, text, voice }) {
+  if (!(voice || isNew || !open || !t.last_notified || Date.now() - Date.parse(t.last_notified) > 6e5)) return;
   await env.DB.prepare(`UPDATE chat_threads SET last_notified = ?1 WHERE id = ?2`).bind(new Date().toISOString(), t.id).run();
-  await sendEmail(env, env.ADMIN_EMAIL, `${open ? "Live chat" : "Offline chat message"} from ${t.name}`,
-    `${t.name}${t.email ? " (" + t.email + ")" : ""} ${isNew ? "started a chat" : "sent a message"}${open ? "" : " outside live hours"}:\n\n${text}\n\nReply in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Live chat tab)`, t.email);
+  await sendEmail(env, env.ADMIN_EMAIL, `${voice ? "Voice note" : open ? "Live chat" : "Offline chat message"} from ${t.name}`,
+    `${t.name}${t.email ? " (" + t.email + ")" : ""} ${voice ? "left a voice note" : isNew ? "started a chat" : "sent a message"}${open ? "" : " outside live hours"}:\n\n${text}\n\nReply in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Live chat tab)`, t.email);
 }
 
 /* ---------- uploaded file checks (PDF, JPG, PNG, DOC, DOCX up to 10 MB) ---------- */
@@ -128,9 +128,37 @@ export function fileCheck(name, buf) {
   return { ext, type: k[0] };
 }
 export function fileResponse(obj, name, type) {
-  const inline = /^image\/(png|jpeg)$/.test(type);
+  const inline = /^(image\/(png|jpeg)|audio\/(webm|ogg|mp4))$/.test(type);
   return new Response(obj.body, { headers: {
     "content-type": type || "application/octet-stream",
     "content-disposition": `${inline ? "inline" : "attachment"}; filename="${String(name || "file").replace(/"/g, "")}"`,
     "cache-control": "private, no-store", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox" } });
+}
+
+/* ---------- voice notes (recorded in the chat widget, up to 2 minutes) ---------- */
+export const VOICE_MAX = 6 * 1024 * 1024, VOICE_SECS = 120;
+// Accepts what browsers record: WebM/Opus (Chrome, Edge, Firefox, Android), MP4/AAC (Safari, iPhone), Ogg.
+export function voiceCheck(buf) {
+  if (buf.byteLength < 200) return { error: "That recording is empty. Try again." };
+  if (buf.byteLength > VOICE_MAX) return { error: "That recording is too long. Keep it under 2 minutes." };
+  const b = new Uint8Array(buf, 0, 12);
+  if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return { ext: "webm", type: "audio/webm" };
+  if (b[0] === 0x4f && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53) return { ext: "ogg", type: "audio/ogg" };
+  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return { ext: "m4a", type: "audio/mp4" };
+  return { error: "We couldn't read that recording. Try again, or type a message instead." };
+}
+
+/* ---------- start a visitor chat (shared by text messages and voice notes) ---------- */
+// Returns { t, cookie } for a new thread, or { error, status }.
+export async function chatStartThread(env, request, { name, email, page, open }) {
+  if (!name) return { error: "Enter your name.", status: 400 };
+  if (!open && !email) return { error: "We're offline right now. Add your email so we can reply.", status: 400 };
+  const ipHash = await sha256hex("chat:" + (request.headers.get("cf-connecting-ip") || ""));
+  const recent = await env.DB.prepare(`SELECT COUNT(*) AS n FROM chat_threads WHERE ip_hash = ?1 AND created > ?2`).bind(ipHash, new Date(Date.now() - 36e5).toISOString()).first();
+  if (recent && recent.n >= 5) return { error: "Too many new chats from this connection. Try again later or email hello@workerpool.ca.", status: 429 };
+  const token = randomToken(), now = new Date().toISOString();
+  const t = { id: id(), name, email, last_notified: null };
+  await env.DB.prepare(`INSERT INTO chat_threads (id, token_hash, name, email, page, ip_hash, status, created, updated, visitor_seen) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'open', ?7, ?7, ?7)`)
+    .bind(t.id, await sha256hex(token), name, email || null, page || "", ipHash, now).run();
+  return { t, cookie: `wp_chat=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 86400}` };
 }

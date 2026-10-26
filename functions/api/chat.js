@@ -1,7 +1,6 @@
 // Live chat for visitors: read your conversation, or send a message to the admin.
 // Live hours are 8:00 to 23:00 Edmonton time; outside them messages are still taken (email required) and answered later.
-import { json, readJson, str, isEmail, id, randomToken, sha256hex, chatOpen, chatThread, chatNotify, CHAT_MSG_SQL } from "../_lib.js";
-const COOKIE = "wp_chat";
+import { json, readJson, str, isEmail, chatOpen, chatThread, chatNotify, chatStartThread, CHAT_MSG_SQL } from "../_lib.js";
 const thread = (env, req) => chatThread(env, req);
 const msgs = (env, tid, after) => env.DB.prepare(CHAT_MSG_SQL).bind(tid, after, 300).all();
 
@@ -26,18 +25,9 @@ export async function onRequestPost({ request, env }) {
   if (email && !isEmail(email)) return json({ ok: false, error: "Check your email address." }, 400);
   let t = await thread(env, request), cookie = null, isNew = false;
   if (!t) {
-    const name = str(b.name, 80);
-    if (!name) return json({ ok: false, error: "Enter your name." }, 400);
-    if (!open && !email) return json({ ok: false, error: "We're offline right now. Add your email so we can reply." }, 400);
-    const ipHash = await sha256hex("chat:" + (request.headers.get("cf-connecting-ip") || ""));
-    const recent = await env.DB.prepare(`SELECT COUNT(*) AS n FROM chat_threads WHERE ip_hash = ?1 AND created > ?2`).bind(ipHash, new Date(Date.now() - 36e5).toISOString()).first();
-    if (recent && recent.n >= 5) return json({ ok: false, error: "Too many new chats from this connection. Try again later or email hello@workerpool.ca." }, 429);
-    const token = randomToken();
-    t = { id: id(), name, email, last_notified: null };
-    await env.DB.prepare(`INSERT INTO chat_threads (id, token_hash, name, email, page, ip_hash, status, created, updated, visitor_seen) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'open', ?7, ?7, ?7)`)
-      .bind(t.id, await sha256hex(token), name, email || null, str(b.page, 120), ipHash, now).run();
-    cookie = `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 86400}`;
-    isNew = true;
+    const r = await chatStartThread(env, request, { name: str(b.name, 80), email, page: str(b.page, 120), open });
+    if (r.error) return json({ ok: false, error: r.error }, r.status);
+    t = r.t; cookie = r.cookie; isNew = true;
   } else {
     const burst = await env.DB.prepare(`SELECT COUNT(*) AS n FROM chat_messages WHERE thread_id = ?1 AND sender = 'visitor' AND created > ?2`).bind(t.id, new Date(Date.now() - 6e5).toISOString()).first();
     if (burst && burst.n >= 30) return json({ ok: false, error: "You're sending messages too fast. Wait a few minutes." }, 429);

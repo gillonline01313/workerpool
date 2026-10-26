@@ -95,6 +95,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
 .chat-live{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted)}
 .chat-live i{width:9px;height:9px;border-radius:50%;background:#3fae6c}
 .chat-live i.off{background:#b9c2c1}
+.chat-voice{display:flex;flex-direction:column;gap:6px;min-width:260px}
+.chat-voice audio{width:100%;height:40px}
 .nw-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:700px){.nw-form{grid-template-columns:1fr}}
 .nw-form label{display:flex;flex-direction:column;gap:5px;font-size:.82rem;font-weight:600}
@@ -442,12 +444,13 @@ async function chatThread(){
   j.rows.forEach(m=>{ if(m.id>chat.last){ chat.msgs.push(m); chat.last=m.id; } });
   const box=$("#chatMsgs"); const near=box.scrollHeight-box.scrollTop-box.clientHeight<80||!box.childElementCount;
   box.innerHTML=chat.msgs.map(m=>`<div class="chat-m ${m.sender==="admin"?"a":"v"}">${m.file_id?chatFileHTML(m):esc(m.body)}<small>${m.sender==="admin"?"You · ":""}${when(m.created)}</small></div>`).join("")||`<div class="wpa-note">No messages.</div>`;
-  chatImgs(box);
+  chatImgs(box); chatAudio(box);
   if(near) box.scrollTop=box.scrollHeight;
 }
 const chatBlobs=new Map();
 const kbs=n=>n>1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB";
 function chatFileHTML(m){
+  if(/^audio\//.test(m.file_type)) return `<div class="chat-voice">${esc(m.body||"🎤 Voice note")}<audio controls preload="metadata" data-chataudio="${esc(m.file_id)}"></audio><button class="chat-file" type="button" data-chatfile="${esc(m.file_id)}" data-name="${esc(m.file_name)}"><em>${kbs(m.file_size||0)} · Download</em></button></div>`;
   if(/^image\//.test(m.file_type)) return `<img class="chat-img" data-chatimg="${esc(m.file_id)}" data-name="${esc(m.file_name)}" alt="${esc(m.file_name)}" title="Click to download ${esc(m.file_name)}">`;
   return `<button class="chat-file" type="button" data-chatfile="${esc(m.file_id)}" data-name="${esc(m.file_name)}">📎 ${esc(m.file_name)} <em>${kbs(m.file_size||0)} · Download</em></button>`;
 }
@@ -457,6 +460,8 @@ async function chatBlob(id){
   if(!r.ok) throw new Error("Couldn't open that file.");
   const u=URL.createObjectURL(await r.blob()); chatBlobs.set(id,u); return u;
 }
+const fixDur=(a)=>{ a.addEventListener("loadedmetadata",()=>{ if(a.duration===Infinity){ const t=()=>{ a.removeEventListener("timeupdate",t); a.currentTime=0; }; a.addEventListener("timeupdate",t); a.currentTime=1e101; } },{once:true}); };
+function chatAudio(root){ root.querySelectorAll("audio[data-chataudio]").forEach(async a=>{ try{ fixDur(a); a.src=await chatBlob(a.dataset.chataudio); }catch(e){ a.replaceWith(Object.assign(document.createElement("small"),{textContent:"Couldn't load this voice note."})); } }); }
 function chatImgs(root){ root.querySelectorAll("img[data-chatimg]").forEach(async i=>{ try{ i.src=await chatBlob(i.dataset.chatimg); i.onload=()=>{ const b=$("#chatMsgs"); if(b) b.scrollTop=b.scrollHeight; }; }catch(e){ i.alt="Couldn't load image"; } }); }
 document.addEventListener("click",async e=>{
   const el=e.target.closest("[data-chatfile],img[data-chatimg]"); if(!el) return;
