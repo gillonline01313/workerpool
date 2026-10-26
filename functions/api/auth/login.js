@@ -5,7 +5,10 @@ export async function onRequestPost({ request, env }) {
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
   const email = str(b.email, 120).toLowerCase(), pass = typeof b.password === "string" ? b.password : "";
   const bad = () => json({ ok: false, error: "Email or password doesn't match. Check both and try again." }, 401);
-  const u = await env.DB.prepare(`SELECT * FROM users WHERE email = ?1`).bind(email).first();
+  // Sign in with email, or with a forum username (anything without an @).
+  let u = null;
+  if (email.includes("@")) u = await env.DB.prepare(`SELECT * FROM users WHERE email = ?1`).bind(email).first();
+  else if (email) { try { u = await env.DB.prepare(`SELECT u.* FROM forum_users f JOIN users u ON u.id = f.user_id WHERE f.username_lc = ?1`).bind(email).first(); } catch {} }
   if (!u) return bad();
   const now = new Date();
   if (u.locked_until && u.locked_until > now.toISOString())

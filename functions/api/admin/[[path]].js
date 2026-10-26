@@ -21,6 +21,20 @@ export async function onRequestGet({ request, env, params }) {
       return json({ ok: true, rows: r.results });
     } catch { return json({ ok: false, error: "Run schema-news.sql in the D1 console first." }, 500); }
   }
+  if (route === "forum") {
+    try {
+      const topics = await env.DB.prepare(`SELECT * FROM forum_topics ORDER BY last_post DESC LIMIT 300`).all();
+      const posts = await env.DB.prepare(
+        `SELECT p.id, p.topic_id, p.n, p.username, p.body, p.created, p.status, p.removed_at, p.removed_by, t.title, COALESCE(f.banned, 0) AS banned
+         FROM forum_posts p JOIN forum_topics t ON t.id = p.topic_id LEFT JOIN forum_users f ON f.user_id = p.user_id ORDER BY p.id DESC LIMIT 300`).all();
+      const reports = await env.DB.prepare(
+        `SELECT r.id, r.reason, r.created, r.resolved, f.username AS reporter, p.id AS post_id, p.n, p.username, p.body, p.status, p.created AS post_created, t.id AS topic_id, t.title
+         FROM forum_reports r JOIN forum_posts p ON p.id = r.post_id JOIN forum_topics t ON t.id = p.topic_id LEFT JOIN forum_users f ON f.user_id = r.user_id
+         ORDER BY r.resolved, r.id DESC LIMIT 300`).all();
+      const users = await env.DB.prepare(`SELECT COUNT(*) AS n FROM forum_users`).first();
+      return json({ ok: true, topics: topics.results, posts: posts.results, reports: reports.results, members: users ? users.n : 0 });
+    } catch { return json({ ok: false, error: "Run schema-forum.sql in the D1 console first." }, 500); }
+  }
   if (route === "interest") {
     const r = await env.DB.prepare(`SELECT * FROM interest ORDER BY created DESC LIMIT 2000`).all();
     return json({ ok: true, rows: r.results });
@@ -95,6 +109,7 @@ export async function onRequestPost({ request, env, params }) {
   const b = await readJson(request, 6000);
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
   if (route.startsWith("news-")) return newsAction(env, route, b);
+  if (route.startsWith("forum-")) return forumAction(env, route, b);
   const t = await env.DB.prepare(`SELECT * FROM chat_threads WHERE id = ?1`).bind(str(b.id, 64)).first();
   if (!t) return json({ ok: false, error: "Chat not found." }, 404);
   const now = new Date().toISOString();
@@ -181,5 +196,36 @@ async function newsAction(env, route, b) {
       return json({ ok: true });
     }
   } catch { return json({ ok: false, error: "Couldn't save. Run schema-news.sql in the D1 console first." }, 500); }
+  return json({ ok: false, error: "Not found." }, 404);
+}
+
+// Forum moderation: pin, lock or hide topics, remove or restore posts, ban members, resolve reports.
+async function forumAction(env, route, b) {
+  const now = new Date().toISOString();
+  try {
+    if (route === "forum-topic") {
+      const ops = { pin: ["pinned", 1], unpin: ["pinned", 0], lock: ["status", "locked"], unlock: ["status", "open"], hide: ["status", "hidden"], unhide: ["status", "open"] };
+      const op = ops[b.op];
+      if (!op) return json({ ok: false, error: "Unknown action." }, 400);
+      await env.DB.prepare(`UPDATE forum_topics SET ${op[0]} = ?1 WHERE id = ?2`).bind(op[1], str(b.id, 64)).run();
+      return json({ ok: true });
+    }
+    if (route === "forum-post") {
+      const pid = parseInt(b.id) || 0;
+      if (b.op === "hide") await env.DB.prepare(`UPDATE forum_posts SET status = 'removed', removed_at = ?1, removed_by = 'moderator' WHERE id = ?2`).bind(now, pid).run();
+      else if (b.op === "restore") await env.DB.prepare(`UPDATE forum_posts SET status = 'live', removed_at = NULL, removed_by = NULL WHERE id = ?1`).bind(pid).run();
+      else return json({ ok: false, error: "Unknown action." }, 400);
+      await env.DB.prepare(`UPDATE forum_reports SET resolved = 1 WHERE post_id = ?1`).bind(pid).run();
+      return json({ ok: true });
+    }
+    if (route === "forum-ban") {
+      await env.DB.prepare(`UPDATE forum_users SET banned = ?1 WHERE username_lc = ?2`).bind(b.ban ? 1 : 0, str(b.username, 20).toLowerCase()).run();
+      return json({ ok: true });
+    }
+    if (route === "forum-resolve") {
+      await env.DB.prepare(`UPDATE forum_reports SET resolved = 1 WHERE id = ?1`).bind(parseInt(b.id) || 0).run();
+      return json({ ok: true });
+    }
+  } catch { return json({ ok: false, error: "Couldn't save. Run schema-forum.sql in the D1 console first." }, 500); }
   return json({ ok: false, error: "Not found." }, 404);
 }

@@ -28,6 +28,9 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `functions/api/chat.js` | Live chat for visitors. Live 8:00 to 23:00 Edmonton time daily; outside those hours it takes a message plus email |
 | `assets/ticker.js` | "Hot & New" ticker under the home page header (add `<div id="hn"></div>` plus the script tag to show it on any other page) |
 | `functions/api/news.js`, `functions/_news.js` | Ticker feed, click counting, starter items and trending order |
+| `forum/` | Discussion forum (`/forum/`): topics in Temporary residence, Permanent residence, every Provincial Nominee Program, each RCIP and FCIP community, and Jobs (job seekers and employers, by province and city). Every topic shows when it was opened and every reply the exact date and time it was received (shown in the reader's time zone). Posts can't be edited, only removed, and a removed post keeps its number and time |
+| `functions/_forum.js` | Forum categories, provinces and cities (edit here to add a category or town; keep existing ids) |
+| `functions/api/forum.js` | Forum API: read topics, join with a username, start topics, reply, report, remove own posts. Rate limits: 5 topics and 30 posts an hour per member |
 | `news/` | All updates page (`/news/`), linked from the ticker |
 | `express-entry-2026/` | Express Entry November 2026 guide: choosing a NOC, high-wage NOC checker (IRCC list, 186 NOCs), experience and job offer points, calculator. NOC list is in the page's script (`const NOC`) |
 | `privacy/`, `terms/`, `reset/` | Privacy policy, terms of use, password reset page |
@@ -61,6 +64,10 @@ Run `schema-chat.sql` in the D1 console once. Replies happen in the admin dashbo
 ## Hot & New ticker
 
 Run `schema-news.sql` in the D1 console once. Manage items in the admin dashboard under **Hot & New**: add (headline, summary, label Hot/New/Trending/Update, link, optional pin and auto-hide date), edit, **Archive** to take an item off the site, **Restore** to bring it back, and delete archived items for good. Until the first item is saved, the site shows 8 starter items about the November 2026 Express Entry changes; the **Add starter items** button saves them so you can edit or archive them. Pinned items lead the ticker; the rest are ranked by clicks weighted toward newer posts, and the two most-clicked items (10+ clicks) get a Trending label automatically. When you change `assets/ticker.js`, bump the `?v=` number on its script tags.
+
+## Discussion forum
+
+Run `schema-forum.sql` in the D1 console once. Members join on the forum with a username, email and password (or sign in with an existing WorkerPool account and pick a username the first time). They can sign in with either their username or their email. Moderate in the admin dashboard under **Forum**: review reports (each new report also emails `ADMIN_EMAIL`), pin, lock or hide topics, remove or restore posts, and ban members from posting. To add a category or a town, edit `functions/_forum.js`; never change an id that already has topics.
 
 ## Pathway Check tools
 

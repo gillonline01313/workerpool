@@ -132,6 +132,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
       <button type="button" data-t="b2b" aria-pressed="false">B2B applications</button>
       <button type="button" data-t="assessments" aria-pressed="false">Shared assessments</button>
+      <button type="button" data-t="forum" aria-pressed="false">Forum</button>
       <button type="button" data-t="chat" aria-pressed="false" id="chatTab">Live chat</button></div>
       <button class="wpa-close" type="button" id="out">Lock</button></div></div>
   <div id="ctl" class="wpa-ctl"></div>
@@ -145,7 +146,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const fmtDur=s=>!s?"–":s<60?s+"s":Math.floor(s/60)+"m "+String(s%60).padStart(2,"0")+"s";
 const when=t=>new Date(t).toLocaleString("en-CA",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
 let KEY=""; try{KEY=sessionStorage.getItem("wp_admin")||"";}catch(e){}
-let tab="analytics", range=7, pageF="all", data={}, newsF="live", newsEdit=null;
+let forumF="reports", tab="analytics", range=7, pageF="all", data={}, newsF="live", newsEdit=null;
 async function api(path){
   const r=await fetch("/api/admin/"+path,{headers:{"x-admin-key":KEY}});
   if(r.status===401) throw new Error("auth");
@@ -157,6 +158,11 @@ async function load(){
     if(tab==="chat"){ await chatList(); render(); return; }
     if(tab==="analytics") data.visits=await api("visits?days="+days);
     else if(tab==="news"){ if(newsEdit) return; data.news=await api("news"); }
+    else if(tab==="forum"){
+      const r=await fetch("/api/admin/forum",{headers:{"x-admin-key":KEY}});
+      if(r.status===401) throw new Error("auth");
+      const j=await r.json(); if(!j.ok) throw new Error(j.error||"Request failed"); data.forum=j;
+    }
     else if(tab==="b2b"){
       const r=await fetch("/api/admin/b2b",{headers:{"x-admin-key":KEY}});
       if(r.status===401) throw new Error("auth");
@@ -188,6 +194,9 @@ function controls(){
     c.innerHTML=seg("nf",[["live","Live"],["archived","Archived"],["all","All"]],newsF)+`<button class="dl" type="button" id="nwAdd">+ Add item</button>`;
     c.querySelectorAll('[data-seg="nf"] button').forEach(b=>b.onclick=()=>{ newsF=b.dataset.v; newsEdit=null; controls(); render(); });
     $("#nwAdd").onclick=()=>{ newsEdit={}; render(); };
+  } else if(tab==="forum"){
+    c.innerHTML=seg("ff",[["reports","Reports"],["topics","Topics"],["posts","Latest posts"]],forumF)+`<a class="dl" href="/forum/" target="_blank" rel="noopener" style="text-decoration:none">Open forum ↗</a>`;
+    c.querySelectorAll('[data-seg="ff"] button').forEach(b=>b.onclick=()=>{ forumF=b.dataset.v; controls(); render(); });
   } else if(tab==="chat"){
     c.innerHTML=`<span class="chat-live"><i id="chatDot"></i><span id="chatHrs"></span></span>`; chatStatus();
   } else {
@@ -233,6 +242,7 @@ function render(){
   if(tab==="assessments") return renderAssess(body);
   if(tab==="chat") return renderChat(body);
   if(tab==="news") return renderNews(body);
+  if(tab==="forum") return renderForum(body);
   const now=new Date(), startDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const from=range===0?0:range===1?startDay.getTime():startDay.getTime()-(range-1)*864e5;
   const V=(data.visits||[]).map(v=>({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk)})).filter(v=>v.ts>=from&&(pageF==="all"||v.page===pageF)).sort((a,b)=>b.ts-a.ts);
@@ -332,6 +342,37 @@ function renderB2B(body){
 }
 /* ---------- live chat ---------- */
 const chat={rows:[],open:false,cur:null,msgs:[],last:0}; let chatIv=null, chatTick=0, chatBusy=false;
+/* ---------- Forum moderation ---------- */
+function renderForum(body){
+  const F=data.forum||{topics:[],posts:[],reports:[],members:0};
+  const open=F.reports.filter(r=>!r.resolved).length;
+  const ex=iso=>iso?new Date(iso).toLocaleString("en-CA",{year:"numeric",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}):"–";
+  const tl=(id,n)=>`<a href="/forum/?t=${encodeURIComponent(id)}${n?"#p"+n:""}" target="_blank" rel="noopener">`;
+  const clip=t=>esc(String(t||"").slice(0,400))+(String(t||"").length>400?"…":"");
+  const banBtn=(u,banned)=>`<button class="dl" data-fb="${esc(u)}" data-ban="${banned?0:1}">${banned?"Unban":"Ban"} ${esc(u)}</button>`;
+  const head=`<h3>${F.members} member${F.members===1?"":"s"} · ${F.topics.length} recent topic${F.topics.length===1?"":"s"} · ${open} open report${open===1?"":"s"}</h3>
+    <p style="color:var(--muted);font-size:.85rem;margin:4px 0 14px">Removing a post keeps its number and time and shows "removed by a moderator". Hidden topics disappear from the forum; locked topics stay visible but take no new replies. Banned members can read but not post.</p>`;
+  let list="";
+  if(forumF==="reports") list=F.reports.length?F.reports.map(r=>`<div class="nw-item${r.resolved?" arch":""}"><div><b>${tl(r.topic_id,r.n)}${esc(r.title)} · #${r.n}</a> by ${esc(r.username)}</b>
+      <small>Reported by ${esc(r.reporter||"?")} on ${ex(r.created)} · ${esc(r.reason||"no reason")}${r.resolved?" · resolved":""}</small>
+      <small style="display:block;white-space:pre-wrap;margin-top:6px;color:var(--fg)">${r.status==="live"?clip(r.body):"<i>(post removed)</i>"}</small></div>
+      <div class="nw-btns">${r.status==="live"?`<button class="dl" data-fp="${r.post_id}" data-op="hide">Remove post</button>`:`<button class="dl" data-fp="${r.post_id}" data-op="restore">Restore post</button>`}${r.resolved?"":`<button class="dl" data-fr="${r.id}">Dismiss</button>`}</div></div>`).join(""):`<div class="wpa-empty">No reports.</div>`;
+  else if(forumF==="topics") list=F.topics.length?F.topics.map(t=>`<div class="nw-item${t.status==="hidden"?" arch":""}"><div><b>${t.pinned?"📌 ":""}${t.status==="locked"?"🔒 ":""}${tl(t.id)}${esc(t.title)}</a></b>
+      <small>${esc(t.cat)}${t.loc?" · "+esc(t.loc):""} · opened by ${esc(t.username)} on ${ex(t.created)} · ${t.replies} replies · ${t.views} views · last ${ex(t.last_post)}${t.status==="hidden"?" · HIDDEN":""}</small></div>
+      <div class="nw-btns"><button class="dl" data-ft="${esc(t.id)}" data-op="${t.pinned?"unpin":"pin"}">${t.pinned?"Unpin":"Pin"}</button>
+      <button class="dl" data-ft="${esc(t.id)}" data-op="${t.status==="locked"?"unlock":"lock"}">${t.status==="locked"?"Unlock":"Lock"}</button>
+      <button class="dl" data-ft="${esc(t.id)}" data-op="${t.status==="hidden"?"unhide":"hide"}">${t.status==="hidden"?"Unhide":"Hide"}</button></div></div>`).join(""):`<div class="wpa-empty">No topics yet.</div>`;
+  else list=F.posts.length?F.posts.map(p=>`<div class="nw-item${p.status!=="live"?" arch":""}"><div><b>${tl(p.topic_id,p.n)}${esc(p.title)} · #${p.n}</a> by ${esc(p.username)}${p.banned?" (banned)":""}</b>
+      <small>Received ${ex(p.created)}${p.status!=="live"?` · removed by ${esc(p.removed_by)} ${ex(p.removed_at)}`:""}</small>
+      <small style="display:block;white-space:pre-wrap;margin-top:6px;color:var(--fg)">${clip(p.body)}</small></div>
+      <div class="nw-btns">${p.status==="live"?`<button class="dl" data-fp="${p.id}" data-op="hide">Remove</button>`:`<button class="dl" data-fp="${p.id}" data-op="restore">Restore</button>`}${banBtn(p.username,p.banned)}</div></div>`).join(""):`<div class="wpa-empty">No posts yet.</div>`;
+  body.innerHTML=`<div class="wpa-card wide">${head}<div class="nw-list">${list}</div></div>`;
+  const act=async(route,payload,msg)=>{ if(msg&&!confirm(msg)) return; try{ await newsPost(route,payload); load(); }catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); alert(x.message); } };
+  body.querySelectorAll("[data-ft]").forEach(b=>b.onclick=()=>act("forum-topic",{id:b.dataset.ft,op:b.dataset.op},b.dataset.op==="hide"?"Hide this whole topic from the forum?":""));
+  body.querySelectorAll("[data-fp]").forEach(b=>b.onclick=()=>act("forum-post",{id:b.dataset.fp,op:b.dataset.op}));
+  body.querySelectorAll("[data-fr]").forEach(b=>b.onclick=()=>act("forum-resolve",{id:b.dataset.fr}));
+  body.querySelectorAll("[data-fb]").forEach(b=>b.onclick=()=>act("forum-ban",{username:b.dataset.fb,ban:b.dataset.ban==="1"},b.dataset.ban==="1"?`Ban ${b.dataset.fb} from posting?`:""));
+}
 /* ---------- Hot & New ticker ---------- */
 const NTAG={hot:"Hot",new:"New",trending:"Trending",update:"Update"};
 async function newsPost(route,body){

@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Canadian Immigration Forum: Work Permits, PR, PNP and Jobs | WorkerPool</title>
+<meta name="description" content="Free discussion forum for temporary residents and foreign workers: visitor visas, work and study permits, Express Entry, sponsorship, every provincial nominee program, RCIP, FCIP, and jobs by city.">
+<meta name="theme-color" content="#3f7a72">
+<link rel="canonical" href="https://workerpool.ca/forum/">
+<meta property="og:title" content="WorkerPool Forum: Canadian immigration and jobs">
+<meta property="og:description" content="Ask questions and share experience on work permits, PR, PNPs, rural pilots and jobs across Canada.">
+<meta property="og:url" content="https://workerpool.ca/forum/">
+<meta property="og:image" content="https://workerpool.ca/assets/og.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%233f7a72'/%3E%3Ccircle cx='10' cy='12' r='2.4' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2.4' fill='white' opacity='.75'/%3E%3Ccircle cx='20' cy='12' r='2.4' fill='white' opacity='.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,750;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#f3f6f5;--surface:#fff;--fg:#1b2628;--muted:#5a696b;--line:#d3dcda;--accent:#3f7a72;--accent-deep:#2c5a54;--accent-fg:#fff;--soft:#e4efec;--warn:#9a5b00;--warn-bg:#fff4dc;--err:#b3261e;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;--body:"Figtree","Segoe UI",system-ui,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121819;--surface:#1d2729;--fg:#e3ebe9;--muted:#97a7a5;--line:#2c3a3c;--accent:#7fbcb2;--accent-deep:#a4d3cb;--accent-fg:#0f2220;--soft:#213432;--warn:#f0c46a;--warn-bg:#2e2715;--err:#f2a39c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121819;--surface:#1d2729;--fg:#e3ebe9;--muted:#97a7a5;--line:#2c3a3c;--accent:#7fbcb2;--accent-deep:#a4d3cb;--accent-fg:#0f2220;--soft:#213432;--warn:#f0c46a;--warn-bg:#2e2715;--err:#f2a39c;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.55}
+a{color:var(--accent-deep)}
+.in{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{border-bottom:1px solid var(--line);background:var(--bg);position:sticky;top:0;z-index:5}
+.nav{display:flex;align-items:center;gap:14px;height:60px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:750;font-size:1.15rem;text-decoration:none;color:inherit;letter-spacing:-.02em}
+.logo small{font-family:var(--body);font-weight:600;font-size:.78rem;color:var(--muted);letter-spacing:0}
+.acct{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:.88rem}
+.who{font-weight:650;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-weight:650;font-size:.88rem;padding:8px 15px;border-radius:999px;border:1px solid transparent;text-decoration:none;background:var(--accent);color:var(--accent-fg);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn.sm{padding:6px 12px;font-size:.82rem}
+.btn:disabled{opacity:.6;cursor:default}
+.btn:focus-visible,.lnk:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lnk{background:none;border:0;padding:0;font:inherit;color:var(--accent-deep);cursor:pointer;text-decoration:underline}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(1.9rem,5vw,2.8rem);line-height:1.05;letter-spacing:-.03em;margin:30px 0 8px}
+h2{font-family:var(--display);font-weight:750;font-size:1.25rem;letter-spacing:-.01em;margin:0}
+.sub{color:var(--muted);margin:0 0 20px;max-width:66ch}
+.crumbs{font-size:.84rem;color:var(--muted);margin-top:22px;display:flex;flex-wrap:wrap;gap:6px}
+.crumbs a{color:var(--muted)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 18px}
+.search{flex:1 1 260px;display:flex;gap:8px}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+textarea{min-height:150px;resize:vertical;line-height:1.5}
+label{display:block;font-weight:650;font-size:.9rem;margin:14px 0 6px}
+.hint{font-size:.82rem;color:var(--muted);margin-top:5px}
+.note{font-size:.84rem;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 22px}
+.note strong{color:var(--fg)}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:16px;margin:0 0 18px;overflow:hidden}
+.sec>header{position:static;background:none;border-bottom:1px solid var(--line);padding:16px 18px}
+.sec>header p{margin:4px 0 0;color:var(--muted);font-size:.9rem}
+.cat{display:grid;grid-template-columns:1fr auto;gap:4px 16px;padding:12px 18px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
+.cat:first-of-type{border-top:0}
+.cat:hover{background:var(--soft)}
+.cat b{font-weight:650}
+.cat span.d{color:var(--muted);font-size:.86rem;grid-column:1}
+.cat .n{grid-row:1/3;grid-column:2;text-align:right;font-size:.8rem;color:var(--muted);align-self:center;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.grid .cat{border-top:1px solid var(--line);border-right:1px solid var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:12px 18px 16px}
+.chip{display:inline-flex;gap:6px;align-items:center;font-size:.84rem;padding:6px 11px;border:1px solid var(--line);border-radius:999px;text-decoration:none;color:inherit;background:var(--bg)}
+.chip:hover{border-color:var(--accent)}
+.chip em{font-style:normal;color:var(--muted);font-size:.76rem}
+.jobs{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.jobs>div{border-top:1px solid var(--line)}
+.jobs>div+div{border-left:1px solid var(--line)}
+.jobs h3{font-size:1rem;margin:14px 18px 0}
+.jobs p{margin:2px 18px 0;color:var(--muted);font-size:.86rem}
+.topics{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:18px}
+.tp{display:grid;grid-template-columns:1fr auto;gap:4px 18px;padding:14px 18px;border-top:1px solid var(--line)}
+.tp:first-child{border-top:0}
+.tp a.t{font-weight:650;color:var(--fg);text-decoration:none;font-size:1.02rem}
+.tp a.t:hover{color:var(--accent-deep);text-decoration:underline}
+.tp .m{font-size:.82rem;color:var(--muted);grid-column:1}
+.tp .r{grid-row:1/3;grid-column:2;text-align:right;font-size:.8rem;color:var(--muted);align-self:center;min-width:120px}
+.tp .r b{display:block;color:var(--fg);font-size:.95rem}
+.badge{display:inline-block;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--soft);color:var(--accent-deep);vertical-align:2px;margin-right:4px}
+.badge.lock{background:var(--warn-bg);color:var(--warn)}
+.empty{color:var(--muted);padding:22px 18px}
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.tabs button{font:inherit;font-size:.84rem;font-weight:600;border:0;background:none;color:var(--muted);padding:7px 14px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.filters select{width:auto;flex:1 1 180px}
+.pager{display:flex;gap:8px;align-items:center;justify-content:center;margin:0 0 28px;font-size:.88rem;color:var(--muted)}
+.tmeta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.86rem;color:var(--muted);margin:0 0 20px}
+.tmeta b{color:var(--fg);font-weight:650}
+.post{background:var(--surface);border:1px solid var(--line);border-radius:16px;margin:0 0 12px;overflow:hidden}
+.post.op{border-color:var(--accent)}
+.ph{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--bg);font-size:.86rem}
+.ph .num{font-weight:800;color:var(--accent-deep);font-family:var(--display)}
+.ph .u{font-weight:700}
+.ph time{color:var(--muted)}
+.ph .rel{color:var(--muted);font-size:.78rem}
+.pb{padding:14px 16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.pb.gone{color:var(--muted);font-style:italic}
+.pf{display:flex;gap:14px;padding:0 16px 12px;font-size:.8rem}
+.pf .lnk{color:var(--muted)}
+.compose{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:20px 0 36px}
+.compose h2{font-size:1.1rem}
+.err{color:var(--err);font-size:.88rem;margin-top:8px;min-height:1em}
+.ok{color:var(--accent-deep);font-size:.88rem;margin-top:8px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+dialog{border:1px solid var(--line);border-radius:18px;padding:0;width:min(440px,calc(100vw - 32px));background:var(--surface);color:var(--fg)}
+dialog::backdrop{background:rgba(10,20,20,.45)}
+.dlg{padding:20px 22px 22px}
+.dlg h2{margin-bottom:4px}
+.dlg .tabs{margin:10px 0 4px}
+.x{float:right;background:none;border:0;font-size:1.4rem;line-height:1;color:var(--muted);cursor:pointer}
+footer{border-top:1px solid var(--line);padding-block:26px 40px;font-size:.84rem;color:var(--muted);margin-top:20px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:640px){
+  .jobs{grid-template-columns:1fr}.jobs>div+div{border-left:0}
+  .tp,.cat{grid-template-columns:1fr}.tp .r,.cat .n{grid-row:auto;grid-column:1;text-align:left;min-width:0}
+  .tp .r b{display:inline;margin-right:4px}
+  .two{grid-template-columns:1fr}
+  .logo small{display:none}
+}
+</style>
+</head>
+<body>
+<header><div class="in nav">
+  <a class="logo" href="/"><svg width="28" height="28" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="9" fill="var(--accent)"/><circle cx="10" cy="12" r="2.4" fill="var(--accent-fg)"/><circle cx="15" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".75"/><circle cx="20" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".5"/><path d="M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0" fill="none" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round"/></svg>WorkerPool <small>Forum</small></a>
+  <div class="acct" id="acct"></div>
+</div></header>
+<main class="in" id="app" aria-live="polite"><p class="empty">Loading the forum…</p></main>
+<footer><div class="in">Posts are the personal views of forum members, not advice from WorkerPool. WorkerPool is a data processing company, not an immigration representative. For advice on your case, speak with a licensed consultant (CICC) or lawyer. Never post your UCI, application number, passport number or other ID numbers. <a href="/">Home</a> · <a href="/news/">Hot &amp; New</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></div></footer>
+
+<dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const app=$("#app");
+let META=null, CAT={}, SEC={}, LOC={}, PROV={}, ME={signedIn:false,username:null,banned:false};
+
+/* ---- dates: every topic and post shows the exact date and time, in the reader's own time zone ---- */
+const exact=iso=>new Date(iso).toLocaleString("en-CA",{weekday:"short",year:"numeric",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"});
+const day=iso=>new Date(iso).toLocaleDateString("en-CA",{year:"numeric",month:"short",day:"numeric"});
+function ago(iso){
+  const s=Math.max(0,(Date.now()-Date.parse(iso))/1000);
+  if(s<60) return "just now"; if(s<3600) return Math.floor(s/60)+" min ago"; if(s<86400) return Math.floor(s/3600)+" h ago";
+  if(s<86400*30) return Math.floor(s/86400)+" d ago"; return day(iso);
+}
+const tm=iso=>`<time datetime="${esc(iso)}" title="${esc(exact(iso))}">`;
+const linkify=t=>esc(t).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"]/g,u=>`<a href="${u}" rel="nofollow ugc noopener" target="_blank">${u}</a>`);
+
+/* ---- data ---- */
+async function get(qs){ const r=await fetch("/api/forum?"+qs,{credentials:"same-origin"}); const j=await r.json().catch(()=>({ok:false,error:"Couldn't reach WorkerPool."})); if(j.me) setMe(j.me); return j; }
+async function post(url,body){ const r=await fetch(url,{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify(body||{})}); return r.json().catch(()=>({ok:false,error:"Couldn't reach WorkerPool. Check your connection."})); }
+function setMe(m){ ME=m; renderAcct(); }
+
+/* ---- routing: ?c=category[&loc=], ?t=topic, ?new=1, ?q=search ---- */
+const P=()=>new URLSearchParams(location.search);
+function go(qs){ history.pushState(null,"",qs?"?"+qs:location.pathname); route(); scrollTo(0,0); }
+document.addEventListener("click",e=>{ const a=e.target.closest("a[data-go]"); if(!a||e.metaKey||e.ctrlKey||e.shiftKey) return; e.preventDefault(); go(a.dataset.go); });
+addEventListener("popstate",route);
+function route(){
+  const p=P();
+  if(p.get("t")) return viewTopic(p.get("t"),parseInt(p.get("page"))||1);
+  if(p.get("new")) return viewNew(p.get("c")||"",p.get("loc")||"");
+  if(p.get("q")) return viewSearch(p.get("q"));
+  if(p.get("c")) return viewCat(p.get("c"),p.get("loc")||"",parseInt(p.get("page"))||1,p.get("sort")||"active");
+  viewHome();
+}
+const href=qs=>`href="?${esc(qs)}" data-go="${esc(qs)}"`;
+const catQs=(c,loc)=>"c="+encodeURIComponent(c)+(loc?"&loc="+encodeURIComponent(loc):"");
+function setTitle(t){ document.title=(t?t+" | ":"")+"WorkerPool Forum"; }
+
+/* ---- header account area ---- */
+function renderAcct(){
+  const el=$("#acct");
+  if(!ME.signedIn) el.innerHTML=`<button class="btn ghost sm" id="aIn">Sign in</button><button class="btn sm" id="aUp">Join the forum</button>`;
+  else if(!ME.username) el.innerHTML=`<button class="btn sm" id="aName">Choose a username</button><button class="btn ghost sm" id="aOut">Sign out</button>`;
+  else el.innerHTML=`<span class="who" title="Signed in">@${esc(ME.username)}</span><button class="btn ghost sm" id="aOut">Sign out</button>`;
+  const b=(id,f)=>{ const x=document.getElementById(id); if(x) x.onclick=f; };
+  b("aIn",()=>authDlg("login")); b("aUp",()=>authDlg("signup")); b("aName",()=>nameDlg());
+  b("aOut",async()=>{ await post("/api/auth/logout"); setMe({signedIn:false,username:null,banned:false}); route(); });
+}
+
+/* ---- sign in / join / username dialogs ---- */
+const dlg=$("#dlg");
+let afterAuth=null;
+function authDlg(mode,then){
+  if(then) afterAuth=then;
+  const up=mode==="signup";
+  $("#dlgBody").innerHTML=`<button class="x" aria-label="Close" id="dx">×</button><h2>${up?"Join the forum":"Sign in"}</h2>
+  <div class="tabs" role="group"><button type="button" data-m="login" aria-pressed="${!up}">Sign in</button><button type="button" data-m="signup" aria-pressed="${up}">Create account</button></div>
+  <form id="af" novalidate>
+  ${up?`<label for="fu">Username</label><input id="fu" autocomplete="username" maxlength="20" required>
+    <div class="hint">Shown on everything you post. 3 to 20 letters, numbers, dot, dash or underscore. Don't use your real full name.</div>
+    <label for="fe">Email</label><input id="fe" type="email" autocomplete="email" required><div class="hint">Private. Only used to reset your password.</div>
+    <label for="fp">Password</label><input id="fp" type="password" autocomplete="new-password" minlength="8" required><div class="hint">At least 8 characters.</div>`
+  :`<label for="fu">Username or email</label><input id="fu" autocomplete="username" required>
+    <label for="fp">Password</label><input id="fp" type="password" autocomplete="current-password" required>`}
+  <div class="err" id="ae"></div>
+  <div class="row"><button class="btn" type="submit">${up?"Create account":"Sign in"}</button>${up?"":`<a href="/apply/#signin" style="font-size:.86rem">Forgot password?</a>`}</div>
+  ${up?`<p class="hint">By joining you agree to the <a href="/terms/">terms of use</a> and <a href="/privacy/">privacy policy</a>.</p>`:`<p class="hint">Already have a WorkerPool profile? Sign in with the same email and password.</p>`}
+  </form>`;
+  $("#dx").onclick=()=>dlg.close();
+  $("#dlgBody").querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>authDlg(b.dataset.m));
+  $("#af").onsubmit=async e=>{
+    e.preventDefault(); const btn=e.submitter||$("#af button[type=submit]"); btn.disabled=true; $("#ae").textContent="";
+    const u=$("#fu").value.trim(), p=$("#fp").value;
+    const j=up?await post("/api/forum",{action:"signup",username:u,email:$("#fe").value.trim(),password:p})
+              :await post("/api/auth/login",{email:u,password:p});
+    btn.disabled=false;
+    if(!j.ok){ $("#ae").textContent=(j.error)||"Something went wrong. Try again."; return; }
+    const m=await get("view=me"); dlg.close();
+    if(m.me&&m.me.signedIn&&!m.me.username) return nameDlg();
+    done();
+  };
+  if(!dlg.open) dlg.showModal(); setTimeout(()=>$("#fu").focus(),30);
+}
+function nameDlg(then){
+  if(then) afterAuth=then;
+  $("#dlgBody").innerHTML=`<button class="x" aria-label="Close" id="dx">×</button><h2>Choose your forum username</h2>
+  <p class="hint" style="font-size:.9rem">It's shown on every topic and reply you post, and can't be changed later. Don't use your real full name.</p>
+  <form id="nf" novalidate><label for="nu">Username</label><input id="nu" maxlength="20" autocomplete="off" required>
+  <div class="hint">3 to 20 letters, numbers, dot, dash or underscore.</div><div class="err" id="ne"></div>
+  <div class="row"><button class="btn" type="submit">Save username</button></div></form>`;
+  $("#dx").onclick=()=>dlg.close();
+  $("#nf").onsubmit=async e=>{ e.preventDefault(); const j=await post("/api/forum",{action:"username",username:$("#nu").value.trim()});
+    if(!j.ok){ $("#ne").textContent=j.error||"Couldn't save. Try again."; return; } setMe(j.me); dlg.close(); done(); };
+  if(!dlg.open) dlg.showModal(); setTimeout(()=>$("#nu").focus(),30);
+}
+function done(){ const f=afterAuth; afterAuth=null; if(f) f(); else route(); }
+// Run an action that needs a signed-in member with a username.
+function need(then){
+  if(!ME.signedIn) return authDlg("signup",then);
+  if(!ME.username) return nameDlg(then);
+  then();
+}
+
+/* ---- shared pieces ---- */
+function catLine(t){
+  const c=CAT[t.cat]; let s=c?`<a ${href(catQs(t.cat))}>${esc(c.short||c.name)}</a>`:"";
+  if(t.loc&&LOC[t.loc]) s+=` · <a ${href(catQs(t.cat,t.loc))}>${esc(LOC[t.loc])}</a>`;
+  return s;
+}
+function topicRow(t,showCat){
+  return `<div class="tp"><a class="t" ${href("t="+t.id)}>${t.pinned?'<span class="badge">Pinned</span>':""}${t.status==="locked"?'<span class="badge lock">Locked</span>':""}${esc(t.title)}</a>
+    <span class="m">Opened by <b>${esc(t.username)}</b> on ${tm(t.created)}${esc(exact(t.created))}</time>${showCat?" · "+catLine(t):""}</span>
+    <span class="r"><b>${t.replies} ${t.replies===1?"reply":"replies"}</b>${t.replies?`Last reply ${tm(t.last_post)}${esc(ago(t.last_post))}</time> by ${esc(t.last_user||"")}`:"No replies yet"}</span></div>`;
+}
+const topicList=(rows,showCat,emptyMsg)=>`<div class="topics">${rows.length?rows.map(t=>topicRow(t,showCat)).join(""):`<p class="empty">${emptyMsg}</p>`}</div>`;
+function pager(page,pages,qs){
+  if(pages<=1) return "";
+  return `<nav class="pager" aria-label="Pages">${page>1?`<a class="btn ghost sm" ${href(qs+"&page="+(page-1))}>← Newer</a>`:""}<span>Page ${page} of ${pages}</span>${page<pages?`<a class="btn ghost sm" ${href(qs+"&page="+(page+1))}>Older →</a>`:""}</nav>`;
+}
+const fail=msg=>{ app.innerHTML=`<div class="crumbs"><a ${href("")}>Forum</a></div><h1>Something went wrong</h1><p class="sub">${esc(msg||"Couldn't load this page. Refresh to try again.")}</p>`; };
+const searchBar=(v="")=>`<form class="search" id="sf" role="search"><label class="sr" for="sq">Search the forum</label><input id="sq" type="search" placeholder="Search topics, e.g. PGWP extension" value="${esc(v)}" maxlength="80"><button class="btn ghost" type="submit">Search</button></form>`;
+function bindSearch(){ const f=$("#sf"); if(f) f.onsubmit=e=>{ e.preventDefault(); const v=$("#sq").value.trim(); if(v) go("q="+encodeURIComponent(v)); }; }
+function startBtn(c,loc){ return `<button class="btn" type="button" id="startBtn">+ Start a topic</button>`; }
+function bindStart(c,loc){ const b=$("#startBtn"); if(b) b.onclick=()=>need(()=>go("new=1"+(c?"&"+catQs(c,loc):""))); }
+
+/* ---- views ---- */
+async function viewHome(){
+  setTitle("");
+  const j=await get("view=home");
+  const counts={}, prov={};
+  if(j.ok){ (j.counts||[]).forEach(r=>counts[r.cat]=r); (j.prov||[]).forEach(r=>{ (prov[r.cat]=prov[r.cat]||{})[r.prov]=r.topics; }); }
+  const n=id=>{ const r=counts[id]; return r?`${r.topics} ${r.topics===1?"topic":"topics"} · ${(r.topics||0)+(r.replies||0)} posts<br>${r.last?"Active "+esc(ago(r.last)):""}`:"No topics yet"; };
+  const secHtml=META.sections.map(s=>{
+    if(s.id==="jobs") return `<section class="sec" id="s-jobs"><header><h2>${esc(s.name)}</h2><p>${esc(s.desc)}</p></header><div class="jobs">${s.cats.map(c=>`<div>
+      <h3><a ${href(catQs(c.id))}>${esc(c.name)}</a></h3><p>${esc(c.desc)}</p>
+      <div class="chips">${META.provinces.map(p=>{ const k=(prov[c.id]||{})[p.id]; return `<a class="chip" ${href(catQs(c.id,p.id))}>${esc(p.name)}${k?`<em>${k}</em>`:""}</a>`; }).join("")}</div></div>`).join("")}</div></section>`;
+    const compact=s.id==="rcip"||s.id==="fcip";
+    return `<section class="sec" id="s-${s.id}"><header><h2>${esc(s.name)}</h2><p>${esc(s.desc)}</p></header><div class="${compact?"grid":""}">${s.cats.map(c=>
+      `<a class="cat" ${href(catQs(c.id))}><b>${esc(c.name)}</b>${c.desc?`<span class="d">${esc(c.desc)}</span>`:""}<span class="n">${n(c.id)}</span></a>`).join("")}</div></section>`;
+  }).join("");
+  app.innerHTML=`<h1>Canadian immigration forum</h1>
+  <p class="sub">Ask questions and share what worked for you: visitor visas, work and study permits, PR, every provincial nominee program, the rural and francophone pilots, and jobs by city. Every topic and reply shows the exact date and time it was posted.</p>
+  <div class="bar">${searchBar()}${startBtn()}</div>
+  <p class="note"><strong>Forum rules:</strong> be respectful, stay on topic, and never post ID numbers (UCI, application, passport). No selling of job offers or LMIAs: paying for a job offer is illegal in Canada. Members share experience, not legal advice.</p>
+  ${!j.ok?`<p class="note">${esc(j.error)}</p>`:""}
+  <h2 style="margin:6px 0 10px">Latest activity</h2>
+  ${topicList((j.recent||[]),true,"No topics yet. Start the first one!")}
+  <nav class="chips" style="padding:0 0 14px" aria-label="Jump to section">${META.sections.map(s=>`<a class="chip" href="#s-${s.id}">${esc(s.name.replace(/ \(.*\)/,""))}</a>`).join("")}</nav>
+  ${secHtml}`;
+  bindSearch(); bindStart();
+}
+
+async function viewCat(cid,loc,page,sort){
+  const c=CAT[cid]; if(!c) return fail("That forum doesn't exist.");
+  const s=SEC[c.section];
+  const qs=catQs(cid,loc)+(sort==="new"?"&sort=new":"");
+  const j=await get("cat="+encodeURIComponent(cid)+(loc?"&loc="+encodeURIComponent(loc):"")+(sort==="new"?"&sort=new":"")+"&page="+page);
+  if(!j.ok) return fail(j.error);
+  const pv=loc?loc.split(":")[0]:"";
+  setTitle(c.name+(loc?" – "+LOC[loc]:""));
+  let filt="";
+  if(c.loc){
+    const pr=PROV[pv];
+    filt=`<div class="filters"><label class="sr" for="fp1">Province</label><select id="fp1"><option value="">All provinces and territories</option>${META.provinces.map(p=>`<option value="${p.id}"${p.id===pv?" selected":""}>${esc(p.name)}</option>`).join("")}</select>
+      <label class="sr" for="fc1">City or town</label><select id="fc1"${pr?"":" disabled"}><option value="${pv}">${pr?"All of "+esc(pr.name):"Pick a province first"}</option>${pr?pr.cities.map(x=>`<option value="${x.id}"${x.id===loc?" selected":""}>${esc(x.name)}</option>`).join(""):""}</select></div>`;
+  }
+  app.innerHTML=`<div class="crumbs"><a ${href("")}>Forum</a> › <span>${esc(s.name)}</span></div>
+  <h1>${esc(c.name)}${loc?`<span style="color:var(--muted);font-weight:700"> · ${esc(LOC[loc])}</span>`:""}</h1>${c.desc?`<p class="sub">${esc(c.desc)}</p>`:""}
+  <div class="bar"><div class="tabs" role="group" aria-label="Sort"><button type="button" data-s="active" aria-pressed="${sort!=="new"}">Latest activity</button><button type="button" data-s="new" aria-pressed="${sort==="new"}">Newest topics</button></div>
+  <span style="flex:1"></span>${startBtn()}</div>${filt}
+  ${topicList(j.topics,false,loc?"No topics for this area yet. Start one!":"No topics here yet. Start the first one!")}
+  ${pager(page,j.pages,qs)}`;
+  app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>go(catQs(cid,loc)+(b.dataset.s==="new"?"&sort=new":"")));
+  if(c.loc){
+    $("#fp1").onchange=e=>go(catQs(cid,e.target.value)+(sort==="new"?"&sort=new":""));
+    $("#fc1").onchange=e=>go(catQs(cid,e.target.value)+(sort==="new"?"&sort=new":""));
+  }
+  bindStart(cid,loc&&loc.includes(":")?loc:"");
+}
+
+async function viewTopic(tid,page){
+  const j=await get("topic="+encodeURIComponent(tid)+"&page="+page);
+  if(!j.ok) return fail(j.error);
+  const t=j.topic, c=CAT[t.cat]||{name:"Forum",section:""}, s=SEC[c.section]||{name:""};
+  setTitle(t.title);
+  const mine=p=>ME.username&&p.username===ME.username;
+  const posts=j.posts.map(p=>`<article class="post${p.n===1?" op":""}" id="p${p.n}">
+    <div class="ph"><a class="num" href="#p${p.n}">#${p.n}</a><span class="u">${esc(p.username)}</span>${p.n===1?'<span class="badge">Opened the topic</span>':""}
+      <span>${p.n===1?"posted":"replied"} ${tm(p.created)}${esc(exact(p.created))}</time></span><span class="rel">(${esc(ago(p.created))})</span></div>
+    ${p.status==="live"?`<div class="pb">${linkify(p.body)}</div>
+      <div class="pf">${mine(p)?`<button class="lnk" data-rm="${p.id}">Remove my post</button>`:`<button class="lnk" data-rp="${p.id}">Report</button>`}</div>`
+    :`<div class="pb gone">This post was removed ${p.removed_by==="author"?"by its author":"by a moderator"}${p.removed_at?" on "+esc(exact(p.removed_at)):""}.</div>`}
+  </article>`).join("");
+  let compose;
+  if(t.status==="locked") compose=`<p class="note">This topic is locked, so no new replies can be added. <a ${href("new=1&"+catQs(t.cat,t.loc||""))}>Start a new topic</a> instead.</p>`;
+  else if(j.page<j.pages) compose="";
+  else if(ME.banned) compose=`<p class="note">Your forum account can't post right now.</p>`;
+  else compose=`<form class="compose" id="rf"><h2>Post a reply</h2>
+    ${ME.signedIn&&ME.username?`<label for="rb" class="sr">Your reply</label><textarea id="rb" maxlength="8000" placeholder="Share your experience or answer the question. Don't include ID numbers."></textarea>
+    <div class="hint">Your reply is stamped with the exact date and time we receive it. Replies can't be edited later, only removed.</div>
+    <div class="err" id="re"></div><div class="row"><button class="btn" type="submit">Post reply</button></div>`
+    :`<p class="hint" style="font-size:.92rem">Sign in or create a free account to reply.</p><div class="row"><button class="btn" type="button" id="rj">Join to reply</button><button class="btn ghost" type="button" id="ri">Sign in</button></div>`}</form>`;
+  app.innerHTML=`<div class="crumbs"><a ${href("")}>Forum</a> › <span>${esc(s.name)}</span> › <a ${href(catQs(t.cat))}>${esc(c.name)}</a>${t.loc&&LOC[t.loc]?` › <a ${href(catQs(t.cat,t.loc))}>${esc(LOC[t.loc])}</a>`:""}</div>
+  <h1>${t.status==="locked"?'<span class="badge lock">Locked</span> ':""}${esc(t.title)}</h1>
+  <div class="tmeta"><span>Opened by <b>${esc(t.username)}</b> on <b>${tm(t.created)}${esc(exact(t.created))}</time></b></span>
+    <span>${t.replies} ${t.replies===1?"reply":"replies"}</span><span>${t.views+1} views</span>${t.replies?`<span>Last reply ${tm(t.last_post)}${esc(exact(t.last_post))}</time></span>`:""}</div>
+  ${pager(j.page,j.pages,"t="+t.id)}${posts}${pager(j.page,j.pages,"t="+t.id)}${compose}
+  <p class="hint" style="margin-bottom:30px">Times are shown in your time zone.</p>`;
+  const reload=()=>viewTopic(tid,page);
+  const rf=$("#rf");
+  if(rf&&$("#rb")) rf.onsubmit=async e=>{ e.preventDefault(); const btn=rf.querySelector("button[type=submit]"); btn.disabled=true; $("#re").textContent="";
+    const r=await post("/api/forum",{action:"reply",topic:t.id,body:$("#rb").value}); btn.disabled=false;
+    if(!r.ok){ $("#re").textContent=r.error||"Couldn't post. Try again."; return; }
+    const pg=r.pages||1; history.replaceState(null,"","?t="+t.id+(pg>1?"&page="+pg:"")+"#p"+r.post.n); await viewTopic(tid,pg);
+    const el=document.getElementById("p"+r.post.n); if(el) el.scrollIntoView({block:"center"}); };
+  const again=()=>viewTopic(tid,page);
+  if($("#rj")) $("#rj").onclick=()=>authDlg("signup",again);
+  if($("#ri")) $("#ri").onclick=()=>authDlg("login",again);
+  app.querySelectorAll("[data-rp]").forEach(b=>b.onclick=()=>need(()=>reportDlg(b.dataset.rp)));
+  app.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{ if(!confirm("Remove this post? Its number and time stay, but the text is removed for good.")) return;
+    const r=await post("/api/forum",{action:"remove",post:b.dataset.rm}); if(!r.ok) alert(r.error); reload(); });
+  if(location.hash){ const el=document.getElementById(location.hash.slice(1)); if(el) el.scrollIntoView(); }
+}
+function reportDlg(pid){
+  $("#dlgBody").innerHTML=`<button class="x" aria-label="Close" id="dx">×</button><h2>Report this post</h2>
+  <form id="rpf"><label for="rr">What's wrong with it?</label><select id="rr"><option>Spam or advertising</option><option>Selling job offers or LMIAs</option><option>Scam or fraud</option><option>Abusive or hateful</option><option>Personal information posted</option><option>Off topic</option><option>Something else</option></select>
+  <label for="rd">Details (optional)</label><input id="rd" maxlength="200"><div class="err" id="rpe"></div>
+  <div class="row"><button class="btn" type="submit">Send report</button></div></form>`;
+  $("#dx").onclick=()=>dlg.close();
+  $("#rpf").onsubmit=async e=>{ e.preventDefault(); const d=$("#rd").value.trim();
+    const r=await post("/api/forum",{action:"report",post:pid,reason:$("#rr").value+(d?": "+d:"")});
+    if(!r.ok){ $("#rpe").textContent=r.error; return; }
+    $("#dlgBody").innerHTML=`<h2>Thanks for the report</h2><p>A WorkerPool moderator will review it.</p><div class="row"><button class="btn" id="dx">Close</button></div>`; $("#dx").onclick=()=>dlg.close(); };
+  if(!dlg.open) dlg.showModal();
+}
+
+function viewNew(cid,loc){
+  if(!ME.signedIn||!ME.username){ app.innerHTML=`<div class="crumbs"><a ${href("")}>Forum</a></div><h1>Start a topic</h1><p class="sub">Sign in or create a free account to start a topic.</p><div class="row"><button class="btn" id="nj">Join the forum</button><button class="btn ghost" id="ni">Sign in</button></div>`;
+    const again=()=>viewNew(cid,loc); $("#nj").onclick=()=>authDlg("signup",again); $("#ni").onclick=()=>authDlg("login",again); return; }
+  setTitle("Start a topic");
+  const pv=loc?loc.split(":")[0]:"";
+  app.innerHTML=`<div class="crumbs"><a ${href("")}>Forum</a> › <span>Start a topic</span></div>
+  <h1>Start a topic</h1><p class="sub">Pick the category that fits best so the right people see it. Your topic is stamped with the date and time it's opened.</p>
+  <form class="compose" id="nf" style="margin-top:0" novalidate>
+    <label for="nc">Category</label><select id="nc" required><option value="">Choose a category…</option>${META.sections.map(s=>`<optgroup label="${esc(s.name)}">${s.cats.map(c=>`<option value="${c.id}"${c.id===cid?" selected":""}>${esc(c.name)}</option>`).join("")}</optgroup>`).join("")}</select>
+    <div class="hint" id="ncd"></div>
+    <div id="nlw" hidden><div class="two"><div><label for="np">Province or territory</label><select id="np"><option value="">Choose…</option>${META.provinces.map(p=>`<option value="${p.id}"${p.id===pv?" selected":""}>${esc(p.name)}</option>`).join("")}</select></div>
+      <div><label for="nl">City or town</label><select id="nl"></select></div></div><div class="hint">Job topics are grouped by location so people searching in the same area find them.</div></div>
+    <label for="nt">Title</label><input id="nt" maxlength="150" placeholder="e.g. PGWP applied in July, still waiting for biometrics letter" required>
+    <label for="nb">Message</label><textarea id="nb" maxlength="8000" placeholder="Give the details others need to help: your situation, dates, and what you've tried. Never include ID numbers." required></textarea>
+    <div class="err" id="ne2"></div>
+    <div class="row"><button class="btn" type="submit">Post topic</button><a ${href(cid?catQs(cid,loc):"")}>Cancel</a></div>
+  </form>`;
+  const nc=$("#nc"), np=$("#np"), nl=$("#nl");
+  const fillCities=()=>{ const pr=PROV[np.value]; nl.innerHTML=pr?`<option value="">Choose…</option>`+pr.cities.map(x=>`<option value="${x.id}"${x.id===loc?" selected":""}>${esc(x.name)}</option>`).join(""):`<option value="">Pick a province first</option>`; nl.disabled=!pr; };
+  const sync=()=>{ const c=CAT[nc.value]; $("#ncd").textContent=c?c.desc||"":""; $("#nlw").hidden=!(c&&c.loc); };
+  nc.onchange=sync; np.onchange=fillCities; fillCities(); sync();
+  $("#nf").onsubmit=async e=>{ e.preventDefault(); const btn=e.submitter||$("#nf button[type=submit]"); $("#ne2").textContent="";
+    const c=CAT[nc.value]; if(!c){ $("#ne2").textContent="Choose a category."; nc.focus(); return; }
+    if(c.loc&&!nl.value){ $("#ne2").textContent="Choose the province and city or town."; (np.value?nl:np).focus(); return; }
+    btn.disabled=true;
+    const r=await post("/api/forum",{action:"topic",cat:c.id,loc:c.loc?nl.value:"",title:$("#nt").value,body:$("#nb").value}); btn.disabled=false;
+    if(!r.ok){ $("#ne2").textContent=r.error||"Couldn't post. Try again."; return; }
+    go("t="+r.id); };
+}
+
+async function viewSearch(q){
+  setTitle("Search: "+q);
+  const j=await get("q="+encodeURIComponent(q));
+  if(!j.ok) return fail(j.error);
+  app.innerHTML=`<div class="crumbs"><a ${href("")}>Forum</a> › <span>Search</span></div><h1>Results for “${esc(q)}”</h1>
+  <div class="bar">${searchBar(q)}${startBtn()}</div>${topicList(j.topics,true,"No topics match. Try different words, or start a topic.")}`;
+  bindSearch(); bindStart();
+}
+
+/* ---- start ---- */
+fetch("/api/forum?view=meta").then(r=>r.json()).then(m=>{
+  META=m;
+  m.sections.forEach(s=>{ SEC[s.id]=s; s.cats.forEach(c=>CAT[c.id]={...c,section:s.id}); });
+  m.provinces.forEach(p=>{ PROV[p.id]=p; LOC[p.id]=p.name; p.cities.forEach(x=>LOC[x.id]=x.id.endsWith(":other")?x.name:x.name+", "+p.name); });
+  renderAcct(); route();
+}).catch(()=>fail("Couldn't load the forum. Check your connection and refresh."));
+})();
+</script>
+<script>window.WPA_PAGE="forum";</script>
+<script src="/assets/wpa.js" defer></script>
+<script src="/assets/chat.js?v=4" defer></script>
+</body>
+</html>
