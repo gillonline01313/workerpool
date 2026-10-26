@@ -36,8 +36,9 @@ export async function onRequestGet({ request, env }) {
       const posts = await env.DB.prepare(
         `SELECT id, n, username, CASE WHEN status = 'live' THEN body ELSE '' END AS body, created, status, removed_at, removed_by
          FROM forum_posts WHERE topic_id = ?1 ORDER BY n LIMIT ?2 OFFSET ?3`).bind(t.id, PAGE_POSTS, (page - 1) * PAGE_POSTS).all();
-      if (page === 1) await env.DB.prepare(`UPDATE forum_topics SET views = views + 1 WHERE id = ?1`).bind(t.id).run();
-      return json({ ok: true, me: meOut(await me(request, env)), topic: t, posts: posts.results, page, pages: Math.max(1, Math.ceil((t.replies + 1) / PAGE_POSTS)) });
+      const who = await me(request, env);
+      if (page === 1) await logView(request, env, t.id, who, q);
+      return json({ ok: true, me: meOut(who), topic: t, posts: posts.results, page, pages: Math.max(1, Math.ceil((t.replies + 1) / PAGE_POSTS)) });
     }
     const search = str(q.get("q"), 80);
     if (search) {
@@ -63,6 +64,46 @@ export async function onRequestGet({ request, env }) {
   } catch (e) {
     return json({ ok: false, error: NOT_READY }, 500);
   }
+}
+// One row per topic view (page 1 opens), for the admin's view details. Signed-in members are linked to their account;
+// everyone else is shown by approximate location, device and time. No IP address is stored.
+function parseUA(ua) {
+  const u = ua || "";
+  if (/bot|crawl|spider|slurp|facebookexternalhit|preview|headless|lighthouse|curl|wget|python|axios/i.test(u)) return { dev: "Bot", os: "", browser: (u.match(/([A-Za-z]*bot[A-Za-z]*|Headless\w*|facebookexternalhit)/i) || ["Bot"])[0] };
+  const dev = /iPad|Tablet|PlayBook|Silk|(Android(?!.*Mobile))/i.test(u) ? "Tablet" : /Mobi|iPhone|iPod|Android/i.test(u) ? "Mobile" : "Desktop";
+  let os = "Other", m;
+  if ((m = u.match(/(?:iPhone|CPU) OS (\d+)/))) os = (/iPad/.test(u) ? "iPadOS " : "iOS ") + m[1];
+  else if ((m = u.match(/Android (\d+(?:\.\d+)?)/))) os = "Android " + m[1];
+  else if (/Windows NT 10/.test(u)) os = "Windows 10/11";
+  else if ((m = u.match(/Windows NT ([\d.]+)/))) os = "Windows " + m[1];
+  else if (/Mac OS X/.test(u)) os = "macOS";
+  else if (/CrOS/.test(u)) os = "ChromeOS";
+  else if (/Linux/.test(u)) os = "Linux";
+  let browser = "Other";
+  if ((m = u.match(/Edg(?:A|iOS)?\/(\d+)/))) browser = "Edge " + m[1];
+  else if ((m = u.match(/(?:OPR|Opera)\/(\d+)/))) browser = "Opera " + m[1];
+  else if ((m = u.match(/SamsungBrowser\/(\d+)/))) browser = "Samsung Internet " + m[1];
+  else if (/FBAN|FBAV|FB_IAB/.test(u)) browser = "Facebook app";
+  else if (/Instagram/.test(u)) browser = "Instagram app";
+  else if (/WhatsApp/.test(u)) browser = "WhatsApp";
+  else if ((m = u.match(/(?:Firefox|FxiOS)\/(\d+)/))) browser = "Firefox " + m[1];
+  else if ((m = u.match(/(?:Chrome|CriOS)\/(\d+)/))) browser = "Chrome " + m[1];
+  else if ((m = u.match(/Version\/(\d+).*Safari/))) browser = "Safari " + m[1];
+  return { dev, os, browser };
+}
+async function logView(request, env, topicId, who, q) {
+  await env.DB.prepare(`UPDATE forum_topics SET views = views + 1 WHERE id = ?1`).bind(topicId).run();
+  try {
+    const cf = request.cf || {}, ua = request.headers.get("user-agent") || "", d = parseUA(ua);
+    const vid = /^[a-z0-9]{6,24}$/.test(q.get("vid") || "") ? q.get("vid") : "";
+    const lang = (request.headers.get("accept-language") || "").split(",")[0];
+    await env.DB.prepare(
+      `INSERT INTO forum_views (topic_id, t, user_id, username, vid, country, region, city, tz, dev, os, browser, lang, screen, ua)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)`
+    ).bind(topicId, new Date().toISOString(), who.u ? who.u.id : null, who.f ? who.f.username : null, vid,
+      str(cf.country, 4), str(cf.region, 60), str(cf.city, 60), str(q.get("tz") || cf.timezone || "", 60),
+      d.dev, d.os, d.browser, str(lang, 16), str(q.get("scr") || "", 12).replace(/[^0-9x]/g, ""), str(ua, 300)).run();
+  } catch (e) { /* forum_views not created yet: the count above still works */ }
 }
 const TOPIC_COLS = `id, cat, loc, title, username, created, last_post, last_user, replies, views, status, pinned`;
 

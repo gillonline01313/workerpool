@@ -315,7 +315,8 @@ async function viewCat(cid,loc,page,sort){
 }
 
 async function viewTopic(tid,page){
-  const j=await get("topic="+encodeURIComponent(tid)+"&page="+page);
+  let vx=""; if(page===1){ try{ let v=localStorage.getItem("wp_vid"); if(!v){ v=Date.now().toString(36)+Math.random().toString(36).slice(2,9); localStorage.setItem("wp_vid",v); } vx="&vid="+v; }catch(e){} try{ vx+="&tz="+encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone||"")+"&scr="+screen.width+"x"+screen.height; }catch(e){} }
+  const j=await get("topic="+encodeURIComponent(tid)+"&page="+page+vx);
   if(!j.ok) return fail(j.error);
   const t=j.topic, c=CAT[t.cat]||{name:"Forum",section:""}, s=SEC[c.section]||{name:""};
   setTitle(t.title);

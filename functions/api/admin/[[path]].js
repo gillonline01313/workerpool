@@ -35,6 +35,16 @@ export async function onRequestGet({ request, env, params }) {
       return json({ ok: true, topics: topics.results, posts: posts.results, reports: reports.results, members: users ? users.n : 0 });
     } catch { return json({ ok: false, error: "Run schema-forum.sql in the D1 console first." }, 500); }
   }
+  if (route === "forum-views") {
+    try {
+      const topic = str(url.searchParams.get("topic"), 64);
+      const r = await env.DB.prepare(
+        `SELECT v.*, t.title, u.name AS acct_name, u.email AS acct_email
+         FROM forum_views v LEFT JOIN forum_topics t ON t.id = v.topic_id LEFT JOIN users u ON u.id = v.user_id
+         WHERE v.t >= ?1 ${topic ? "AND v.topic_id = ?2" : ""} ORDER BY v.id DESC LIMIT 1000`).bind(...(topic ? [since, topic] : [since])).all();
+      return json({ ok: true, rows: r.results });
+    } catch { return json({ ok: false, error: "View details need one more table. Run schema-forum-views.sql in the D1 console." }, 500); }
+  }
   if (route === "interest") {
     const r = await env.DB.prepare(`SELECT * FROM interest ORDER BY created DESC LIMIT 2000`).all();
     return json({ ok: true, rows: r.results });

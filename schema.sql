@@ -93,3 +93,10 @@ CREATE TABLE IF NOT EXISTS forum_reports (
   id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER NOT NULL, user_id TEXT NOT NULL, reason TEXT, created TEXT NOT NULL, resolved INTEGER DEFAULT 0
 );
 CREATE UNIQUE INDEX IF NOT EXISTS forum_reports_once ON forum_reports (post_id, user_id);
+-- Who viewed each forum topic (admin only). Signed-in members are linked to their account; others by approximate location and device. No IP addresses.
+CREATE TABLE IF NOT EXISTS forum_views (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, topic_id TEXT NOT NULL, t TEXT NOT NULL, user_id TEXT, username TEXT, vid TEXT,
+  country TEXT, region TEXT, city TEXT, tz TEXT, dev TEXT, os TEXT, browser TEXT, lang TEXT, screen TEXT, ua TEXT
+);
+CREATE INDEX IF NOT EXISTS forum_views_topic ON forum_views (topic_id, t);
+CREATE INDEX IF NOT EXISTS forum_views_t ON forum_views (t);
