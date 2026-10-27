@@ -4,7 +4,10 @@
 // removed automatically: if a page drops an old row, the draw stays. Admin edits live in D1 and are applied on top.
 import fs from "node:fs";
 import crypto from "node:crypto";
-import { get, tables, clean, stripScripts, isoDate, invites, score, col } from "./lib.mjs";
+import { get, getBuffer, tables, clean, stripScripts, isoDate, invites, score, col } from "./lib.mjs";
+import { execFileSync } from "node:child_process";
+import os from "node:os";
+import path from "node:path";
 
 const OUT = new URL("../../data/draws.json", import.meta.url);
 const KEEP_DAYS = 430; // about 14 months of history
@@ -93,13 +96,25 @@ const SOURCES = [
     url: () => `https://www.quebec.ca/en/immigration/permanent/skilled-workers/skilled-worker-selection-program/invitation/${new Date().getFullYear()}`,
     parse: parseQuebec },
 
+  // Saskatchewan publishes International Skilled Worker EOI selections in a PDF linked from the EOI page.
+  { id: "sk", jur: "SK", program: "SINP", name: "Saskatchewan.ca – SINP International Skilled Worker EOI selection results (PDF)",
+    url: "https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/by-immigrating/saskatchewan-immigrant-nominee-program/browse-sinp-programs/applicants-international-skilled-workers/international-skilled-worker-eoi-system",
+    load: loadSaskatchewanPdf, parse: parseSaskatchewan },
+
   // Pages that block automated readers or publish results only as PDFs. Watched for changes; admin adds the draws by hand.
-  { id: "sk", jur: "SK", program: "SINP", name: "Saskatchewan.ca – SINP EOI system (results are published as PDFs)", watch: true,
-    url: "https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/by-immigrating/saskatchewan-immigrant-nominee-program/browse-sinp-programs/applicants-international-skilled-workers/international-skilled-worker-eoi-system" },
   { id: "pe", jur: "PE", program: "PEI PNP", name: "PrinceEdwardIsland.ca – EOI draws (blocks automated readers)", manual: true,
     url: "https://www.princeedwardisland.ca/en/information/office-of-immigration/expression-of-interest-draws" },
   { id: "nl", jur: "NL", program: "NLPNP", name: "Gov.nl.ca – Invitations to apply updates (blocks automated readers)", manual: true,
     url: "https://www.gov.nl.ca/immigration/invitations-to-apply-updates/" },
+  { id: "yt", jur: "YT", program: "Yukon Nominee Program", name: "Yukon.ca – Yukon Nominee Program intakes (blocks automated readers; no invitation numbers published)", manual: true,
+    url: "https://yukon.ca/en/yukon-nominee-program",
+    // Official 2026 rounds from Government of Yukon news releases. Yukon doesn't publish how many employers were invited.
+    seed: [
+      { date: "2026-01-30", stream: "Employer EOI intake – round 1 (January 19 to 30)", note: "Highest-scoring employer expressions of interest invited to apply. Yukon doesn't publish invitation numbers. 2026 allocation: 282 nominations.",
+        link: "https://yukon.ca/en/news/yukon-nominee-program-expression-interest-intake-open" },
+      { date: "2026-07-17", stream: "Employer EOI intake – round 2 (July 6 to 17)", note: "Highest-scoring employer expressions of interest invited; their applications were due August 26. Yukon doesn't publish invitation numbers.",
+        link: "https://yukon.ca/en/yukon-nominee-program" },
+    ] },
   { id: "ns", jur: "NS", program: "NSNP", name: "Live in Nova Scotia – Nova Scotia Nominee Program", watch: true,
     url: "https://liveinnovascotia.com/nova-scotia-nominee-program" },
   { id: "rcip-sudbury", jur: "RCIP", program: "RCIP / FCIP – Sudbury", name: "Invest Sudbury – RCIP and FCIP candidates", watch: true,
@@ -111,6 +126,37 @@ const SOURCES = [
 ];
 
 // ---------- page-specific parsers ----------
+// Saskatchewan: find the "Selection Results" PDF on the EOI page, then turn it into text with pdftotext -layout.
+async function loadSaskatchewanPdf(url) {
+  const html = await fetchPage(url);
+  const m = html.match(/href="(https:\/\/publications\.saskatchewan\.ca[^"]*?\/download)"[^>]*>[^<]*Selection Results/i);
+  if (!m) throw new Error("Couldn't find the EOI Selection Results PDF link on the page");
+  if (LOCAL) return fs.readFileSync(LOCAL[m[1]] || LOCAL["sk-pdf"], "utf8");
+  const file = path.join(os.tmpdir(), "sinp-eoi.pdf");
+  fs.writeFileSync(file, await getBuffer(m[1]));
+  return execFileSync("pdftotext", ["-layout", file, "-"], { encoding: "utf8", maxBuffer: 20e6 });
+}
+// Rows look like (a date and a category can wrap onto the next line):
+//   "  September      Occupations          88             32         Invited Candidates had ..."
+//   "   12, 2024      In-Demand                                      Credential Assessments ..."
+function parseSaskatchewan(text) {
+  const lines = text.split(/\r?\n/), out = [];
+  const ROW = /^\s*(\S.*?)\s{2,}(\S.*?)\s{2,}(\d{1,3})\s{2,}([\d,]{1,6})(?:\s{2,}|\s*$)/;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(ROW);
+    if (!m || /[a-z]/i.test(m[3] + m[4])) continue;
+    let dateTxt = m[1], cat = m[2];
+    const next = (lines[i + 1] || "").match(/^\s*(\S.*?)(?:\s{2,}(\S.*?))?(?:\s{2,}|\s*$)/);
+    if (!isoDate(dateTxt) && next) {
+      dateTxt += " " + next[1];
+      if (next[2] && !/\d/.test(next[2]) && next[2].length < 30) cat += " " + next[2];
+    } else if (next && next[1] && !/\d/.test(next[1]) && next[1].length < 30 && !/^(Invited|Not all|Credential|educated)/i.test(next[1])) cat += " " + next[1];
+    const date = isoDate(dateTxt);
+    if (!date) continue;
+    out.push({ date, stream: "International Skilled Worker – " + cat.replace(/\s+/g, " ").replace(/- /g, "-"), invites: invites(m[4]), score: score(m[3]), scoreLabel: "EOI points" });
+  }
+  return out;
+}
 function parseManitoba(html) {
   html = stripScripts(html);
   const out = [];
@@ -166,9 +212,20 @@ for (const s of SOURCES) {
   const url = typeof s.url === "function" ? s.url() : s.url;
   const prev = (old.sources || []).find((x) => x.id === s.id) || {};
   const st = { id: s.id, jur: s.jur, program: s.program, name: s.name, url: s.page || url, checked: now, ok: false, found: 0, manual: !!s.manual, watch: !!s.watch };
-  if (s.manual) { st.ok = true; st.note = "This site blocks automated readers. Add its draws by hand in the admin dashboard."; sources.push(st); console.log(`man  ${s.id}`); continue; }
+  if (s.manual) {
+    st.ok = true; st.note = "This site blocks automated readers. Add its draws by hand in the admin dashboard.";
+    for (const r of s.seed || []) { // official rounds entered here, with their source
+      if (r.date < cutoff) continue;
+      const key = `${s.id}-${r.date}-${sha(norm(r.stream))}`;
+      const draw = { id: key, jur: s.jur, program: s.program, date: r.date, stream: r.stream, invites: r.invites || null, score: r.score ?? null, scoreLabel: "", note: r.note || "", source: r.link || url };
+      const was = byId.get(key);
+      if (!was) { byId.set(key, { ...draw, first: now }); added++; }
+      else if (JSON.stringify({ ...was, first: 0 }) !== JSON.stringify({ ...draw, first: 0 })) { byId.set(key, { ...draw, first: was.first || now }); changed++; }
+    }
+    st.found = (s.seed || []).length; sources.push(st); console.log(`man  ${s.id}`); continue;
+  }
   try {
-    const body = await fetchPage(url);
+    const body = s.load ? await s.load(url) : await fetchPage(url);
     if (s.watch) {
       const h = sha(clean(stripScripts(body)).replace(/\d{1,2}:\d\d|©.*$/g, ""));
       st.hash = h; st.changed = prev.hash && prev.hash !== h ? now : prev.changed || null;
@@ -189,6 +246,8 @@ for (const s of SOURCES) {
         else if (JSON.stringify({ ...was, first: 0 }) !== JSON.stringify({ ...draw, first: 0 })) { byId.set(key, { ...draw, first: was.first || now }); changed++; }
       }
       st.ok = rows.length > 0; st.found = rows.length;
+      if (rows.length) st.latest = rows.map((r) => r.date).sort().pop();
+      if (rows.length && st.latest < cutoff) st.note = `Latest selection on the official page is ${st.latest}, older than the 14 months shown on the site.`;
       if (!rows.length) st.error = "Page loaded but no draws were recognised. The page layout may have changed.";
     }
   } catch (e) {

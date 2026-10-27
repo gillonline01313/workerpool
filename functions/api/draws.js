@@ -7,7 +7,7 @@ export async function onRequestGet({ request, env }) {
   const draws = merge(auto, await edits(env), false).filter((d) => d.date >= since)
     .map(({ id, jur, program, date, stream, invites, score, scoreLabel, note, source, pinned, first }) => ({ id, jur, program, date, stream, invites, score, scoreLabel, note, source, pinned: !!pinned, first }));
   return new Response(JSON.stringify({ ok: true, checked: auto.checked, updated: auto.updated, jur: JUR, draws,
-    sources: (auto.sources || []).map(({ id, jur, program, name, url, manual }) => ({ id, jur, program, name, url, manual })) }), {
+    sources: (auto.sources || []).map(({ id, jur, program, name, url, manual, latest }) => ({ id, jur, program, name, url, manual, latest: latest || null })) }), {
     headers: { "content-type": "application/json", "cache-control": "public, max-age=300" },
   });
 }

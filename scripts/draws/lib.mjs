@@ -32,6 +32,15 @@ export async function get(url) {
   return res.text();
 }
 
+// Binary download (PDFs) from an approved government source.
+export async function getBuffer(url) {
+  if (!isOfficial(url)) throw new Error("Not an approved government source: " + url);
+  const res = await fetch(url, { headers: { "user-agent": UA, accept: "application/pdf,*/*;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(60000) });
+  if (!isOfficial(res.url)) throw new Error("Redirected away from an approved government source: " + res.url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
 const ENT = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", ndash: "–", mdash: "—", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", eacute: "é", egrave: "è", agrave: "à", ccedil: "ç", ocirc: "ô", hellip: "…" };
 export function decode(s) {
   return String(s).replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, e) => {

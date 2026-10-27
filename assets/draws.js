@@ -9,7 +9,7 @@
     ["CA", "Federal · Express Entry", (d) => d.jur === "CA"],
     ["BC", "BC", (d) => d.jur === "BC"], ["AB", "Alberta", (d) => d.jur === "AB"], ["SK", "Saskatchewan", (d) => d.jur === "SK"],
     ["MB", "Manitoba", (d) => d.jur === "MB"], ["ON", "Ontario", (d) => d.jur === "ON"], ["QC", "Québec", (d) => d.jur === "QC"],
-    ["ATL", "Atlantic", (d) => ["NB", "NS", "PE", "NL"].includes(d.jur)], ["NORTH", "Territories", (d) => ["YT", "NT"].includes(d.jur)],
+    ["ATL", "Atlantic", (d) => ["NB", "NS", "PE", "NL"].includes(d.jur)], ["NORTH", "Yukon / NWT", (d) => ["YT", "NT"].includes(d.jur)],
     ["RCIP", "RCIP / FCIP", (d) => d.jur === "RCIP"],
   ];
   const BADGE = { CA: "EE", RCIP: "RCIP" };
@@ -24,7 +24,9 @@
     if (!j || !j.ok) throw 0;
     data = j; all = j.draws || [];
     const has = new Set(all.map((d) => d.jur));
-    const chips = GROUPS.filter(([k, , f]) => k === "all" || all.some(f));
+    // a province with no recent draws still gets a chip when its official page names its latest selection (e.g. Saskatchewan's PDF)
+    const quiet = (j.sources || []).filter((s) => s.latest);
+    const chips = GROUPS.filter(([k, , f]) => k === "all" || all.some(f) || quiet.some((s) => f({ jur: s.jur })));
     root.innerHTML = `
       <div class="dr-bar">
         <div class="dr-chips" role="tablist" aria-label="Filter draws">${chips.map(([k, l]) => `<button type="button" role="tab" data-g="${k}" aria-selected="${k === group}">${esc(l)}</button>`).join("")}</div>
@@ -50,7 +52,13 @@
     const rows = all.filter(f);
     const days = [...new Set(rows.map((d) => d.date))];
     const list = document.getElementById("drList");
-    if (!rows.length) { list.innerHTML = `<p class="dr-empty">No draws in the last few months for this filter.</p>`; document.getElementById("drMore").hidden = true; return; }
+    if (!rows.length) {
+      const q = ((data && data.sources) || []).filter((s) => s.latest && f({ jur: s.jur }));
+      list.innerHTML = q.length
+        ? q.map((s) => `<p class="dr-empty"><b>${esc(s.program)}</b> hasn't published a selection in the last 14 months. The latest on the official page was on <b>${esc(longDay(s.latest))}</b>. <a href="${esc(s.url)}" target="_blank" rel="noopener">See the official page ↗</a></p>`).join("")
+        : `<p class="dr-empty">No draws in the last few months for this filter.</p>`;
+      document.getElementById("drMore").hidden = true; return;
+    }
     list.innerHTML = days.slice(0, shown).map((day, di) => {
       const ds = rows.filter((d) => d.date === day), r = rel(day);
       return `<section class="dr-day${di === 0 ? " first" : ""}" aria-label="${esc(longDay(day))}">

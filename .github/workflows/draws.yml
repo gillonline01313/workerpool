@@ -37,6 +37,9 @@ jobs:
         if: steps.gate.outputs.run == 'yes'
         with:
           node-version: 22
+      - name: Install PDF reader (Saskatchewan publishes results as a PDF)
+        if: steps.gate.outputs.run == 'yes'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
       - name: Read official draw pages
         if: steps.gate.outputs.run == 'yes'
         run: node scripts/draws/fetch.mjs
