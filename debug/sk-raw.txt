@@ -1,0 +1,466 @@
+OASIS User Guide for Applicants
+Expression of Interest Profiles for Express Entry and
+Occupation In- Demand Candidates
+
+For more information, please contact:
+Government of Saskatchewan
+Ministry of Immigration and Career Training
+Immigration Services Branch
+Saskatchewan Immigrant Nominee Program
+7th Floor, 1945 Hamilton Street
+Regina, Saskatchewan S4P 2C8
+Telephone:
+Facsimile:
+Inquiries:
+Website:
+
+(Canada 001) 833-613-0485
+(Canada 001) 306-798-0713
+immigration@gov.sk.ca
+www.saskatchewan.ca/sinp
+
+Updated July 2022
+
+Contents
+Introduction ................................................................................................................................................... 1
+Section #1: Create an OASIS Account ......................................................................................................... 2
+Section #2: Enter Personal Details ................................................................................................................ 6
+Section #3: Determine your Eligibility and Sub-category ............................................................................ 9
+Section #4: Declare Consultant (If Applicable) .......................................................................................... 13
+Section #5: Complete EOI Points Grid ....................................................................................................... 14
+Education and Training ....................................................................................................................... 14
+Skilled Work Experience ...................................................................................................................... 15
+Language Ability ................................................................................................................................... 16
+Age .......................................................................................................................................................... 16
+Connection to Saskatchewan Labour Market and Adaptability ...................................................... 16
+Section #6: Review and Submit EOI .......................................................................................................... 18
+Canceling your EOI .................................................................................................................................... 19
+Updating Your EOI after Submission ......................................................................................................... 19
+What do I do when I’m invited to apply? ................................................................................................... 19
+SINP – OASIS User Guide for Applicants ................................................................................................. 19
+
+Introduction
+As of July 16, 2018, all prospective applicants applying under the International Skilled Worker
+Express Entry or Occupation In-Demand subcategories must create an Expression of Interest
+(EOI) profile before they are able to apply. This document provides step-by-step instructions to
+create and submit an Expression of Interest profile.
+To learn more about Expression of Interest system, please visit:
+www.saskatchewan.ca/worker-eoi
+If you had a pending online application created before July 16, 2018, you can create and submit
+an EOI with your existing SINP account. Please see Section #2 to see instructions on creating an
+EOI.
+You must register and create an account on the SINP’s online application system, OASIS, in
+order to create an EOI profile. Please see Section #1 to see instructions on registering.
+You are not required to submit any documents in your EOI however we strongly encourage you
+to have all the required documents in your possession in order to complete an application in the
+case that you are invited to apply.
+Please review the eligibility criteria before you submit an EOI. The criteria for each category can
+be found at the following links.
+Express Entry (if you have an Express Entry profile number):
+https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/byimmigrating/saskatchewan-immigrant-nominee-program/browse-sinp-programs/applicantsinternational-skilled-workers/international-skilled-worker-saskatchewan-express-entry
+Occupation In-Demand:
+https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/byimmigrating/saskatchewan-immigrant-nominee-program/browse-sinp-programs/applicantsinternational-skilled-workers/international-skilled-worker-occupations-in-demand
+
+This guide is divided into 6 sections outlining the steps in creating and submitting an
+Expression of Interest (EOI) profile:
+1.
+2.
+3.
+4.
+5.
+6.
+
+Create an OASIS account
+Enter personal details
+Determine your eligibility and sub-category
+Complete EOI Points Grid
+Declare Consultant (if applicable)
+Review and Submit EOI
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 1
+
+Section #1: Create an OASIS Account
+You do not need to create a new account if you previously had a pending application. Please see
+Section #2 to continue.
+•
+
+Click on the following link to access the SINP Online Application system:
+https://immigration.saskatchewan.ca/
+
+•
+•
+
+Click on Create an Account.
+Click Select a Registration Type.
+
+•
+
+Choose your appropriate registration type and click Continue:
+For Applicants: SINP Applicant or Expression of Interest Candidate
+
+•
+
+Create a username. Username must not contain spaces or any special characters other
+than an underscore (‘_’). Your username will be used to access your OASIS account.
+Please type username on the space provided.
+Please type all other entries in Title Case.
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 2
+
+•
+•
+•
+
+Enter your First, Middle, and Family (Last) Name as they appear on your passport.
+Enter your Date of Birth in DD-Mon-YYYY format.
+Enter your Email address.
+This Email address will be used for all future correspondence for your OASIS
+application, including password recovery.
+
+•
+
+Click Submit.
+An email including your username and password will be sent to you. You will need this
+information to login to OASIS.
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 3
+
+•
+
+Login to OASIS
+On the login page, type in your username and password sent in the email and click Login.
+
+The system will then prompt you to change your password.
+Please note the following password requirements:
+• have at least eight characters;
+• contain characters from at least three of the following categories:
+- English uppercase letters (A – Z);
+- English lowercase letters (a – z);
+- numbers (0 – 9);
+- non-alphanumeric symbols (e.g.:!, #,$,%)
+• not contain your user’s account name.
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 4
+
+•
+
+Authority to Disclose Personal Information
+In order to continue logging into OASIS for the first time, all users must agree to disclose
+information by clicking “I AGREE” button.
+
+•
+
+User ID or Password Recovery
+In order to recover access to your account, on the login page, click “Forgot your User ID
+or Password?”, then choose Recovery Method.
+
+Choose “User ID” to reset your password. You will be asked to enter the username used
+when you created your account. An email containing the username and temporary
+password will be sent to the email address associated with your User ID (or username).
+If you want to recover your account using the email address used, click “Email” as
+recovery method. A list of usernames associated with your email address will be sent to
+you by email. To reset the password, you will need to perform the previous step using
+recovery method “User ID”.
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 5
+
+Section #2: Enter Personal Details
+•
+
+Click on “Please click here to begin” button
+
+•
+
+Fill in all Applicant Information and Passport Details required below:
+
+•
+
+Fill in Residential/Home Address:
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 6
+
+If your Home Address is outside Canada, under Province/State, choose
+International/Outside Canada and type in your province.
+
+If your Home Address is the same as your mailing address, choose ‘Yes’ for the question
+‘Is the mailing address the same as the Residential/Home Address?’.
+
+•
+
+Fill in mailing address and telephone number if different from your home address:
+
+The Applicant's Email Address is a required field and must include the applicant's
+email address for the application to be considered complete. The application may
+be subject to an integrity review for misrepresentation if the email address entered
+in the Applicant's Email Address is not the applicant's email address.
+•
+
+Select one that applies to you:
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 7
+
+•
+
+Choose ‘Yes’ if you are appointing a representative, otherwise choose ‘No’.
+
+•
+
+Fill in the email address for the Consultant if you select ‘Yes’
+
+•
+
+Click on the link below for information about use of a representative:
+https://www.saskatchewan.ca/residents/moving-to-saskatchewan/provide-immigrationservices/immigration-consultant-and-foreign-worker-recruiter-licensing-andresponsibilities
+
+Click
+
+to proceed.
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 8
+
+Section #3: Determine your Eligibility and Sub-category
+•
+
+You must answer the series of questions on this page to determine eligibility and
+application category.
+If you are eligible under the Occupations In-Demand or Express Entry subcategories, you will be able to submit an Expression of Interest (EOI).
+If you are submitting an EOI for Occupations In-Demand, you must answer the
+questions as shown below and choose your intended occupation NOC. You must have
+at least one-year paid work experience in the past ten years in your field of education or
+training to be eligible.
+
+If you are submitting an EOI for Express Entry, you must be accepted into IRCC’s
+Express Entry Pool, have an Express Entry Profile Number and Job Seeker Validation
+Code. You must meet the minimum work experience requirement for Express Entry as
+outlined in the eligibility criteria.
+
+Please note that the occupations in this list may change based on Saskatchewan’s
+employment demand forecast.
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 9
+
+Your intended occupation may be regulated or requires professional certification.
+Please see the following links for this requirement:
+Regulated Occupations and Licensing Requirements
+https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-insaskatchewan/to-work/regulated-occupations-and-licensingrequirements/saskatchewan-regulatory-bodies
+SINP Requirements Related to Professional Status or Licensure
+https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-insaskatchewan/to-work/regulated-occupations-and-licensing-requirements
+https://publications.saskatchewan.ca/api/v1/products/102710/formats/113852/download
+If you are invited to apply, the SINP will review your education, work experience and
+intended occupation and, if required, will notify you to provide the required
+documentation. If you have an occupation that requires this documentation, the
+processing of your application will be paused until you obtain the required
+documentation.
+You must respond to all remaining questions below before you can proceed.
+
+Click
+Click
+under.
+
+to save your responses, and
+to check the application category you are applying
+
+If the category shown is not what you are intending to apply under, you may change
+your responses by clicking on
+or click “No” for more information.
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 10
+
+A sample screenshot is shown below:
+
+If the category shown is correct, click “Yes” button to proceed.
+•
+
+Review your Birthdate and Address Information. If you want to update your personal
+details, please click on Edit Birthdate and/or Address button.
+
+After making changes, click “Confirm…” button then Next.
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 11
+
+•
+
+Review Eligibility for Application
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 12
+
+Section #4: Declare Consultant (If Applicable)
+If you have declared the use of an immigration representative on your Birthdate and Address
+Screen, a Consultant screen will automatically be created. More information about using a
+representative can be found on the link below:
+https://www.saskatchewan.ca/residents/moving-to-saskatchewan/provide-immigrationservices/immigration-consultant-and-foreign-worker-recruiter-licensing-and-responsibilities
+Please select your representative from the list of approved representatives. Correspondence from
+the SINP will automatically be sent to the Email address specified on Birthdate and Address
+record of the selected representative.
+
+Click
+
+then
+
+to continue.
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 13
+
+Section #5: Complete EOI Points Grid
+The information you provide will result in a points score. The EOI profile uses the same point
+assessment grid as the International Skilled Worker categories.
+For more information on the point assessment grid, please visit:
+https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/byimmigrating/saskatchewan-immigrant-nominee-program/browse-sinp-programs/applicantsinternational-skilled-workers/assess-your-eligibility
+Your EOI status will initially show “Not Yet Submitted”.
+
+Education and Training
+Fill in points for highest completed education. For education completed outside
+Canada, choose the Canadian Equivalency stated on your Educational Credential
+Assessment (ECA).
+
+Please answer the question regarding licensure based on the NOC code you have
+chosen under the Eligibility page. Choose N/A if the NOC code does not require
+licensure.
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 14
+
+Please answer a series of questions regarding Education based on your current situation.
+A sample screenshot is shown below:
+
+Please answer the question regarding Settlement Funds. This is to remind all applicants
+of the settlement funds requirement.
+
+Skilled Work Experience
+The principal applicant's work experience points are calculated according to
+documented proof of skilled work experience (NOC 0, A, B) in their intended
+occupation NOC in the last ten years.
+Select the number of years you worked in your intended occupation NOC during the
+most recent five years:
+
+Select the number of years you worked in your intended occupation NOC during the
+six to ten year period prior to application:
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 15
+
+Language Ability
+Select your language ability points based on the lowest CLB equivalent of your English
+or French language test results. You may also claim points for your Second Official
+Language if applicable.
+
+Age
+Age points are calculated according to the date of application to the SINP.
+
+Connection to Saskatchewan Labour Market and Adaptability
+The principal applicant's points are calculated according to documented proof of a
+strong connection to Saskatchewan with genuine intention and ability to successfully
+settle and economically establish in Saskatchewan as a permanent resident. (Maximum
+total points = 30).
+
+Close family relative in Saskatchewan - The applicant or accompanying spouse has a
+family relative that is a Canadian citizen or permanent resident living in Saskatchewan.
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 16
+
+This includes a: parent, sibling, grandparent, aunt, uncle, niece, nephew, cousin and
+step-family members or in-laws of the same relationships. The family members in
+Saskatchewan must meet the requirements as listed under “Required Documents” for
+your ISW sub-category.
+Past work experience in Saskatchewan - At least 12 months of work in the past five
+years on a valid work permit.
+Past student experience in Saskatchewan - At least one full-time academic year at a
+recognized Saskatchewan post-secondary education institution on a valid study permit.
+
+Declaration
+Please select ‘Yes’ or ‘No’ to the following question:
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 17
+
+Section #6: Review and Submit EOI
+After answering all the required questions and saving the screen, you will see the Submit
+Expression of Interest button at the bottom of the screen.
+
+Click on Submit Expression of Interest button. If all the required information is provided, your
+EOI will be submitted and a notification will be displayed.
+
+You will be notified if your EOI has been selected and you have been invited to apply. Please
+visit our website for information on EOI draws at: www.saskatchewan.ca/worker-eoi
+
+OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 18
+
+Canceling your EOI
+If you would like to cancel your current EOI, you can click on Cancel EOI. This will delete your
+EOI and you will have to repeat this process again if you wish to submit an EOI in the future.
+
+Updating Your EOI after Submission
+You cannot update your EOI after Submission. If you want to update the EOI information you
+provided, you must cancel your existing EOI and submit a new EOI. To cancel an EOI, please
+see “Canceling your EOI.” To submit a new EOI, please follow the instructions in Section 1 of
+this document.
+
+You must re-submit your EOI to be eligible for an invitation to apply.
+
+What do I do when I’m invited to apply?
+You will receive an email with an Invitation to Apply letter if you are selected to apply. You
+have 60 days to complete and submit an application after being invited. In order to submit an
+application, please log into OASIS with the same account and click on Start Part 1 of
+Application button.
+
+SINP – OASIS User Guide for Applicants
+To help you with the application process in OASIS, please click the ‘?’ button after logging in.
+
+then click ‘here’ as shown below:
+
+- End of Guide OASIS User Guide for Applicants - Expression of Interest
+July 2022
+
+Page | 19
+
+
