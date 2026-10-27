@@ -20,12 +20,12 @@ const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
 export async function get(url) {
   if (!isOfficial(url)) throw new Error("Not an approved government source: " + url);
   let res;
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 4; attempt++) {
     try {
       res = await fetch(url, { headers: { "user-agent": UA, accept: "text/html,application/json;q=0.9,*/*;q=0.8", "accept-language": "en-CA,en;q=0.9" }, redirect: "follow", signal: AbortSignal.timeout(45000) });
       if (res.status < 500) break;
-    } catch (e) { if (attempt === 3) throw e; }
-    await new Promise((r) => setTimeout(r, 3000 * attempt));
+    } catch (e) { if (attempt === 4) throw e; }
+    await new Promise((r) => setTimeout(r, 4000 * attempt));
   }
   if (!isOfficial(res.url)) throw new Error("Redirected away from an approved government source: " + res.url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -35,7 +35,14 @@ export async function get(url) {
 // Binary download (PDFs) from an approved government source.
 export async function getBuffer(url) {
   if (!isOfficial(url)) throw new Error("Not an approved government source: " + url);
-  const res = await fetch(url, { headers: { "user-agent": UA, accept: "application/pdf,*/*;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(60000) });
+  let res;
+  for (let attempt = 1; attempt <= 4; attempt++) { // government file servers time out now and then (HTTP 522)
+    try {
+      res = await fetch(url, { headers: { "user-agent": UA, accept: "application/pdf,*/*;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(60000) });
+      if (res.status < 500) break;
+    } catch (e) { if (attempt === 4) throw e; }
+    await new Promise((r) => setTimeout(r, 5000 * attempt));
+  }
   if (!isOfficial(res.url)) throw new Error("Redirected away from an approved government source: " + res.url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
