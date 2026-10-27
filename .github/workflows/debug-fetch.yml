@@ -1,0 +1,40 @@
+name: debug-fetch
+on: push
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p dbg
+          i=0
+          while read -r u; do
+            [ -z "$u" ] && continue; i=$((i+1))
+            code=$(curl -sSL -A "Mozilla/5.0 (WorkerPool draws bot; +https://workerpool.ca)" --max-time 40 -o "dbg/$i.html" -w "%{http_code} %{size_download} %{url_effective}" "$u" || echo "ERR")
+            echo "$i $code $u" >> dbg/index.txt
+          done <<'URLS'
+          https://www.canada.ca/content/dam/ircc/documents/json/ee_rounds_123_en.json
+          https://www.welcomebc.ca/immigrate-to-b-c/invitations-to-apply
+          https://www.alberta.ca/aaip-processing-information
+          https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/by-immigrating/saskatchewan-immigrant-nominee-program/maximum-number-of-sinp-applications
+          https://immigratemanitoba.com/notices/
+          https://www.ontario.ca/page/2026-ontario-immigrant-nominee-program-updates
+          https://www.ontario.ca/page/invitations-apply-oinp
+          https://www.princeedwardisland.ca/en/information/office-of-immigration/expression-of-interest-draws
+          https://www.gov.nl.ca/immigration/expression-of-interest-model-overview/
+          https://www.gnb.ca/en/topic/family-home-community/immigration/provincial-nominee-program.html
+          https://liveinnovascotia.com/nova-scotia-nominee-program
+          https://www.quebec.ca/en/immigration/permanent/skilled-workers/skilled-worker-selection-program/invitation
+          https://investsudbury.ca/why-sudbury/newcomers/rcip-and-fcip-candidates/
+          https://gotothunderbay.ca/rural-community-immigration-pilot-rcip/
+          https://www.claresholm.ca/business/labour-resources/rural-community-immigration-pilot
+          https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/rural-franco-pilots/rural-immigration/communities.html
+          https://www.yukon.ca/en/yukon-nominee-program
+          https://www.immigratenwt.ca/
+          URLS
+          # trim big html for size
+          for f in dbg/*.html; do head -c 1500000 "$f" > "$f.t" && mv "$f.t" "$f"; done
+          git config user.name "draws-bot"; git config user.email "draws-bot@users.noreply.github.com"
+          git add dbg && git commit -qm "debug fetch" && git push
