@@ -97,6 +97,11 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
 .w.hi{background:var(--high-bg);border-color:transparent}.w.hi small{color:var(--high)}
 .w.md{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}.w.md small,.w.md span{color:var(--accent-fg);opacity:.9}
 .w.na b{font-size:1.2rem;color:var(--muted)}
+.verify{display:flex;gap:12px;align-items:flex-start;margin-top:14px;padding:14px 16px;border-radius:14px;background:#fff4d6;border:1.5px solid #f0b429;color:#4a3500;font-size:.93rem;line-height:1.45}
+.verify svg{flex:none;margin-top:2px;color:#b7791f}
+.verify b{color:#3a2a00}
+.verify a{color:#7a4b00;font-weight:700}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .verify{background:#3a2c0e;border-color:#b7791f;color:#f6e3b4}:root:not([data-theme="light"]) .verify b{color:#fff1cc}:root:not([data-theme="light"]) .verify a{color:#ffd27a}}
 .notice{border-radius:12px;padding:12px 14px;background:var(--band);font-size:.88rem;color:var(--fg)}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
 table{width:100%;border-collapse:collapse;font-size:.9rem;min-width:620px}
@@ -168,6 +173,8 @@ footer.site{padding-block:32px 44px;border-top:1px solid var(--line);font-size:.
         <div class="chosen" id="chosen" hidden></div>
       </div>
     </div>
+    <div class="verify" role="note"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v5M12 16.5v.5M10.3 3.9L2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+      <div><b>Cross-check before you use these figures.</b> Job Bank updates wages during the year, so always confirm the wage on <a href="https://www.jobbank.gc.ca/trend-analysis/search-wages" target="_blank" rel="noopener">Job Bank</a> before relying on it for an LMIA, job offer or application. Each result below links straight to the matching Job Bank page.</div></div>
     <div class="res" id="res" aria-live="polite"></div>
   </div>
 </section>
@@ -193,7 +200,7 @@ footer.site{padding-block:32px 44px;border-top:1px solid var(--line);font-size:.
 </footer>
 
 <script src="/tools/wages/places.js?v=1"></script>
-<script src="/tools/wages/wages.js?v=2" defer></script>
+<script src="/tools/wages/wages.js?v=3" defer></script>
 <script>window.WPA_PAGE="wages";</script>
 <script src="/assets/wpa.js" defer></script>
 <script src="/assets/ticker.js?v=3" defer></script>
