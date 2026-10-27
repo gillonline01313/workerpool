@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Flight Deal Finder – Cheapest International Flights &amp; Price Alerts | WorkerPool</title>
+<meta name="description" content="Free Flight Deal Finder: finds the cheapest international fares, including self-transfer routes through hub cities, cheaper nearby days and airports, and two one-ways instead of a return. Set a price alert by email, Telegram or phone notification.">
+<meta name="theme-color" content="#3f7a72">
+<link rel="canonical" href="https://workerpool.ca/tools/flights/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="WorkerPool">
+<meta property="og:locale" content="en_CA">
+<meta property="og:title" content="Flight Deal Finder">
+<meta property="og:description" content="The cheapest way to fly, including the routes other sites miss, plus price alerts.">
+<meta property="og:url" content="https://workerpool.ca/tools/flights/">
+<meta property="og:image" content="https://workerpool.ca/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%233f7a72'/%3E%3Ccircle cx='10' cy='12' r='2.4' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2.4' fill='white' opacity='.75'/%3E%3Ccircle cx='20' cy='12' r='2.4' fill='white' opacity='.5'/%3E%3C/svg%3E">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Flight Deal Finder","url":"https://workerpool.ca/tools/flights/","applicationCategory":"TravelApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"CAD"},"publisher":{"@type":"Organization","name":"WorkerPool","url":"https://workerpool.ca/"}}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,750;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#f3f6f5; --band:#e9efed; --surface:#ffffff; --fg:#1b2628; --muted:#5a696b; --line:#d3dcda;
+  --accent:#3f7a72; --accent-deep:#2c5a54; --accent-soft:#dcebe7; --accent-fg:#ffffff;
+  --low:#8a5a00; --low-bg:#fbf0d9; --high:#2c5f9e; --high-bg:#e3edfa;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif; --body:"Figtree","Segoe UI",system-ui,sans-serif; color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121819; --band:#172021; --surface:#1d2729; --fg:#e3ebe9; --muted:#97a7a5; --line:#2c3a3c;
+  --accent:#7fbcb2; --accent-deep:#a4d3cb; --accent-soft:#213431; --accent-fg:#0f2220;
+  --low:#f2c06b; --low-bg:#33281a; --high:#9cc2f5; --high-bg:#1b2738; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121819; --band:#172021; --surface:#1d2729; --fg:#e3ebe9; --muted:#97a7a5; --line:#2c3a3c;
+  --accent:#7fbcb2; --accent-deep:#a4d3cb; --accent-soft:#213431; --accent-fg:#0f2220;
+  --low:#f2c06b; --low-bg:#33281a; --high:#9cc2f5; --high-bg:#1b2738; color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.55}
+.in{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+a{color:inherit}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+p{margin:0}
+header.site{position:sticky;top:0;z-index:9;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:20px;height:60px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:750;font-size:1.15rem;text-decoration:none;letter-spacing:-.02em}
+.navl{margin-left:auto;display:flex;gap:18px;font-size:.9rem}
+.navl a{text-decoration:none;color:var(--muted)}.navl a:hover{color:var(--fg)}
+@media (max-width:860px){.navl{display:none}.nav .btn{margin-left:auto}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-weight:650;font-size:.95rem;padding:11px 20px;border-radius:999px;text-decoration:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);cursor:pointer}
+.btn:hover{background:var(--accent-deep);border-color:var(--accent-deep)}
+.btn.sm{padding:8px 15px;font-size:.86rem}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hero{padding-block:clamp(32px,6vw,60px) 22px}
+.eyebrow{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--accent)}
+.hero h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:800;line-height:1.05;letter-spacing:-.03em;margin:12px 0}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.lede{color:var(--muted);font-size:1.05rem;max-width:62ch}
+.src{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:.84rem;color:var(--muted)}
+.src i{width:8px;height:8px;border-radius:50%;background:#1f9d63;display:inline-block}
+
+/* form */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:clamp(16px,3vw,26px);box-shadow:0 30px 60px -46px rgba(30,60,55,.45)}
+.trip{display:flex;gap:8px;margin-bottom:14px}
+.trip button{font:inherit;font-size:.86rem;font-weight:650;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.trip button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-deep)}
+.form{display:grid;grid-template-columns:minmax(0,1.3fr) auto minmax(0,1.3fr) minmax(0,.9fr) minmax(0,.9fr) auto;gap:10px;align-items:end}
+@media (max-width:980px){.form{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}.form .go{grid-column:1/-1}}
+@media (max-width:560px){.form{grid-template-columns:1fr}.swap{justify-self:center;transform:rotate(90deg)}}
+.f{display:flex;flex-direction:column;gap:6px;min-width:0;position:relative}
+.f>label{font-size:.8rem;font-weight:700;color:var(--muted)}
+.f input{font:inherit;color:var(--fg);background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;width:100%;min-width:0}
+.f input:focus{border-color:var(--accent);outline:none}
+.f input:disabled{opacity:.45}
+.swap{width:40px;height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer;display:grid;place-items:center}
+.swap:hover{color:var(--accent);border-color:var(--accent)}
+.go .btn{width:100%;height:46px}
+.sug{position:absolute;top:100%;left:0;right:0;z-index:20;margin-top:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 40px -20px rgba(0,0,0,.35);max-height:320px;overflow:auto;padding:4px;min-width:260px}
+.sug button{display:flex;gap:10px;align-items:baseline;width:100%;text-align:left;background:none;border:0;font:inherit;color:var(--fg);padding:8px 10px;border-radius:8px;cursor:pointer}
+.sug button:hover,.sug button[aria-selected=true]{background:var(--accent-soft)}
+.sug code{flex:none;font-family:var(--display);font-weight:750;font-size:.9rem;letter-spacing:.03em;color:var(--accent);min-width:34px}
+.sug small{display:block;color:var(--muted);font-size:.78rem}
+.err{margin-top:12px;color:#b42318;font-size:.9rem}
+/* results */
+.res{margin-top:18px;display:flex;flex-direction:column;gap:18px}
+.hero-deal{background:var(--accent);color:var(--accent-fg);border-radius:22px;padding:clamp(18px,3vw,28px);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center}
+@media (max-width:640px){.hero-deal{grid-template-columns:1fr}}
+.hero-deal small{font-size:.74rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.85}
+.hero-deal .p{font-family:var(--display);font-size:clamp(2.4rem,7vw,3.6rem);font-weight:800;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin:6px 0}
+.hero-deal .p span{font-size:.4em;font-weight:700;opacity:.8;margin-left:6px;letter-spacing:0}
+.hero-deal p{opacity:.92;font-size:.95rem}
+.hero-deal .btn{background:var(--accent-fg);color:var(--accent);border-color:var(--accent-fg);font-size:1rem;padding:13px 24px}
+.hero-deal .btn:hover{opacity:.92}
+.meter{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.16);font-size:.84rem;font-weight:650}
+.sec h2{font-size:clamp(1.15rem,2.4vw,1.45rem);font-weight:750;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sec h2 .tag{font-family:var(--body);font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:#ffe9b8;color:#6b4300}
+.sec>p{color:var(--muted);font-size:.9rem;margin-top:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin-top:12px}
+.opt{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.opt.win{border:2px solid var(--accent);box-shadow:0 18px 40px -30px var(--accent)}
+.oh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.oh b{font-family:var(--display);font-size:1.6rem;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+.oh .k{font-size:.82rem;font-weight:700;color:var(--accent)}
+.save{font-size:.78rem;font-weight:800;color:#0f7a4a;background:#dcf5e8;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.leg{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;font-size:.88rem;padding:8px 10px;background:var(--bg);border-radius:12px}
+.leg img{width:26px;height:26px;border-radius:6px;background:#fff}
+.leg .t{min-width:0}
+.leg .t b{font-family:var(--display);font-weight:750}
+.leg .t small{display:block;color:var(--muted);font-size:.78rem}
+.leg a{font-size:.8rem;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap}
+.lay{font-size:.8rem;color:var(--muted);text-align:center}
+.lay b{color:var(--fg)}
+.warn{font-size:.8rem;color:#7a4b00;background:#fff4d6;border-radius:10px;padding:8px 10px;line-height:1.4}
+.opt .btn{align-self:flex-start}
+.list{margin-top:12px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--surface)}
+.row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);font-size:.9rem}
+.row:last-child{border-bottom:0}
+.row img{width:28px;height:28px;border-radius:6px;background:#fff}
+.row small{display:block;color:var(--muted);font-size:.78rem}
+.row .pr{font-family:var(--display);font-weight:800;font-size:1.1rem;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.row{grid-template-columns:auto minmax(0,1fr) auto}.row .bk{grid-column:2/-1}}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:12px}
+.cal .dow{font-size:.7rem;font-weight:700;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.06em}
+.cal button{font:inherit;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;padding:6px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:52px}
+.cal button small{font-size:.72rem;color:var(--muted)}
+.cal button b{font-size:.8rem;font-variant-numeric:tabular-nums}
+.cal button.c1{background:#dcf5e8;border-color:#9fdcbc}.cal button.c2{background:#fff4d6;border-color:#f0d48a}.cal button.c3{background:#fde4e1;border-color:#f3b4ab}
+.cal button.sel{outline:2px solid var(--accent);outline-offset:1px}
+.cal button:disabled{cursor:default;opacity:.4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cal button.c1{background:#173a2a;border-color:#2a6b4c}:root:not([data-theme="light"]) .cal button.c2{background:#3a2e12;border-color:#7a5d1d}:root:not([data-theme="light"]) .cal button.c3{background:#3d1f1b;border-color:#7c3b33}:root:not([data-theme="light"]) .save{background:#173a2a;color:#7fe0ad}:root:not([data-theme="light"]) .warn{background:#3a2c0e;color:#f6e3b4}:root:not([data-theme="light"]) .sec h2 .tag{background:#3a2c0e;color:#ffd27a}}
+/* alerts */
+.alert{background:var(--surface);border:1.5px solid var(--accent);border-radius:20px;padding:clamp(16px,3vw,24px);display:flex;flex-direction:column;gap:14px}
+.alert h2{font-size:1.3rem;font-weight:750}
+.alert>p{color:var(--muted);font-size:.92rem}
+.ag{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:12px}
+@media (max-width:640px){.ag{grid-template-columns:1fr}}
+.ch{display:flex;gap:8px;flex-wrap:wrap}
+.ch .btn{font-size:.88rem}
+.ok{color:#0f7a4a;font-weight:650;font-size:.92rem}
+.disc{font-size:.8rem;color:var(--muted)}
+.loading{display:flex;align-items:center;gap:12px;padding:22px;border:1px dashed var(--line);border-radius:16px;color:var(--muted)}
+.spin{width:20px;height:20px;border-radius:50%;border:3px solid var(--accent-soft);border-top-color:var(--accent);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{padding:22px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center}
+.foot{font-size:.82rem;color:var(--muted)}
+section.info{padding-block:clamp(32px,5vw,56px)}
+.how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
+@media (max-width:820px){.how{grid-template-columns:1fr}}
+.hc{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.hc p{color:var(--muted);font-size:.92rem}
+footer.site{padding-block:32px 44px;border-top:1px solid var(--line);font-size:.84rem;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="in nav">
+    <a class="logo" href="/" aria-label="WorkerPool home">
+      <svg width="28" height="28" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="9" fill="var(--accent)"/><circle cx="10" cy="12" r="2.4" fill="var(--accent-fg)"/><circle cx="15" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".75"/><circle cx="20" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".5"/><path d="M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0" fill="none" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round"/></svg>
+      WorkerPool</a>
+    <nav class="navl" aria-label="Tools"><a href="/tools/wages/">Wage Checker</a><a href="/tools/profile-scanner/">Profile Scanner</a><a href="/express-entry-2026/">Express Entry 2026</a><a href="/#draws">Latest draws</a></nav>
+    <a class="btn sm" href="/apply/">Create free profile</a>
+  </div>
+</header>
+<div id="hn"></div>
+<main>
+<section class="hero">
+  <div class="in">
+    <span class="eyebrow">Free tool · Flight Deal Finder</span>
+    <h1>The cheapest way to fly, <em>including the routes other sites miss.</em></h1>
+    <p class="lede">One search checks regular tickets, self-transfer routes through up to 10 hub cities, cheaper days nearby, nearby airports, and two one-way tickets instead of a return. Then it puts the cheapest option on top. Set an alert and you'll hear the moment the fare drops.</p>
+  </div>
+</section>
+<section>
+  <div class="in">
+    <div id="manage"></div>
+    <div class="panel">
+      <div class="trip" role="group" aria-label="Trip type"><button type="button" id="tRet" aria-pressed="true">Return</button><button type="button" id="tOne" aria-pressed="false">One way</button></div>
+      <form class="form" id="form" autocomplete="off">
+        <div class="f">
+          <label for="from">From</label>
+          <input id="from" placeholder="City or airport, e.g. Edmonton" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="fromSug" required>
+          <div class="sug" id="fromSug" role="listbox" hidden></div>
+        </div>
+        <button type="button" class="swap" id="swap" aria-label="Swap from and to"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg></button>
+        <div class="f">
+          <label for="to">To</label>
+          <input id="to" placeholder="City or airport, e.g. Delhi" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="toSug" required>
+          <div class="sug" id="toSug" role="listbox" hidden></div>
+        </div>
+        <div class="f"><label for="depart">Depart</label><input id="depart" type="date" required></div>
+        <div class="f"><label for="ret">Return</label><input id="ret" type="date"></div>
+        <div class="f go"><button class="btn" type="submit" id="goBtn">Find the cheapest</button></div>
+      </form>
+      <p class="err" id="err" role="alert" hidden></p>
+    </div>
+    <div class="res" id="res" aria-live="polite"></div>
+  </div>
+</section>
+<section class="info">
+  <div class="in">
+    <span class="eyebrow">How it finds what others miss</span>
+    <h2 style="margin-top:8px;font-size:clamp(1.4rem,3vw,2rem)">Five ways to pay less, checked in one search</h2>
+    <div class="how">
+      <div class="hc"><h3>Self-transfer through a hub</h3><p>Two separate tickets, for example Edmonton → London and London → Delhi, can cost far less than one ticket. Most search sites only sell routes one airline group sells together, so they never show these.</p></div>
+      <div class="hc"><h3>Two one-ways vs a return</h3><p>Sometimes the cheapest outbound and the cheapest return are on different airlines. The tool compares both and tells you which is cheaper.</p></div>
+      <div class="hc"><h3>Cheaper days and airports</h3><p>A price calendar for the whole month, the cheapest days within 3 days of yours, and nearby airports (Calgary instead of Edmonton, say) when they save you money.</p></div>
+    </div>
+    <div class="how">
+      <div class="hc"><h3>Price alerts</h3><p>Set a target price or let the tool decide what a very good deal is. It re-checks every few hours and tells you by email, Telegram or a notification on your phone, including in the WorkerPool Android app.</p></div>
+      <div class="hc"><h3>Where prices come from</h3><p>Fares come from Aviasales, which compares hundreds of airlines and travel agencies. Shown prices are recent fares found in the last 48 hours; the booking page always shows the live price before you pay.</p></div>
+      <div class="hc"><h3>Self-transfer: know the risks</h3><p>On separate tickets, if your first flight is late and you miss the second, the second airline doesn't have to rebook you. You also collect and re-check your bags and may need a transit visa for the hub country. The tool leaves at least 3 hours to connect.</p></div>
+    </div>
+    <p class="foot" style="margin-top:16px">WorkerPool may earn a commission when you book through links on this page, at no extra cost to you. Prices are in Canadian dollars for one adult and can change at any time. WorkerPool isn't a travel agency and doesn't sell tickets.</p>
+  </div>
+</section>
+</main>
+<footer class="site">
+  <div class="in">
+    <p>Fares: Aviasales. <a href="/">Home</a> · <a href="/tools/wages/">Median Wage Checker</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></p>
+  </div>
+</footer>
+<script src="/tools/flights/flights.js?v=1" defer></script>
+<script>window.WPA_PAGE="flights";</script>
+<script src="/assets/wpa.js" defer></script>
+<script src="/assets/ticker.js?v=3" defer></script>
+<script src="/assets/chat.js?v=4" defer></script>
+</body>
+</html>

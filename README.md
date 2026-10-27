@@ -100,6 +100,21 @@ Run `schema-assessments.sql` in the D1 console once. Assessments a candidate agr
 
 To update draws or rules, edit `tools/src/prov_bc.js`, `prov_ab.js` or `prov_mb.js` (province data and scoring) or `tools/src/template.html` (shared form, Express Entry and RCIP), then run `python3 tools/src/build.py` and commit the regenerated `tools/*/index.html`.
 
+## Flight Deal Finder (/tools/flights/)
+
+Finds the cheapest way to fly between two cities: regular tickets, self-transfer routes through up to 10 hub airports (`HUBS` in `functions/_flights.js`), cheaper days within 3 days, nearby airports, and two one-ways instead of a return. Prices come from the Travelpayouts (Aviasales) Data API: fares Aviasales users found in the last 48 hours. Every "Book" link carries your partner marker, so bookings earn commission.
+
+Setup (Cloudflare → Pages → Settings → Variables and secrets):
+
+| Name | Type | What |
+|---|---|---|
+| `TP_TOKEN` | Secret | Travelpayouts API token (Travelpayouts → Profile → API token). Without it the tool says prices aren't switched on. |
+| `TP_MARKER` | Text | Your Travelpayouts partner ID (marker), added to every booking link |
+| `TP_MARKET` | Text | Optional. Aviasales market for prices, e.g. `ca` |
+| `TELEGRAM_BOT_TOKEN` | Secret | Optional. Token from @BotFather. The webhook registers itself the first time the flight page loads. |
+
+**Alerts** (`functions/api/flights/[[path]].js`, table `flight_alerts`, created automatically): people set an alert for a route and date, with an optional target price, and choose email (needs `RESEND_API_KEY`; the address must be confirmed), Telegram, or a notification on that phone or browser (Web Push, including in the Android app; the push keys are made once and kept in D1, no setup). Without a target, "a very good deal" means 15% under the price when the alert was set, and each later alert needs a further 5% drop. `.github/workflows/flights.yml` runs every 3 hours and calls `POST /api/flights/check` until every due alert is checked; each alert is checked at most every 3 hours, so the endpoint is safe to call by hand. Alerts stop after the travel date. Every alert has a manage link (`/tools/flights/?alert=…`) to stop it; Telegram users can send `/stop`.
+
 ## Email
 
 - **Receiving** (admin@, hello@, privacy@workerpool.ca): Cloudflare → workerpool.ca → Email → Email Routing. Forward each address to your own inbox. Also add **noreply@workerpool.ca** (or turn on the catch-all) so any reply sent straight to that address still reaches you instead of bouncing.
