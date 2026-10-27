@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - run: sudo apt-get install -y poppler-utils >/dev/null
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
       - name: Fetch pages
         run: |
           mkdir -p debug && cd debug
