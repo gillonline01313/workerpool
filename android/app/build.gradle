@@ -1,0 +1,51 @@
+// WorkerPool Android app: a Trusted Web Activity that opens https://workerpool.ca full screen,
+// with Google Play Billing for the Profile Scanner Pass (Digital Goods API).
+// Built by .github/workflows/android.yml. Version code = the GitHub build number.
+plugins {
+    id 'com.android.application'
+}
+
+def buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
+def keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+
+android {
+    namespace 'ca.workerpool.app'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'ca.workerpool.app'
+        minSdk 24
+        targetSdk 36
+        versionCode buildNumber
+        versionName "1.0.${buildNumber}"
+    }
+
+    signingConfigs {
+        if (keystorePassword) {
+            upload {
+                storeFile file('../upload-keystore.p12')
+                storeType 'pkcs12'
+                storePassword keystorePassword
+                keyAlias 'upload'
+                keyPassword keystorePassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystorePassword) signingConfig signingConfigs.upload
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
+    implementation 'com.google.androidbrowserhelper:billing:1.2.0'
+}
