@@ -7,7 +7,9 @@ export const OFFICIAL_HOSTS = [
   "quebec.ca", "gnb.ca", "novascotia.ca", "liveinnovascotia.com", "princeedwardisland.ca", "gov.nl.ca", "yukon.ca",
   "immigratenwt.ca", "gov.nt.ca",
   // RCIP / FCIP community partners designated by IRCC
-  "investsudbury.ca", "gotothunderbay.ca", "claresholm.ca",
+  "investsudbury.ca", "gotothunderbay.ca", "claresholm.ca", "claresholm-rcip.ca", "pictoucountypartnership.com",
+  "inspirepeninsuleacadienne.ca", "timminsedc.com", "welcometossm.com", "superioreastcfdc.ca", "steinbachedc.com", "ared-rpga.com",
+  "villagestpierrejolys.ca", "mjchamber.com", "westkootenayimmigration.ca", "rcipnorthokanaganshuswap.com", "nebcimmigration.ca", "sdecb.com",
 ];
 export function isOfficial(url) {
   try {
