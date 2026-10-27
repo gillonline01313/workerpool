@@ -11,61 +11,23 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with: { node-version: 22 }
-      - name: Fetch community pages
+      - name: Second pass
         run: |
-          mkdir -p dbg
-          cat > dbg/run.mjs <<'JS'
-          import fs from "node:fs";
-          const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
-          const SITES = {
-            pictou: ["https://pictoucountypartnership.com/rcip/", "https://pictoucountypartnership.com/program/rural-community-immigration-pilot-rcip/"],
-            northbay: ["https://nbrcip.ca/"],
-            sudbury: ["https://investsudbury.ca/why-sudbury/newcomers/rcipfcip/", "https://investsudbury.ca/why-sudbury/newcomers/rcip-and-fcip-candidates/"],
-            timmins: ["https://timminsedc.com/immigration/", "https://www.timminsedc.com/rcip-fcip/"],
-            ssm: ["https://welcometossm.com/rcip/"],
-            thunderbay: ["https://gotothunderbay.ca/why-thunder-bay/immigration/", "https://gotothunderbay.ca/rural-community-immigration-pilot-rcip/"],
-            steinbach: ["https://steinbachedc.com/rcip/"],
-            altona: ["https://ared-rpga.com/immigration/rcip/"],
-            brandon: ["https://economicdevelopmentbrandon.com/rcip/rcip", "https://economicdevelopmentbrandon.com/rcip/"],
-            moosejaw: ["https://rcip.mjchamber.com/"],
-            claresholm: ["https://claresholm-rcip.ca/", "https://www.claresholm.ca/business/labour-resources/rural-community-immigration-pilot"],
-            westkootenay: ["https://wk-rnip.ca/", "https://westkootenayimmigration.ca/"],
-            nos: ["https://rcipnorthokanaganshuswap.com/", "https://northokanaganshuswapimmigration.ca/"],
-            peaceliard: ["https://www.nebcimmigration.ca/"],
-            acadian: ["https://inspirepeninsuleacadienne.ca/programme-pilote-immigration-communautes-francophones/"],
-            superioreast: ["https://superioreastcfdc.ca/superioreastcfdc.ca/index.php/en-ca/fcip"],
-            stpierre: ["https://villagestpierrejolys.ca/p/francophone-communities-immigration-pilot-program"],
-            kelowna: ["https://www.sdecb.com/en/pilot-program/"],
-            nwt: ["https://www.immigratenwt.ca/", "https://www.immigratenwt.ca/news"],
-          };
-          const txt = (h) => h.replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, " ").replace(/<br\s*\/?>|<\/(p|li|h\d|tr|div)>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/&nbsp;|&#160;/g, " ").replace(/&amp;/g, "&").replace(/&#8211;|&ndash;/g, "–").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
-          const get = async (u) => { const r = await fetch(u, { headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(40000) }); return { status: r.status, url: r.url, html: await r.text() }; };
-          const report = {};
-          for (const [k, urls] of Object.entries(SITES)) {
-            report[k] = [];
-            const seen = new Set();
-            const queue = [...urls];
-            while (queue.length && seen.size < 9) {
-              const u = queue.shift(); if (seen.has(u)) continue; seen.add(u);
-              try {
-                const p = await get(u);
-                const t = txt(p.html);
-                report[k].push({ u, status: p.status, final: p.url, len: t.length });
-                fs.writeFileSync(`dbg/${k}-${seen.size}.txt`, `URL: ${u}\nFINAL: ${p.url}\nSTATUS: ${p.status}\n\n` + t.slice(0, 20000));
-                if (urls.includes(u)) {
-                  const host = new URL(p.url).host;
-                  for (const m of p.html.matchAll(/href="([^"#]+)"[^>]*>([\s\S]{0,140}?)<\/a>/gi)) {
-                    let href; try { href = new URL(m[1], p.url).href; } catch { continue; }
-                    const label = txt(m[2]);
-                    if (new URL(href).host === host && /draw|result|intake|recommend|invitation|round|selection|tirage|ronde|status|update|news|eoi|score/i.test(href + " " + label) && !/\.(jpg|png|gif)$/i.test(href)) queue.push(href);
-                  }
-                }
-              } catch (e) { report[k].push({ u, error: String(e.message || e) }); }
-            }
-          }
-          fs.writeFileSync("dbg/report.json", JSON.stringify(report, null, 1));
-          JS
-          node dbg/run.mjs; ls dbg | head -100
+          sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils >/dev/null
+          rm -rf dbg2; mkdir -p dbg2 && cd dbg2
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
+          curl -sL --max-time 60 -A "$UA" "https://timminsedc.com/wp-content/uploads/2026/10/6-RCIP-FCIP-Draw-Statistics.pdf" -o timmins.pdf && pdftotext -layout timmins.pdf timmins.txt || true
+          curl -sL --max-time 60 -A "$UA" "https://timminsedc.com/immigration/" -o timmins.html || true
+          grep -oE 'href="[^"]*\.pdf"' timmins.html | sort -u > timmins-pdfs.txt || true
+          curl -sL --max-time 60 -A "$UA" "https://www.immigratenwt.ca/newsroom" -o nwt.html || true
+          grep -oE 'href="[^"]*"[^>]*>[^<]*(draw|Draw)[^<]*' nwt.html > nwt-links.txt || true
+          L=$(grep -oE 'href="[^"]*draw[^"]*"' nwt.html | head -1 | sed 's/href="//; s/"$//'); case "$L" in /*) L="https://www.immigratenwt.ca$L";; esac; echo "$L" >> nwt-links.txt
+          [ -n "$L" ] && curl -sL --max-time 60 -A "$UA" "$L" -o nwt-draws.html && sed -e 's/<[^>]*>/ /g' nwt-draws.html | tr -s ' \n' | grep -v "^\s*$" | head -c 8000 > nwt-draws.txt || true
+          curl -sL --max-time 60 -A "$UA" "https://westkootenayimmigration.ca/updates/" -o wk.html || true
+          grep -oE 'href="https://westkootenayimmigration.ca/[^"]+"' wk.html | sort -u | grep -viE "apply|updates/$|category|privacy|feed|wp-" > wk-links.txt || true
+          for u in $(sed 's/href="//; s/"$//' wk-links.txt | head -8); do n=$(echo "$u" | tr -c 'a-z0-9' '_' | cut -c1-80); curl -sL --max-time 60 -A "$UA" "$u" | sed -e 's/<script[^>]*>[^<]*<\/script>//g; s/<[^>]*>/ /g' | tr -s ' \n' | grep -iE "intake|recommend|score|approved|applications" | head -30 > "wk-$n.txt"; done
+          curl -sL --max-time 60 -A "$UA" -H "Accept-Language: en-CA,en;q=0.9" -H "Accept: text/html" "https://nbrcip.ca/" -o nb.html -w "%{http_code}\n" > nb-code.txt || true
+          ls -la
       - run: |
           git config user.name dbg; git config user.email dbg@workerpool.ca
-          git add -A dbg && git commit -qm "rcip debug" && git push -q origin HEAD:rcip-debug
+          git add -A dbg2 && git commit -qm "rcip debug 2" && git push -q origin HEAD:rcip-debug
