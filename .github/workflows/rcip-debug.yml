@@ -1,0 +1,71 @@
+name: RCIP debug
+on:
+  push:
+    branches: [rcip-debug]
+permissions:
+  contents: write
+jobs:
+  grab:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: Fetch community pages
+        run: |
+          mkdir -p dbg
+          cat > dbg/run.mjs <<'JS'
+          import fs from "node:fs";
+          const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
+          const SITES = {
+            pictou: ["https://pictoucountypartnership.com/rcip/", "https://pictoucountypartnership.com/program/rural-community-immigration-pilot-rcip/"],
+            northbay: ["https://nbrcip.ca/"],
+            sudbury: ["https://investsudbury.ca/why-sudbury/newcomers/rcipfcip/", "https://investsudbury.ca/why-sudbury/newcomers/rcip-and-fcip-candidates/"],
+            timmins: ["https://timminsedc.com/immigration/", "https://www.timminsedc.com/rcip-fcip/"],
+            ssm: ["https://welcometossm.com/rcip/"],
+            thunderbay: ["https://gotothunderbay.ca/why-thunder-bay/immigration/", "https://gotothunderbay.ca/rural-community-immigration-pilot-rcip/"],
+            steinbach: ["https://steinbachedc.com/rcip/"],
+            altona: ["https://ared-rpga.com/immigration/rcip/"],
+            brandon: ["https://economicdevelopmentbrandon.com/rcip/rcip", "https://economicdevelopmentbrandon.com/rcip/"],
+            moosejaw: ["https://rcip.mjchamber.com/"],
+            claresholm: ["https://claresholm-rcip.ca/", "https://www.claresholm.ca/business/labour-resources/rural-community-immigration-pilot"],
+            westkootenay: ["https://wk-rnip.ca/", "https://westkootenayimmigration.ca/"],
+            nos: ["https://rcipnorthokanaganshuswap.com/", "https://northokanaganshuswapimmigration.ca/"],
+            peaceliard: ["https://www.nebcimmigration.ca/"],
+            acadian: ["https://inspirepeninsuleacadienne.ca/programme-pilote-immigration-communautes-francophones/"],
+            superioreast: ["https://superioreastcfdc.ca/superioreastcfdc.ca/index.php/en-ca/fcip"],
+            stpierre: ["https://villagestpierrejolys.ca/p/francophone-communities-immigration-pilot-program"],
+            kelowna: ["https://www.sdecb.com/en/pilot-program/"],
+            nwt: ["https://www.immigratenwt.ca/", "https://www.immigratenwt.ca/news"],
+          };
+          const txt = (h) => h.replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, " ").replace(/<br\s*\/?>|<\/(p|li|h\d|tr|div)>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/&nbsp;|&#160;/g, " ").replace(/&amp;/g, "&").replace(/&#8211;|&ndash;/g, "–").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
+          const get = async (u) => { const r = await fetch(u, { headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(40000) }); return { status: r.status, url: r.url, html: await r.text() }; };
+          const report = {};
+          for (const [k, urls] of Object.entries(SITES)) {
+            report[k] = [];
+            const seen = new Set();
+            const queue = [...urls];
+            while (queue.length && seen.size < 9) {
+              const u = queue.shift(); if (seen.has(u)) continue; seen.add(u);
+              try {
+                const p = await get(u);
+                const t = txt(p.html);
+                report[k].push({ u, status: p.status, final: p.url, len: t.length });
+                fs.writeFileSync(`dbg/${k}-${seen.size}.txt`, `URL: ${u}\nFINAL: ${p.url}\nSTATUS: ${p.status}\n\n` + t.slice(0, 20000));
+                if (urls.includes(u)) {
+                  const host = new URL(p.url).host;
+                  for (const m of p.html.matchAll(/href="([^"#]+)"[^>]*>([\s\S]{0,140}?)<\/a>/gi)) {
+                    let href; try { href = new URL(m[1], p.url).href; } catch { continue; }
+                    const label = txt(m[2]);
+                    if (new URL(href).host === host && /draw|result|intake|recommend|invitation|round|selection|tirage|ronde|status|update|news|eoi|score/i.test(href + " " + label) && !/\.(jpg|png|gif)$/i.test(href)) queue.push(href);
+                  }
+                }
+              } catch (e) { report[k].push({ u, error: String(e.message || e) }); }
+            }
+          }
+          fs.writeFileSync("dbg/report.json", JSON.stringify(report, null, 1));
+          JS
+          node dbg/run.mjs; ls dbg | head -100
+      - run: |
+          git config user.name dbg; git config user.email dbg@workerpool.ca
+          git add -A dbg && git commit -qm "rcip debug" && git push -q origin HEAD:rcip-debug
