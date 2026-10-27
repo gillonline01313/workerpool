@@ -57,6 +57,45 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
 .wpa-tbl td{padding:8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 .wpa-empty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:28px;color:var(--muted);text-align:center}
 .wpa-note{font-size:.78rem;color:var(--muted)}
+/* drill-down: every number opens the visits behind it */
+[data-drill]{cursor:pointer}
+.wpa-row[data-drill]{border-radius:8px;margin:-3px -6px;padding:3px 6px}
+.wpa-row[data-drill]:hover,.wpa-row[data-drill]:focus-visible{background:var(--accent-soft);outline:none}
+.wpa-row[data-drill] .v{color:var(--accent);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.wpa-kpi[data-drill]:hover,.wpa-kpi[data-drill]:focus-visible{border-color:var(--accent);outline:none}
+.wpa-kpi[data-drill] b{color:var(--accent)}
+.wpa-tbl tr[data-drill]:hover td{background:var(--accent-soft)}
+.dr-ov{position:fixed;inset:0;background:rgba(10,20,20,.35);z-index:60}
+.dr-pn{position:fixed;top:0;right:0;bottom:0;width:min(980px,100%);background:var(--bg);z-index:61;display:flex;flex-direction:column;box-shadow:-20px 0 50px -20px rgba(0,0,0,.4)}
+.dr-hd{display:flex;align-items:flex-start;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--surface)}
+.dr-hd h3{margin:0;font-size:1.1rem}
+.dr-hd p{margin:4px 0 0;color:var(--muted);font-size:.84rem}
+.dr-hd .dl{margin-left:auto;flex:none}
+.dr-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line)}
+.dr-tools input{font:inherit;font-size:.86rem;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);flex:1;min-width:180px}
+.dr-chips{display:flex;gap:6px;flex-wrap:wrap;padding:10px 20px 0}
+.dr-chip{font-size:.78rem;padding:4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--fg)}
+.dr-chip b{font-weight:700}
+.dr-body{flex:1;overflow:auto;padding:12px 20px 24px}
+.dr-body table{width:100%;border-collapse:collapse;font-size:.83rem;min-width:760px}
+.dr-body th{position:sticky;top:-12px;background:var(--bg);text-align:left;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--line)}
+.dr-body td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.dr-body tr.v{cursor:pointer}
+.dr-body tr.v:hover td{background:var(--surface)}
+.dr-body tr.x td{background:var(--surface);padding:12px 14px}
+.dr-det{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 20px;font-size:.82rem}
+.dr-det small{display:block;color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em}
+.dr-det ul{margin:4px 0 0;padding-left:16px}
+.dr-vid{font-family:ui-monospace,monospace;font-size:.78rem;color:var(--accent);text-decoration:underline;background:none;border:0;padding:0;cursor:pointer}
+.dr-more{display:block;margin:14px auto 0}
+@media (max-width:640px){.dr-hd,.dr-tools,.dr-body{padding-left:12px;padding-right:12px}.dr-chips{padding:10px 12px 0}
+  .dr-body table{min-width:0}.dr-body thead{display:none}
+  .dr-body tr.v{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;padding:10px 4px;border-bottom:1px solid var(--line)}
+  .dr-body tr.v td{display:block;border:0;padding:0;font-size:.82rem}
+  .dr-body tr.v td::before{content:attr(data-l);display:block;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .dr-body tr.v td.w{grid-column:1/-1;font-weight:700;white-space:normal!important}
+  .dr-body tr.v td.w::before{display:none}
+  .dr-body tr.x{display:block}.dr-body tr.x td{display:block}}
 
 .gate{max-width:380px;margin:12vh auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:14px}
 .gate h1{font-family:var(--display);margin:0;font-size:1.5rem}
@@ -266,16 +305,23 @@ function csv(t){
   a.download=`workerpool-${t}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 function count(arr){ const m=new Map(); arr.forEach(k=>m.set(k,(m.get(k)||0)+1)); return [...m.entries()].sort((a,b)=>b[1]-a[1]); }
+/* drill-down registry: each clickable number points at the visits behind it */
+let DR=new Map(), drN=0;
+const reg=(title,visits,opt)=>{ const id="d"+(++drN); DR.set(id,{title,visits,...(opt||{})}); return id; };
+const drAttr=id=>id?` data-drill="${id}" role="button" tabindex="0"`:"";
+// groups visits by key (a key function may return an array): [[label, count, visits], ...]
+function grp(V,fn){ const m=new Map(); V.forEach(v=>{ let k=fn(v); (Array.isArray(k)?[...new Set(k)]:[k]).forEach(x=>{ if(x==null||x==="") return; if(!m.has(x)) m.set(x,[]); m.get(x).push(v); }); }); return [...m.entries()].map(([k,a])=>[k,a.length,a]).sort((a,b)=>b[1]-a[1]); }
+const drill=(list,title,opt)=>list.map(([l,n,vs])=>[l,n,reg(title+": "+l,vs,typeof opt==="function"?opt(l):opt)]);
 function bars(list,total){
   if(!list.length) return `<p class="wpa-note">No data in this period.</p>`;
   const max=Math.max(1,...list.map(x=>x[1]));
-  return `<div class="wpa-bars">${list.map(([l,v])=>`<div class="wpa-row"><span class="l" title="${esc(l)}">${esc(l)}</span><span class="t"><i style="width:${(v/max*100).toFixed(1)}%"></i></span><span class="v">${total?Math.round(v/total*100)+"%":v}</span></div>`).join("")}</div>`;
+  return `<div class="wpa-bars">${list.map(([l,v,id])=>`<div class="wpa-row"${drAttr(id)}${id?` aria-label="${esc(l)}: ${v}. Show details"`:""}><span class="l" title="${esc(l)}">${esc(l)}</span><span class="t"><i style="width:${(v/max*100).toFixed(1)}%"></i></span><span class="v">${total?Math.round(v/total*100)+"%":v}</span></div>`).join("")}</div>`;
 }
-function colChart(values,labels,every,tipFmt){
+function colChart(values,labels,every,tipFmt,ids){
   const W=720,H=180,pl=34,pr=8,pt=10,pb=26,n=values.length,max=Math.max(1,...values);
   const step=Math.max(1,Math.ceil(max/4)),top=step*Math.ceil(max/step),bw=(W-pl-pr)/n,y=v=>pt+(H-pt-pb)*(1-v/top);
   let g="";for(let v=0;v<=top;v+=step)g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}"/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
-  const b=values.map((v,i)=>{const h=Math.max(0,y(0)-y(v)),x=pl+i*bw+bw*.18,w=Math.max(2,bw*.64);return v?`<rect class="b" x="${x.toFixed(1)}" y="${(y(0)-h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" data-tip="${esc(tipFmt(i,v))}"/>`:"";}).join("");
+  const b=values.map((v,i)=>{const h=Math.max(0,y(0)-y(v)),x=pl+i*bw+bw*.18,w=Math.max(2,bw*.64);return v?`<rect class="b" x="${x.toFixed(1)}" y="${(y(0)-h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" data-tip="${esc(tipFmt(i,v))}${ids&&ids[i]?" · click for details":""}"${ids&&ids[i]?` data-drill="${ids[i]}"`:""}/>`:"";}).join("");
   const lx=labels.map((l,i)=>i%every===0?`<text x="${(pl+i*bw+bw/2).toFixed(1)}" y="${H-8}" text-anchor="middle">${esc(l)}</text>`:"").join("");
   return `<div class="wpa-chart"><svg viewBox="0 0 ${W} ${H}" role="img">${g}${b}${lx}</svg></div>`;
 }
@@ -285,6 +331,76 @@ function wireTips(root){
     c.addEventListener("pointerleave",()=>tip.hidden=true);});
 }
 const J=s=>{try{return JSON.parse(s||"[]")}catch(e){return []}};
+/* ---------- drill-down panel ---------- */
+const fullWhen=ts=>new Date(ts).toLocaleString("en-CA",{weekday:"short",year:"numeric",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",second:"2-digit"});
+const loc=v=>[v.city,v.region,v.country].filter(Boolean).join(", ")||(v.tz?"Unknown ("+v.tz+")":"Unknown");
+const pg=v=>v.page==="home"?"Home":v.page==="questionnaire"?"Questionnaire":v.page||"–";
+const nClk=(v,label)=>label?(v.clk.find(c=>c.l===label)||{n:0}).n:v.clk.reduce((s,c)=>s+c.n,0);
+let drState=null;
+function allVisits(){ return (data.visits||[]).map(v=>v.ts?v:({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk)})); }
+function openDrill(id){ const d=DR.get(id); if(!d) return; drState={...d,q:"",shown:100,open:d.open?0:-1}; drawDrill(); }
+function openVisitor(vid){ const vs=allVisits().filter(v=>v.vid===vid).sort((a,b)=>b.ts-a.ts); drState={title:"One visitor's visits ("+vid.slice(0,6)+")",visits:vs,q:"",shown:100,open:-1,back:drState}; drawDrill(); }
+function closeDrill(){ drState=null; const o=document.getElementById("drOv"); if(o) o.remove(); const p=document.getElementById("drPn"); if(p) p.remove(); document.body.style.overflow=""; }
+function drRows(){
+  const d=drState, q=d.q.trim().toLowerCase();
+  let vs=d.visits.slice();
+  if(d.sort==="dur") vs.sort((a,b)=>b.dur-a.dur); else vs.sort((a,b)=>b.ts-a.ts);
+  if(q) vs=vs.filter(v=>[fullWhen(v.ts),pg(v),loc(v),v.dev,v.src,v.lang,v.tz,v.vid,...v.sec,...v.clk.map(c=>c.l)].join(" ").toLowerCase().includes(q));
+  return vs;
+}
+function drawDrill(){
+  const d=drState; if(!d) return;
+  let ov=document.getElementById("drOv"), pn=document.getElementById("drPn");
+  if(!ov){ ov=document.createElement("div"); ov.id="drOv"; ov.className="dr-ov"; ov.onclick=closeDrill; document.body.appendChild(ov);
+    pn=document.createElement("aside"); pn.id="drPn"; pn.className="dr-pn"; pn.setAttribute("role","dialog"); pn.setAttribute("aria-modal","true"); document.body.appendChild(pn); document.body.style.overflow="hidden"; }
+  const per=new Map(); allVisits().forEach(v=>per.set(v.vid,(per.get(v.vid)||0)+1));
+  const vs=drRows(), uniq=new Set(d.visits.map(v=>v.vid)).size;
+  const top=(fn,n)=>count(d.visits.map(fn)).slice(0,n).map(([k,c])=>`<span class="dr-chip">${esc(k)} <b>${c}</b></span>`).join("");
+  const head=`<div class="dr-hd">${d.back?`<button class="dl" type="button" id="drBack" style="margin:0">← Back</button>`:""}<div><h3>${esc(d.title)}</h3><p>${d.visits.length} visit${d.visits.length===1?"":"s"} · ${uniq} visitor${uniq===1?"":"s"}${d.click?` · ${d.visits.reduce((s,v)=>s+nClk(v,d.click),0)} clicks`:""} · times in your local time</p></div><button class="dl" type="button" id="drX" aria-label="Close">Close ✕</button></div>
+    <div class="dr-chips">${top(loc,4)}${top(v=>v.dev||"Unknown",3)}</div>
+    <div class="dr-tools"><input type="search" id="drQ" placeholder="Search place, page, device, section, button…" value="${esc(d.q)}" aria-label="Search these visits"><button class="dl" type="button" id="drCsv" style="margin:0">Download CSV</button></div>`;
+  let body;
+  if(d.mode==="visitors"){
+    const g=new Map(); vs.forEach(v=>{ if(!g.has(v.vid)) g.set(v.vid,[]); g.get(v.vid).push(v); });
+    const rows=[...g.entries()].sort((a,b)=>b[1].length-a[1].length||b[1][0].ts-a[1][0].ts);
+    body=`<table><thead><tr><th>Visitor</th><th>Visits here</th><th>All-time visits</th><th>First seen</th><th>Last seen</th><th>Location</th><th>Device</th><th>Total time</th></tr></thead><tbody>
+      ${rows.slice(0,d.shown).map(([vid,a])=>{ const s=a.slice().sort((x,y)=>x.ts-y.ts); return `<tr class="v" data-vid="${esc(vid)}"><td data-l="Visitor" class="w"><button class="dr-vid" type="button" data-vid="${esc(vid)}">${esc(vid.slice(0,8))}</button></td><td data-l="Visits here">${a.length}</td><td data-l="All-time visits">${per.get(vid)||a.length}</td><td data-l="First seen">${fullWhen(s[0].ts)}</td><td data-l="Last seen">${fullWhen(s[s.length-1].ts)}</td><td data-l="Location">${esc(loc(s[s.length-1]))}</td><td data-l="Device">${esc(s[s.length-1].dev||"–")}</td><td data-l="Total time">${fmtDur(a.reduce((t,v)=>t+(v.dur||0),0))}</td></tr>`; }).join("")||`<tr><td colspan="8" style="color:var(--muted)">Nothing matches.</td></tr>`}</tbody></table>
+      ${rows.length>d.shown?`<button class="dl dr-more" type="button" id="drMore">Show more (${rows.length-d.shown} left)</button>`:""}`;
+  } else {
+    body=`<table><thead><tr><th>When</th><th>Page</th><th>Location</th><th>Device</th><th>Arrived via</th><th>Language</th><th>Time</th><th>${d.click?"Clicks on this":"Clicks"}</th><th>Visitor</th></tr></thead><tbody>
+      ${vs.slice(0,d.shown).map((v,i)=>`<tr class="v" data-i="${i}" aria-expanded="${d.open===i}"><td data-l="When" class="w" style="white-space:nowrap">${fullWhen(v.ts)}</td><td data-l="Page">${esc(pg(v))}</td><td data-l="Location">${esc(loc(v))}</td><td data-l="Device">${esc(v.dev||"–")}</td><td data-l="Arrived via">${esc(v.src||"Direct")}</td><td data-l="Language">${esc(v.lang||"–")}</td><td data-l="Time">${fmtDur(v.dur)}</td><td data-l="${d.click?"Clicks on this":"Clicks"}">${nClk(v,d.click)}</td><td data-l="Visitor"><button class="dr-vid" type="button" data-vid="${esc(v.vid)}">${esc(v.vid.slice(0,6))}</button>${(per.get(v.vid)||1)>1?` <span style="color:var(--muted)">· ${per.get(v.vid)} visits</span>`:""}</td></tr>
+        ${d.open===i?`<tr class="x"><td colspan="9"><div class="dr-det">
+          <div><small>Exact time</small>${fullWhen(v.ts)}<br><span style="color:var(--muted)">${esc(new Date(v.ts).toISOString().replace("T"," ").slice(0,19))} UTC</span></div>
+          <div><small>Location</small>${esc([v.city,v.region].filter(Boolean).join(", ")||"–")}<br>${esc(v.country||"–")}<br><span style="color:var(--muted)">Time zone: ${esc(v.tz||"–")}</span></div>
+          <div><small>Device and browser</small>${esc(v.dev||"–")} · language ${esc(v.lang||"–")}<br>Arrived via ${esc(v.src||"Direct")}</div>
+          <div><small>Time on page</small>${v.dur?fmtDur(v.dur)+" active":"Not recorded (left within a few seconds)"}</div>
+          <div><small>Sections reached (${v.sec.length})</small>${v.sec.length?`<ul>${v.sec.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:"None"}</div>
+          <div><small>Clicks (${nClk(v)})</small>${v.clk.length?`<ul>${v.clk.map(c=>`<li>${esc(c.l)}${c.n>1?` ×${c.n}`:""}</li>`).join("")}</ul>`:"None"}</div>
+          <div><small>Visitor</small>${esc(v.vid)}<br><button class="dr-vid" type="button" data-vid="${esc(v.vid)}">See all ${per.get(v.vid)||1} visit${(per.get(v.vid)||1)>1?"s":""} by this visitor</button></div>
+        </div></td></tr>`:""}`).join("")||`<tr><td colspan="9" style="color:var(--muted)">Nothing matches.</td></tr>`}</tbody></table>
+      ${vs.length>d.shown?`<button class="dl dr-more" type="button" id="drMore">Show more (${vs.length-d.shown} left)</button>`:""}
+      <p class="wpa-note" style="margin-top:12px">Clicks are recorded per visit, so their time is the visit's time. A visitor is one browser on one device.</p>`;
+  }
+  pn.innerHTML=head+`<div class="dr-body">${body}</div>`;
+  const q=pn.querySelector("#drQ"); q.oninput=()=>{ d.q=q.value; d.open=-1; const pos=q.selectionStart; drawDrill(); const n=document.getElementById("drQ"); n.focus(); n.setSelectionRange(pos,pos); };
+  pn.querySelector("#drX").onclick=closeDrill;
+  if(pn.querySelector("#drBack")) pn.querySelector("#drBack").onclick=()=>{ drState=d.back; drawDrill(); };
+  if(pn.querySelector("#drMore")) pn.querySelector("#drMore").onclick=()=>{ d.shown+=100; drawDrill(); };
+  pn.querySelectorAll("tr.v[data-i]").forEach(r=>r.onclick=e=>{ if(e.target.closest("[data-vid]")) return; const i=+r.dataset.i; d.open=d.open===i?-1:i; drawDrill(); });
+  pn.querySelectorAll("[data-vid]").forEach(b=>b.addEventListener("click",e=>{ if(b.tagName==="TR"&&e.target.closest("button")) return; e.stopPropagation(); openVisitor(b.dataset.vid); }));
+  pn.querySelector("#drCsv").onclick=()=>{
+    const cell=x=>`"${String(x??"").replace(/"/g,'""')}"`;
+    const lines=[["Time (UTC)","Page","City","Region","Country","Time zone","Device","Arrived via","Language","Seconds on page","Sections","Clicks","Visitor"].map(cell).join(",")]
+      .concat(drRows().map(v=>[new Date(v.ts).toISOString(),pg(v),v.city,v.region,v.country,v.tz,v.dev,v.src||"Direct",v.lang,v.dur,v.sec.join(" | "),v.clk.map(c=>c.l+(c.n>1?" x"+c.n:"")).join(" | "),v.vid].map(cell).join(",")));
+    const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/csv"})); a.download=(d.title.replace(/[^a-z0-9]+/gi,"-").toLowerCase().slice(0,60)||"visits")+".csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  };
+  if(!pn.contains(document.activeElement)) pn.querySelector("#drX").focus();
+}
+document.addEventListener("click",e=>{ const t=e.target.closest("[data-drill]"); if(t&&!t.closest("#drPn")) openDrill(t.dataset.drill); });
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&drState){ closeDrill(); return; }
+  const t=e.target.closest&&e.target.closest("[data-drill]"); if(t&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); openDrill(t.dataset.drill); }
+});
 const place=v=>v.city?`${v.city}, ${v.country||"?"}`:(v.country||(v.tz&&v.tz.split("/").pop().replace(/_/g," "))||"Unknown");
 
 function render(){
@@ -305,39 +421,46 @@ function render(){
   const uids=new Set(V.map(v=>v.vid)), perUser=count(V.map(v=>v.vid));
   const wd=V.filter(v=>v.dur>0), avg=wd.length?Math.round(wd.reduce((s,v)=>s+v.dur,0)/wd.length):0;
   const ret=perUser.filter(([,n])=>n>1).length;
+  DR=new Map(); drN=0;
   let timeChart;
-  if(range===1){ const h=new Array(24).fill(0); V.forEach(v=>h[new Date(v.ts).getHours()]++); timeChart=colChart(h,h.map((_,i)=>String(i)),3,(i,v)=>`${i}:00 · ${v} visit${v>1?"s":""}`); }
+  const hourBuckets=()=>{ const b=Array.from({length:24},()=>[]); V.forEach(v=>b[new Date(v.ts).getHours()].push(v)); return b; };
+  if(range===1){ const b=hourBuckets(); timeChart=colChart(b.map(x=>x.length),b.map((_,i)=>String(i)),3,(i,v)=>`${i}:00 · ${v} visit${v>1?"s":""}`,b.map((x,i)=>x.length?reg(`Visits today, ${i}:00–${i}:59`,x):null)); }
   else { const days=range===0?Math.min(90,Math.max(7,Math.ceil((startDay-new Date(new Date(V[V.length-1].ts).toDateString()))/864e5)+1)):range;
-    const c=new Array(days).fill(0),L=[]; for(let i=0;i<days;i++){const d=new Date(startDay.getTime()-(days-1-i)*864e5);L.push(d.toLocaleDateString("en-CA",{month:"short",day:"numeric"}));}
-    V.forEach(v=>{const d=new Date(new Date(v.ts).toDateString());const i=days-1-Math.round((startDay-d)/864e5);if(i>=0&&i<days)c[i]++;});
-    timeChart=colChart(c,L,days<=10?1:Math.ceil(days/8),(i,v)=>`${L[i]} · ${v} visit${v>1?"s":""}`); }
-  const hours=new Array(24).fill(0); V.forEach(v=>hours[new Date(v.ts).getHours()]++);
-  const freq=[["1 visit",0],["2–3 visits",0],["4–9 visits",0],["10+ visits",0]]; perUser.forEach(([,n])=>{freq[n===1?0:n<=3?1:n<=9?2:3][1]++;});
-  const cm=new Map(); V.forEach(v=>v.clk.forEach(c=>cm.set(c.l,(cm.get(c.l)||0)+c.n)));
+    const c=Array.from({length:days},()=>[]),L=[]; for(let i=0;i<days;i++){const d=new Date(startDay.getTime()-(days-1-i)*864e5);L.push(d.toLocaleDateString("en-CA",{month:"short",day:"numeric"}));}
+    V.forEach(v=>{const d=new Date(new Date(v.ts).toDateString());const i=days-1-Math.round((startDay-d)/864e5);if(i>=0&&i<days)c[i].push(v);});
+    timeChart=colChart(c.map(x=>x.length),L,days<=10?1:Math.ceil(days/8),(i,v)=>`${L[i]} · ${v} visit${v>1?"s":""}`,c.map((x,i)=>x.length?reg("Visits on "+L[i],x):null)); }
+  const hb=hourBuckets(), hourIds=hb.map((x,i)=>x.length?reg(`Visits between ${i}:00 and ${i}:59`,x):null);
+  const byVid=new Map(); V.forEach(v=>{ if(!byVid.has(v.vid)) byVid.set(v.vid,[]); byVid.get(v.vid).push(v); });
+  const fb=[["1 visit",[]],["2–3 visits",[]],["4–9 visits",[]],["10+ visits",[]]]; byVid.forEach(a=>fb[a.length===1?0:a.length<=3?1:a.length<=9?2:3][1].push(...a));
+  const freq=fb.map(([l,vs])=>[l,new Set(vs.map(v=>v.vid)).size,reg("Visitors with "+l,vs,{mode:"visitors"})]).filter(f=>f[1]);
+  const cm=new Map(); V.forEach(v=>v.clk.forEach(c=>{ if(!cm.has(c.l)) cm.set(c.l,{n:0,vs:[]}); const e=cm.get(c.l); e.n+=c.n; e.vs.push(v); }));
+  const clicks=[...cm.entries()].sort((a,b)=>b[1].n-a[1].n).slice(0,12).map(([l,e])=>[l,e.n,reg("Clicked: "+l,e.vs,{click:l})]);
+  const pageName=v=>v.page==="home"?"Home":v.page==="questionnaire"?"Questionnaire":v.page;
+  const kAll=reg("All visits",V), kVis=reg("Unique visitors",V,{mode:"visitors"}), kDur=reg("Visits with time on page (longest first)",wd,{sort:"dur"}), kRet=reg("Returning visitors",V.filter(v=>byVid.get(v.vid).length>1),{mode:"visitors"});
   body.innerHTML=`
   <div class="wpa-kpis">
-    <div class="wpa-kpi"><small>Visits</small><b>${V.length}</b><span>page loads</span></div>
-    <div class="wpa-kpi"><small>Unique visitors</small><b>${uids.size}</b><span>${(V.length/uids.size).toFixed(1)} visits each</span></div>
-    <div class="wpa-kpi"><small>Avg. time on page</small><b>${fmtDur(avg)}</b><span>active time</span></div>
-    <div class="wpa-kpi"><small>Returning</small><b>${Math.round(ret/uids.size*100)}%</b><span>visited more than once</span></div>
+    <div class="wpa-kpi"${drAttr(kAll)}><small>Visits</small><b>${V.length}</b><span>page loads · click for details</span></div>
+    <div class="wpa-kpi"${drAttr(kVis)}><small>Unique visitors</small><b>${uids.size}</b><span>${(V.length/uids.size).toFixed(1)} visits each</span></div>
+    <div class="wpa-kpi"${drAttr(kDur)}><small>Avg. time on page</small><b>${fmtDur(avg)}</b><span>active time</span></div>
+    <div class="wpa-kpi"${drAttr(kRet)}><small>Returning</small><b>${Math.round(ret/uids.size*100)}%</b><span>visited more than once</span></div>
   </div>
   <div class="wpa-grid">
     <div class="wpa-card wide"><h3>${range===1?"Visits by hour today":"Visits per day"}</h3>${timeChart}</div>
-    <div class="wpa-card"><h3>Pages</h3>${bars(count(V.map(v=>v.page==="home"?"Home":v.page==="questionnaire"?"Questionnaire":v.page)))}</div>
-    <div class="wpa-card"><h3>Sections and steps reached</h3><p class="sub">Share of visits that reached each part</p>${bars(count(V.flatMap(v=>v.sec)).slice(0,16),V.length)}</div>
-    <div class="wpa-card"><h3>Most clicked</h3><p class="sub">Buttons and links, with their section</p>${bars([...cm.entries()].sort((a,b)=>b[1]-a[1]).slice(0,12))}</div>
-    <div class="wpa-card"><h3>Countries</h3>${bars(count(V.map(v=>v.country||"Unknown")).slice(0,10))}</div>
-    <div class="wpa-card"><h3>Cities</h3>${bars(count(V.map(place)).slice(0,10))}</div>
-    <div class="wpa-card"><h3>How they arrived</h3>${bars(count(V.map(v=>v.src||"Direct")).slice(0,8))}</div>
-    <div class="wpa-card"><h3>Device</h3>${bars(count(V.map(v=>v.dev||"Unknown")))}</div>
-    <div class="wpa-card"><h3>Visit frequency</h3><p class="sub">Visitors by number of visits in this period</p>${bars(freq.filter(f=>f[1]))}</div>
-    <div class="wpa-card"><h3>Busiest hours</h3><p class="sub">Your local time</p>${colChart(hours,hours.map((_,i)=>String(i)),3,(i,v)=>`${i}:00 · ${v} visit${v>1?"s":""}`)}</div>
-    <div class="wpa-card"><h3>Language</h3>${bars(count(V.map(v=>v.lang||"unknown")).slice(0,8))}</div>
-    <div class="wpa-card wide"><h3>Recent visits</h3><div class="wpa-tbl"><table><thead><tr><th>When</th><th>Page</th><th>From</th><th>Device</th><th>Arrived via</th><th>Sections</th><th>Clicks</th><th>Time</th></tr></thead><tbody>
-      ${V.slice(0,25).map(v=>`<tr><td>${when(v.ts)}</td><td>${esc(v.page)}</td><td>${esc(place(v))}</td><td>${esc(v.dev)}</td><td>${esc(v.src)}</td><td>${v.sec.length}</td><td>${v.clk.reduce((s,c)=>s+c.n,0)}</td><td>${fmtDur(v.dur)}</td></tr>`).join("")}
+    <div class="wpa-card"><h3>Pages</h3>${bars(drill(grp(V,pageName),"Page"))}</div>
+    <div class="wpa-card"><h3>Sections and steps reached</h3><p class="sub">Share of visits that reached each part</p>${bars(drill(grp(V,v=>v.sec).slice(0,16),"Reached section"),V.length)}</div>
+    <div class="wpa-card"><h3>Most clicked</h3><p class="sub">Buttons and links, with their section</p>${bars(clicks)}</div>
+    <div class="wpa-card"><h3>Countries</h3>${bars(drill(grp(V,v=>v.country||"Unknown").slice(0,10),"Country"))}</div>
+    <div class="wpa-card"><h3>Cities</h3>${bars(drill(grp(V,place).slice(0,10),"City"))}</div>
+    <div class="wpa-card"><h3>How they arrived</h3>${bars(drill(grp(V,v=>v.src||"Direct").slice(0,8),"Arrived via"))}</div>
+    <div class="wpa-card"><h3>Device</h3>${bars(drill(grp(V,v=>v.dev||"Unknown"),"Device"))}</div>
+    <div class="wpa-card"><h3>Visit frequency</h3><p class="sub">Visitors by number of visits in this period</p>${bars(freq)}</div>
+    <div class="wpa-card"><h3>Busiest hours</h3><p class="sub">Your local time</p>${colChart(hb.map(x=>x.length),hb.map((_,i)=>String(i)),3,(i,v)=>`${i}:00 · ${v} visit${v>1?"s":""}`,hourIds)}</div>
+    <div class="wpa-card"><h3>Language</h3>${bars(drill(grp(V,v=>v.lang||"unknown").slice(0,8),"Language"))}</div>
+    <div class="wpa-card wide"><h3>Recent visits <span class="sub" style="margin:0;font-weight:400">· click a row for details</span></h3><div class="wpa-tbl"><table><thead><tr><th>When</th><th>Page</th><th>From</th><th>Device</th><th>Arrived via</th><th>Sections</th><th>Clicks</th><th>Time</th></tr></thead><tbody>
+      ${V.slice(0,25).map(v=>`<tr${drAttr(reg("Visit on "+when(v.ts),[v],{open:true}))}><td>${when(v.ts)}</td><td>${esc(v.page)}</td><td>${esc(place(v))}</td><td>${esc(v.dev)}</td><td>${esc(v.src)}</td><td>${v.sec.length}</td><td>${v.clk.reduce((s,c)=>s+c.n,0)}</td><td>${fmtDur(v.dur)}</td></tr>`).join("")}
     </tbody></table></div></div>
   </div>
-  <p class="wpa-note">Country and city come from Cloudflare's network data. IP addresses are not stored.</p>`;
+  <p class="wpa-note">Click any number, bar or chart column to see the visits behind it. Country and city come from Cloudflare's network data. IP addresses are not stored.</p>`;
   wireTips(body);
 }
 function renderInterest(body){
