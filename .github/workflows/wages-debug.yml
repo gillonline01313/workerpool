@@ -13,18 +13,32 @@ jobs:
         run: |
           rm -rf dbg; mkdir -p dbg && cd dbg
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
-          curl -sL --max-time 90 -A "$UA" "https://www12.statcan.gc.ca/census-recensement/2021/geo/aip-pia/attribute-attribs/index2021-eng.cfm?year=2021" -o gaf.html || echo "TIMEOUT gaf" >> fails.txt
-          grep -oiE 'href="[^"]*\.(zip|csv)[^"]*"' gaf.html | sort -u > gaf-links.txt || true
-          Z=$(grep -oiE 'href="[^"]*\.zip"' gaf.html | head -1 | sed 's/href="//; s/"$//'); echo "zip: $Z" >> gaf-links.txt
-          case "$Z" in http*) ;; /*) Z="https://www12.statcan.gc.ca$Z";; *) Z="https://www12.statcan.gc.ca/census-recensement/2021/geo/aip-pia/attribute-attribs/$Z";; esac
-          curl -sL --max-time 240 -A "$UA" "$Z" -o gaf.zip || echo "TIMEOUT gafzip" >> fails.txt
-          ls -la gaf.zip; unzip -l gaf.zip > gaf-zip-list.txt || true
-          unzip -o -q gaf.zip -d gafx || true
-          F=$(ls gafx/* | head -1); echo "$F" > gaf-file.txt; head -c 2000 "$F" | iconv -f latin1 -t utf-8 > gaf-head.txt || true
-          for q in "noc21_code:21232" "noc21_code%3A72310"; do curl -sL --max-time 60 -A "$UA" "https://www.jobbank.gc.ca/core/ta-jobtitle_en/select?q=$q&wt=json&rows=3&fl=title,noc21_code,noc_job_title_concordance_id,example_ind,jtt_ind" -o "ta-$(echo $q | tr -dc 0-9).json" || echo "TIMEOUT ta $q" >> fails.txt; done
-          curl -sL --max-time 60 -A "$UA" "https://www.jobbank.gc.ca/core/ta-jobtitle_en/select?q=*:*&wt=json&rows=0" -o ta-all.json || true
+          for u in "https://www12.statcan.gc.ca/census-recensement/2021/geo/aip-pia/attribute-attribs/files-fichiers/2021_92-151_X.zip" "https://www12.statcan.gc.ca/census-recensement/2021/geo/aip-pia/attribute-attribs/files-fichiers/2021_92-151_X_eng.zip"; do
+            code=$(curl -sL --max-time 300 -A "$UA" -w "%{http_code}" "$u" -o gaf.zip || echo fail); echo "$code $(stat -c %s gaf.zip 2>/dev/null) $u" >> gaf-try.txt
+            unzip -l gaf.zip >/dev/null 2>&1 && break
+          done
+          unzip -l gaf.zip > gaf-zip-list.txt 2>&1 || true
+          unzip -o -q gaf.zip -d gafx 2>/dev/null || true
+          F=$(ls gafx/*.csv 2>/dev/null | head -1)
+          if [ -n "$F" ]; then
+            head -c 1500 "$F" | iconv -f latin1 -t utf-8 > gaf-head.txt
+            python3 - "$F" <<'PY'
+          import csv,sys,collections
+          f=open(sys.argv[1],encoding="latin1"); r=csv.DictReader(f); print(r.fieldnames, file=open("gaf-fields.txt","w"))
+          pop=collections.defaultdict(int); meta={}
+          for x in r:
+              k=x["CSDUID_RSDIDU"] if "CSDUID_RSDIDU" in x else x.get("CSDUID")
+              meta[k]=x
+              for pk in ("DBPOP2021_IDPOP2021","DBPOP2021"):
+                  if pk in x and x[pk]: pop[k]+=int(float(x[pk])); break
+          print(len(meta), "CSDs", file=open("gaf-stats.txt","w"))
+          PY
+            gzip -c "$F" > gaf.csv.gz; ls -la gaf.csv.gz
+          fi
+          for i in 1 2 3; do curl -sL --max-time 60 -A "$UA" "https://www.jobbank.gc.ca/core/ta-jobtitle_en/select?q=software%20developer&wt=json&rows=2" -o ta-plain.json && [ -s ta-plain.json ] && break; sleep 10; done
+          for i in 1 2 3; do curl -sL --max-time 60 -A "$UA" "https://www.jobbank.gc.ca/core/ta-jobtitle_en/select?q=noc21_code:21232&wt=json&rows=3" -o ta-field.json && [ -s ta-field.json ] && break; sleep 10; done
           ls -la
       - run: |
           git config user.name dbg; git config user.email dbg@workerpool.ca
           rm -rf dbg/gafx dbg/gaf.zip
-          git add -A dbg && git commit -qm "wages debug 2" && git push -q
+          git add -A dbg && git commit -qm "wages debug 3" && git push -q
