@@ -1,0 +1,18 @@
+{
+  "_about": "General adult minimum wage by province/territory (CAD per hour). Job Bank raises published hourly wages that fall below the current minimum wage; the wage build does the same. Add new rates as provinces announce them: each takes effect automatically on its 'from' date at the next weekly build. Checked 2026-10-27 against provincial announcements.",
+  "rates": {
+    "NL": [{ "from": "2026-04-01", "rate": 16.35 }],
+    "PE": [{ "from": "2025-10-01", "rate": 17.00 }, { "from": "2026-10-01", "rate": 17.30 }],
+    "NS": [{ "from": "2025-10-01", "rate": 16.75 }, { "from": "2026-10-01", "rate": 17.00 }],
+    "NB": [{ "from": "2026-04-01", "rate": 15.90 }],
+    "QC": [{ "from": "2026-05-01", "rate": 16.60 }],
+    "ON": [{ "from": "2025-10-01", "rate": 17.60 }, { "from": "2026-10-01", "rate": 17.95 }],
+    "MB": [{ "from": "2025-10-01", "rate": 16.00 }, { "from": "2026-10-01", "rate": 16.40 }],
+    "SK": [{ "from": "2025-10-01", "rate": 15.35 }, { "from": "2026-10-01", "rate": 15.70 }],
+    "AB": [{ "from": "2019-06-26", "rate": 15.00 }],
+    "BC": [{ "from": "2025-06-01", "rate": 17.85 }, { "from": "2026-06-01", "rate": 18.25 }],
+    "YT": [{ "from": "2026-04-01", "rate": 18.51 }],
+    "NT": [{ "from": "2025-09-01", "rate": 16.95 }, { "from": "2026-09-01", "rate": 17.20 }],
+    "NU": [{ "from": "2025-09-01", "rate": 19.75 }, { "from": "2026-09-01", "rate": 20.17 }]
+  }
+}

@@ -62,16 +62,19 @@ else {
   if (!res.length) throw new Error("No wage CSV found in the open data package");
   const best = res[0];
   source = { name: best.r.name || `${best.year} Wages`, url: best.r.url, year: best.year, modified: best.r.last_modified || best.r.metadata_modified || best.r.created || "" };
-  if (meta.source && meta.source.url === source.url && fs.existsSync(path.join(OUT, "noc"))) {
-    console.log("Wage file unchanged:", source.url);
-    csvText = null;
-  } else {
-    console.log("Downloading", source.url);
-    csvText = await get(source.url);
-  }
+  console.log("Downloading", source.url);
+  csvText = await get(source.url); // always rebuilt from the original file, so minimum-wage adjustments stay exact
 }
 
-let nocs = {}; // code → {t, fr, a, cm, w: {ER: [low, med, high, period, src]}}
+// Job Bank raises published hourly wages that are below a province's current minimum wage to that
+// minimum (its wage methodology: "wages are updated on Job Bank periodically to reflect the minimum wage
+// increases"). The open data file isn't re-issued for those updates, so the same floor is applied here.
+const MW = JSON.parse(fs.readFileSync(new URL("./minimum-wages.json", import.meta.url), "utf8")).rates;
+const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Edmonton" });
+const minWage = {}; for (const [p, list] of Object.entries(MW)) { const cur = list.filter((x) => x.from <= today).sort((a, b) => a.from.localeCompare(b.from)).pop(); if (cur) minWage[p] = cur; }
+let adjusted = 0;
+
+let nocs = {}; // code → {t, fr, a, se, w: {ER: [low, med, high, period, src, minWageApplied?]}}
 let regions = {};
 if (csvText) {
   const rows = parseCSV(csvText.replace(/^﻿/, ""));
@@ -90,15 +93,19 @@ if (csvText) {
     const n = nocs[code] = nocs[code] || { c: code, t: r[I.t].trim(), fr: r[I.fr].trim(), a: 0, w: {} };
     if (r[I.ann].trim() === "1") n.a = 1;
     const cm = r[I.cm].trim(); if (/self-employed/i.test(cm)) n.se = 1;
-    const low = num(r[I.low]), med = num(r[I.med]), high = num(r[I.high]);
-    if (low || med || high) n.w[er] = [low, med, high, r[I.per].trim(), r[I.src].trim()];
+    let low = num(r[I.low]), med = num(r[I.med]), high = num(r[I.high]);
+    const mw = prov !== "CA" && r[I.ann].trim() !== "1" ? minWage[prov] : null; // hourly provincial/regional figures only
+    let floored = 0;
+    if (mw) { const f = (v) => (v != null && v < mw.rate ? (floored = 1, mw.rate) : v); low = f(low); med = f(med); high = f(high); }
+    if (floored) adjusted++;
+    if (low || med || high) n.w[er] = floored ? [low, med, high, r[I.per].trim(), r[I.src].trim(), 1] : [low, med, high, r[I.per].trim(), r[I.src].trim()];
     if (r[I.rev] && r[I.rev] > revision) revision = r[I.rev].trim();
   }
   if (Object.keys(nocs).length < 400) throw new Error("Only " + Object.keys(nocs).length + " occupations found; refusing to publish");
   source.revision = revision;
   fs.mkdirSync(path.join(OUT, "noc"), { recursive: true });
   for (const n of Object.values(nocs)) fs.writeFileSync(path.join(OUT, "noc", n.c + ".json"), JSON.stringify(n));
-  console.log(`Wrote ${Object.keys(nocs).length} occupations, ${Object.keys(regions).length} areas (revision ${revision})`);
+  console.log(`Wrote ${Object.keys(nocs).length} occupations, ${Object.keys(regions).length} areas (revision ${revision}); ${adjusted} area figures raised to the current minimum wage`);
 } else {
   for (const f of fs.readdirSync(path.join(OUT, "noc"))) { const n = JSON.parse(fs.readFileSync(path.join(OUT, "noc", f), "utf8")); nocs[n.c] = n; }
   regions = meta.regions || {};
@@ -161,7 +168,7 @@ const leads = titlesOk ? lead : prevLead;
 /* ---------- 3. index + meta ---------- */
 const index = Object.values(nocs).sort((a, b) => a.c.localeCompare(b.c)).map((n) => [n.c, n.t, n.a, leads[n.c] || 0]);
 fs.writeFileSync(path.join(OUT, "index.json"), JSON.stringify(index));
-const out = { source: csvText ? source : meta.source, regions, lead: leads, titles: titlesOk ? { from: "Job Bank", count: titles.length } : (meta.titles || { from: "NOC 2021 examples" }),
+const out = { source: csvText ? source : meta.source, regions, lead: leads, minWage, titles: titlesOk ? { from: "Job Bank", count: titles.length } : (meta.titles || { from: "NOC 2021 examples" }),
   checked: new Date().toISOString(), updated: csvText || titlesOk ? new Date().toISOString() : meta.updated };
 fs.writeFileSync(path.join(OUT, "meta.json"), JSON.stringify(out, null, 1));
 console.log("Done.");

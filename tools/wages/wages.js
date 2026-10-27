@@ -29,6 +29,7 @@ function loadTitles() {
 const fmtDate = (s) => { if (!s) return ""; const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(s) ? s + "T12:00:00" : s); return isNaN(d) ? s : d.toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" }); };
 const money = (v, annual) => v == null ? null : annual ? "$" + Math.round(v).toLocaleString("en-CA") : "$" + v.toFixed(2);
 const unit = (annual) => annual ? "per year" : "per hour";
+const mwNote = (p) => { const m = (META.minWage || {})[p]; return m ? `${(PROV[p] || [])[1] || p}'s current minimum wage of $${m.rate.toFixed(2)} an hour (since ${fmtDate(m.from)})` : ""; };
 const jbUrl = (id, area) => id ? `https://www.jobbank.gc.ca/marketreport/wages-occupation/${id}/${area}` : "https://www.jobbank.gc.ca/trend-analysis/search-wages";
 
 /* ---------- search boxes ---------- */
@@ -146,12 +147,13 @@ async function show() {
     </div><a class="ext" href="${esc(link)}" target="_blank" rel="noopener">View on Job Bank <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a></div>
     ${missing.length && pick ? `<div class="notice">Job Bank doesn't publish a wage for this occupation in ${esc(missing.join(" or "))}, usually because there isn't enough data. The figures below are for <b>${esc(pick.label)}</b>.</div>` : ""}
     ${pick ? `<div class="trio">${tile("lo", "Low wage", pick.w[0], "lower end of the range")}${tile("md", "Median wage", pick.w[1], unit(ann))}${tile("hi", "High wage", pick.w[2], "upper end of the range")}</div>
+      ${pick.w[5] && mwNote(pick.area) ? `<div class="notice">One or more of these wages was below ${esc(mwNote(pick.area))}, so it's shown at the minimum wage, as Job Bank does.</div>` : ""}
       <p class="foot">Reference period ${esc(pick.w[3] || "–")} · source: ${esc(pick.w[4] || "Job Bank")}${n.se ? " · many people in this occupation are self-employed, so Job Bank shows yearly earnings" : ann ? " · Job Bank shows this occupation's wages per year" : ""}. Click any wage to open it on Job Bank.</p>`
       : `<div class="empty">Job Bank doesn't publish wages for this occupation in this area, its province or nationally.</div>`}
     <div class="tw"><table><thead><tr><th>Area</th><th>Low</th><th>Median</th><th>High</th><th>Period</th><th>Job Bank</th></tr></thead><tbody>
       ${rows.map(([c, label, a]) => { const w = n.w[c]; const u = jbUrl(id, a); const me = pick && c === pick.code;
         const cell = (v) => v != null ? `<a href="${esc(u)}" target="_blank" rel="noopener">${money(v, ann)}</a>` : `<span style="color:var(--muted);font-family:var(--body);font-weight:400">–</span>`;
-        return `<tr${me ? ' class="me"' : ""}><td>${esc(label)}</td><td class="n">${cell(w && w[0])}</td><td class="n">${cell(w && w[1])}</td><td class="n">${cell(w && w[2])}</td><td>${esc(w ? w[3] : "Not published")}</td><td><a class="ext" href="${esc(u)}" target="_blank" rel="noopener">Open</a></td></tr>`; }).join("")}
+        return `<tr${me ? ' class="me"' : ""}><td>${esc(label)}${w && w[5] ? ' <span title="Raised to the current minimum wage, as Job Bank does" style="color:var(--muted);font-size:.8rem">· min. wage</span>' : ""}</td><td class="n">${cell(w && w[0])}</td><td class="n">${cell(w && w[1])}</td><td class="n">${cell(w && w[2])}</td><td>${esc(w ? w[3] : "Not published")}</td><td><a class="ext" href="${esc(u)}" target="_blank" rel="noopener">Open</a></td></tr>`; }).join("")}
     </tbody></table></div>
     <p class="foot">Regional rows link to Job Bank's ${prov ? esc(prov[1]) : "national"} page for this occupation, which lists every region. "–" means Job Bank doesn't publish that figure.</p>
   </div>`;
