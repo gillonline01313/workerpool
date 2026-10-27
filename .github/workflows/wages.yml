@@ -1,0 +1,36 @@
+# Median Wage Checker data: rebuilds tools/wages/data/ from ESDC's open wage data (the figures Job Bank
+# shows) and Job Bank's job titles. Runs every Monday morning, Edmonton time, and on demand:
+# GitHub → Actions → Median wage data → Run workflow. Cloudflare redeploys the site when the data changes.
+name: Median wage data
+on:
+  schedule:
+    - cron: "17 14 * * 1" # Mondays, about 8 am Edmonton time
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["scripts/wages/**", ".github/workflows/wages.yml"]
+permissions:
+  contents: write
+concurrency:
+  group: wages
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Build wage data from official sources
+        run: node scripts/wages/build.mjs
+      - name: Publish
+        run: |
+          git config user.name "WorkerPool wages"
+          git config user.email "wages-bot@users.noreply.github.com"
+          git add tools/wages/data
+          git diff --cached --quiet && { echo "No change"; exit 0; }
+          git commit -q -m "Median wage data: update $(TZ=America/Edmonton date '+%Y-%m-%d')"
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0; sleep 5; done
+          exit 1
