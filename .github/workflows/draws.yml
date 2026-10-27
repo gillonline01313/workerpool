@@ -33,6 +33,8 @@ jobs:
           echo "run=$run" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         if: steps.gate.outputs.run == 'yes'
+        with:
+          ref: main # a queued run starts from the newest draws, not from the commit that queued it
       - uses: actions/setup-node@v4
         if: steps.gate.outputs.run == 'yes'
         with:
@@ -48,8 +50,16 @@ jobs:
         run: |
           git config user.name "WorkerPool draws"
           git config user.email "draws-bot@users.noreply.github.com"
-          git add data/draws.json
-          git diff --cached --quiet && { echo "No change"; exit 0; }
-          git commit -q -m "Latest draws: update $(TZ=America/Edmonton date '+%Y-%m-%d %H:%M %Z')"
-          for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0; sleep 5; done
+          cp data/draws.json "$RUNNER_TEMP/draws.json"
+          # If another run published while this one was reading, start again from the newest commit
+          # and lay this run's file on top, instead of failing on a merge conflict.
+          for i in 1 2 3 4; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            cp "$RUNNER_TEMP/draws.json" data/draws.json
+            git add data/draws.json
+            git diff --cached --quiet && { echo "No change"; exit 0; }
+            git commit -q -m "Latest draws: update $(TZ=America/Edmonton date '+%Y-%m-%d %H:%M %Z')"
+            git push -q origin HEAD:main && exit 0
+            sleep $((i * 5))
+          done
           exit 1
