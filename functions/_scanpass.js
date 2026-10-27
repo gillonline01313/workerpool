@@ -111,3 +111,41 @@ export async function claimPlay(env, purchaseToken) {
   if (p.consumptionState === 0) { try { await playApi(env, "POST", purchaseToken, ":consume"); } catch (e) { console.warn("Play consume failed", e.message); } }
   return { row };
 }
+
+/* ---------- Price and coupons (managed in the admin dashboard → Scanner passes) ---------- */
+// The website price (Stripe) is a setting; PASS.amount is only the default. The Android app's price is
+// set in Google Play Console. Coupons apply to website checkout only.
+export const MIN_CHARGE = 50; // Stripe's minimum charge in CAD cents; a 100% coupon skips Stripe instead
+export async function ensureShopTables(env) {
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS scan_settings (k TEXT PRIMARY KEY, v TEXT NOT NULL, updated TEXT NOT NULL)`).run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS scan_coupons (code TEXT PRIMARY KEY, percent INTEGER NOT NULL, max_uses INTEGER, uses INTEGER NOT NULL DEFAULT 0,
+    expires TEXT, active INTEGER NOT NULL DEFAULT 1, note TEXT, created TEXT NOT NULL)`).run();
+}
+export async function priceCents(env) {
+  try {
+    await ensureShopTables(env);
+    const r = await env.DB.prepare(`SELECT v FROM scan_settings WHERE k = 'price_cents'`).first();
+    const n = r ? parseInt(r.v) : NaN;
+    return n >= MIN_CHARGE && n <= 100000 ? n : PASS.amount;
+  } catch (e) { return PASS.amount; }
+}
+export const money = (cents) => "$" + (cents / 100).toFixed(2);
+export const normCode = (c) => String(c || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 32);
+// A live coupon row, or { error } explaining why it can't be used.
+export async function findCoupon(env, code) {
+  code = normCode(code);
+  if (!code) return { error: "Enter a coupon code." };
+  await ensureShopTables(env);
+  const c = await env.DB.prepare(`SELECT * FROM scan_coupons WHERE code = ?1`).bind(code).first();
+  if (!c || !c.active) return { error: "That coupon code isn't valid." };
+  if (c.expires && c.expires < new Date().toISOString().slice(0, 10)) return { error: "That coupon has expired." };
+  if (c.max_uses != null && c.uses >= c.max_uses) return { error: "That coupon has been fully used." };
+  return { coupon: c };
+}
+export function discounted(price, percent) {
+  if (percent >= 100) return 0;
+  return Math.max(MIN_CHARGE, Math.round(price * (100 - percent) / 100));
+}
+export async function countUse(env, code) {
+  if (code) await env.DB.prepare(`UPDATE scan_coupons SET uses = uses + 1 WHERE code = ?1`).bind(normCode(code)).run();
+}

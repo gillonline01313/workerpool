@@ -129,8 +129,9 @@ async function claimFromUrl() {
   } else if (q.get("pass")) {
     clean(); savePass(q.get("pass")); await checkPass();
     msg = PASSINFO && PASSINFO.valid ? "Your Scanner Pass is active." : ""; if (!msg) pmsg("That pass link has expired or isn't valid.");
-  } else if (q.get("cancelled")) { clean(); pmsg("Checkout was cancelled. You haven't been charged."); }
+  } else if (q.get("cancelled")) { clean(); pmsg("Checkout was cancelled. You haven't been charged."); await checkPass(); }
   else await checkPass();
+  if (q.get("coupon") && !IN_APP) { history.replaceState(null, "", location.pathname + "#unlock"); PENDING_COUPON = q.get("coupon"); }
   if (msg) toast(msg);
 }
 /* ---- Google Play Billing, used instead of Stripe inside the WorkerPool Android app ---- */
@@ -148,6 +149,7 @@ function playUnavailable() {
 async function initPlay() {
   if (!IN_APP) return;
   $("payNote").textContent = "Secure checkout by Google Play.";
+  $("showCoupon").hidden = true; // coupons and the admin price apply to website checkout; the app price is set in Play Console
   $("showRestore").textContent = "Already have a pass?";
   if (!("getDigitalGoodsService" in window)) return playUnavailable();
   try { PLAYSVC = await window.getDigitalGoodsService(PLAY_METHOD); } catch (e) { PLAYSVC = null; }
@@ -180,12 +182,34 @@ async function buyPlay(btn) {
   try { await resp.complete(ok ? "success" : "fail"); } catch (e) {}
   btn.disabled = false;
 }
+/* ---- Website price and coupons (set in the admin dashboard; not used inside the Android app) ---- */
+let PRICE = null, COUPON = null, PENDING_COUPON = null;
+function paintPrice() {
+  if (IN_APP || !PRICE) return;
+  setPrice(COUPON ? COUPON.label : PRICE);
+  $("wasPrice").hidden = !COUPON; $("wasPrice").textContent = COUPON ? COUPON.was : "";
+  $("cpOk").hidden = !COUPON;
+  if (COUPON) $("cpOk").innerHTML = `<span>Coupon <b>${esc(COUPON.code)}</b>: ${COUPON.percent}% off</span><button type="button" id="cpRemove">Remove</button>`, $("cpRemove").onclick = () => { COUPON = null; paintPrice(); };
+}
+async function applyCoupon(code, quiet) {
+  try {
+    const j = await (await fetch("/api/scanner/coupon", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code }) })).json();
+    if (j.ok) { COUPON = j; pmsg(""); $("couponForm").hidden = true; paintPrice(); track("coupon " + j.code); if (!quiet) toast(`Coupon applied: ${j.percent}% off`); return true; }
+    pmsg(j.error || "That coupon code isn't valid.");
+  } catch (e) { pmsg("Couldn't check that coupon. Please try again."); }
+  return false;
+}
 async function buy(btn) {
   if (IN_APP) return buyPlay(btn);
-  btn.disabled = true; const t = btn.textContent; btn.textContent = "Opening secure checkout…"; track("checkout");
-  try { const j = await (await fetch("/api/scanner/checkout", { method: "POST" })).json(); if (j.ok && j.url) { location.href = j.url; return; } pmsg(j.error || "Checkout isn't available right now."); }
-  catch (e) { pmsg("Checkout isn't available right now. Please try again."); }
-  btn.disabled = false; btn.textContent = t;
+  btn.disabled = true; const t = btn.innerHTML; btn.textContent = COUPON && COUPON.cents === 0 ? "Unlocking…" : "Opening secure checkout…"; track("checkout");
+  try {
+    const j = await (await fetch("/api/scanner/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ coupon: COUPON ? COUPON.code : "" }) })).json();
+    if (j.ok && j.free) { savePass(j.token); PASSINFO = { valid: true, ...j }; COUPON = null; toast("Coupon accepted. Your scanner is unlocked."); show("p1"); btn.disabled = false; btn.innerHTML = t; return; }
+    if (j.ok && j.url) { location.href = j.url; return; }
+    pmsg(j.error || "Checkout isn't available right now.");
+    if (COUPON && /coupon/i.test(j.error || "")) { COUPON = null; paintPrice(); }
+  } catch (e) { pmsg("Checkout isn't available right now. Please try again."); }
+  btn.disabled = false; btn.innerHTML = t;
 }
 
 /* ======================= UPLOAD ======================= */
@@ -856,6 +880,8 @@ $("buy").onclick = () => buy($("buy"));
 document.querySelectorAll("[data-buy]").forEach((b) => b.onclick = () => buy(b));
 $("demoBuy").onclick = () => { if (unlocked()) { RESULTS = []; NOTES = null; DEMO = false; show("p1"); } else { show("p1"); } };
 $("tryDemo").onclick = () => demo();
+$("showCoupon").onclick = () => { $("couponForm").hidden = !$("couponForm").hidden; if (!$("couponForm").hidden) $("couponCode").focus(); };
+$("couponForm").onsubmit = async (e) => { e.preventDefault(); const b = e.target.querySelector("button"); b.disabled = true; await applyCoupon($("couponCode").value); b.disabled = false; };
 $("showRestore").onclick = () => { $("restoreForm").hidden = !$("restoreForm").hidden; if (!$("restoreForm").hidden) $("restoreEmail").focus(); };
 $("restoreForm").onsubmit = async (e) => {
   e.preventDefault(); const b = e.target.querySelector("button"); b.disabled = true;
@@ -873,6 +899,8 @@ $("print").onclick = () => window.print();
 $("restart").onclick = () => { if (!confirm("Clear everything and start over?")) return; RESULTS = []; RECEIPT = []; NOTES = null; M = null; SRC = {}; FILES = Object.fromEntries(SLOTS.map((s) => [s.k, []])); $("notes").value = ""; $("agree").checked = false; renderSlots(); show("p1"); };
 Promise.all([fetch("/api/tools/scan").then((r) => r.json()).catch(() => ({})), claimFromUrl(), initPlay()]).then(([j]) => {
   CFG = { free: !!j.free, payments: j.payments !== false, ai: j.ai !== false };
+  if (j.price) { PRICE = j.price; paintPrice(); }
+  if (PENDING_COUPON && !unlocked()) applyCoupon(PENDING_COUPON);
   AI = !!j.ai; $("aiOff").hidden = AI; updGo();
   if ($("p2").hidden && $("p3").hidden && $("pp").hidden) show("p1");
   if (/paid=|pass=/.test(document.referrer) || PASSINFO) renderPass();

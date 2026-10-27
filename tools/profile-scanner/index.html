@@ -261,6 +261,10 @@ textarea{min-height:104px;resize:vertical;line-height:1.5}
 .price .links{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.86rem}
 .price .links button{background:none;border:0;color:#cfe5e0;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0}
 .restore{display:flex;gap:8px}
+.amt s{font-family:var(--display);font-size:1.5rem;font-weight:700;color:#a9c4bf;margin-right:4px}
+.cpok{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:10px;background:rgba(127,224,181,.16);color:#bff3dc;font-size:.88rem;font-weight:600}
+.cpok button{background:none;border:0;color:#cfe5e0;font:inherit;font-weight:500;text-decoration:underline;cursor:pointer;padding:0}
+.price .links{row-gap:6px}
 .mobbuy{display:none;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
 .mobbuy>span{font-size:.84rem;color:var(--muted)}
 .btn [data-price]{color:inherit}
@@ -310,7 +314,7 @@ footer p{max-width:92ch}
 <section class="hero">
   <div class="in">
     <div>
-      <span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>$9.99 one-time · Documents never saved</span>
+      <span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg><span data-price>$9.99</span>&nbsp;one-time · Documents never saved</span>
       <h1>Upload your documents. <em>Get your Express Entry score.</em></h1>
       <p class="lede">Passport, language test, work letters, pay stubs, education. The scanner reads them, works out your CRS points and tells you plainly what's strong in your profile and what's holding it back.</p>
       <div class="trio">
@@ -351,7 +355,8 @@ footer p{max-width:92ch}
         </div>
         <aside class="price" aria-label="Price">
           <span class="tag">One-time · no subscription</span>
-          <div class="amt"><b data-price>$9.99</b><span id="priceCur">CAD</span></div>
+          <div class="amt"><s id="wasPrice" hidden></s><b data-price>$9.99</b><span id="priceCur">CAD</span></div>
+          <div class="cpok" id="cpOk" hidden></div>
           <ul>
             <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>30 days</b> of access</span></li>
             <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Up to <b>25 documents</b>, you and your partner</span></li>
@@ -363,7 +368,8 @@ footer p{max-width:92ch}
           <button class="btn" type="button" id="buy">Unlock the scanner · <span data-price>$9.99</span></button>
           <small id="payNote">Secure checkout by Stripe. Cards, Apple Pay and Google Pay. We never see your card.</small>
           <div class="pmsg" id="pmsg" hidden></div>
-          <div class="links"><button type="button" id="tryDemo">See a free example first</button><button type="button" id="showRestore">Already paid?</button></div>
+          <div class="links"><button type="button" id="tryDemo">See a free example first</button><button type="button" id="showCoupon">Have a coupon?</button><button type="button" id="showRestore">Already paid?</button></div>
+          <form class="restore" id="couponForm" hidden><input type="text" id="couponCode" placeholder="Coupon code" autocomplete="off" autocapitalize="characters" maxlength="32" aria-label="Coupon code"><button class="btn" type="submit">Apply</button></form>
           <form class="restore" id="restoreForm" hidden><input type="email" id="restoreEmail" placeholder="Email used at checkout" required aria-label="Email used at checkout"><button class="btn" type="submit">Send link</button></form>
         </aside>
       </div>
@@ -424,7 +430,7 @@ footer p{max-width:92ch}
           <h3 style="margin-top:6px">Programs you may qualify for</h3><div class="elig" id="elig"></div></div>
       </div>
       <div class="receipt" id="receipt"></div>
-      <div class="democta" id="democta" data-noprint hidden><div><h3>That was an example. What's your score?</h3><p>Scan your own documents and get your real score, your weak spots and the points each fix is worth. $9.99 one-time, 30 days of access.</p></div><button class="btn" type="button" id="demoBuy">Scan my documents · <span data-price>$9.99</span></button></div>
+      <div class="democta" id="democta" data-noprint hidden><div><h3>That was an example. What's your score?</h3><p>Scan your own documents and get your real score, your weak spots and the points each fix is worth. <span data-price>$9.99</span> one-time, 30 days of access.</p></div><button class="btn" type="button" id="demoBuy">Scan my documents · <span data-price>$9.99</span></button></div>
       <div class="cta" data-noprint><div><h3>Want employers and licensed consultants to find you?</h3><p>Create a free WorkerPool profile. You choose who sees it. Your scan results aren't shared unless you add them yourself.</p></div><a class="btn" href="/apply/">Create free profile</a></div>
       <div class="acts"><button class="btn ghost" type="button" id="edit">← Change details</button><button class="btn ghost" type="button" id="print">Save as PDF</button><button class="btn ghost" type="button" id="restart">Start over</button></div>
       <p class="disc">This is an estimate based on what the scanner read and what you confirmed. It isn't immigration advice and doesn't guarantee an invitation. Express Entry points depend on documents IRCC accepts: valid language tests, an ECA for education outside Canada, and reference letters that meet IRCC's requirements. WorkerPool is a data processing company, not an immigration representative; speak to a licensed consultant (CICC) or lawyer before you apply.</p>
@@ -460,7 +466,7 @@ footer p{max-width:92ch}
   <div class="in">
     <span class="eyebrow">FAQ</span>
     <h2 style="margin-top:8px">Questions</h2>
-    <details class="q"><summary>What do I get for $9.99?</summary><p>A Scanner Pass: 30 days of access, up to 25 documents for you and your partner, unlimited rescans and edits, your score under both the current and November 2026 rules, how you compare with recent draws, your strengths and weaknesses, the points each improvement is worth, and a PDF report. It's a one-time payment, not a subscription.</p></details>
+    <details class="q"><summary>What do I get for <span data-price>$9.99</span>?</summary><p>A Scanner Pass: 30 days of access, up to 25 documents for you and your partner, unlimited rescans and edits, your score under both the current and November 2026 rules, how you compare with recent draws, your strengths and weaknesses, the points each improvement is worth, and a PDF report. It's a one-time payment, not a subscription.</p></details>
     <details class="q"><summary>Can I try it before paying?</summary><p>Yes. Press "See a free example first" to see a full report for a sample profile, with the same score breakdown and advice you'll get for your own.</p></details>
     <details class="q"><summary>I paid but lost access. What now?</summary><p>Your pass is kept in the browser you paid on. On another device, or if you cleared your browser, press "Already paid?" and enter the email you used at checkout. We'll email you a link back in. For anything else about a payment, write to hello@workerpool.ca.</p></details>
     <details class="q"><summary>Which documents give the most accurate score?</summary><p>Your language test result, your passport (for your age), your education documents with your ECA, and reference letters that show dates, hours a week, duties and pay. Pay stubs and T4s help confirm Canadian work. If you're married or common-law, your partner's language test and education help too.</p></details>
@@ -478,7 +484,7 @@ footer p{max-width:92ch}
   </div>
 </footer>
 
-<script src="/tools/profile-scanner/scanner.js?v=3" defer></script>
+<script src="/tools/profile-scanner/scanner.js?v=4" defer></script>
 <script>window.WPA_PAGE="scanner";</script>
 <script src="/assets/wpa.js" defer></script>
 <script src="/assets/ticker.js?v=3" defer></script>

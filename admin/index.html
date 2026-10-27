@@ -125,6 +125,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
 .vs-t.now b{color:#1f9d63}
 @media (max-width:760px){.vs-card{flex-direction:column;align-items:stretch;gap:8px}.vs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vs-t{border-left:0;padding:4px 2px}}
 @media (prefers-reduced-motion:reduce){.vs-dot{animation:none}}
+@media (max-width:820px){.shopgrid{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -183,7 +184,7 @@ async function load(){
     if(tab==="chat"){ await chatList(); render(); return; }
     if(tab==="analytics") data.visits=await api("visits?days="+days);
     else if(tab==="news"){ if(newsEdit) return; data.news=await api("news"); }
-    else if(tab==="scanner"){ data.passes=await api("scanner-passes"); }
+    else if(tab==="scanner"){ data.passes=await api("scanner-passes"); data.shop=await shopPost({action:"list"}); }
     else if(tab==="draws"){ if(drEdit) return; const r=await fetch("/api/admin/draws",{headers:{"x-admin-key":KEY}}); if(r.status===401) throw new Error("auth"); data.draws=await r.json(); }
     else if(tab==="forum"){
       const r=await fetch("/api/admin/forum",{headers:{"x-admin-key":KEY}});
@@ -507,14 +508,72 @@ function drawForm(body){
     catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); $("#drErr").textContent=x.message; btn.disabled=false; } };
 }
 /* ---------- Profile Scanner passes ---------- */
-let spForm=false, spLink="";
+let spForm=false, spLink="", cpForm=null, prEdit=false;
+async function shopPost(body){
+  const r=await fetch("/api/scanner/admin",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({key:KEY,...body})});
+  if(r.status===401) throw new Error("auth");
+  const j=await r.json(); if(!j.ok) throw new Error(j.error||"Couldn't save"); return j;
+}
+function renderShop(){
+  const sh=data.shop; if(!sh) return "";
+  const today=new Date().toLocaleDateString("en-CA",{timeZone:"America/Edmonton"});
+  const st=c=>!c.active?["Paused","var(--muted)"]:c.expires&&c.expires<today?["Expired","var(--muted)"]:c.max_uses!=null&&c.uses>=c.max_uses?["Used up","var(--muted)"]:["Live","#1f9d63"];
+  const inp='font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)';
+  const lab='display:flex;flex-direction:column;gap:3px;font-size:.8rem';
+  const f=cpForm||{};
+  return `<div style="display:grid;grid-template-columns:minmax(200px,1fr) minmax(0,3.2fr);gap:12px;margin-bottom:16px;align-items:start" class="shopgrid">
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px">
+      <b style="font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Website price</b>
+      ${prEdit?`<form id="prF" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap"><label style="${lab}">Price (CAD)<input id="prV" inputmode="decimal" value="${(sh.price.cents/100).toFixed(2)}" style="${inp};width:110px"></label>
+        <button class="dl" type="submit" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">Save</button><button class="dl" type="button" id="prX">Cancel</button></form>
+        <p style="margin:0;color:var(--muted);font-size:.8rem">Minimum ${esc(sh.minimum)}. Takes effect straight away on the website. The Android app's price is set in Google Play Console.</p>`
+      :`<div style="display:flex;align-items:baseline;gap:10px"><b style="font-size:2rem;font-weight:800">${esc(sh.price.label)}</b><span style="color:var(--muted)">CAD${sh.price.isDefault?" · default":""}</span></div>
+        <div><button class="dl" type="button" id="prE">Change price</button></div>`}
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b style="font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Coupons</b><button class="dl" type="button" id="cpAdd">${cpForm?"Close":"+ New coupon"}</button></div>
+      ${cpForm?`<form id="cpF" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;padding:12px;border:1px solid var(--line);border-radius:12px">
+        <label style="${lab}">Code${f.edit?"":" (blank = random)"}<input id="cpC" maxlength="32" value="${esc(f.code||"")}" ${f.edit?"readonly":""} placeholder="e.g. DIWALI25" style="${inp};width:150px;text-transform:uppercase"></label>
+        <label style="${lab}">Discount %<input id="cpP" type="number" min="1" max="100" value="${esc(f.percent||25)}" style="${inp};width:90px"></label>
+        <label style="${lab}">Max uses (blank = unlimited)<input id="cpM" type="number" min="1" value="${esc(f.max_uses??"")}" style="${inp};width:120px"></label>
+        <label style="${lab}">Expires (optional)<input id="cpE" type="date" value="${esc(f.expires||"")}" style="${inp}"></label>
+        <label style="${lab}">Note<input id="cpN" maxlength="120" value="${esc(f.note||"")}" placeholder="e.g. Facebook campaign" style="${inp};min-width:160px"></label>
+        <span id="cpPrev" style="font-size:.85rem;color:var(--muted);align-self:center"></span>
+        <button class="dl" type="submit" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">${f.edit?"Save changes":"Create coupon"}</button></form>`:""}
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.86rem">
+        <tr><th style="text-align:left;padding:8px">Code</th><th style="text-align:left;padding:8px">Discount</th><th style="text-align:left;padding:8px">Pays</th><th style="text-align:left;padding:8px">Used</th><th style="text-align:left;padding:8px">Expires</th><th style="text-align:left;padding:8px">Status</th><th></th></tr>
+        ${sh.coupons.map(c=>{ const [sl,sc]=st(c); return `<tr style="border-top:1px solid var(--line)">
+          <td style="padding:8px"><b>${esc(c.code)}</b>${c.note?`<br><small style="color:var(--muted)">${esc(c.note)}</small>`:""}</td>
+          <td style="padding:8px">${c.percent}%</td><td style="padding:8px">${c.percent>=100?"Free":esc(c.pays)}</td>
+          <td style="padding:8px">${c.uses}${c.max_uses!=null?" / "+c.max_uses:""}</td>
+          <td style="padding:8px;white-space:nowrap">${esc(c.expires||"Never")}</td>
+          <td style="padding:8px;color:${sc};font-weight:600;white-space:nowrap">${sl}</td>
+          <td style="padding:8px;text-align:right"><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button class="dl" type="button" data-cpl="${esc(c.code)}">Copy link</button> <button class="dl" type="button" data-cpe="${esc(c.code)}">Edit</button> <button class="dl" type="button" data-cpa="${esc(c.code)}" data-on="${c.active?0:1}">${c.active?"Pause":"Resume"}</button> <button class="dl" type="button" data-cpd="${esc(c.code)}">Delete</button></div></td></tr>`; }).join("")||`<tr><td colspan="7" style="padding:14px;color:var(--muted)">No coupons yet. Create one and share its code or link.</td></tr>`}
+      </table></div>
+      <p style="margin:0;color:var(--muted);font-size:.8rem">Coupons work on website checkout. A coupon link opens the scanner with the discount already applied. A 100% coupon unlocks the scanner without payment. Uses are counted when a payment is confirmed.</p>
+    </div></div>`;
+}
+function bindShop(){
+  const act=async(body,msg)=>{ if(msg&&!confirm(msg)) return; try{ data.shop=await shopPost(body); render(); }catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); alert(x.message); } };
+  if($("#prE")) $("#prE").onclick=()=>{ prEdit=true; render(); };
+  if($("#prX")) $("#prX").onclick=()=>{ prEdit=false; render(); };
+  if($("#prF")) $("#prF").onsubmit=async e=>{ e.preventDefault(); const v=$("#prV").value; if(!confirm("Change the website price to $"+(+v).toFixed(2)+" CAD? It takes effect straight away.")) return; prEdit=false; await act({action:"price",price:v}); };
+  $("#cpAdd").onclick=()=>{ cpForm=cpForm?null:{}; render(); };
+  const prev=()=>{ const el=$("#cpPrev"); if(!el) return; const p=Math.min(100,Math.max(0,+$("#cpP").value||0)), c=data.shop.price.cents; el.textContent=p>=100?"Pays: free":"Pays: $"+(Math.max(50,Math.round(c*(100-p)/100))/100).toFixed(2); };
+  if($("#cpF")){ $("#cpP").oninput=prev; prev();
+    $("#cpF").onsubmit=async e=>{ e.preventDefault(); const f=cpForm; await act({action:"coupon-save",edit:!!f.edit,code:$("#cpC").value,percent:$("#cpP").value,max_uses:$("#cpM").value,expires:$("#cpE").value,note:$("#cpN").value}); cpForm=null; render(); }; }
+  document.querySelectorAll("[data-cpl]").forEach(b=>b.onclick=()=>{ const c=data.shop.coupons.find(x=>x.code===b.dataset.cpl); navigator.clipboard&&navigator.clipboard.writeText(c.link); b.textContent="Copied"; setTimeout(()=>b.textContent="Copy link",1500); });
+  document.querySelectorAll("[data-cpe]").forEach(b=>b.onclick=()=>{ const c=data.shop.coupons.find(x=>x.code===b.dataset.cpe); cpForm={...c,edit:true}; render(); });
+  document.querySelectorAll("[data-cpa]").forEach(b=>b.onclick=()=>act({action:"coupon-active",code:b.dataset.cpa,active:b.dataset.on==="1"}));
+  document.querySelectorAll("[data-cpd]").forEach(b=>b.onclick=()=>act({action:"coupon-delete",code:b.dataset.cpd},"Delete coupon "+b.dataset.cpd+"? People who have it can't use it any more."));
+}
 function renderPasses(body){
   const rows=data.passes||[], now=new Date().toISOString();
   const paid=rows.filter(r=>r.kind==="stripe"||r.kind==="play"), play=rows.filter(r=>r.kind==="play"), test=rows.filter(r=>/-test$/.test(r.kind)), comp=rows.filter(r=>r.kind==="comp");
   const rev=paid.reduce((s,r)=>s+(r.amount||0),0)/100, docs=rows.reduce((s,r)=>s+r.docs_used,0), active=rows.filter(r=>r.expires>now&&r.docs_used<r.docs_max).length;
   const card=(n,l)=>`<div class="kpi" style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px"><b style="display:block;font-size:1.6rem;font-weight:750">${n}</b><span style="color:var(--muted);font-size:.85rem">${l}</span></div>`;
-  const KIND={stripe:"Paid (website)",["stripe-test"]:"Test payment (website)",play:"Paid (Google Play)",["play-test"]:"Test purchase (Google Play)",comp:"Free pass"};
-  body.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px">
+  const KIND={coupon:"Free (100% coupon)",stripe:"Paid (website)",["stripe-test"]:"Test payment (website)",play:"Paid (Google Play)",["play-test"]:"Test purchase (Google Play)",comp:"Free pass"};
+  body.innerHTML=renderShop()+`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px">
       ${card(paid.length,"Passes sold"+(play.length?` (${play.length} on Google Play)`:""))}${card("$"+rev.toFixed(2),"Revenue (CAD, before Stripe and Google fees)")}${card(active,"Active passes")}${card(docs,"Documents read")}${card(comp.length,"Free passes given")}${test.length?card(test.length,"Test payments"):""}</div>
     ${spForm?`<form id="spF" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px">
       <label style="display:flex;flex-direction:column;font-size:.8rem">Who is it for (note)<input id="spN" maxlength="120" placeholder="e.g. Client Amanjot" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;min-width:220px"></label>
@@ -530,6 +589,7 @@ function renderPasses(body){
     try{ const r=await fetch("/api/scanner/comp",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({key:KEY,note:$("#spN").value,docs:$("#spD").value,days:$("#spY").value})}); const j=await r.json();
       if(r.status===401) return lock("That admin key isn't right."); if(!j.ok) throw new Error(j.error||"Couldn't create the pass");
       spLink=j.link; spForm=false; load(); }catch(x){ alert(x.message); btn.disabled=false; } };
+  if(data.shop) bindShop();
   if($("#spCopy")) $("#spCopy").onclick=()=>{ navigator.clipboard&&navigator.clipboard.writeText(spLink); $("#spCopy").textContent="Copied"; };
 }
 

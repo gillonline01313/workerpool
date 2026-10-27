@@ -5,7 +5,7 @@
 // anonymous counter (a one-way hash of the IP address and the hour) used to stop abuse.
 // Reading needs a paid Scanner Pass (functions/_scanpass.js): each document read counts against it.
 // Set SCANNER_FREE=on in Cloudflare to open the scanner to everyone without a pass.
-import { PASS, readPass, useDoc, view } from "../../_scanpass.js";
+import { PASS, readPass, useDoc, view, priceCents, money } from "../../_scanpass.js";
 
 const MODELS = ["@cf/meta/llama-4-scout-17b-16e-instruct", "@cf/mistralai/mistral-small-3.1-24b-instruct"];
 const KINDS = ["passport", "language", "work", "education", "spouse", "other", "notes"];
@@ -16,7 +16,8 @@ const PER_DAY = 5000;            // reads across the whole site per day (cost gu
 const NO_STORE = { "cache-control": "no-store", "x-stored": "none" };
 
 export async function onRequestGet({ env }) {
-  return new Response(JSON.stringify({ ok: true, ai: !!(env.AI && env.AI.run), free: env.SCANNER_FREE === "on", payments: !!env.STRIPE_SECRET_KEY, price: PASS.label, days: PASS.days, docs: PASS.docs }), { headers: { "content-type": "application/json", ...NO_STORE } });
+  const cents = env.DB ? await priceCents(env) : PASS.amount;
+  return new Response(JSON.stringify({ ok: true, ai: !!(env.AI && env.AI.run), free: env.SCANNER_FREE === "on", payments: !!env.STRIPE_SECRET_KEY, price: money(cents), cents, days: PASS.days, docs: PASS.docs }), { headers: { "content-type": "application/json", ...NO_STORE } });
 }
 
 export async function onRequestPost({ request, env }) {
