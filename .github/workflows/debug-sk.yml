@@ -1,0 +1,29 @@
+name: Debug SK and Yukon pages
+on:
+  push:
+    branches: [draws-debug-sk]
+permissions:
+  contents: write
+jobs:
+  grab:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get install -y poppler-utils >/dev/null
+      - name: Fetch pages
+        run: |
+          mkdir -p debug && cd debug
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
+          curl -sL -A "$UA" "https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/by-immigrating/saskatchewan-immigrant-nominee-program/browse-sinp-programs/applicants-international-skilled-workers/international-skilled-worker-eoi-system" -o sk.html || true
+          grep -o 'href="[^"]*publications.saskatchewan.ca[^"]*"[^>]*>[^<]*' sk.html > sk-links.txt || true
+          URL=$(grep -o 'https://publications.saskatchewan.ca[^"]*download' sk.html | head -1); echo "$URL" > sk-pdf-url.txt
+          [ -n "$URL" ] && curl -sL -A "$UA" "$URL" -o sk.pdf && pdftotext -layout sk.pdf sk.txt && pdftotext sk.pdf sk-raw.txt || true
+          curl -sL -A "$UA" "https://yukon.ca/en/yukon-nominee-program" -o yt.html || true
+          curl -sL -A "$UA" "https://yukon.ca/en/news" -o yt-news.html || true
+          curl -sL -A "$UA" "https://yukon.ca/en/news/update-invitations-apply-yukon-nominee-program-2025" -o yt-2025.html || true
+          for f in yt.html yt-news.html yt-2025.html; do sed -e 's/<script[^>]*>.*<\/script>//g' -e 's/<[^>]*>/ /g' "$f" | tr -s ' \n' > "${f%.html}.txt"; done
+          grep -oi 'href="[^"]*nominee[^"]*"' yt-news.html yt.html | sort -u > yt-links.txt || true
+          ls -la
+      - run: |
+          git config user.name "debug"; git config user.email "debug@workerpool.ca"
+          git add debug && git commit -m "debug pages" && git push
