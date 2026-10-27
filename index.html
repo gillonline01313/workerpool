@@ -78,18 +78,6 @@ a:focus-visible,.btn:focus-visible,summary:focus-visible{outline:2px solid var(-
 
 /* latest draws */
 #draws{scroll-margin-top:60px}
-.vstats{padding-block:0 clamp(8px,2vw,16px)}
-.vs-card{display:flex;align-items:center;gap:clamp(14px,3vw,28px);background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px clamp(14px,3vw,24px);box-shadow:0 20px 40px -34px rgba(30,60,55,.45)}
-.vs-lab{flex:none;display:flex;align-items:center;gap:9px;font-size:.74rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
-.vs-dot{width:9px;height:9px;border-radius:50%;background:#1f9d63;box-shadow:0 0 0 0 rgba(31,157,99,.55);animation:vsPing 2s ease-out infinite}
-@keyframes vsPing{0%{box-shadow:0 0 0 0 rgba(31,157,99,.5)}70%,100%{box-shadow:0 0 0 9px rgba(31,157,99,0)}}
-.vs-grid{flex:1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-.vs-t{display:flex;flex-direction:column;gap:2px;padding:6px 12px;border-left:1px solid var(--line)}
-.vs-t b{font-family:var(--display);font-size:clamp(1.25rem,2.6vw,1.7rem);font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.vs-t span{font-size:.78rem;color:var(--muted);line-height:1.3}
-.vs-t.now b{color:#1f9d63}
-@media (max-width:760px){.vs-card{flex-direction:column;align-items:stretch;gap:10px}.vs-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.vs-t{border-left:0;padding:6px 4px}.vs-t.now{grid-column:1/-1;flex-direction:row;align-items:baseline;gap:8px;padding-bottom:2px}}
-@media (prefers-reduced-motion:reduce){.vs-dot{animation:none}}
 .draws-sec{padding-block:clamp(36px,6vw,64px);background:linear-gradient(180deg,var(--bg),var(--band))}
 .dr-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:clamp(20px,3.4vw,36px);position:relative;overflow:hidden;box-shadow:0 18px 40px -28px rgba(20,50,46,.35)}
 .dr-card::before{content:"";position:absolute;inset:0 0 auto;height:5px;background:linear-gradient(90deg,var(--accent),#e0a73c)}
@@ -359,21 +347,6 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
           <span class="chip off">Marketing emails off</span>
         </div>
       </aside>
-    </div>
-  </section>
-
-  <section class="vstats" aria-label="Visitors to WorkerPool" data-sec="Visitor counter">
-    <div class="in">
-      <div class="vs-card">
-        <div class="vs-lab"><span class="vs-dot" aria-hidden="true"></span><span>Live visitors</span></div>
-        <div class="vs-grid" id="vstats">
-          <div class="vs-t now"><b data-k="now">–</b><span>On the site now</span></div>
-          <div class="vs-t"><b data-k="today">–</b><span>Today</span></div>
-          <div class="vs-t"><b data-k="week">–</b><span>This week</span></div>
-          <div class="vs-t"><b data-k="month">–</b><span>This month</span></div>
-          <div class="vs-t"><b data-k="total">–</b><span id="vsSince">Since launch</span></div>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -656,24 +629,5 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
 <script src="/assets/ticker.js?v=3" defer></script>
 <script src="/assets/draws.js?v=2" defer></script>
 <script src="/assets/chat.js?v=4" defer></script>
-<script>
-/* Live visitor counter (home page only): unique visitors from /api/stats, refreshed every minute. */
-(function(){
-  const box=document.getElementById("vstats"); if(!box) return;
-  const fmt=n=>Number(n||0).toLocaleString("en-CA"), shown={};
-  const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
-  function animate(el,to){ const from=shown[el.dataset.k]??0; shown[el.dataset.k]=to;
-    if(reduce||from===to){ el.textContent=fmt(to); return; }
-    const t0=performance.now(),d=900; const f=t=>{ const k=Math.min(1,(t-t0)/d); el.textContent=fmt(Math.round(from+(to-from)*(1-Math.pow(1-k,3)))); if(k<1) requestAnimationFrame(f); }; requestAnimationFrame(f); }
-  async function load(){
-    if(document.hidden) return;
-    try{ const j=await (await fetch("/api/stats",{cache:"no-store"})).json(); if(!j.ok) return;
-      box.querySelectorAll("[data-k]").forEach(el=>animate(el,j[el.dataset.k]));
-      if(j.since) document.getElementById("vsSince").textContent="Since "+new Date(j.since).toLocaleDateString("en-CA",{month:"short",year:"numeric",timeZone:"America/Edmonton"});
-    }catch(e){}
-  }
-  load(); setInterval(load,60000); document.addEventListener("visibilitychange",()=>{ if(!document.hidden) load(); });
-})();
-</script>
 </body>
 </html>

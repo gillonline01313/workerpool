@@ -112,6 +112,19 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
 .nw-tag{display:inline-block;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:5px;margin-right:6px;vertical-align:1px}
 .nw-tag.hot{background:#ff5a36;color:#fff}.nw-tag.new{background:#ffd23f;color:#2a2100}.nw-tag.trending{background:#7c5cff;color:#fff}.nw-tag.update{background:var(--accent-soft);color:var(--fg)}
 .nw-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.vs-card{display:flex;align-items:center;gap:24px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 20px;margin:0 0 16px}
+.vs-lab{flex:none;display:flex;flex-direction:column;gap:4px;font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.vs-l{display:flex;align-items:center;gap:8px}
+.vs-lab small{font-size:.7rem;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted)}
+.vs-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#1f9d63;animation:vsPing 2s ease-out infinite}
+@keyframes vsPing{0%{box-shadow:0 0 0 0 rgba(31,157,99,.5)}70%,100%{box-shadow:0 0 0 9px rgba(31,157,99,0)}}
+.vs-grid{flex:1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.vs-t{display:flex;flex-direction:column;gap:2px;padding:4px 12px;border-left:1px solid var(--line)}
+.vs-t b{font-size:1.5rem;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.vs-t span{font-size:.78rem;color:var(--muted)}
+.vs-t.now b{color:#1f9d63}
+@media (max-width:760px){.vs-card{flex-direction:column;align-items:stretch;gap:8px}.vs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vs-t{border-left:0;padding:4px 2px}}
+@media (prefers-reduced-motion:reduce){.vs-dot{animation:none}}
 </style>
 </head>
 <body>
@@ -137,6 +150,16 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="forum" aria-pressed="false">Forum</button>
       <button type="button" data-t="chat" aria-pressed="false" id="chatTab">Live chat</button></div>
       <button class="wpa-close" type="button" id="out">Lock</button></div></div>
+  <section class="vs-card" aria-label="Live visitors">
+    <div class="vs-lab"><span class="vs-l"><span class="vs-dot" aria-hidden="true"></span>Live visitors</span><small id="vsAt"></small></div>
+    <div class="vs-grid" id="vstats">
+      <div class="vs-t now"><b data-k="now">–</b><span>On the site now</span></div>
+      <div class="vs-t"><b data-k="today">–</b><span>Today</span></div>
+      <div class="vs-t"><b data-k="week">–</b><span>This week</span></div>
+      <div class="vs-t"><b data-k="month">–</b><span>This month</span></div>
+      <div class="vs-t"><b data-k="total">–</b><span id="vsSince">Since launch</span></div>
+    </div>
+  </section>
   <div id="ctl" class="wpa-ctl"></div>
   <div id="wpaBody"></div>
 </div>
@@ -187,7 +210,22 @@ $("#gate").onsubmit=e=>{ e.preventDefault(); KEY=$("#key").value.trim(); if(!KEY
 $("#out").onclick=()=>lock("");
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; newsEdit=null; drEdit=null; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
 let iv=null;
-function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); }
+function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); vsStart(); }
+/* ---------- Live visitors (unique visitors, Edmonton time; refreshed every 30 seconds) ---------- */
+let vsIv=null; const vsShown={};
+function vsAnim(el,to){ const from=vsShown[el.dataset.k]??0; vsShown[el.dataset.k]=to; const f0=n=>Number(n||0).toLocaleString("en-CA");
+  if(from===to||matchMedia("(prefers-reduced-motion: reduce)").matches){ el.textContent=f0(to); return; }
+  const t0=performance.now(); const step=t=>{ const k=Math.min(1,(t-t0)/800); el.textContent=f0(Math.round(from+(to-from)*(1-Math.pow(1-k,3)))); if(k<1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
+async function vsLoad(){
+  if(document.hidden||!KEY) return;
+  try{ const r=await fetch("/api/stats",{headers:{"x-admin-key":KEY},cache:"no-store"}); if(r.status===401) return; const j=await r.json(); if(!j.ok) return;
+    document.querySelectorAll("#vstats [data-k]").forEach(el=>vsAnim(el,j[el.dataset.k]));
+    if(j.since) $("#vsSince").textContent="Since "+new Date(j.since).toLocaleDateString("en-CA",{month:"short",year:"numeric",timeZone:"America/Edmonton"});
+    $("#vsAt").textContent="Updated "+new Date(j.at).toLocaleTimeString("en-CA",{hour:"numeric",minute:"2-digit",timeZone:"America/Edmonton"});
+  }catch(e){}
+}
+function vsStart(){ vsLoad(); clearInterval(vsIv); vsIv=setInterval(vsLoad,30000); }
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&!$("#app").hidden) vsLoad(); });
 function seg(name,opts,cur,cb){ return `<div class="wpa-seg" data-seg="${name}">${opts.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${String(v)===String(cur)}">${l}</button>`).join("")}</div>`; }
 function controls(){
   const c=$("#ctl");

@@ -1,6 +1,6 @@
-// Public visitor counts for the home page: unique visitors (one per browser) today, this week (from Monday),
+// Visitor counts for the admin dashboard (needs the x-admin-key header): unique visitors (one per browser) today, this week (from Monday),
 // this month and since launch, in Edmonton time, plus how many are on the site right now (active in the
-// last 5 minutes). Cached for 60 seconds so the counter never puts load on the database.
+// last 5 minutes).
 import { json } from "../_lib.js";
 const TZ = "America/Edmonton";
 
@@ -16,10 +16,13 @@ function startOf(now, unit) {
   return new Date(Date.UTC(y, m - 1, d) - mins * 60000).toISOString();
 }
 
-export async function onRequestGet({ request, env, waitUntil }) {
-  const cache = caches.default, key = new Request(new URL("/api/stats?v=1", request.url).toString());
-  const hit = await cache.match(key);
-  if (hit) return hit;
+function same(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0;
+}
+
+export async function onRequestGet({ request, env }) {
+  if (!env.ADMIN_KEY || !same(request.headers.get("x-admin-key") || "", env.ADMIN_KEY)) return json({ ok: false, error: "Wrong admin key." }, 401);
   const now = new Date();
   const r = await env.DB.prepare(
     `SELECT COUNT(DISTINCT CASE WHEN t >= ?1 THEN vid END) AS today,
@@ -29,8 +32,5 @@ export async function onRequestGet({ request, env, waitUntil }) {
             COUNT(DISTINCT vid) AS total, MIN(t) AS since
      FROM visits WHERE page IS NULL OR page <> 'admin'`
   ).bind(startOf(now, "day"), startOf(now, "week"), startOf(now, "month"), new Date(now.getTime() - 5 * 60000).toISOString()).first();
-  const res = new Response(JSON.stringify({ ok: true, today: r.today || 0, week: r.week || 0, month: r.month || 0, now: Math.max(1, r.now || 0), total: r.total || 0, since: r.since, at: now.toISOString() }),
-    { headers: { "content-type": "application/json", "cache-control": "public, max-age=60" } });
-  waitUntil(cache.put(key, res.clone()));
-  return res;
+  return json({ ok: true, today: r.today || 0, week: r.week || 0, month: r.month || 0, now: r.now || 0, total: r.total || 0, since: r.since, at: now.toISOString() });
 }
