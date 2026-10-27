@@ -1,0 +1,370 @@
+{
+ "pictou": [
+  {
+   "u": "https://pictoucountypartnership.com/rcip/",
+   "status": 200,
+   "final": "https://pictoucountypartnership.com/program/rural-community-immigration-pilot-rcip/",
+   "len": 7000
+  },
+  {
+   "u": "https://pictoucountypartnership.com/program/rural-community-immigration-pilot-rcip/",
+   "status": 200,
+   "final": "https://pictoucountypartnership.com/program/rural-community-immigration-pilot-rcip/",
+   "len": 7000
+  }
+ ],
+ "northbay": [
+  {
+   "u": "https://nbrcip.ca/",
+   "status": 403,
+   "final": "https://nbrcip.ca/",
+   "len": 16
+  }
+ ],
+ "sudbury": [
+  {
+   "u": "https://investsudbury.ca/why-sudbury/newcomers/rcipfcip/",
+   "status": 200,
+   "final": "https://investsudbury.ca/why-sudbury/newcomers/rcipfcip/",
+   "len": 50716
+  },
+  {
+   "u": "https://investsudbury.ca/why-sudbury/newcomers/rcip-and-fcip-candidates/",
+   "status": 200,
+   "final": "https://investsudbury.ca/why-sudbury/newcomers/rcip-and-fcip-candidates/",
+   "len": 14174
+  },
+  {
+   "u": "https://investsudbury.ca/news/",
+   "status": 200,
+   "final": "https://investsudbury.ca/news/",
+   "len": 34538
+  },
+  {
+   "u": "https://investsudbury.ca/why-sudbury/newcomers/rcipfcip/rcip-program-community-scoring-grid/",
+   "status": 200,
+   "final": "https://investsudbury.ca/why-sudbury/newcomers/rcipfcip/rcip-program-community-scoring-grid/",
+   "len": 11015
+  }
+ ],
+ "timmins": [
+  {
+   "u": "https://timminsedc.com/immigration/",
+   "status": 200,
+   "final": "https://timminsedc.com/immigration/",
+   "len": 25034
+  },
+  {
+   "u": "https://www.timminsedc.com/rcip-fcip/",
+   "status": 404,
+   "final": "https://timminsedc.com/rcip-fcip/",
+   "len": 985
+  },
+  {
+   "u": "https://timminsedc.com/newsroom/",
+   "status": 200,
+   "final": "https://timminsedc.com/newsroom/",
+   "len": 3491
+  },
+  {
+   "u": "https://timminsedc.com/wp-content/uploads/2026/10/6-RCIP-FCIP-Draw-Statistics.pdf",
+   "status": 200,
+   "final": "https://timminsedc.com/wp-content/uploads/2026/10/6-RCIP-FCIP-Draw-Statistics.pdf",
+   "len": 145877
+  }
+ ],
+ "ssm": [
+  {
+   "u": "https://welcometossm.com/rcip/",
+   "status": 200,
+   "final": "https://welcometossm.com/rcip/",
+   "len": 5221
+  }
+ ],
+ "thunderbay": [
+  {
+   "u": "https://gotothunderbay.ca/why-thunder-bay/immigration/",
+   "status": 200,
+   "final": "https://gotothunderbay.ca/immigration/",
+   "len": 3339
+  },
+  {
+   "u": "https://gotothunderbay.ca/rural-community-immigration-pilot-rcip/",
+   "status": 200,
+   "final": "https://gotothunderbay.ca/rural-community-immigration-pilot-rcip/",
+   "len": 18194
+  },
+  {
+   "u": "https://gotothunderbay.ca/news/",
+   "status": 200,
+   "final": "https://gotothunderbay.ca/news/",
+   "len": 9287
+  },
+  {
+   "u": "https://gotothunderbay.ca/site-selection/",
+   "status": 200,
+   "final": "https://gotothunderbay.ca/site-selection/",
+   "len": 3224
+  },
+  {
+   "u": "https://gotothunderbay.ca/wp-content/uploads/2026/07/Scoring-Grid-Thunder-Bay-Updated-July-2026-1.pdf",
+   "status": 200,
+   "final": "https://gotothunderbay.ca/wp-content/uploads/2026/07/Scoring-Grid-Thunder-Bay-Updated-July-2026-1.pdf",
+   "len": 127056
+  }
+ ],
+ "steinbach": [
+  {
+   "u": "https://steinbachedc.com/rcip/",
+   "status": 200,
+   "final": "https://steinbachedc.com/rcip/",
+   "len": 60092
+  },
+  {
+   "u": "https://steinbachedc.com/news/",
+   "status": 200,
+   "final": "https://steinbachedc.com/news/",
+   "len": 1420
+  },
+  {
+   "u": "https://steinbachedc.com/wp-content/uploads/2026/04/SED-Employer-Recommendation-Checklist-1.pdf",
+   "status": 200,
+   "final": "https://steinbachedc.com/wp-content/uploads/2026/04/SED-Employer-Recommendation-Checklist-1.pdf",
+   "len": 166972
+  },
+  {
+   "u": "https://steinbachedc.com/wp-content/uploads/2026/03/SED-Recommendation-Application-Form.pdf",
+   "status": 200,
+   "final": "https://steinbachedc.com/wp-content/uploads/2026/03/SED-Recommendation-Application-Form.pdf",
+   "len": 335839
+  },
+  {
+   "u": "https://steinbachedc.com/wp-content/uploads/2026/03/SED-Recommendation-Application-Guidelines.pdf",
+   "status": 200,
+   "final": "https://steinbachedc.com/wp-content/uploads/2026/03/SED-Recommendation-Application-Guidelines.pdf",
+   "len": 130502
+  }
+ ],
+ "altona": [
+  {
+   "u": "https://ared-rpga.com/immigration/rcip/",
+   "status": 200,
+   "final": "https://ared-rpga.com/immigration/rcip/",
+   "len": 3808
+  },
+  {
+   "u": "https://ared-rpga.com/news/",
+   "status": 200,
+   "final": "https://ared-rpga.com/news/",
+   "len": 4785
+  },
+  {
+   "u": "https://ared-rpga.com/news",
+   "status": 200,
+   "final": "https://ared-rpga.com/news/",
+   "len": 4785
+  }
+ ],
+ "brandon": [
+  {
+   "u": "https://economicdevelopmentbrandon.com/rcip/rcip",
+   "error": "fetch failed"
+  },
+  {
+   "u": "https://economicdevelopmentbrandon.com/rcip/",
+   "error": "fetch failed"
+  }
+ ],
+ "moosejaw": [
+  {
+   "u": "https://rcip.mjchamber.com/",
+   "status": 200,
+   "final": "https://rcip.mjchamber.com/",
+   "len": 3428
+  }
+ ],
+ "claresholm": [
+  {
+   "u": "https://claresholm-rcip.ca/",
+   "status": 200,
+   "final": "https://claresholm-rcip.ca/",
+   "len": 28709
+  },
+  {
+   "u": "https://www.claresholm.ca/business/labour-resources/rural-community-immigration-pilot",
+   "status": 200,
+   "final": "https://www.claresholm.ca/business/labour-resources/rural-community-immigration-pilot",
+   "len": 37241
+  },
+  {
+   "u": "https://www.claresholm.ca/residents/news",
+   "status": 200,
+   "final": "https://www.claresholm.ca/residents/news",
+   "len": 8562
+  },
+  {
+   "u": "https://www.claresholm.ca/recreation/facilities/campground",
+   "status": 200,
+   "final": "https://www.claresholm.ca/recreation/facilities/campground",
+   "len": 9324
+  }
+ ],
+ "westkootenay": [
+  {
+   "u": "https://wk-rnip.ca/",
+   "status": 200,
+   "final": "https://westkootenayimmigration.ca/",
+   "len": 4272
+  },
+  {
+   "u": "https://westkootenayimmigration.ca/",
+   "status": 200,
+   "final": "https://westkootenayimmigration.ca/",
+   "len": 4272
+  },
+  {
+   "u": "https://westkootenayimmigration.ca/apply/",
+   "status": 200,
+   "final": "https://westkootenayimmigration.ca/apply/",
+   "len": 7645
+  },
+  {
+   "u": "https://westkootenayimmigration.ca/updates/",
+   "status": 200,
+   "final": "https://westkootenayimmigration.ca/updates/",
+   "len": 6043
+  }
+ ],
+ "nos": [
+  {
+   "u": "https://rcipnorthokanaganshuswap.com/",
+   "status": 200,
+   "final": "https://rcipnorthokanaganshuswap.com/",
+   "len": 3804
+  },
+  {
+   "u": "https://northokanaganshuswapimmigration.ca/",
+   "error": "fetch failed"
+  }
+ ],
+ "peaceliard": [
+  {
+   "u": "https://www.nebcimmigration.ca/",
+   "status": 200,
+   "final": "https://www.nebcimmigration.ca/",
+   "len": 2940
+  },
+  {
+   "u": "https://www.nebcimmigration.ca/blog",
+   "status": 200,
+   "final": "https://www.nebcimmigration.ca/blog",
+   "len": 2629
+  }
+ ],
+ "acadian": [
+  {
+   "u": "https://inspirepeninsuleacadienne.ca/programme-pilote-immigration-communautes-francophones/",
+   "status": 200,
+   "final": "https://inspirepeninsuleacadienne.ca/programme-pilote-immigration-communautes-francophones/",
+   "len": 21275
+  }
+ ],
+ "superioreast": [
+  {
+   "u": "https://superioreastcfdc.ca/superioreastcfdc.ca/index.php/en-ca/fcip",
+   "status": 200,
+   "final": "https://superioreastcfdc.ca/superioreastcfdc.ca/index.php/fcip",
+   "len": 3107
+  },
+  {
+   "u": "https://superioreastcfdc.ca/superioreastcfdc.ca/index.php/news",
+   "status": 200,
+   "final": "https://superioreastcfdc.ca/superioreastcfdc.ca/index.php/news",
+   "len": 1881
+  }
+ ],
+ "stpierre": [
+  {
+   "u": "https://villagestpierrejolys.ca/p/francophone-communities-immigration-pilot-program",
+   "status": 200,
+   "final": "https://villagestpierrejolys.ca/p/francophone-communities-immigration-pilot-program",
+   "len": 9013
+  },
+  {
+   "u": "https://villagestpierrejolys.ca/p/rv-campground",
+   "status": 200,
+   "final": "https://villagestpierrejolys.ca/p/rv-campground",
+   "len": 9036
+  },
+  {
+   "u": "https://villagestpierrejolys.ca/p/annual-report-community-update",
+   "status": 200,
+   "final": "https://villagestpierrejolys.ca/p/annual-report-community-update",
+   "len": 7864
+  },
+  {
+   "u": "https://villagestpierrejolys.ca/p/news-updates",
+   "status": 200,
+   "final": "https://villagestpierrejolys.ca/p/news-updates",
+   "len": 8210
+  },
+  {
+   "u": "https://villagestpierrejolys.ca/p/newsletters",
+   "status": 200,
+   "final": "https://villagestpierrejolys.ca/p/newsletters",
+   "len": 7313
+  },
+  {
+   "u": "https://villagestpierrejolys.ca/p/register-for-newsletter",
+   "status": 200,
+   "final": "https://villagestpierrejolys.ca/p/register-for-newsletter",
+   "len": 7519
+  },
+  {
+   "u": "https://villagestpierrejolys.ca/p/past-newsletters",
+   "status": 200,
+   "final": "https://villagestpierrejolys.ca/p/past-newsletters",
+   "len": 7310
+  },
+  {
+   "u": "https://villagestpierrejolys.ca/p/personal-information-update",
+   "status": 200,
+   "final": "https://villagestpierrejolys.ca/p/personal-information-update",
+   "len": 8804
+  }
+ ],
+ "kelowna": [
+  {
+   "u": "https://www.sdecb.com/en/pilot-program/",
+   "status": 200,
+   "final": "https://www.sdecb.com/en/pilot-program/",
+   "len": 13777
+  },
+  {
+   "u": "https://www.sdecb.com/en/about/annual-reports-and-results/",
+   "status": 200,
+   "final": "https://www.sdecb.com/en/about/annual-reports-and-results/",
+   "len": 5531
+  }
+ ],
+ "nwt": [
+  {
+   "u": "https://www.immigratenwt.ca/",
+   "status": 200,
+   "final": "https://www.immigratenwt.ca/",
+   "len": 910
+  },
+  {
+   "u": "https://www.immigratenwt.ca/news",
+   "status": 404,
+   "final": "https://www.immigratenwt.ca/news",
+   "len": 695
+  },
+  {
+   "u": "https://www.immigratenwt.ca/newsroom",
+   "status": 200,
+   "final": "https://www.immigratenwt.ca/newsroom",
+   "len": 1800
+  }
+ ]
+}
