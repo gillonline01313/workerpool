@@ -1,2 +1,0 @@
-TIMEOUT ta noc21_code:21232
-TIMEOUT ta noc21_code%3A72310
