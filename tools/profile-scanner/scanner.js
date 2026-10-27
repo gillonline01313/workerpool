@@ -133,7 +133,55 @@ async function claimFromUrl() {
   else await checkPass();
   if (msg) toast(msg);
 }
+/* ---- Google Play Billing, used instead of Stripe inside the WorkerPool Android app ---- */
+const PLAY_SKU = "scanner_pass", PLAY_METHOD = "https://play.google.com/billing";
+const IN_APP = (() => {
+  const hit = /^android-app:\/\/ca\.workerpool\.app/.test(document.referrer) || /[?&]source=android-app/.test(location.search);
+  try { if (hit) sessionStorage.setItem("wp_app", "1"); return sessionStorage.getItem("wp_app") === "1"; } catch (e) { return hit; }
+})();
+let PLAYSVC = null;
+const setPrice = (p) => document.querySelectorAll("[data-price]").forEach((el) => el.textContent = p);
+function playUnavailable() {
+  document.querySelectorAll("#buy,[data-buy],#demoBuy").forEach((b) => b.disabled = true);
+  pmsg("Purchases need the latest WorkerPool app and Google Chrome. Update both from Google Play, then reopen the app.");
+}
+async function initPlay() {
+  if (!IN_APP) return;
+  $("payNote").textContent = "Secure checkout by Google Play.";
+  $("showRestore").textContent = "Already have a pass?";
+  if (!("getDigitalGoodsService" in window)) return playUnavailable();
+  try { PLAYSVC = await window.getDigitalGoodsService(PLAY_METHOD); } catch (e) { PLAYSVC = null; }
+  if (!PLAYSVC) return playUnavailable();
+  try {
+    const [d] = await PLAYSVC.getDetails([PLAY_SKU]);
+    if (d && d.price) { setPrice(new Intl.NumberFormat("en-CA", { style: "currency", currency: d.price.currency }).format(+d.price.value)); $("priceCur").textContent = d.price.currency; }
+  } catch (e) {}
+  // Finish any purchase that was paid but not yet turned into a pass (app closed mid-way, network drop).
+  try { for (const p of await PLAYSVC.listPurchases()) if (p.itemId === PLAY_SKU) await redeemPlay(p.purchaseToken, true); } catch (e) {}
+}
+async function redeemPlay(purchaseToken, quiet) {
+  try {
+    const j = await (await fetch("/api/scanner/play", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ purchaseToken }) })).json();
+    if (j.ok) { savePass(j.token); PASSINFO = { valid: true, ...j }; toast("Purchase confirmed. Your scanner is unlocked."); track("play pass"); if (!$("unlock").hidden) show("p1"); return true; }
+    if (!quiet) pmsg(j.error || "We couldn't confirm your purchase yet. Reopen the app in a minute and it will finish automatically.");
+  } catch (e) { if (!quiet) pmsg("We couldn't reach WorkerPool to confirm your purchase. Reopen the app when you're online and it will finish automatically."); }
+  return false;
+}
+async function buyPlay(btn) {
+  if (!PLAYSVC) return playUnavailable();
+  track("play checkout");
+  let resp;
+  try {
+    const req = new PaymentRequest([{ supportedMethods: PLAY_METHOD, data: { sku: PLAY_SKU } }], { total: { label: "Total", amount: { currency: "CAD", value: "0" } } });
+    resp = await req.show();
+  } catch (e) { if (e && e.name !== "AbortError") pmsg("The purchase didn't go through. You haven't been charged."); return; }
+  btn.disabled = true;
+  const ok = await redeemPlay(resp.details.purchaseToken);
+  try { await resp.complete(ok ? "success" : "fail"); } catch (e) {}
+  btn.disabled = false;
+}
 async function buy(btn) {
+  if (IN_APP) return buyPlay(btn);
   btn.disabled = true; const t = btn.textContent; btn.textContent = "Opening secure checkout…"; track("checkout");
   try { const j = await (await fetch("/api/scanner/checkout", { method: "POST" })).json(); if (j.ok && j.url) { location.href = j.url; return; } pmsg(j.error || "Checkout isn't available right now."); }
   catch (e) { pmsg("Checkout isn't available right now. Please try again."); }
@@ -823,12 +871,12 @@ $("back1").onclick = () => show("p1");
 $("edit").onclick = () => { renderReview(); show("p2"); };
 $("print").onclick = () => window.print();
 $("restart").onclick = () => { if (!confirm("Clear everything and start over?")) return; RESULTS = []; RECEIPT = []; NOTES = null; M = null; SRC = {}; FILES = Object.fromEntries(SLOTS.map((s) => [s.k, []])); $("notes").value = ""; $("agree").checked = false; renderSlots(); show("p1"); };
-Promise.all([fetch("/api/tools/scan").then((r) => r.json()).catch(() => ({})), claimFromUrl()]).then(([j]) => {
+Promise.all([fetch("/api/tools/scan").then((r) => r.json()).catch(() => ({})), claimFromUrl(), initPlay()]).then(([j]) => {
   CFG = { free: !!j.free, payments: j.payments !== false, ai: j.ai !== false };
   AI = !!j.ai; $("aiOff").hidden = AI; updGo();
   if ($("p2").hidden && $("p3").hidden && $("pp").hidden) show("p1");
   if (/paid=|pass=/.test(document.referrer) || PASSINFO) renderPass();
 });
 $("p1").hidden = true; // paywall or uploads appear once the pass is checked
-window.__scanner = { crs, toClb, years, toP, build, set: (r, n) => { RESULTS = r; NOTES = n || null; }, get: () => M }; // for tests
+window.__scanner = { inApp: IN_APP, crs, toClb, years, toP, build, set: (r, n) => { RESULTS = r; NOTES = n || null; }, get: () => M }; // for tests
 })();

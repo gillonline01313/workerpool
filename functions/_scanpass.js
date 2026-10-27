@@ -65,3 +65,49 @@ export async function stripe(env, method, path, params) {
 }
 export const isScannerPurchase = (s) => s && s.metadata && s.metadata.product === "profile-scanner" && (s.payment_status === "paid" || s.payment_status === "no_payment_required");
 export const passIdFor = async (sessionId) => "s_" + (await sha(sessionId)).slice(0, 32);
+
+/* ---------- Google Play (purchases made in the Android app) ----------
+   Needs GOOGLE_PLAY_SERVICE_ACCOUNT: the JSON key of a Google Cloud service account that has been
+   invited in Play Console (Users and permissions) with "View financial data" and "Manage orders". */
+export const PLAY = { packageName: "ca.workerpool.app", sku: "scanner_pass" };
+const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const b64urlStr = (s) => b64url(enc.encode(s));
+let cachedToken = null;
+async function googleToken(env) {
+  if (cachedToken && cachedToken.exp > Date.now() + 60000) return cachedToken.token;
+  const sa = JSON.parse(env.GOOGLE_PLAY_SERVICE_ACCOUNT);
+  const now = Math.floor(Date.now() / 1000);
+  const head = b64urlStr(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const body = b64urlStr(JSON.stringify({ iss: sa.client_email, scope: "https://www.googleapis.com/auth/androidpublisher", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 }));
+  const pem = sa.private_key.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+  const der = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey("pkcs8", der, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
+  const sig = b64url(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, enc.encode(head + "." + body)));
+  const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=" + encodeURIComponent("urn:ietf:params:oauth:grant-type:jwt-bearer") + "&assertion=" + head + "." + body + "." + sig });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.access_token) throw new Error("Google sign-in failed: " + (j.error_description || j.error || r.status));
+  cachedToken = { token: j.access_token, exp: Date.now() + (j.expires_in || 3600) * 1000 };
+  return cachedToken.token;
+}
+async function playApi(env, method, token, suffix = "") {
+  const pkg = env.ANDROID_PACKAGE || PLAY.packageName;
+  const r = await fetch(`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${pkg}/purchases/products/${PLAY.sku}/tokens/${encodeURIComponent(token)}${suffix}`, {
+    method, headers: { Authorization: "Bearer " + (await googleToken(env)), ...(method === "POST" ? { "Content-Type": "application/json" } : {}) }, body: method === "POST" ? "{}" : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error("Google Play: " + ((j.error && j.error.message) || r.status));
+  return j;
+}
+// Checks a purchase token with Google, issues the pass, then consumes the purchase (which also
+// acknowledges it, so Google won't refund it, and lets the person buy another pass later).
+export async function claimPlay(env, purchaseToken) {
+  const p = await playApi(env, "GET", purchaseToken);
+  if (p.purchaseState === 2) return { error: "Your payment is still pending. The scanner unlocks as soon as Google Play confirms it." };
+  if (p.purchaseState !== 0) return { error: "This purchase was cancelled." };
+  const id = "g_" + (await sha(purchaseToken)).slice(0, 32);
+  const row = await issue(env, id, { kind: p.purchaseType === 0 ? "play-test" : "play", startsMs: +p.purchaseTimeMillis || Date.now(), amount: PASS.amount, note: p.orderId ? String(p.orderId).slice(0, 60) : null });
+  // A failed consume isn't fatal: the pass exists, and the app retries (listPurchases) on next launch,
+  // well within Google's 3-day acknowledgement window.
+  if (p.consumptionState === 0) { try { await playApi(env, "POST", purchaseToken, ":consume"); } catch (e) { console.warn("Play consume failed", e.message); } }
+  return { row };
+}

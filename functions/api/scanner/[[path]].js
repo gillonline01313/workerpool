@@ -3,10 +3,11 @@
 //   GET  /api/scanner/pass?session_id=  → after payment: checks the session with Stripe, returns the pass token
 //   GET  /api/scanner/status            → (header x-scan-pass) documents left and expiry
 //   POST /api/scanner/restore           → { email }: emails the access link for passes bought in the last 30 days
+//   POST /api/scanner/play            → { purchaseToken }: Google Play purchase from the Android app → pass
 //   POST /api/scanner/comp              → { key: ADMIN_KEY, docs?, days?, note? }: a free pass link (for clients, testing)
 // No webhook is needed: the payment is confirmed directly with Stripe when the buyer comes back.
 import { json, readJson, isEmail, sendEmail } from "../../_lib.js";
-import { PASS, issue, readPass, view, tokenFor, stripe, isScannerPurchase, passIdFor, sha } from "../../_scanpass.js";
+import { PASS, issue, readPass, view, tokenFor, stripe, isScannerPurchase, passIdFor, sha, claimPlay } from "../../_scanpass.js";
 
 const page = (origin) => origin + "/tools/profile-scanner/";
 
@@ -23,6 +24,7 @@ export async function onRequest({ request, env, params }) {
     }
     if (action === "restore" && request.method === "POST") return await restore(request, env, origin);
     if (action === "comp" && request.method === "POST") return await comp(request, env, origin);
+    if (action === "play" && request.method === "POST") return await play(request, env);
   } catch (e) {
     return json({ ok: false, error: "Payment service error. Please try again in a moment." , detail: String(e.message || e).slice(0, 160) }, 502);
   }
@@ -72,6 +74,16 @@ async function restore(request, env, origin) {
       `Here's your link back to the Profile Scanner. Open it on any device to continue:\n\n${links}\n\nEach pass lasts ${PASS.days} days and covers up to ${PASS.docs} documents. Keep this email private: anyone with the link can use your pass.\n\nWorkerPool`);
   }
   return done;
+}
+
+async function play(request, env) {
+  if (!env.GOOGLE_PLAY_SERVICE_ACCOUNT) return json({ ok: false, error: "In-app purchases aren't switched on yet." }, 503);
+  const b = await readJson(request, 6000);
+  const t = String((b && b.purchaseToken) || "");
+  if (!/^[A-Za-z0-9._-]{20,4000}$/.test(t)) return json({ ok: false, error: "That purchase couldn't be read." }, 400);
+  const r = await claimPlay(env, t);
+  if (r.error) return json({ ok: false, error: r.error }, 402);
+  return json({ ok: true, token: await tokenFor(env, r.row.id), ...view(r.row) });
 }
 
 async function comp(request, env, origin) {

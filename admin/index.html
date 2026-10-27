@@ -472,12 +472,12 @@ function drawForm(body){
 let spForm=false, spLink="";
 function renderPasses(body){
   const rows=data.passes||[], now=new Date().toISOString();
-  const paid=rows.filter(r=>r.kind==="stripe"), test=rows.filter(r=>r.kind==="stripe-test"), comp=rows.filter(r=>r.kind==="comp");
+  const paid=rows.filter(r=>r.kind==="stripe"||r.kind==="play"), play=rows.filter(r=>r.kind==="play"), test=rows.filter(r=>/-test$/.test(r.kind)), comp=rows.filter(r=>r.kind==="comp");
   const rev=paid.reduce((s,r)=>s+(r.amount||0),0)/100, docs=rows.reduce((s,r)=>s+r.docs_used,0), active=rows.filter(r=>r.expires>now&&r.docs_used<r.docs_max).length;
   const card=(n,l)=>`<div class="kpi" style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px"><b style="display:block;font-size:1.6rem;font-weight:750">${n}</b><span style="color:var(--muted);font-size:.85rem">${l}</span></div>`;
-  const KIND={stripe:"Paid",["stripe-test"]:"Test payment",comp:"Free pass"};
+  const KIND={stripe:"Paid (website)",["stripe-test"]:"Test payment (website)",play:"Paid (Google Play)",["play-test"]:"Test purchase (Google Play)",comp:"Free pass"};
   body.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px">
-      ${card(paid.length,"Passes sold")}${card("$"+rev.toFixed(2),"Revenue (CAD, before Stripe fees)")}${card(active,"Active passes")}${card(docs,"Documents read")}${card(comp.length,"Free passes given")}${test.length?card(test.length,"Test payments"):""}</div>
+      ${card(paid.length,"Passes sold"+(play.length?` (${play.length} on Google Play)`:""))}${card("$"+rev.toFixed(2),"Revenue (CAD, before Stripe and Google fees)")}${card(active,"Active passes")}${card(docs,"Documents read")}${card(comp.length,"Free passes given")}${test.length?card(test.length,"Test payments"):""}</div>
     ${spForm?`<form id="spF" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px">
       <label style="display:flex;flex-direction:column;font-size:.8rem">Who is it for (note)<input id="spN" maxlength="120" placeholder="e.g. Client Amanjot" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;min-width:220px"></label>
       <label style="display:flex;flex-direction:column;font-size:.8rem">Documents<input id="spD" type="number" min="1" max="500" value="25" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;width:90px"></label>
