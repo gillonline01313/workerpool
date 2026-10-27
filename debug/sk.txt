@@ -1,565 +1,1216 @@
-              OASIS User Guide for Applicants
-        Expression of Interest Profiles for Express Entry and
-                Occupation In- Demand Candidates
-
-
-
-
-For more information, please contact:
-
-Government of Saskatchewan
-Ministry of Immigration and Career Training
-Immigration Services Branch
-Saskatchewan Immigrant Nominee Program
-7th Floor, 1945 Hamilton Street
-Regina, Saskatchewan S4P 2C8
-
-Telephone:    (Canada 001) 833-613-0485
-Facsimile:    (Canada 001) 306-798-0713
-Inquiries:    immigration@gov.sk.ca
-Website:      www.saskatchewan.ca/sinp
-
-
-
-
-Updated July 2022
-Contents
-Introduction ................................................................................................................................................... 1
-Section #1: Create an OASIS Account ......................................................................................................... 2
-Section #2: Enter Personal Details ................................................................................................................ 6
-Section #3: Determine your Eligibility and Sub-category ............................................................................ 9
-Section #4: Declare Consultant (If Applicable) .......................................................................................... 13
-Section #5: Complete EOI Points Grid ....................................................................................................... 14
-   Education and Training ....................................................................................................................... 14
-   Skilled Work Experience ...................................................................................................................... 15
-   Language Ability ................................................................................................................................... 16
-   Age .......................................................................................................................................................... 16
-   Connection to Saskatchewan Labour Market and Adaptability ...................................................... 16
-Section #6: Review and Submit EOI .......................................................................................................... 18
-Canceling your EOI .................................................................................................................................... 19
-Updating Your EOI after Submission ......................................................................................................... 19
-What do I do when I’m invited to apply? ................................................................................................... 19
-SINP – OASIS User Guide for Applicants ................................................................................................. 19
-Introduction
-As of July 16, 2018, all prospective applicants applying under the International Skilled Worker
-Express Entry or Occupation In-Demand subcategories must create an Expression of Interest
-(EOI) profile before they are able to apply. This document provides step-by-step instructions to
-create and submit an Expression of Interest profile.
-
-To learn more about Expression of Interest system, please visit:
-
-         www.saskatchewan.ca/worker-eoi
-
-If you had a pending online application created before July 16, 2018, you can create and submit
-an EOI with your existing SINP account. Please see Section #2 to see instructions on creating an
-EOI.
-
-You must register and create an account on the SINP’s online application system, OASIS, in
-order to create an EOI profile. Please see Section #1 to see instructions on registering.
-
-You are not required to submit any documents in your EOI however we strongly encourage you
-to have all the required documents in your possession in order to complete an application in the
-case that you are invited to apply.
-
-Please review the eligibility criteria before you submit an EOI. The criteria for each category can
-be found at the following links.
-
-Express Entry (if you have an Express Entry profile number):
-https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/by-
-immigrating/saskatchewan-immigrant-nominee-program/browse-sinp-programs/applicants-
-international-skilled-workers/international-skilled-worker-saskatchewan-express-entry
-
-Occupation In-Demand:
-https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/by-
-immigrating/saskatchewan-immigrant-nominee-program/browse-sinp-programs/applicants-
-international-skilled-workers/international-skilled-worker-occupations-in-demand
-
-
-This guide is divided into 6 sections outlining the steps in creating and submitting an
-Expression of Interest (EOI) profile:
-
-    1.   Create an OASIS account
-    2.   Enter personal details
-    3.   Determine your eligibility and sub-category
-    4.   Complete EOI Points Grid
-    5.   Declare Consultant (if applicable)
-    6.   Review and Submit EOI
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                     Page | 1
-July 2022
-Section #1: Create an OASIS Account
-You do not need to create a new account if you previously had a pending application. Please see
-Section #2 to continue.
-
-    •    Click on the following link to access the SINP Online Application system:
-         https://immigration.saskatchewan.ca/
-
-
-
-
-    •    Click on Create an Account.
-    •    Click Select a Registration Type.
-
-
-
-
-    •    Choose your appropriate registration type and click Continue:
-         For Applicants: SINP Applicant or Expression of Interest Candidate
-
-    •    Create a username. Username must not contain spaces or any special characters other
-         than an underscore (‘_’). Your username will be used to access your OASIS account.
-
-            Please type username on the space provided.
-            Please type all other entries in Title Case.
-
-
-OASIS User Guide for Applicants - Expression of Interest                                  Page | 2
-July 2022
-    •    Enter your First, Middle, and Family (Last) Name as they appear on your passport.
-    •    Enter your Date of Birth in DD-Mon-YYYY format.
-    •    Enter your Email address.
-                    This Email address will be used for all future correspondence for your OASIS
-                    application, including password recovery.
-
-
-
-
-    •    Click Submit.
-
-         An email including your username and password will be sent to you. You will need this
-         information to login to OASIS.
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                     Page | 3
-July 2022
-    •    Login to OASIS
-
-         On the login page, type in your username and password sent in the email and click Login.
-
-
-
-
-         The system will then prompt you to change your password.
-
-               Please note the following password requirements:
-               • have at least eight characters;
-               • contain characters from at least three of the following categories:
-                   - English uppercase letters (A – Z);
-                   - English lowercase letters (a – z);
-                   - numbers (0 – 9);
-                   - non-alphanumeric symbols (e.g.:!, #,$,%)
-               • not contain your user’s account name.
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                  Page | 4
-July 2022
-    •    Authority to Disclose Personal Information
-
-         In order to continue logging into OASIS for the first time, all users must agree to disclose
-         information by clicking “I AGREE” button.
-
-
-
-
-    •    User ID or Password Recovery
-
-         In order to recover access to your account, on the login page, click “Forgot your User ID
-         or Password?”, then choose Recovery Method.
-
-
-
-
-         Choose “User ID” to reset your password. You will be asked to enter the username used
-         when you created your account. An email containing the username and temporary
-         password will be sent to the email address associated with your User ID (or username).
-
-         If you want to recover your account using the email address used, click “Email” as
-         recovery method. A list of usernames associated with your email address will be sent to
-         you by email. To reset the password, you will need to perform the previous step using
-         recovery method “User ID”.
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                      Page | 5
-July 2022
-Section #2: Enter Personal Details
-
-    •    Click on “Please click here to begin” button
-
-
-
-
-    •    Fill in all Applicant Information and Passport Details required below:
-
-
-
-
-    •    Fill in Residential/Home Address:
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                          Page | 6
-July 2022
-         If your Home Address is outside Canada, under Province/State, choose
-         International/Outside Canada and type in your province.
-
-
-
-
-         If your Home Address is the same as your mailing address, choose ‘Yes’ for the question
-         ‘Is the mailing address the same as the Residential/Home Address?’.
-
-
-
-
-    •    Fill in mailing address and telephone number if different from your home address:
-
-
-
-
-                     The Applicant's Email Address is a required field and must include the applicant's
-                     email address for the application to be considered complete. The application may
-                     be subject to an integrity review for misrepresentation if the email address entered
-                     in the Applicant's Email Address is not the applicant's email address.
-
-    •    Select one that applies to you:
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                          Page | 7
-July 2022
-    •       Choose ‘Yes’ if you are appointing a representative, otherwise choose ‘No’.
-
-
-
-
-        •    Fill in the email address for the Consultant if you select ‘Yes’
-
-
-
-
-        •    Click on the link below for information about use of a representative:
-
-             https://www.saskatchewan.ca/residents/moving-to-saskatchewan/provide-immigration-
-             services/immigration-consultant-and-foreign-worker-recruiter-licensing-and-
-             responsibilities
-
-
-             Click                                     to proceed.
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                  Page | 8
-July 2022
-Section #3: Determine your Eligibility and Sub-category
-
-       •    You must answer the series of questions on this page to determine eligibility and
-            application category.
-
-            If you are eligible under the Occupations In-Demand or Express Entry sub-
-            categories, you will be able to submit an Expression of Interest (EOI).
-
-            If you are submitting an EOI for Occupations In-Demand, you must answer the
-            questions as shown below and choose your intended occupation NOC. You must have
-            at least one-year paid work experience in the past ten years in your field of education or
-            training to be eligible.
-
-
-
-
-            If you are submitting an EOI for Express Entry, you must be accepted into IRCC’s
-            Express Entry Pool, have an Express Entry Profile Number and Job Seeker Validation
-            Code. You must meet the minimum work experience requirement for Express Entry as
-            outlined in the eligibility criteria.
-
-
-
-
-            Please note that the occupations in this list may change based on Saskatchewan’s
-            employment demand forecast.
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                        Page | 9
-July 2022
-            Your intended occupation may be regulated or requires professional certification.
-
-            Please see the following links for this requirement:
-
-            Regulated Occupations and Licensing Requirements
-
-            https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-
-            saskatchewan/to-work/regulated-occupations-and-licensing-
-            requirements/saskatchewan-regulatory-bodies
-
-            SINP Requirements Related to Professional Status or Licensure
-            https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-
-            saskatchewan/to-work/regulated-occupations-and-licensing-requirements
-
-            https://publications.saskatchewan.ca/api/v1/products/102710/formats/113852/download
-
-            If you are invited to apply, the SINP will review your education, work experience and
-            intended occupation and, if required, will notify you to provide the required
-            documentation. If you have an occupation that requires this documentation, the
-            processing of your application will be paused until you obtain the required
-            documentation.
-
-            You must respond to all remaining questions below before you can proceed.
-
-
-
-
-            Click             to save your responses, and
-
-            Click                                      to check the application category you are applying
-            under.
-
-            If the category shown is not what you are intending to apply under, you may change
-            your responses by clicking on
-
-            or click “No” for more information.
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                               Page | 10
-July 2022
-            A sample screenshot is shown below:
-
-
-
-
-            If the category shown is correct, click “Yes” button to proceed.
-
-
-       •    Review your Birthdate and Address Information. If you want to update your personal
-            details, please click on Edit Birthdate and/or Address button.
-
-
-
-
-            After making changes, click “Confirm…” button then Next.
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                  Page | 11
-July 2022
-       •    Review Eligibility for Application
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest   Page | 12
-July 2022
-Section #4: Declare Consultant (If Applicable)
-If you have declared the use of an immigration representative on your Birthdate and Address
-Screen, a Consultant screen will automatically be created. More information about using a
-representative can be found on the link below:
-
-https://www.saskatchewan.ca/residents/moving-to-saskatchewan/provide-immigration-
-services/immigration-consultant-and-foreign-worker-recruiter-licensing-and-responsibilities
-
-Please select your representative from the list of approved representatives. Correspondence from
-the SINP will automatically be sent to the Email address specified on Birthdate and Address
-record of the selected representative.
-
-
-
-
-Click             then              to continue.
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                  Page | 13
-July 2022
-Section #5: Complete EOI Points Grid
-The information you provide will result in a points score. The EOI profile uses the same point
-assessment grid as the International Skilled Worker categories.
-
-For more information on the point assessment grid, please visit:
-https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/by-
-immigrating/saskatchewan-immigrant-nominee-program/browse-sinp-programs/applicants-
-international-skilled-workers/assess-your-eligibility
-
-Your EOI status will initially show “Not Yet Submitted”.
-
-
-
-
-            Education and Training
-
-            Fill in points for highest completed education. For education completed outside
-            Canada, choose the Canadian Equivalency stated on your Educational Credential
-            Assessment (ECA).
-
-
-
-
-            Please answer the question regarding licensure based on the NOC code you have
-            chosen under the Eligibility page. Choose N/A if the NOC code does not require
-            licensure.
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                      Page | 14
-July 2022
-            Please answer a series of questions regarding Education based on your current situation.
-            A sample screenshot is shown below:
-
-
-
-
-            Please answer the question regarding Settlement Funds. This is to remind all applicants
-            of the settlement funds requirement.
-
-
-
-
-            Skilled Work Experience
-
-            The principal applicant's work experience points are calculated according to
-            documented proof of skilled work experience (NOC 0, A, B) in their intended
-            occupation NOC in the last ten years.
-
-            Select the number of years you worked in your intended occupation NOC during the
-            most recent five years:
-
-
-
-
-            Select the number of years you worked in your intended occupation NOC during the
-            six to ten year period prior to application:
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                     Page | 15
-July 2022
-            Language Ability
-
-            Select your language ability points based on the lowest CLB equivalent of your English
-            or French language test results. You may also claim points for your Second Official
-            Language if applicable.
-
-
-
-
-            Age
-
-            Age points are calculated according to the date of application to the SINP.
-
-
-
-
-            Connection to Saskatchewan Labour Market and Adaptability
-
-            The principal applicant's points are calculated according to documented proof of a
-            strong connection to Saskatchewan with genuine intention and ability to successfully
-            settle and economically establish in Saskatchewan as a permanent resident. (Maximum
-            total points = 30).
-
-
-
-
-            Close family relative in Saskatchewan - The applicant or accompanying spouse has a
-            family relative that is a Canadian citizen or permanent resident living in Saskatchewan.
-
-OASIS User Guide for Applicants - Expression of Interest                                     Page | 16
-July 2022
-            This includes a: parent, sibling, grandparent, aunt, uncle, niece, nephew, cousin and
-            step-family members or in-laws of the same relationships. The family members in
-            Saskatchewan must meet the requirements as listed under “Required Documents” for
-            your ISW sub-category.
-
-            Past work experience in Saskatchewan - At least 12 months of work in the past five
-            years on a valid work permit.
-
-            Past student experience in Saskatchewan - At least one full-time academic year at a
-            recognized Saskatchewan post-secondary education institution on a valid study permit.
-
-
-            Declaration
-
-            Please select ‘Yes’ or ‘No’ to the following question:
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                    Page | 17
-July 2022
-Section #6: Review and Submit EOI
-After answering all the required questions and saving the screen, you will see the Submit
-Expression of Interest button at the bottom of the screen.
-
-
-
-
-Click on Submit Expression of Interest button. If all the required information is provided, your
-EOI will be submitted and a notification will be displayed.
-
-
-
-
-You will be notified if your EOI has been selected and you have been invited to apply. Please
-visit our website for information on EOI draws at: www.saskatchewan.ca/worker-eoi
-
-
-
-
-OASIS User Guide for Applicants - Expression of Interest                                    Page | 18
-July 2022
-Canceling your EOI
-If you would like to cancel your current EOI, you can click on Cancel EOI. This will delete your
-EOI and you will have to repeat this process again if you wish to submit an EOI in the future.
-
-
-
-
-Updating Your EOI after Submission
-You cannot update your EOI after Submission. If you want to update the EOI information you
-provided, you must cancel your existing EOI and submit a new EOI. To cancel an EOI, please
-see “Canceling your EOI.” To submit a new EOI, please follow the instructions in Section 1 of
-this document.
-
-
-
-
-               You must re-submit your EOI to be eligible for an invitation to apply.
-
-
-What do I do when I’m invited to apply?
-You will receive an email with an Invitation to Apply letter if you are selected to apply. You
-have 60 days to complete and submit an application after being invited. In order to submit an
-application, please log into OASIS with the same account and click on Start Part 1 of
-Application button.
-
-
-SINP – OASIS User Guide for Applicants
-To help you with the application process in OASIS, please click the ‘?’ button after logging in.
-
-
-
-then click ‘here’ as shown below:
-
-
-
-
-                                                     - End of Guide -
-
-OASIS User Guide for Applicants - Expression of Interest                                    Page | 19
-July 2022
+                                                                              Updated: September 12, 2024
+
+
+
+         SINP International Skilled Workers:
+     Expression of Interest (EOI) Selection Results
+See below for information on the selection rounds that have occurred through the SINP’s EOI system.
+This document will be updated whenever a new selection is made.
+Please note that the SINP limits the selection of EOIs by occupation so that nominees with positive
+employment prospects in Saskatchewan are selected and nominations do not exceed employment
+demand.
+The size and frequency of EOI Selections will be determined by the needs of the SINP application
+inventory. Selections will take place on a bi-monthly basis, at minimum. The dates of the selections will
+not be posted before they take place.
+                                  Score of
+                                                   Total
+    Date of                       Lowest
+                                                Candidates                     Other
+  Invitations      Category        Ranked
+                                                 Invited to                 Considerations
+   to Apply                      Candidate
+                                                   Apply
+                                  to Apply
+  September      Occupations          88             32         Invited Candidates had Educational
+   12, 2024      In-Demand                                      Credential Assessments or were
+                                                                educated in Canada.
+
+                                                                Not all occupations were selected. The
+                                                                occupations chosen and eligible for the
+                                                                EOI selection on September 12, 2024,
+                                                                have the following classification
+                                                                numbers:
+                                                                00012, 10010, 10011, 10021, 11101,
+                                                                11109, 11200, 12010, 12102, 20012,
+                                                                21220, 21221, 21222, 21223, 21231,
+                                                                22220, 22303, 41200, 41210, 41405,
+                                                                42202, 43100, 60010, 70012
+  September      Express              88             57         Invited Candidates had Educational
+   12, 2024      Entry                                          Credential Assessments or were
+                                                                educated in Canada.
+
+                                                                Not all occupations were selected. The
+                                                                occupations chosen and eligible for the
+                                                                EOI selection on September 12, 2024,
+                                                                have the following classification
+                                                                numbers:
+                                                                00012, 10010, 10011, 10021, 10029,
+                                                                11101, 13201, 20010, 20012, 21101,
+                                                                21221, 21222, 21233, 21234, 21301,
+
+                                                                                                            1
+                                                 Updated: September 12, 2024
+
+
+                                   21310, 21311, 21321, 22220, 22310,
+                                   22312, 40020, 41200, 41210, 41402,
+                                   43100, 62100, 70012, 70020, 80020,
+                                   82030, 92012
+June 13,   Occupations   88   32   Invited Candidates had Educational
+  2024     In-Demand               Credential Assessments or were
+                                   educated in Canada.
+
+                                   Not all occupations were selected. The
+                                   occupations chosen and eligible for the
+                                   EOI selection on June 13, 2024, have the
+                                   following classification numbers:
+                                   00012, 00013, 00015, 10010, 10011,
+                                   10012, 10020, 10021, 10029, 11101,
+                                   11102, 11109, 11200, 12011, 12012,
+                                   12013, 12102, 20012, 21101, 21110,
+                                   21120, 21210, 21211, 21220, 21221,
+                                   21222, 21223, 21231, 21232, 21234,
+                                   21300, 21310, 21311, 21399, 22100,
+                                   22101, 22221, 31200, 32109, 33102,
+                                   33103, 41200, 41210, 41320, 41401,
+                                   41402, 42202, 43100, 60010, 62100,
+                                   63102, 70010, 70012, 70020, 72024,
+                                   80020, 82030, 90010, 92011
+June 13,   Express       88   88   Invited Candidates had Educational
+  2024     Entry                   Credential Assessments or were
+                                   educated in Canada.
+
+                                   Not all occupations were selected. The
+                                   occupations chosen and eligible for the
+                                   EOI selection on June 13, 2024, have the
+                                   following classification numbers:
+                                   00012, 00013, 00015, 10010, 10011,
+                                   10012, 10020, 10021, 10029, 11101,
+                                   11102, 11109, 11200, 12011, 12012,
+                                   12013, 12102, 20012, 21101, 21110,
+                                   21120, 21210, 21211, 21220, 21221,
+                                   21222, 21223, 21231, 21232, 21234,
+                                   21300, 21310, 21311, 21399, 22100,
+                                   22101, 22221, 31200, 32109, 33102,
+                                   33103, 41200, 41210, 41320, 41401,
+                                   41402, 42202, 43100, 60010, 62100,
+                                   63102, 70010, 70012, 70020, 72024,
+                                   80020, 82030, 90010, 92011
+March 7,   Occupations   89   14   Invited Candidates had Educational
+ 2024      In-Demand               Credential Assessments or were
+                                   educated in Canada.
+
+
+                                                                              2
+                                                  Updated: September 12, 2024
+
+
+                                    Not all occupations were selected. The
+                                    occupations chosen and eligible for the
+                                    EOI selection on March 7, 2024, have
+                                    the following classification numbers:
+                                    10011, 10021, 10022, 11102, 11109,
+                                    11201, 11202, 12010, 12011, 12101,
+                                    12200, 13100, 13110, 13111, 20010,
+                                    21110, 21120, 21211, 21231, 21234,
+                                    22221, 40030, 43109, 60040, 62101,
+                                    70020
+March 7,    Express       89   21   Invited Candidates had Educational
+ 2024       Entry                   Credential Assessments or were
+                                    educated in Canada.
+
+                                    Not all occupations were selected. The
+                                    occupations chosen and eligible for the
+                                    EOI selection on March 7, 2024, have
+                                    the following classification numbers:
+                                    10011, 10021, 10022, 11102, 11109,
+                                    11201, 11202, 12010, 12011, 12101,
+                                    12200, 13100, 13110, 13111, 20010,
+                                    21110, 21120, 21211, 21231, 21234,
+                                    22221, 40030, 43109, 60040, 62101,
+                                    70020
+December    Occupations   69   48   Invited Candidates had Educational
+ 27, 2023   In-Demand               Credential Assessments or were
+                                    educated in Canada.
+
+                                    Not all occupations were selected. The
+                                    occupations chosen and eligible for the
+                                    EOI selection on December 27, 2023,
+                                    have the following classification
+                                    numbers:
+                                    31200, 31203, 32102, 32120, 32121,
+                                    32122, 33101
+December    Express       69   15   Invited Candidates had Educational
+ 27, 2023   Entry                   Credential Assessments or were
+                                    educated in Canada.
+
+                                    Not all occupations were selected. The
+                                    occupations chosen and eligible for the
+                                    EOI selection on December 27, 2023,
+                                    have the following classification
+                                    numbers:
+                                    31200, 31203, 32102, 32120, 32121,
+                                    32122, 33101
+
+
+
+                                                                              3
+                                                    Updated: September 12, 2024
+
+
+October 23,   Occupations   84   40   Invited Candidates had Educational
+   2023       In-Demand               Credential Assessments or were
+                                      educated in Canada.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on October 23, 2023, have
+                                      the following classification numbers:
+                                      13201, 20012, 21211, 21220, 21221,
+                                      21222, 21223, 21230, 21231, 21232,
+                                      21233, 21234, 21301, 21321, 22220,
+                                      22221, 32120, 32122, 60020, 60031,
+                                      62100, 63200, 70012, 72024, 72106,
+                                      82030
+October 23,   Express       84   59   Invited Candidates had Educational
+   2023       Entry                   Credential Assessments or were
+                                      educated in Canada.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on October 23, 2023, have
+                                      the following classification numbers:
+                                      13201, 20012, 21211, 21220, 21221,
+                                      21222, 21223, 21230, 21231, 21232,
+                                      21233, 21234, 21301, 21321, 22220,
+                                      22221, 32120, 32122, 60020, 60031,
+                                      62100, 63200, 70012, 72024, 72106,
+                                      82030
+August 16,    Occupations   60   12   Invited Candidates are residing in
+  2023        In-Demand               Ireland. This selection is supporting a
+                                      recruitment initiative to Ireland to
+                                      connect qualified candidates with
+                                      labour market opportunities.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on August 16, 2023, have
+                                      the following classification numbers:
+                                      10010, 10029, 11101, 11109, 11202,
+                                      12011, 12111, 21101, 21211, 21220,
+                                      21221, 21222, 21223, 21231, 21232,
+                                      21234, 21311, 22100, 22213, 22220,
+                                      22221, 22232, 41402, 41404, 43100,
+                                      63102, 70010, 70012
+August 16,    Express       60   23   Invited Candidates are residing in
+  2023        Entry                   Ireland. This selection is supporting a
+                                      recruitment mission to Ireland to
+
+
+                                                                                4
+                                                   Updated: September 12, 2024
+
+
+                                     connect qualified candidates with
+                                     labour market opportunities.
+
+                                     Not all occupations were selected. The
+                                     occupations chosen and eligible for the
+                                     EOI selection on August 16, 2023, have
+                                     the following classification numbers:
+                                     10010, 10029, 11101, 11109, 11202,
+                                     12011, 12111, 21101, 21211, 21220,
+                                     21221, 21222, 21223, 21231, 21232,
+                                     21234, 21311, 22100, 22213, 22220,
+                                     22221, 22232, 41402, 41404, 43100,
+                                     63102, 70010, 70012
+August 16,   Occupations   60   78   Invited Candidates are residing in
+  2023       In-Demand               Poland, Czechia, Germany, Lithuania,
+                                     Slovakia, and Ukraine. This selection is
+                                     supporting a recruitment mission to
+                                     Poland to connect qualified candidates
+                                     with labour market opportunities.
+
+                                     Not all occupations were selected. The
+                                     occupations chosen and eligible for the
+                                     EOI selection on August 16, 2023, have
+                                     the following classification numbers:
+                                     00012, 10010, 10012, 10021, 10022,
+                                     10029, 10030, 11101, 11109, 11200,
+                                     11201, 11202, 12010, 12013, 12100,
+                                     12200, 13100, 13110, 13111, 13112,
+                                     20010, 20012, 21101, 21110, 21112,
+                                     21120, 21200, 21211, 21220, 21221,
+                                     21222, 21223, 21230, 21231, 21232,
+                                     21233, 21234, 21300, 21301, 21310,
+                                     21311, 22220, 22221, 22300, 22301,
+                                     22310, 22311, 32120, 40020, 40030,
+                                     41200, 41210, 41300, 41400, 41401,
+                                     41402, 41403, 41404, 41405, 43100,
+                                     60010, 60020, 60031, 62100, 63102,
+                                     70010, 80020, 82030, 90010, 93101
+August 16,   Express       60   98   Invited Candidates are residing in
+  2023       Entry                   Poland, Czechia, Germany, Lithuania,
+                                     Slovakia, and Ukraine. This selection is
+                                     supporting a recruitment mission to
+                                     Poland to connect qualified candidates
+                                     with labour market opportunities.
+
+                                     Not all occupations were selected. The
+                                     occupations chosen and eligible for the
+
+
+                                                                                5
+                                                    Updated: September 12, 2024
+
+
+                                      EOI selection on August 16, 2023, have
+                                      the following classification numbers:
+                                      00012, 10010, 10012, 10021, 10022,
+                                      10029, 10030, 11101, 11109, 11200,
+                                      11201, 11202, 12010, 12013, 12100,
+                                      12200, 13100, 13110, 13111, 13112,
+                                      20010, 20012, 21101, 21110, 21112,
+                                      21120, 21200, 21211, 21220, 21221,
+                                      21222, 21223, 21230, 21231, 21232,
+                                      21233, 21234, 21300, 21301, 21310,
+                                      21311, 22220, 22221, 22300, 22301,
+                                      22310, 22311, 32120, 40020, 40030,
+                                      41200, 41210, 41300, 41400, 41401,
+                                      41402, 41403, 41404, 41405, 43100,
+                                      60010, 60020, 60031, 62100, 63102,
+                                      70010, 80020, 82030, 90010, 93101
+August 16,   Occupations   60   207   Invited Candidates are residing in India.
+  2023       In-Demand                This selection is supporting a
+                                      recruitment mission to India to connect
+                                      qualified candidates with labour market
+                                      opportunities.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on August 16, 2023, have
+                                      the following classification numbers:
+                                      00015, 13101, 21120, 22212, 22232,
+                                      22300, 22303, 70010, 72010, 72011,
+                                      72012, 72013, 72014, 72020, 72021,
+                                      72100, 72106, 72200, 72300, 72301,
+                                      72320, 72400, 72401, 72410, 72500,
+                                      73112
+August 16,   Express       60   224   Invited Candidates are residing in India.
+  2023       Entry                    This selection is supporting a
+                                      recruitment mission to India to connect
+                                      qualified candidates with labour market
+                                      opportunities.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on August 16, 2023, have
+                                      the following classification numbers:
+                                      00015, 13101, 21120, 22212, 22232,
+                                      22300, 22303, 70010, 72010, 72011,
+                                      72012, 72013, 72014, 72020, 72021,
+                                      72100, 72106, 72200, 72300, 72301,
+                                      72320, 72400, 72401, 72410, 72500,
+                                      73112
+
+                                                                                  6
+                                                      Updated: September 12, 2024
+
+
+June 8, 2023   Occupations   69   232   Invited Candidates had Educational
+               In-Demand                Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on June 8, 2023, have the
+                                        following classification numbers:
+                                        11202, 12013, 12102, 13201, 21301,
+                                        21310, 21321, 21399, 22100, 22111,
+                                        22212, 22301, 22302, 41402, 70012,
+                                        72106, 90010, 92012
+June 8, 2023   Express       69   268   Invited Candidates had Educational
+               Entry                    Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on June 8, 2023, have the
+                                        following classification numbers:
+                                        11202, 12013, 12102, 13201, 21301,
+                                        21310, 21321, 21399, 22100, 22111,
+                                        22212, 22301, 22302, 41402, 70012,
+                                        72106, 90010, 92012
+May 18, 2023 Occupations     67   260   Invited Candidates had Educational
+             In-Demand                  Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on May 18, 2023, have the
+                                        following classification numbers:
+                                        13201, 21203, 21211, 21220, 21221,
+                                        21223, 21230, 21232, 21233, 21234,
+                                        21301, 21321, 22220, 22221, 31203,
+                                        32102, 32120, 32121, 32122, 32123,
+                                        41301, 62100, 70012, 72100, 72106,
+                                        72201, 72400, 72401, 72410, 82030,
+                                        92100
+May 18, 2023 Express         67   784   Invited Candidates had Educational
+             Entry                      Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on May 18, 2023, have the
+                                        following classification numbers:
+
+
+                                                                                  7
+                                                     Updated: September 12, 2024
+
+
+                                       13201, 21203, 21211, 21220, 21221,
+                                       21223, 21230, 21232, 21233, 21234,
+                                       21301, 21321, 22220, 22221, 31203,
+                                       32102, 32120, 32121, 32122, 32123,
+                                       41301, 62100, 70012, 72100, 72106,
+                                       72201, 72400, 72401, 72410, 82030,
+                                       92100
+May 3, 2023   Occupations   68   293   Invited Candidates had Educational
+              In-Demand                Credential Assessments or were
+                                       educated in Canada.
+
+                                       Not all occupations were selected. The
+                                       occupations chosen and eligible for the
+                                       EOI selection on May 3, 2023, have the
+                                       following classification numbers:
+                                       13201, 21203, 21211, 21220, 21221,
+                                       21223, 21230, 21232, 21233, 21234,
+                                       21301, 21321, 22220, 22221, 31203,
+                                       32102, 32120, 32121, 32122, 32123,
+                                       41301, 62100, 70012, 72024, 72100,
+                                       72106, 72201, 72400, 72401, 72410,
+                                       82030, 92100
+May 3, 2023   Express       68   739   Invited Candidates had Educational
+              Entry                    Credential Assessments or were
+                                       educated in Canada.
+
+                                       Not all occupations were selected. The
+                                       occupations chosen and eligible for the
+                                       EOI selection on May 3, 2023, have the
+                                       following classification numbers:
+                                       13201, 21203, 21211, 21220, 21221,
+                                       21223, 21230, 21232, 21233, 21234,
+                                       21301, 21321, 22220, 22221, 31203,
+                                       32102, 32120, 32121, 32122, 32123,
+                                       41301, 62100, 70012, 72024, 72100,
+                                       72106, 72201, 72400, 72401, 72410,
+                                       82030, 92100
+ April 20,    Occupations   69   444   Invited Candidates had Educational
+  2023        In-Demand                Credential Assessments or were
+                                       educated in Canada.
+
+                                       Not all occupations were selected. The
+                                       occupations chosen and eligible for the
+                                       EOI selection on April 20, 2023, have
+                                       the following classification numbers:
+                                       13201, 20012, 21203, 21211, 21220,
+                                       21221, 21222, 21223, 21230, 21231,
+                                       21232, 21233, 21234, 21301, 21321,
+
+                                                                                 8
+                                               Updated: September 12, 2024
+
+
+                                 22220, 22221, 31203, 32102, 32103,
+                                 32120, 32121, 32122, 32123, 41301,
+                                 62100, 70012, 72024, 72100, 72106,
+                                 72201, 72310, 72400, 72401, 72410,
+                                 73102, 82030, 92100
+April 20,   Express   69   623   Invited Candidates had Educational
+ 2023       Entry                Credential Assessments or were
+                                 educated in Canada.
+
+                                 Not all occupations were selected. The
+                                 occupations chosen and eligible for the
+                                 EOI selection on April 20, 2023, have
+                                 the following classification numbers:
+                                 13201, 20012, 21203, 21211, 21220,
+                                 21221, 21222, 21223, 21230, 21231,
+                                 21232, 21233, 21234, 21301, 21321,
+                                 22220, 22221, 31203, 32102, 32103,
+                                 32120, 32121, 32122, 32123, 41301,
+                                 62100, 70012, 72024, 72100, 72106,
+                                 72201, 72310, 72400, 72401, 72410,
+                                 73102, 82030, 92100
+March 23,   Express   82   184   Invited Candidates had Educational
+ 2023       Entry                Credential Assessments or were
+                                 educated in Canada.
+
+                                 Not all occupations were selected. The
+                                 occupations chosen and eligible for the
+                                 EOI selection on March 23, 2023, have
+                                 the following classification numbers:
+
+                                 00012, 00013, 00015, 10010, 10011,
+                                 10012, 10020, 10021, 10022, 10029,
+                                 10030, 11101, 11102, 11109, 11200,
+                                 11201, 11202, 12010, 12011, 12013,
+                                 12100, 12101, 12102, 12103, 12200,
+                                 12202, 13100, 13101, 13110, 13111,
+                                 13112, 20010, 20012, 21101, 21110,
+                                 21112, 21120, 21203, 21210, 21220,
+                                 21221, 21222, 21223, 21230, 21231,
+                                 21232, 21233, 21234, 21300, 21301,
+                                 21310, 21311, 21322, 22100, 22101,
+                                 22110, 22212, 22220, 22221, 22222,
+                                 22232, 22300, 22301, 22303, 22310,
+                                 32102, 32112, 32120, 33101, 33103,
+                                 40020, 40030, 41200, 41210, 41300,
+                                 41320, 41400, 41401, 41402, 41404,
+                                 41406, 4212 , 42202, 43100, 60010,
+                                 60020, 60030, 62022, 62024, 62100,
+
+                                                                           9
+                                                      Updated: September 12, 2024
+
+
+                                        62101, 62200, 63102, 63200, 63202,
+                                        70010, 70012, 70020, 72401, 72410,
+                                        73201, 73401, 80020, 82030, 82031,
+                                        90010, 92011, 92012, 92100, 93101
+ March 23,     Occupations   82   312   Invited Candidates had Educational
+  2023         In-Demand                Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on March 23, 2023, have
+                                        the following classification numbers:
+
+                                        00012, 00013, 00015, 10010, 10011,
+                                        10012, 10020, 10021, 10022, 10029,
+                                        10030, 11101, 11102, 11109, 11200,
+                                        11201, 11202, 12010, 12011, 12013,
+                                        12100, 12101, 12102, 12103, 12200,
+                                        12202, 13100, 13101, 13110, 13111,
+                                        13112, 20010, 20012, 21101, 21110,
+                                        21112, 21120, 21203, 21210, 21220,
+                                        21221, 21222, 21223, 21230, 21231,
+                                        21232, 21233, 21234, 21300, 21301,
+                                        21310, 21311, 21322, 22100, 22101,
+                                        22110, 22212, 22220, 22221, 22222,
+                                        22232, 22300, 22301, 22303, 22310,
+                                        32102, 32112, 32120, 33101, 33103,
+                                        40020, 40030, 41200, 41210, 41300,
+                                        41320, 41400, 41401, 41402, 41404,
+                                        41406, 4212 , 42202, 43100, 60010,
+                                        60020, 60030, 62022, 62024, 62100,
+                                        62101, 62200, 63102, 63200, 63202,
+                                        70010, 70012, 70020, 72401, 72410,
+                                        73201, 73401, 80020, 82030, 82031,
+                                        90010, 92011, 92012, 92100, 93101
+February 16,   Express       84   242   Invited Candidates had Educational
+   2023        Entry                    Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on February 16, 2023,
+                                        have the following classification
+                                        numbers:
+
+                                        00012, 00013, 00015, 10010, 10011,
+                                        10012, 10021, 10022, 10029, 10030,
+                                        11101, 11102, 11109, 11200, 11201,
+
+                                                                                  10
+                                                      Updated: September 12, 2024
+
+
+                                        11202, 12010, 12011, 12013, 12101,
+                                        12102, 12103, 12111, 12112, 12200,
+                                        13100, 13110, 13111, 13112, 20010,
+                                        20011, 20012, 21101, 21110, 21112,
+                                        21120, 21200, 21203, 21210, 21211,
+                                        21220, 21221, 21222, 21223, 21231,
+                                        21232, 21233, 21234, 21300, 21301,
+                                        21310, 21311, 21322, 22101, 22212,
+                                        22220, 22221, 22222, 22231, 22232,
+                                        22233, 22300, 22303, 22310, 31200,
+                                        31201, 32120, 32129, 33103, 40030,
+                                        41200, 41210, 41300, 41400, 41401,
+                                        41402, 41403, 41404, 41405, 41409,
+                                        42202, 43100, 60010, 60020, 62029,
+                                        62100, 62200, 63102, 63200, 63202,
+                                        70010, 70012, 70020, 72011, 72402,
+                                        72410, 73101, 80020, 80021, 82030,
+                                        90010, 92012, 92100, 93101
+February 16,   Occupations   84   184   Invited Candidates had Educational
+   2023        In-Demand                Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on February 16, 2023,
+                                        have the following classification
+                                        numbers:
+
+                                        00012, 00013, 00015, 10010, 10011,
+                                        10012, 10021, 10022, 10029, 10030,
+                                        11101, 11102, 11109, 11200, 11201,
+                                        11202, 12010, 12011, 12013, 12101,
+                                        12102, 12103, 12111, 12112, 12200,
+                                        13100, 13110, 13111, 13112, 20010,
+                                        20011, 20012, 21101, 21110, 21112,
+                                        21120, 21200, 21203, 21210, 21211,
+                                        21220, 21221, 21222, 21223, 21231,
+                                        21232, 21233, 21234, 21300, 21301,
+                                        21310, 21311, 21322, 22101, 22212,
+                                        22220, 22221, 22222, 22231, 22232,
+                                        22233, 22300, 22303, 22310, 31200,
+                                        31201, 32120, 32129, 33103, 40030,
+                                        41200, 41210, 41300, 41400, 41401,
+                                        41402, 41403, 41404, 41405, 41409,
+                                        42202, 43100, 60010, 60020, 62029,
+                                        62100, 62200, 63102, 63200, 63202,
+                                        70010, 70012, 70020, 72011, 72402,
+
+
+                                                                                  11
+                                                      Updated: September 12, 2024
+
+
+                                        72410, 73101, 80020, 80021, 82030,
+                                        90010, 92012, 92100, 93101
+February 16,                 65    1    Invited Candidates whose current
+   2023                                 country of residence is Ukraine as a
+                                        special measure in response to the
+                                        current conflict.
+ December      Express       80   153   Invited Candidates had Educational
+  21, 2022     Entry                    Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on December 21, 2022,
+                                        have the following classification
+                                        numbers:
+
+                                        00012, 00013, 00015, 10010, 10011,
+                                        10012, 10020, 10021, 10022, 10029,
+                                        11101, 11102, 11109, 11200, 11201,
+                                        11202, 12010, 12011, 12013, 12100,
+                                        12101, 12102, 12111, 12200, 13100,
+                                        13101, 13102, 13110, 13111, 13112,
+                                        20010, 20012, 21101, 21110, 21120,
+                                        21200, 21210, 21211, 21221, 21222,
+                                        21223, 21230, 21231, 21232, 21234,
+                                        21300, 21301, 21310, 21311, 21320,
+                                        21399, 22100, 22101, 22110, 22111,
+                                        22211, 22220, 22221, 22222, 22232,
+                                        22300, 22301, 22310, 31200, 31203,
+                                        32120, 33101, 33103, 40030, 41200,
+                                        41210, 41300, 41320, 41400, 41401,
+                                        41402, 41403, 41404, 42202, 42203,
+                                        43100, 43109, 60010, 60030, 60031,
+                                        60040, 62022, 62024, 62029, 62100,
+                                        62101, 63102, 63200, 70010, 70012,
+                                        72014, 72021, 72106, 72200, 73209,
+                                        80010, 80020, 82021, 82030, 90010,
+                                        92011, 92012, 92100, 93101
+ December      Occupations   80   315   Invited Candidates had Educational
+  21, 2022     In-Demand                Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on December 21, 2022,
+                                        have the following classification
+                                        numbers:
+
+
+                                                                                  12
+                                               Updated: September 12, 2024
+
+
+                                 00012, 00013, 00015, 10010, 10011,
+                                 10012, 10020, 10021, 10022, 10029,
+                                 11101, 11102, 11109, 11200, 11201,
+                                 11202, 12010, 12011, 12013, 12100,
+                                 12101, 12102, 12111, 12200, 13100,
+                                 13101, 13102, 13110, 13111, 13112,
+                                 20010, 20012, 21101, 21110, 21120,
+                                 21200, 21210, 21211, 21221, 21222,
+                                 21223, 21230, 21231, 21232, 21234,
+                                 21300, 21301, 21310, 21311, 21320,
+                                 21399, 22100, 22101, 22110, 22111,
+                                 22211, 22220, 22221, 22222, 22232,
+                                 22300, 22301, 22310, 31200, 31203,
+                                 32120, 33101, 33103, 40030, 41200,
+                                 41210, 41300, 41320, 41400, 41401,
+                                 41402, 41403, 41404, 42202, 42203,
+                                 43100, 43109, 60010, 60030, 60031,
+                                 60040, 62022, 62024, 62029, 62100,
+                                 62101, 63102, 63200, 70010, 70012,
+                                 72014, 72021, 72106, 72200, 73209,
+                                 80010, 80020, 82021, 82030, 90010,
+                                 92011, 92012, 92100, 93101
+December    Express   82   348   Invited Candidates had Educational
+ 15, 2022   Entry                Credential Assessments or were
+                                 educated in Canada.
+
+                                 Not all occupations were selected. The
+                                 occupations chosen and eligible for the
+                                 EOI selection on December 15, 2022,
+                                 have the following classification
+                                 numbers:
+
+                                 00012, 00013, 00015, 10010, 10011,
+                                 10012, 10020, 10021, 10022, 10029,
+                                 10030, 11101, 11109, 11200, 11201,
+                                 11202, 12010, 12011, 12013, 12100,
+                                 12101, 12102, 12111, 12113, 12200,
+                                 13100, 13101, 13110, 13111, 13112,
+                                 20010, 20011, 20012, 21101, 21110,
+                                 21112, 21120, 21200, 21211, 21220,
+                                 21221, 21222, 21223, 21230, 21231,
+                                 21232, 21234, 21300, 21301, 21310,
+                                 21311, 21321, 21322, 21331, 21399,
+                                 22101, 22110, 22111, 22211, 22212,
+                                 22213, 22220, 22221, 22222, 22230,
+                                 22231, 22232, 22300, 22303, 22310,
+                                 22312, 32102, 32120, 32121, 33101,
+                                 33103, 40020, 40030, 41200, 41210,
+
+                                                                           13
+                                                   Updated: September 12, 2024
+
+
+                                     41300, 41320, 41400, 41401, 41402,
+                                     41403, 41404, 41405, 42202, 43100,
+                                     43109, 60010, 60030, 60031, 60040,
+                                     62022, 62029, 62100, 62101, 63102,
+                                     63201, 63202, 70010, 70012, 70020,
+                                     72020, 72021, 72024, 72106, 72320,
+                                     72410, 80020, 80021, 82021, 82030,
+                                     90010, 92011, 92012, 93101
+December    Occupations   82   285   Invited Candidates had Educational
+ 15, 2022   In-Demand                Credential Assessments or were
+                                     educated in Canada.
+
+                                     Not all occupations were selected. The
+                                     occupations chosen and eligible for the
+                                     EOI selection on December 15, 2022,
+                                     have the following classification
+                                     numbers:
+
+                                     00012, 00013, 00015, 10010, 10011,
+                                     10012, 10020, 10021, 10022, 10029,
+                                     10030, 11101, 11109, 11200, 11201,
+                                     11202, 12010, 12011, 12013, 12100,
+                                     12101, 12102, 12111, 12113, 12200,
+                                     13100, 13101, 13110, 13111, 13112,
+                                     20010, 20011, 20012, 21101, 21110,
+                                     21112, 21120, 21200, 21211, 21220,
+                                     21221, 21222, 21223, 21230, 21231,
+                                     21232, 21234, 21300, 21301, 21310,
+                                     21311, 21321, 21322, 21331, 21399,
+                                     22101, 22110, 22111, 22211, 22212,
+                                     22213, 22220, 22221, 22222, 22230,
+                                     22231, 22232, 22300, 22303, 22310,
+                                     22312, 32102, 32120, 32121, 33101,
+                                     33103, 40020, 40030, 41200, 41210,
+                                     41300, 41320, 41400, 41401, 41402,
+                                     41403, 41404, 41405, 42202, 43100,
+                                     43109, 60010, 60030, 60031, 60040,
+                                     62022, 62029, 62100, 62101, 63102,
+                                     63201, 63202, 70010, 70012, 70020,
+                                     72020, 72021, 72024, 72106, 72320,
+                                     72410, 80020, 80021, 82021, 82030,
+                                     90010, 92011, 92012, 93101
+December                  62    2    Invited Candidates whose current
+ 15, 2022                            country of residence is Ukraine as a
+                                     special measure in response to the
+                                     current conflict.
+
+
+
+                                                                               14
+                                                     Updated: September 12, 2024
+
+
+November 8,   Express       69   10    Invited Candidates had Educational
+   2022       Entry                    Credential Assessments or were
+                                       educated in Canada.
+
+                                       Not all occupations were selected. The
+                                       occupations chosen and eligible for the
+                                       EOI selection on November 8, 2022,
+                                       have the following classification
+                                       numbers:
+                                       3122,3143,3215,3216,3234,4151
+November 8,   Occupations   69   21    Invited Candidates had Educational
+   2022       in-Demand                Credential Assessments or were
+                                       educated in Canada.
+
+                                       Not all occupations were selected. The
+                                       occupations chosen and eligible for the
+                                       EOI selection on November 8, 2022,
+                                       have the following classification
+                                       numbers:
+                                       3122,3143,3215,3216,3234,4151
+November 8,                 64    4    Invited Candidates whose current
+   2022                                country of residence is Ukraine as a
+                                       special measure in response to the
+                                       current conflict.
+September     Express       81   639   Invited Candidates had Educational
+ 28, 2022     Entry                    Credential Assessments or were
+                                       educated in Canada.
+
+                                       Not all occupations were selected. The
+                                       occupations chosen and eligible for the
+                                       EOI selection on September 28, 2022,
+                                       have the following classification
+                                       numbers: 0013, 0014, 0016, 0111, 0112,
+                                       0113, 0114, 0121, 0122, 0124, 0125,
+                                       0131, 0212, 0213, 0421, 0423, 0601,
+                                       0621, 0711, 0714, 0731, 0821, 0911,
+                                       1112, 1114, 1121, 1122, 1123, 1211,
+                                       1212, 1213, 1215, 1221, 1222, 1223,
+                                       1224, 1241, 1242, 1243, 1251, 1252,
+                                       1254, 1313, 2112, 2121, 2161, 2171,
+                                       2172, 2211, 2212, 2223, 2231, 2233,
+                                       2252, 2255, 2263, 2264, 2282, 2283,
+                                       4011, 4021, 4033, 4153, 4161, 4162,
+                                       4163, 4165, 4166, 4169, 4211, 4216,
+                                       6221, 6222, 6235, 6313, 6316, 6342,
+                                       8222, 8252, 9212, 9213, 9241
+
+
+
+                                                                                 15
+                                                     Updated: September 12, 2024
+
+
+ September     Occupations   83   507   Invited Candidates had Educational
+  28, 2022     In-Demand                Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on September 28, 2022,
+                                        have the following classification
+                                        numbers: 0013, 0014, 0016, 0111, 0112,
+                                        0113, 0114, 0121, 0122, 0124, 0125,
+                                        0131, 0212, 0213, 0421, 0423, 0601,
+                                        0621, 0631, 0651, 0711, 0712, 0714,
+                                        0731, 0821, 0911, 0912, 1112, 1114,
+                                        1121, 1122, 1123, 1211, 1212, 1213,
+                                        1214, 1215, 1221, 1222, 1223, 1224,
+                                        1225, 1241, 1242, 1243, 1252, 1313,
+                                        2112, 2121, 2161, 2171, 2172, 2211,
+                                        2212, 2231, 2232, 2233, 2241, 2252,
+                                        2253, 2262, 2263, 2281, 2283, 3214,
+                                        3223, 4011, 4021, 4033, 4153, 4162,
+                                        4163, 4165, 4166, 4167, 4211, 4216,
+                                        6211, 6235, 6313, 6315, 6316, 6321,
+                                        6331, 6342, 6345, 7245, 7313, 7315,
+                                        7384, 8222, 8252, 9212, 9213
+ September     Express       60   53    Not all occupations were selected. The
+  15, 2022     Entry                    occupations chosen and eligible for the
+                                        EOI selection on September 15, 2022,
+                                        have the following classification
+                                        numbers: 7237, 7241, 7242, 7271, 7312,
+                                        7321
+ September     Occupations   60   273   Not all occupations were selected. The
+  15, 2022     In-Demand                occupations chosen and eligible for the
+                                        EOI selection on September 15, 2022,
+                                        have the following classification
+                                        numbers: 7237, 7241, 7242, 7271, 7312,
+                                        7321
+September 7,   Express       70   521   Invited Candidates had Educational
+    2022       Entry                    Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on September 7, 2022,
+                                        have the following classification
+                                        numbers: 0016, 0211, 0911, 1114, 1224,
+                                        1225, 2131, 2142, 2172, 2174, 2175,
+                                        2222, 2241, 2242, 2243, 2253, 2263,
+
+
+                                                                             16
+                                                     Updated: September 12, 2024
+
+
+                                        2272, 4164, 6221, 6222, 7205, 7246,
+                                        7311, 7312, 9212, 9231, 9232
+September 7,   Occupations   70   422   Invited Candidates had Educational
+    2022       In-Demand                Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on September 7, 2022,
+                                        have the following classification
+                                        numbers: 0016, 0211, 0911, 1114, 1224,
+                                        1225, 2131, 2142, 2172, 2174, 2175,
+                                        2222, 2241, 2242, 2243, 2253, 2263,
+                                        2272, 4164, 6221, 6222, 7205, 7246,
+                                        7311, 7312, 9212, 9231, 9232
+September 6,   Express       60   143   Invited Candidates had Educational
+    2022       Entry                    Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on September 6, 2022,
+                                        have the following classification
+                                        numbers: 2263, 3143, 3211, 3212, 3214,
+                                        3215, 3216, 3219, 3234, 4151
+September 6,   Occupations   60   240   Invited Candidates had Educational
+    2022       In-Demand                Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on September 6, 2022,
+                                        have the following classification
+                                        numbers: 2263, 3143, 3211, 3212, 3214,
+                                        3215, 3216, 3219, 3234, 4151
+September 6,   Express       69   159   Invited Candidates had Educational
+    2022       Entry                    Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on September 6, 2022,
+                                        have the following classification
+                                        numbers: 0621, 0631, 0632, 0711, 2171,
+                                        2234, 2281, 2282, 3237, 6211, 6221,
+                                        6312, 7305, 8252
+
+
+
+                                                                              17
+                                                      Updated: September 12, 2024
+
+
+September 6,   Occupations   69   218   Invited Candidates had Educational
+    2022       In-Demand                Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on September 6, 2022,
+                                        have the following classification
+                                        numbers: 0621, 0631, 0632, 0711, 2171,
+                                        2234, 2281, 2282, 3237, 6211, 6221,
+                                        6312, 7305, 8252
+September 1,   Express       61   312   Invited Candidates had Educational
+    2022       Entry                    Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on September 1, 2022,
+                                        have the following classification
+                                        numbers: 2263, 3143, 3211, 3212, 3214,
+                                        3215, 3216, 3219, 3234, 4151
+September 1,   Occupations   61   629   Invited Candidates had Educational
+    2022       In-Demand                Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on September 1, 2022,
+                                        have the following classification
+                                        numbers: 2263, 3143, 3211, 3212, 3214,
+                                        3215, 3216, 3219, 3234, 4151
+ August 25,    Express       65   295   Invited Candidates had Educational
+   2022        Entry                    Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on August 25, 2022, have
+                                        the following classification numbers:
+                                        2263, 3143, 3211, 3212, 3214, 3215,
+                                        3216, 3219, 3234, 4151
+ August 25,    Occupations   65   334   Invited Candidates had Educational
+   2022        In-Demand                Credential Assessments or were
+                                        educated in Canada.
+
+                                        Not all occupations were selected. The
+                                        occupations chosen and eligible for the
+                                        EOI selection on August 25, 2022, have
+
+                                                                                  18
+                                                    Updated: September 12, 2024
+
+
+                                      the following classification numbers:
+                                      2263, 3143, 3211, 3212, 3214, 3215,
+                                      3216, 3219, 3234, 4151
+August 18,   Express       67   416   Invited Candidates had Educational
+  2022       Entry                    Credential Assessments or were
+                                      educated in Canada.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on August 18, 2022, have
+                                      the following classification numbers:
+                                      0621, 0631, 0632, 0711, 2234, 2263,
+                                      2281, 2282, 3212, 3214, 3217, 3219,
+                                      3237, 6211, 6221, 6312, 7305, 8252
+August 18,   Occupations   67   252   Invited Candidates had Educational
+  2022       In-Demand                Credential Assessments or were
+                                      educated in Canada.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on August 18, 2022, have
+                                      the following classification numbers:
+                                      0621, 0631, 0632, 0711, 2234, 2263,
+                                      2281, 2282, 3212, 3214, 3217, 3219,
+                                      3237, 6211, 6221, 6312, 7305, 8252
+August 11,   Express       68   433   Invited Candidates had Educational
+  2022       Entry                    Credential Assessments or were
+                                      educated in Canada.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on August 11, 2022, have
+                                      the following classification numbers:
+                                      0621, 0631, 0632, 0711, 2171, 2234,
+                                      2263, 2281, 2282, 3212, 3214, 3219,
+                                      3237, 6211, 6221, 6312, 7302, 7305,
+                                      8241, 8252
+August 11,   Occupations   68   312   Invited Candidates had Educational
+  2022       In-Demand                Credential Assessments or were
+                                      educated in Canada.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on August 11, 2022, have
+                                      the following classification numbers:
+                                      0621, 0631, 0632, 0711, 2171, 2234,
+                                      2263, 2281, 2282, 3212, 3214, 3219,
+
+
+                                                                                19
+                                                       Updated: September 12, 2024
+
+
+                                         3237, 6211, 6221, 6312, 7302, 7305,
+                                         8241, 8252
+July 27, 2022   Express       68   279   Invited Candidates had Educational
+                Entry                    Credential Assessments or were
+                                         educated in Canada.
+
+                                         Not all occupations were selected. The
+                                         occupations chosen and eligible for the
+                                         EOI selection on July 27, 2022, have the
+                                         following classification numbers: 0621,
+                                         0631, 0632, 0711, 2171, 2234, 2263,
+                                         2281, 2282, 3212, 3214, 3217, 3219,
+                                         3237, 6211, 6221, 6312, 7305, 8252
+July 27, 2022   Occupations   68   469   Invited Candidates had Educational
+                In-Demand                Credential Assessments or were
+                                         educated in Canada.
+
+                                         Not all occupations were selected. The
+                                         occupations chosen and eligible for the
+                                         EOI selection on July 27, 2022, have the
+                                         following classification numbers: 0621,
+                                         0631, 0632, 0711, 2171, 2234, 2263,
+                                         2281, 2282, 3212, 3214, 3217, 3219,
+                                         3237, 6211, 6221, 6312, 7305, 8252
+July 21, 2022   Express       68   797   Invited Candidates had Educational
+                Entry                    Credential Assessments or were
+                                         educated in Canada.
+
+                                         Not all occupations were selected. The
+                                         occupations chosen and eligible for the
+                                         EOI selection on July 21, 2022, have the
+                                         following classification numbers: 2171,
+                                         0621, 6221, 2281, 2263, 0711, 2282,
+                                         6211, 0631, 3212, 2234, 3219, 3237,
+                                         0632, 8252, 6312, 3217, 3214
+July 21, 2022                 60   5     Invited Candidates whose current
+                                         country of residence is Ukraine as a
+                                         special measure in response to the
+                                         current conflict.
+July 14, 2022                 66   2     Invited Candidates whose current
+                                         country of residence is Ukraine as a
+                                         special measure in response to the
+                                         current conflict.
+July 14, 2022   Occupations   69   195   Invited Candidates had Educational
+                In-Demand                Credential Assessments or were
+                                         educated in Canada.
+
+
+
+                                                                                20
+                                                       Updated: September 12, 2024
+
+
+                                         Not all occupations were selected. The
+                                         occupations chosen and eligible for the
+                                         EOI selection on July 14, 2022, have the
+                                         following classification numbers: 0621,
+                                         0631, 0632, 0711, 2171, 2234, 2263,
+                                         2281, 2282, 3212, 3214, 3217, 3219,
+                                         3237, 6211, 6221, 6312, 7284, 7305,
+                                         8252
+July 14, 2022   Express       69   430   Invited Candidates had Educational
+                Entry                    Credential Assessments or were
+                                         educated in Canada.
+
+                                         Not all occupations were selected. The
+                                         occupations chosen and eligible for the
+                                         EOI selection on July 14, 2022, have the
+                                         following classification numbers: 0621,
+                                         0631, 0632, 0711, 2171, 2234, 2263,
+                                         2281, 2282, 3212, 3214, 3217, 3219,
+                                         3237, 6211, 6221, 6312, 7284, 7305,
+                                         8252
+July 6, 2022    Occupations   61    5    Invited Candidates whose current
+                In-Demand                country of residence is Ukraine as a
+                                         special measure in response to the
+                                         current conflict.
+July 6, 2022    Express       73   279   Invited Candidates had Educational
+                Entry                    Credential Assessments or were
+                                         educated in Canada.
+
+                                         Not all occupations were selected. The
+                                         occupations chosen and eligible for the
+                                         EOI selection on July 6, 2022, have the
+                                         following classification numbers: 0621,
+                                         0631, 0632, 0711, 2171, 2234, 2263,
+                                         2281, 2282, 3212, 3214, 3217, 3219,
+                                         3237, 6211, 6221, 6312, 7302, 7305,
+                                         8241, 8252
+July 6, 2022    Occupations   73   398   Invited Candidates had Educational
+                In-Demand                Credential Assessments or were
+                                         educated in Canada.
+
+                                         Not all occupations were selected. The
+                                         occupations chosen and eligible for the
+                                         EOI selection on July 6, 2022, have the
+                                         following classification numbers: 0621,
+                                         0631, 0632, 0711, 2171, 2234, 2263,
+                                         2281, 2282, 3212, 3214, 3217, 3219,
+                                         3237, 6211, 6221, 6312, 7302, 7305,
+                                         8241, 8252
+
+                                                                                   21
+                                                     Updated: September 12, 2024
+
+
+May 5, 2022   Express       85   106   Invited Candidates had Educational
+              Entry                    Credential Assessments or were
+                                       educated in Canada.
+
+                                       Not all occupations were selected. The
+                                       occupations chosen and eligible for the
+                                       EOI selection on May 5, 2022 have the
+                                       following classification numbers: 1221,
+                                       1122, 1241, 1123, 0621, 4033, 0014,
+                                       4164, 4212, 0121, 4169, 2212, 0421,
+                                       9232, 8222, 4216, 0911, 1243, 2241,
+                                       2263, 0821, 4152, 0423, 7237, 9212,
+                                       2142, 2151, 2242, 7251, 0712, 7283,
+                                       4166, 2144, 2243, 7271, 2252, 1313,
+                                       2253, 4161, 7232, 1222
+May 5, 2022   Occupations   85   91    Invited Candidates had Educational
+              In-Demand                Credential Assessments or were
+                                       educated in Canada.
+
+                                       Not all occupations were selected. The
+                                       occupations chosen and eligible for the
+                                       EOI selection on May 5, 2022 have the
+                                       following classification numbers:
+                                       1221, 1122, 1241, 1123, 0621, 4033,
+                                       0014, 4164, 4212, 0121, 4169, 2212,
+                                       0421, 9232, 8222, 4216, 0911, 1243,
+                                       2241, 2263, 0821, 4152, 0423, 7237,
+                                       9212, 2142, 2151, 2242, 7251, 0712,
+                                       7283, 4166, 2144, 2243, 7271, 2252,
+                                       1313, 2253, 4161, 7232, 1222
+May 5, 2022                 71   1     Invited Candidates whose current
+                                       country of residence is Ukraine as a
+                                       special measure in response to the
+                                       current conflict.
+ March 8,     Express       87   39    Invited Candidates had Educational
+  2022        Entry                    Credential Assessments or were
+                                       educated in Canada.
+
+                                       Not all occupations were selected. The
+                                       occupations chosen and eligible for the
+                                       EOI selection on March 8, 2022 have the
+                                       following classification numbers: 0014,
+                                       0121, 0421, 0621, 0911, 1122, 1123,
+                                       1213, 1214, 1221, 1222, 1241, 1243,
+                                       1252, 2142, 2253, 2263, 3143, 3211,
+                                       3215, 4033, 4151, 4153, 4162, 4164,
+                                       4166, 4212, 7246, 7295, 8222, 9212
+
+
+                                                                                 22
+                                                    Updated: September 12, 2024
+
+
+ March 8,     Occupations   87   43   Invited Candidates had Educational
+  2022        In-Demand               Credential Assessments or were
+                                      educated in Canada.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on March 8, 2022 have the
+                                      following classification numbers: 0014,
+                                      0121, 0421, 0621, 0911, 1122, 1123,
+                                      1213, 1214, 1221, 1222, 1241, 1243,
+                                      1252, 2142, 2253, 2263, 3143, 3211,
+                                      3215, 4033, 4151, 4153, 4162, 4164,
+                                      4166, 4212, 7246, 7295, 8222, 9212
+ March 8,     Express       61   3    Invited Candidates whose current
+  2022        Entry &                 country of residence is Ukraine as a
+              Occupations             special measure in response to the
+              In-Demand               current conflict.
+ March 4,     Express       61   14   Invited Candidates whose current
+  2022        Entry                   country of residence is Ukraine as a
+                                      special measure in response to the
+                                      current conflict.
+ March 4,     Occupations   60   22   Invited Candidates whose current
+  2022        In-Demand               country of residence is Ukraine as a
+                                      special measure in response to the
+                                      current conflict.
+January 12,   Express       68   37   Invited Candidates had Educational
+   2022       Entry                   Credential Assessments or were
+                                      educated in Canada.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on January 12, 2022 have
+                                      the following classification numbers:
+                                      3211, 3234, 4151, 3216, 3143, 3215
+January 12,   Occupations   68   67   Invited Candidates had Educational
+   2022       In-Demand               Credential Assessments or were
+                                      educated in Canada.
+
+                                      Not all occupations were selected. The
+                                      occupations chosen and eligible for the
+                                      EOI selection on January 12, 2022 have
+                                      the following classification numbers:
+                                      3211, 3234, 4151, 3216, 3143, 3215
+
+
+
+
+                                                                                23
 
