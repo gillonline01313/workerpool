@@ -1,6 +1,7 @@
 // Admin data API. Every request must carry the ADMIN_KEY secret set in Cloudflare.
 import { json, readJson, str, sendEmail, chatOpen, CHAT_MSG_SQL, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
 import { NEWS_SEED } from "../../_news.js";
+import { autoDraws, edits as drawEdits, merge as mergeDraws, FIELDS as DRAW_FIELDS } from "../../_draws.js";
 function same(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
   let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0;
@@ -34,6 +35,10 @@ export async function onRequestGet({ request, env, params }) {
       const users = await env.DB.prepare(`SELECT COUNT(*) AS n FROM forum_users`).first();
       return json({ ok: true, topics: topics.results, posts: posts.results, reports: reports.results, members: users ? users.n : 0 });
     } catch { return json({ ok: false, error: "Run schema-forum.sql in the D1 console first." }, 500); }
+  }
+  if (route === "draws") {
+    const auto = await autoDraws(request, env), ed = await drawEdits(env);
+    return json({ ok: true, ready: ed !== null, checked: auto.checked, updated: auto.updated, sources: auto.sources || [], draws: mergeDraws(auto, ed, true) });
   }
   if (route === "forum-views") {
     try {
@@ -120,6 +125,7 @@ export async function onRequestPost({ request, env, params }) {
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
   if (route.startsWith("news-")) return newsAction(env, route, b);
   if (route.startsWith("forum-")) return forumAction(env, route, b);
+  if (route.startsWith("draws-")) return drawsAction(request, env, route, b);
   const t = await env.DB.prepare(`SELECT * FROM chat_threads WHERE id = ?1`).bind(str(b.id, 64)).first();
   if (!t) return json({ ok: false, error: "Chat not found." }, 404);
   const now = new Date().toISOString();
@@ -238,4 +244,43 @@ async function forumAction(env, route, b) {
     }
   } catch { return json({ ok: false, error: "Couldn't save. Run schema-forum.sql in the D1 console first." }, 500); }
   return json({ ok: false, error: "Not found." }, 404);
+}
+
+// Latest draws: edit / hide / restore an automatic draw, or add, edit and delete a draw entered by hand.
+async function drawsAction(request, env, route, b) {
+  const id = str(b.id, 120), now = new Date().toISOString();
+  const clean = (d) => {
+    const o = {};
+    for (const k of DRAW_FIELDS) if (d && d[k] !== undefined) o[k] = k === "pinned" ? !!d[k] : k === "score" ? (d[k] === "" || d[k] == null || isNaN(+d[k]) ? null : Math.round(+d[k])) : str(String(d[k] ?? ""), k === "source" ? 500 : 200);
+    if (o.date !== undefined && !/^\d{4}-\d\d-\d\d$/.test(o.date)) return null;
+    if (o.source && !/^https:\/\//.test(o.source)) return null;
+    return o;
+  };
+  try {
+    if (route === "draws-save") {
+      const d = clean(b.draw);
+      if (!d || !d.date || !d.stream || !d.program) return json({ ok: false, error: "Date, program and stream are needed (date as YYYY-MM-DD; source link must start with https://)." }, 400);
+      if (!id) { // new draw entered by hand
+        const nid = "man-" + crypto.randomUUID().slice(0, 8);
+        await env.DB.prepare(`INSERT INTO draw_edits (id, kind, data, updated) VALUES (?1, 'add', ?2, ?3)`).bind(nid, JSON.stringify(d), now).run();
+        return json({ ok: true, id: nid });
+      }
+      const ex = await env.DB.prepare(`SELECT kind FROM draw_edits WHERE id = ?1`).bind(id).first();
+      const kind = id.startsWith("man-") ? "add" : "edit";
+      await env.DB.prepare(`INSERT INTO draw_edits (id, kind, data, updated) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(id) DO UPDATE SET kind = excluded.kind, data = excluded.data, updated = excluded.updated`)
+        .bind(id, ex && ex.kind === "hide" && kind === "edit" ? "edit" : kind, JSON.stringify(d), now).run();
+      return json({ ok: true, id });
+    }
+    if (!id) return json({ ok: false, error: "Missing draw." }, 400);
+    if (route === "draws-hide") { // automatic draw: hide it (survives future updates); manual draw: deleted for good
+      if (id.startsWith("man-")) await env.DB.prepare(`DELETE FROM draw_edits WHERE id = ?1`).bind(id).run();
+      else await env.DB.prepare(`INSERT INTO draw_edits (id, kind, data, updated) VALUES (?1, 'hide', '{}', ?2) ON CONFLICT(id) DO UPDATE SET kind = 'hide', updated = excluded.updated`).bind(id, now).run();
+      return json({ ok: true });
+    }
+    if (route === "draws-reset") { // back to exactly what the official page says (undo an edit or a hide)
+      if (!id.startsWith("man-")) await env.DB.prepare(`DELETE FROM draw_edits WHERE id = ?1`).bind(id).run();
+      return json({ ok: true });
+    }
+    return json({ ok: false, error: "Unknown action." }, 400);
+  } catch { return json({ ok: false, error: "Run schema-draws.sql in the D1 console first." }, 500); }
 }

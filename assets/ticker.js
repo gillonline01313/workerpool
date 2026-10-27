@@ -1,78 +1,106 @@
-/* WorkerPool "Hot & New" ticker.
-   Add <div id="hn"></div> where it should appear, then <script src="/assets/ticker.js?v=1" defer></script>.
-   Items come from /api/news (managed in the admin dashboard under "Hot & New"). */
+/* WorkerPool highlight bar (replaces the old scrolling "Hot & New" ticker).
+   Add <div id="hn"></div> under the header, then <script src="/assets/ticker.js?v=2" defer></script>.
+   Shows one highlight at a time: the newest immigration draws (from /api/draws) and the Hot & New items (from /api/news),
+   gently cycling every few seconds. Hovering, focusing or pressing pause stops it. */
 (function () {
   const root = document.getElementById("hn");
   if (!root) return;
   const css = `
-.hn{--hn-bg:#0d1c1a;--hn-bg2:#173531;--hn-fg:#f4faf8;--hn-dim:#a9c4bf;--hn-hot:#ff5a36;--hn-hot2:#ff9a1f;--hn-new:#ffd23f;--hn-tr:#a48bff;
-  position:relative;background:linear-gradient(100deg,var(--hn-bg) 0%,var(--hn-bg2) 55%,var(--hn-bg) 100%);color:var(--hn-fg);
-  border-bottom:1px solid #000;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);font-family:"Figtree","Segoe UI",system-ui,sans-serif;overflow:hidden}
-.hn::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(600px 80px at 0% 50%,rgba(255,90,54,.22),transparent 70%)}
-.hn-in{display:flex;align-items:stretch;min-height:54px;max-width:1440px;margin:0 auto;position:relative;z-index:1}
-.hn-badge{flex:none;display:flex;align-items:center;gap:9px;padding:0 18px 0 max(16px,env(safe-area-inset-left,0px));text-decoration:none;color:#fff;
-  background:linear-gradient(120deg,var(--hn-hot),var(--hn-hot2));clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%);padding-right:30px}
-.hn-badge b{font-family:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;font-weight:800;font-size:1.02rem;letter-spacing:.06em;text-transform:uppercase;line-height:1;white-space:nowrap;text-shadow:0 1px 0 rgba(0,0,0,.18)}
-.hn-flame{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.2);animation:hnPulse 1.6s ease-in-out infinite}
-@keyframes hnPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.55)}60%{box-shadow:0 0 0 7px rgba(255,255,255,0)}}
-.hn-track{flex:1;min-width:0;overflow:hidden;display:flex;align-items:center;-webkit-mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 40px),transparent)}
-.hn-rail{display:flex;width:max-content;animation:hnRoll var(--hn-dur,60s) linear infinite}
-.hn:hover .hn-rail,.hn:focus-within .hn-rail,.hn.paused .hn-rail{animation-play-state:paused}
-@keyframes hnRoll{to{transform:translateX(-50%)}}
-.hn-set{display:flex;align-items:center}
-.hn-item{display:inline-flex;align-items:center;gap:10px;padding:8px 22px;text-decoration:none;color:var(--hn-fg);font-weight:700;font-size:.97rem;white-space:nowrap;border-radius:8px}
-.hn-item:hover .hn-t,.hn-item:focus-visible .hn-t{text-decoration:underline;text-decoration-color:var(--hn-hot2);text-decoration-thickness:2px;text-underline-offset:4px}
-.hn-item:focus-visible{outline:2px solid var(--hn-new);outline-offset:-2px}
-.hn-item+.hn-item::before,.hn-set+.hn-set .hn-item:first-child::before{content:"";width:6px;height:6px;transform:rotate(45deg);background:var(--hn-hot2);margin:0 22px 0 -22px;opacity:.85}
-.hn-tag{font-size:.64rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:5px;line-height:1.2}
-.hn-tag.hot{background:var(--hn-hot);color:#fff}.hn-tag.new{background:var(--hn-new);color:#2a2100}
-.hn-tag.trending{background:var(--hn-tr);color:#fff}.hn-tag.update{background:rgba(255,255,255,.14);color:var(--hn-fg)}
-.hn-pin{color:var(--hn-new);font-size:.85rem}
-.hn-ctl{flex:none;display:flex;align-items:center;gap:4px;padding:0 max(12px,env(safe-area-inset-right,0px)) 0 8px}
-.hn-pp{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:transparent;color:var(--hn-fg);cursor:pointer;display:grid;place-items:center}
-.hn-pp:hover{background:rgba(255,255,255,.1)}
-.hn-pp:focus-visible,.hn-all:focus-visible,.hn-badge:focus-visible{outline:2px solid var(--hn-new);outline-offset:2px}
-.hn-all{font-size:.85rem;font-weight:700;color:var(--hn-fg);text-decoration:none;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.1);white-space:nowrap}
-.hn-all:hover{background:rgba(255,255,255,.18)}
-@media (max-width:640px){.hn-badge b{font-size:.86rem}.hn-badge{padding-left:12px;padding-right:24px}.hn-all{display:none}.hn-item{font-size:.9rem;padding:8px 16px}.hn-in{min-height:48px}}
-@media (prefers-reduced-motion:reduce){.hn-rail{animation:none}.hn-track{overflow-x:auto;-webkit-mask-image:none;mask-image:none}.hn-set[aria-hidden]{display:none}.hn-flame{animation:none}.hn-pp{display:none}}`;
+.hb{--hb-bg:#12302c;--hb-bg2:#1a403a;--hb-fg:#f3faf8;--hb-dim:#a8c8c1;--hb-amber:#ffc65c;--hb-line:rgba(255,255,255,.14);
+  background:linear-gradient(90deg,var(--hb-bg),var(--hb-bg2));color:var(--hb-fg);border-bottom:1px solid #0a1c19;font-family:"Figtree","Segoe UI",system-ui,sans-serif;position:relative}
+.hb::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--hb-amber)}
+.hb-in{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:14px;min-height:50px;padding:6px max(20px,env(safe-area-inset-right,0px)) 6px max(20px,env(safe-area-inset-left,0px))}
+.hb-lab{flex:none;display:inline-flex;align-items:center;gap:8px;font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--hb-amber)}
+.hb-dot{width:8px;height:8px;border-radius:50%;background:var(--hb-amber);box-shadow:0 0 0 0 rgba(255,198,92,.6);animation:hbPing 2.2s ease-out infinite}
+@keyframes hbPing{0%{box-shadow:0 0 0 0 rgba(255,198,92,.55)}70%,100%{box-shadow:0 0 0 8px rgba(255,198,92,0)}}
+.hb-view{flex:1;min-width:0;position:relative;height:38px;overflow:hidden}
+.hb-item{position:absolute;inset:0;display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--hb-fg);opacity:0;transform:translateY(10px);transition:opacity .45s ease,transform .45s ease;pointer-events:none}
+.hb-item.on{opacity:1;transform:none;pointer-events:auto}
+.hb-item.out{opacity:0;transform:translateY(-10px)}
+.hb-k{flex:none;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.12);color:var(--hb-fg);white-space:nowrap}
+.hb-k.draw{background:var(--hb-amber);color:#3a2700}
+.hb-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:.96rem}
+.hb-t b{font-family:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;font-weight:750}
+.hb-t span{color:var(--hb-dim);font-weight:500}
+.hb-item:hover .hb-t,.hb-item:focus-visible .hb-t{text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--hb-amber)}
+.hb-ctl{flex:none;display:flex;align-items:center;gap:6px}
+.hb-ctl button{width:30px;height:30px;border-radius:50%;border:1px solid var(--hb-line);background:transparent;color:var(--hb-fg);display:grid;place-items:center;cursor:pointer}
+.hb-ctl button:hover{background:rgba(255,255,255,.1)}
+.hb-n{font-size:.75rem;color:var(--hb-dim);min-width:34px;text-align:center;font-variant-numeric:tabular-nums}
+.hb-all{font-size:.84rem;font-weight:700;color:var(--hb-fg);text-decoration:none;padding:6px 12px;border-radius:999px;border:1px solid var(--hb-line);white-space:nowrap}
+.hb-all:hover{background:rgba(255,255,255,.1)}
+.hb a:focus-visible,.hb button:focus-visible{outline:2px solid var(--hb-amber);outline-offset:2px}
+@media (max-width:720px){.hb-all,.hb-n{display:none}.hb-lab span{display:none}.hb-in{gap:10px}.hb-t{font-size:.9rem}}
+@media (max-width:420px){.hb-k{display:none}.hb-ctl [data-a="prev"],.hb-ctl [data-a="pause"]{display:none}}
+@media (prefers-reduced-motion:reduce){.hb-dot{animation:none}.hb-item{transition:none}}`;
   const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const LABEL = { hot: "Hot", new: "New", trending: "Trending", update: "Update" };
-  const flame = `<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M13.5 1.5s.9 3.2-1.3 6.1C10.6 9.7 8 10.9 8 14.6a4 4 0 0 0 8 0c0-1.6-.7-2.6-.7-2.6s2.7 1.2 2.7 5A6 6 0 0 1 6 17c0-5.1 3.5-7.2 5.2-9.6C13 4.8 13.5 1.5 13.5 1.5z"/></svg>`;
-  const pauseIc = `<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>`;
-  const playIc = `<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4l13 8-13 8z"/></svg>`;
+  const day = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-CA", { month: "short", day: "numeric" });
+  const onHome = !!document.getElementById("draws");
+  const ic = { prev: '<path d="M15 6l-6 6 6 6"/>', next: '<path d="M9 6l6 6-6 6"/>', pause: '<path d="M8 5v14M16 5v14"/>', play: '<path d="M8 5l11 7-11 7z"/>' };
+  const svg = (k) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic[k]}</svg>`;
 
-  fetch("/api/news").then((r) => r.json()).then((j) => {
-    const items = (j && j.items) || [];
-    if (!items.length) return;
-    const one = (it, hidden) => {
+  const pick = (p) => p.then((r) => r.json()).catch(() => ({}));
+  Promise.all([pick(fetch("/api/draws?days=21")), pick(fetch("/api/news"))]).then(([dj, nj]) => {
+    const items = [];
+    const draws = (dj && dj.draws) || [];
+    if (draws.length) {
+      const latestDay = draws[0].date;
+      // newest day's draws first (at most 4), then one per program from the days after
+      const seen = new Set();
+      draws.filter((d) => d.date === latestDay).slice(0, 4).forEach((d) => { seen.add(d.program); items.push(drawItem(d)); });
+      draws.filter((d) => d.date !== latestDay && !seen.has(d.program)).slice(0, 3).forEach((d) => { seen.add(d.program); items.push(drawItem(d)); });
+    }
+    ((nj && nj.items) || []).slice(0, 8).forEach((it) => {
       const tag = it.trending && it.tag !== "hot" ? "trending" : it.tag;
-      const href = it.link || "/news/";
-      const ext = /^https:/.test(href);
-      return `<a class="hn-item" href="${esc(href)}" data-id="${esc(it.id)}"${ext ? ' target="_blank" rel="noopener"' : ""}${hidden ? ' tabindex="-1"' : ""}>
-        <span class="hn-tag ${esc(tag)}">${esc(LABEL[tag] || "New")}</span>${it.pinned ? '<span class="hn-pin" aria-hidden="true">★</span>' : ""}<span class="hn-t">${esc(it.title)}</span></a>`;
-    };
-    const set = (hidden) => `<div class="hn-set"${hidden ? ' aria-hidden="true"' : ""}>${items.map((it) => one(it, hidden)).join("")}</div>`;
-    root.className = "hn";
-    root.setAttribute("role", "region");
-    root.setAttribute("aria-label", "Hot and new updates");
-    root.innerHTML = `<div class="hn-in">
-      <a class="hn-badge" href="/news/" aria-label="Hot and new: see all updates"><span class="hn-flame">${flame}</span><b>Hot &amp; New</b></a>
-      <div class="hn-track"><div class="hn-rail">${set(false)}${set(true)}</div></div>
-      <div class="hn-ctl"><button class="hn-pp" type="button" aria-label="Pause updates" title="Pause">${pauseIc}</button><a class="hn-all" href="/news/">All updates</a></div></div>`;
-    // Keep a steady reading speed (about 70px per second) whatever the number of items.
-    const rail = root.querySelector(".hn-rail");
-    requestAnimationFrame(() => { rail.style.setProperty("--hn-dur", Math.max(25, rail.scrollWidth / 2 / 70) + "s"); });
-    const pp = root.querySelector(".hn-pp");
-    pp.onclick = () => {
-      const p = root.classList.toggle("paused");
-      pp.innerHTML = p ? playIc : pauseIc; pp.setAttribute("aria-label", p ? "Play updates" : "Pause updates"); pp.title = p ? "Play" : "Pause";
-    };
-    root.addEventListener("click", (e) => {
-      const a = e.target.closest(".hn-item"); if (!a) return;
-      try { navigator.sendBeacon("/api/news", new Blob([JSON.stringify({ id: a.dataset.id })], { type: "application/json" })); } catch (x) {}
-      if (window.wpaSection) window.wpaSection("Ticker: " + a.textContent.trim().slice(0, 60));
+      items.push({ k: LABEL[tag] || "New", cls: "", href: it.link || "/news/", html: esc(it.title), id: it.id });
     });
-  }).catch(() => {});
+    if (!items.length) return;
+    render(items);
+  });
+
+  function drawItem(d) {
+    const nums = [d.invites ? d.invites + " invited" : "", d.score != null ? (d.jur === "CA" ? "CRS " : "min score ") + d.score : ""].filter(Boolean).join(" · ");
+    return { k: "Draw · " + day(d.date), cls: "draw", href: onHome ? "#draws" : "/#draws",
+      html: `<b>${esc(d.program)}</b> ${esc(d.stream)}${nums ? ` <span>— ${esc(nums)}</span>` : ""}` };
+  }
+
+  function render(items) {
+    root.className = "hb";
+    root.setAttribute("role", "region");
+    root.setAttribute("aria-label", "Latest draws and updates");
+    root.innerHTML = `<div class="hb-in">
+      <span class="hb-lab"><i class="hb-dot" aria-hidden="true"></i><span>Latest</span></span>
+      <div class="hb-view" aria-live="polite">${items.map((it, i) => {
+        const ext = /^https:/.test(it.href);
+        return `<a class="hb-item${i === 0 ? " on" : ""}" href="${esc(it.href)}"${ext ? ' target="_blank" rel="noopener"' : ""}${it.id ? ` data-id="${esc(it.id)}"` : ""}${i ? ' tabindex="-1" aria-hidden="true"' : ""}><span class="hb-k ${it.cls}">${esc(it.k)}</span><span class="hb-t">${it.html}</span></a>`;
+      }).join("")}</div>
+      ${items.length > 1 ? `<div class="hb-ctl"><button type="button" data-a="prev" aria-label="Previous">${svg("prev")}</button><span class="hb-n">1/${items.length}</span><button type="button" data-a="pause" aria-label="Pause">${svg("pause")}</button><button type="button" data-a="next" aria-label="Next">${svg("next")}</button></div>` : ""}
+      <a class="hb-all" href="${onHome ? "#draws" : "/#draws"}">All draws</a></div>`;
+    const els = [...root.querySelectorAll(".hb-item")], n = root.querySelector(".hb-n");
+    let i = 0, paused = false, hold = false, timer;
+    const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const show = (j) => {
+      const old = els[i]; i = (j + els.length) % els.length;
+      old.classList.remove("on"); old.classList.add("out"); old.tabIndex = -1; old.setAttribute("aria-hidden", "true");
+      setTimeout(() => old.classList.remove("out"), 460);
+      els[i].classList.add("on"); els[i].removeAttribute("tabindex"); els[i].removeAttribute("aria-hidden");
+      if (n) n.textContent = `${i + 1}/${els.length}`;
+    };
+    const tick = () => { clearInterval(timer); if (els.length > 1 && !reduce) timer = setInterval(() => { if (!paused && !hold && !document.hidden) show(i + 1); }, 5500); };
+    root.addEventListener("mouseenter", () => (hold = true)); root.addEventListener("mouseleave", () => (hold = false));
+    root.addEventListener("focusin", () => (hold = true)); root.addEventListener("focusout", () => (hold = false));
+    root.querySelectorAll("[data-a]").forEach((b) => b.onclick = () => {
+      if (b.dataset.a === "prev") show(i - 1);
+      else if (b.dataset.a === "next") show(i + 1);
+      else { paused = !paused; b.innerHTML = svg(paused ? "play" : "pause"); b.setAttribute("aria-label", paused ? "Play" : "Pause"); }
+      tick();
+    });
+    root.addEventListener("click", (e) => { // count news clicks (ranks trending items)
+      const a = e.target.closest(".hb-item[data-id]");
+      if (a) try { navigator.sendBeacon("/api/news", new Blob([JSON.stringify({ id: a.dataset.id })], { type: "application/json" })); } catch (x) {}
+    });
+    tick();
+  }
 })();

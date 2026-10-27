@@ -100,3 +100,5 @@ CREATE TABLE IF NOT EXISTS forum_views (
 );
 CREATE INDEX IF NOT EXISTS forum_views_topic ON forum_views (topic_id, t);
 CREATE INDEX IF NOT EXISTS forum_views_t ON forum_views (t);
+-- Latest draws: admin changes on top of the automatic list in data/draws.json. Run once in Cloudflare: D1 > workerpool-db > Console.
+CREATE TABLE IF NOT EXISTS draw_edits (id TEXT PRIMARY KEY, kind TEXT NOT NULL, data TEXT, updated TEXT NOT NULL);

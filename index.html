@@ -72,6 +72,65 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:col
 @media (max-width:420px){.navcta .ghost{display:none}}
 a:focus-visible,.btn:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 
+
+/* latest draws */
+#draws{scroll-margin-top:60px}
+.draws-sec{padding-block:clamp(36px,6vw,64px);background:linear-gradient(180deg,var(--bg),var(--band))}
+.dr-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:clamp(20px,3.4vw,36px);position:relative;overflow:hidden;box-shadow:0 18px 40px -28px rgba(20,50,46,.35)}
+.dr-card::before{content:"";position:absolute;inset:0 0 auto;height:5px;background:linear-gradient(90deg,var(--accent),#e0a73c)}
+.dr-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:18px}
+.dr-head h2{font-size:clamp(2rem,4.4vw,3rem);font-weight:750;letter-spacing:-.025em;margin:4px 0 6px}
+.dr-head .lede{font-size:1rem}
+.dr-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.dr-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -4px;padding:2px 4px;max-width:100%}
+.dr-chips::-webkit-scrollbar{display:none}
+.dr-chips button{flex:none;font:inherit;font-size:.86rem;font-weight:600;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap}
+.dr-chips button:hover{color:var(--fg);border-color:var(--fg)}
+.dr-chips button[aria-selected="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.dr-stamp{font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.dr-live{width:8px;height:8px;border-radius:50%;background:#2e9d6a;box-shadow:0 0 0 3px color-mix(in srgb,#2e9d6a 25%,transparent)}
+.dr-day{display:grid;grid-template-columns:150px 1fr;gap:6px 22px;padding:16px 0;border-bottom:1px solid var(--line)}
+.dr-date{display:flex;flex-direction:column;gap:2px;padding-top:6px}
+.dr-date b{font-family:var(--display);font-weight:650;font-size:1.02rem}
+.dr-date span{font-size:.78rem;color:var(--muted);font-weight:600}
+.dr-date span.today{color:#b8521d}
+.dr-day.first .dr-date b{color:var(--accent-deep)}
+.dr-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.dr-row{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:14px;padding:10px 12px;border-radius:12px;transition:background .15s}
+.dr-row:hover{background:var(--bg)}
+.dr-badge{--c:var(--accent);min-width:48px;text-align:center;font-family:var(--display);font-weight:750;font-size:.8rem;letter-spacing:.04em;padding:6px 8px;border-radius:9px;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);border:1px solid color-mix(in srgb,var(--c) 28%,transparent)}
+.j-CA{--c:#c0392b}.j-BC{--c:#1f6fb2}.j-AB{--c:#0f7c8a}.j-SK{--c:#2f8a3e}.j-MB{--c:#8a5a12}.j-ON{--c:#6b4bb8}.j-QC{--c:#2554c7}
+.j-NB,.j-NS,.j-PE,.j-NL{--c:#0e7a6b}.j-YT,.j-NT{--c:#5b6b78}.j-RCIP{--c:#b8521d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dr-badge{--c:#e3ebe9}:root:not([data-theme="light"]) .j-CA{--c:#ff8a7a}:root:not([data-theme="light"]) .j-BC{--c:#7fb6ea}:root:not([data-theme="light"]) .j-AB{--c:#6fd0dc}:root:not([data-theme="light"]) .j-SK{--c:#8fd49a}:root:not([data-theme="light"]) .j-MB{--c:#e2b56d}:root:not([data-theme="light"]) .j-ON{--c:#b9a3f2}:root:not([data-theme="light"]) .j-QC{--c:#8fb0ff}:root:not([data-theme="light"]) .j-RCIP{--c:#f2a06d}}
+:root[data-theme="dark"] .j-CA{--c:#ff8a7a}:root[data-theme="dark"] .j-BC{--c:#7fb6ea}:root[data-theme="dark"] .j-AB{--c:#6fd0dc}:root[data-theme="dark"] .j-RCIP{--c:#f2a06d}
+.dr-what{min-width:0;display:flex;flex-direction:column;line-height:1.35}
+.dr-what b{font-weight:700;font-size:.98rem}
+.dr-what span{color:var(--muted);font-size:.9rem}
+.dr-what small{color:var(--muted);font-size:.76rem;opacity:.85}
+.dr-nums{display:flex;gap:18px}
+.dr-num{display:flex;flex-direction:column;align-items:flex-end;min-width:64px;line-height:1.1}
+.dr-num b{font-family:var(--display);font-weight:750;font-size:1.35rem;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.dr-num small{white-space:nowrap;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.dr-go{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;color:var(--muted);border:1px solid transparent}
+.dr-go:hover{color:var(--accent);border-color:var(--line);background:var(--surface)}
+.dr-more{display:flex;justify-content:center;padding-top:18px}
+.dr-empty{color:var(--muted);padding:24px 0}
+.dr-src{margin-top:18px;font-size:.86rem;color:var(--muted)}
+.dr-src summary{cursor:pointer;font-weight:600;color:var(--fg)}
+.dr-src p{margin:8px 0;max-width:80ch}
+.dr-src ul{margin:6px 0 0;padding-left:18px;columns:2 260px}
+.dr-src li span{opacity:.8}
+.dr-skel{height:320px;border-radius:14px;background:linear-gradient(90deg,var(--bg),var(--band),var(--bg));background-size:200% 100%;animation:drSk 1.4s linear infinite}
+@keyframes drSk{to{background-position:-200% 0}}
+@media (max-width:720px){
+  .dr-day{grid-template-columns:1fr;gap:4px;padding:12px 0}
+  .dr-date{flex-direction:row;align-items:baseline;gap:10px;padding-top:0}
+  .dr-row{grid-template-columns:auto 1fr auto;grid-template-areas:"b w g" "b n n";gap:6px 12px;padding:10px 4px}
+  .dr-badge{grid-area:b;align-self:start;min-width:42px}.dr-what{grid-area:w}.dr-go{grid-area:g;align-self:start}
+  .dr-nums{grid-area:n;justify-content:flex-start;gap:20px}.dr-num{align-items:flex-start;flex-direction:row;gap:6px;align-items:baseline;min-width:0}
+  .dr-num b{font-size:1.1rem}
+}
+@media (prefers-reduced-motion:reduce){.dr-skel{animation:none}}
 /* hero */
 .hero{padding-block:clamp(48px,8vw,96px) clamp(56px,8vw,96px);position:relative;overflow:hidden}
 .hero::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--line) 1.2px,transparent 1.2px);background-size:22px 22px;mask-image:linear-gradient(110deg,transparent 35%,#000 75%);-webkit-mask-image:linear-gradient(110deg,transparent 35%,#000 75%);opacity:.9;pointer-events:none}
@@ -237,7 +296,7 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
       WorkerPool
     </a>
     <nav class="links" aria-label="Main">
-      <a href="/forum/">Forum</a><a href="#how">How it works</a><a href="#employers">For employers</a><a href="#about">About</a><a href="#compliance">Compliance</a><a href="#faq">FAQ</a>
+      <a href="#draws">Latest draws</a><a href="/forum/">Forum</a><a href="#how">How it works</a><a href="#employers">For employers</a><a href="#about">About</a><a href="#compliance">Compliance</a><a href="#faq">FAQ</a>
     </nav>
     <div class="navcta">
       <a class="btn ghost sm" href="/apply/#signin">Sign in</a>
@@ -284,6 +343,19 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
           <span class="chip off">Marketing emails off</span>
         </div>
       </aside>
+    </div>
+  </section>
+
+  <section class="draws-sec" id="draws" data-sec="Latest draws">
+    <div class="in">
+      <div class="dr-card">
+        <div class="dr-head"><div>
+          <span class="eyebrow">Updated daily · 8 am, 2 pm &amp; 8 pm Mountain time</span>
+          <h2>Latest draws</h2>
+          <p class="lede">Every Express Entry, provincial nominee, Québec and RCIP round, date by date. Taken only from official government pages.</p>
+        </div></div>
+        <div id="draws-root"><div class="dr-skel" aria-label="Loading draws"></div></div>
+      </div>
     </div>
   </section>
 
@@ -550,7 +622,8 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
 </script>
 <script>window.WPA_PAGE="home";</script>
 <script src="/assets/wpa.js" defer></script>
-<script src="/assets/ticker.js?v=1" defer></script>
+<script src="/assets/ticker.js?v=2" defer></script>
+<script src="/assets/draws.js?v=1" defer></script>
 <script src="/assets/chat.js?v=4" defer></script>
 </body>
 </html>

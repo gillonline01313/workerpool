@@ -127,6 +127,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
   <div class="wpa-top"><div><h2>WorkerPool admin</h2><p>Live data from workerpool.ca. Refreshes every minute.</p></div>
     <div class="wpa-ctl"><div class="tabs" id="tabs">
       <button type="button" data-t="analytics" aria-pressed="true">Analytics</button>
+      <button type="button" data-t="draws" aria-pressed="false">Latest draws</button>
       <button type="button" data-t="news" aria-pressed="false">Hot &amp; New</button>
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
@@ -146,7 +147,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const fmtDur=s=>!s?"–":s<60?s+"s":Math.floor(s/60)+"m "+String(s%60).padStart(2,"0")+"s";
 const when=t=>new Date(t).toLocaleString("en-CA",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
 let KEY=""; try{KEY=sessionStorage.getItem("wp_admin")||"";}catch(e){}
-let fvTopic=null, forumF="reports", tab="analytics", range=7, pageF="all", data={}, newsF="live", newsEdit=null;
+let drF="all", drQ="", drEdit=null, fvTopic=null, forumF="reports", tab="analytics", range=7, pageF="all", data={}, newsF="live", newsEdit=null;
 async function api(path){
   const r=await fetch("/api/admin/"+path,{headers:{"x-admin-key":KEY}});
   if(r.status===401) throw new Error("auth");
@@ -158,6 +159,7 @@ async function load(){
     if(tab==="chat"){ await chatList(); render(); return; }
     if(tab==="analytics") data.visits=await api("visits?days="+days);
     else if(tab==="news"){ if(newsEdit) return; data.news=await api("news"); }
+    else if(tab==="draws"){ if(drEdit) return; const r=await fetch("/api/admin/draws",{headers:{"x-admin-key":KEY}}); if(r.status===401) throw new Error("auth"); data.draws=await r.json(); }
     else if(tab==="forum"){
       const r=await fetch("/api/admin/forum",{headers:{"x-admin-key":KEY}});
       if(r.status===401) throw new Error("auth");
@@ -181,7 +183,7 @@ async function load(){
 function lock(msg){ KEY=""; try{sessionStorage.removeItem("wp_admin");}catch(e){} $("#app").hidden=true; $("#gate").hidden=false; $("#gErr").textContent=msg||""; }
 $("#gate").onsubmit=e=>{ e.preventDefault(); KEY=$("#key").value.trim(); if(!KEY) return; try{sessionStorage.setItem("wp_admin",KEY);}catch(x){} start(); };
 $("#out").onclick=()=>lock("");
-document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; newsEdit=null; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; newsEdit=null; drEdit=null; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
 let iv=null;
 function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); }
 function seg(name,opts,cur,cb){ return `<div class="wpa-seg" data-seg="${name}">${opts.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${String(v)===String(cur)}">${l}</button>`).join("")}</div>`; }
@@ -195,6 +197,11 @@ function controls(){
     c.innerHTML=seg("nf",[["live","Live"],["archived","Archived"],["all","All"]],newsF)+`<button class="dl" type="button" id="nwAdd">+ Add item</button>`;
     c.querySelectorAll('[data-seg="nf"] button').forEach(b=>b.onclick=()=>{ newsF=b.dataset.v; newsEdit=null; controls(); render(); });
     $("#nwAdd").onclick=()=>{ newsEdit={}; render(); };
+  } else if(tab==="draws"){
+    c.innerHTML=seg("df",[["all","All"],["edited","Edited"],["manual","Added by hand"],["hidden","Hidden"],["sources","Sources"]],drF)+`<input id="drQ" type="search" placeholder="Search program or stream" value="${esc(drQ)}" style="font:inherit;font-size:.85rem;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);min-width:200px"><button class="dl" type="button" id="drAdd">+ Add draw</button><a class="dl" href="https://github.com/gillonline01313/workerpool/actions/workflows/draws.yml" target="_blank" rel="noopener" style="text-decoration:none">Check sources now ↗</a>`;
+    c.querySelectorAll('[data-seg="df"] button').forEach(b=>b.onclick=()=>{ drF=b.dataset.v; drEdit=null; controls(); render(); });
+    $("#drQ").oninput=e=>{ drQ=e.target.value; render(); };
+    $("#drAdd").onclick=()=>{ drEdit={date:new Date().toLocaleDateString("en-CA",{timeZone:"America/Edmonton"})}; render(); };
   } else if(tab==="forum"){
     c.innerHTML=seg("ff",[["reports","Reports"],["topics","Topics"],["posts","Latest posts"],["views","Views"]],forumF)+(forumF==="views"?seg("fr",[["1","24 h"],["7","7 days"],["30","30 days"],["365","1 year"]],String(range)):"")+`<a class="dl" href="/forum/" target="_blank" rel="noopener" style="text-decoration:none">Open forum ↗</a>`;
     c.querySelectorAll('[data-seg="ff"] button').forEach(b=>b.onclick=()=>{ forumF=b.dataset.v; if(forumF!=="views") fvTopic=null; controls(); forumF==="views"?load():render(); });
@@ -245,6 +252,7 @@ function render(){
   if(tab==="chat") return renderChat(body);
   if(tab==="news") return renderNews(body);
   if(tab==="forum") return renderForum(body);
+  if(tab==="draws") return renderDraws(body);
   const now=new Date(), startDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const from=range===0?0:range===1?startDay.getTime():startDay.getTime()-(range-1)*864e5;
   const V=(data.visits||[]).map(v=>({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk)})).filter(v=>v.ts>=from&&(pageF==="all"||v.page===pageF)).sort((a,b)=>b.ts-a.ts);
@@ -397,6 +405,62 @@ function renderForumViews(body,ex,tl){
       <small style="display:block">📱 ${esc([v.dev,v.os,v.browser].filter(Boolean).join(" · "))}${v.screen?" · "+esc(v.screen):""}${v.lang?" · "+esc(v.lang):""}</small>
       ${fvTopic?"":`<small style="display:block">💬 ${tl(v.topic_id)}${esc(v.title||"(deleted topic)")}</a></small>`}</div></div>`).join(""):`<div class="wpa-empty">No views recorded in this period yet. Views are recorded from now on.</div>`}</div></div>`;
   const a=$("#fvAll"); if(a) a.onclick=e=>{ e.preventDefault(); fvTopic=null; load(); };
+}
+/* ---------- Latest draws ---------- */
+const DR_JUR={CA:"Federal (Express Entry)",BC:"British Columbia",AB:"Alberta",SK:"Saskatchewan",MB:"Manitoba",ON:"Ontario",QC:"Québec",NB:"New Brunswick",NS:"Nova Scotia",PE:"Prince Edward Island",NL:"Newfoundland and Labrador",YT:"Yukon",NT:"Northwest Territories",RCIP:"RCIP / FCIP community"};
+function renderDraws(body){
+  if(drEdit) return drawForm(body);
+  const D=data.draws||{draws:[],sources:[]}, all=D.draws||[];
+  const mt=iso=>iso?new Date(iso).toLocaleString("en-CA",{timeZone:"America/Edmonton",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+" MT":"never";
+  const fails=(D.sources||[]).filter(s=>!s.ok), changed=(D.sources||[]).filter(s=>s.watch&&s.changed&&Date.now()-new Date(s.changed)<14*864e5);
+  const head=`<h3>${all.filter(d=>d.origin!=="hidden").length} draws on the home page · last checked ${mt(D.checked)}</h3>
+    <p style="color:var(--muted);font-size:.85rem;margin:4px 0 12px">The list updates itself at 8 am, 2 pm and 8 pm Mountain time from official government pages only. Your edits, hidden draws and draws you add by hand are kept through every update. "Use official" undoes your edit and shows exactly what the government page says.</p>
+    ${D.ready===false?`<div class="nw-item" style="border-color:#c47a1a"><div><b>One step left:</b> run <code>schema-draws.sql</code> in the D1 console so edits can be saved.</div></div>`:""}
+    ${fails.length?`<div class="nw-item" style="border-color:#c0392b;margin-bottom:8px"><div><b>${fails.length} source${fails.length>1?"s":""} couldn't be read last time:</b><small style="display:block">${fails.map(s=>`${esc(s.program)}: ${esc(s.error||"error")}`).join("<br>")}</small></div></div>`:""}
+    ${changed.length?`<div class="nw-item" style="border-color:#c47a1a;margin-bottom:8px"><div><b>Pages to check by hand changed recently:</b><small style="display:block">${changed.map(s=>`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.program)}</a> changed ${mt(s.changed)}`).join(" · ")}. If they posted a new draw, add it with “+ Add draw”.</small></div></div>`:""}`;
+  if(drF==="sources"){
+    body.innerHTML=`<div class="wpa-card wide">${head}<div class="nw-list">${(D.sources||[]).map(s=>`<div class="nw-item${s.ok?"":" arch"}"><div><b>${s.ok?"✅":"⚠️"} ${esc(s.program)}</b>
+      <small style="display:block">${esc(s.name)}</small>
+      <small style="display:block">${s.manual?"Added by hand: "+esc(s.note||"site blocks automated readers"):s.watch?`Watched for changes${s.changed?" · last changed "+mt(s.changed):""}`:`${s.found} draws found`} · checked ${mt(s.checked)}${s.error?" · "+esc(s.error):""}${!s.ok&&s.lastOk?" · last worked "+mt(s.lastOk):""}</small>
+      <small style="display:block"><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a></small></div></div>`).join("")||`<div class="wpa-empty">No sources yet. The first update will list them.</div>`}</div></div>`;
+    return;
+  }
+  const q=drQ.trim().toLowerCase();
+  const R=all.filter(d=>(drF==="all"?d.origin!=="hidden":d.origin===drF)&&(!q||(d.program+" "+d.stream+" "+(DR_JUR[d.jur]||"")).toLowerCase().includes(q))).slice(0,200);
+  const tagOf={edited:"edited",manual:"added by hand",hidden:"hidden"};
+  body.innerHTML=`<div class="wpa-card wide">${head}<div class="nw-list">${R.length?R.map(d=>`<div class="nw-item${d.origin==="hidden"?" arch":""}"><div>
+      <b>${d.pinned?"★ ":""}${esc(d.date)} · ${esc(d.program)}</b>${tagOf[d.origin]?` <span class="pill">${tagOf[d.origin]}</span>`:""}
+      <small style="display:block">${esc(d.stream)}</small>
+      <small style="display:block">${d.invites?esc(d.invites)+" invited":"invitations not published"}${d.score!=null?" · score "+esc(d.score):""}${d.note?" · "+esc(d.note):""}${d.source?` · <a href="${esc(d.source)}" target="_blank" rel="noopener">source</a>`:""}</small>
+      ${d.origin==="edited"&&d.auto?`<small style="display:block;opacity:.75">Official page says: ${esc(d.auto.stream)} · ${esc(d.auto.invites||"–")} · ${d.auto.score??"–"}</small>`:""}</div>
+      <div class="nw-btns">${d.origin==="hidden"?`<button class="dl" data-dr="reset" data-id="${esc(d.id)}">Restore</button>`:`<button class="dl" data-dr="edit" data-id="${esc(d.id)}">Edit</button>${d.origin==="edited"?`<button class="dl" data-dr="reset" data-id="${esc(d.id)}">Use official</button>`:""}<button class="dl" data-dr="hide" data-id="${esc(d.id)}">${d.origin==="manual"?"Delete":"Hide"}</button>`}</div></div>`).join(""):`<div class="wpa-empty">${drF==="all"?"No draws yet. They appear after the first automatic update.":"Nothing here."}</div>`}</div></div>`;
+  const act=async(route,payload,msg)=>{ if(msg&&!confirm(msg)) return; try{ await newsPost(route,payload); drEdit=null; load(); }catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); alert(x.message); } };
+  body.querySelectorAll("[data-dr]").forEach(b=>b.onclick=()=>{ const d=all.find(x=>x.id===b.dataset.id); if(!d) return;
+    if(b.dataset.dr==="edit"){ drEdit={...d}; render(); }
+    else if(b.dataset.dr==="hide") act("draws-hide",{id:d.id},d.origin==="manual"?"Delete this draw for good?":"Hide this draw from the home page? It stays hidden after future updates; you can restore it from the Hidden filter.");
+    else act("draws-reset",{id:d.id}); });
+}
+function drawForm(body){
+  const r=drEdit, isNew=!r.id;
+  body.innerHTML=`<div class="wpa-card wide"><h3>${isNew?"Add a draw by hand":"Edit draw"}</h3>${!isNew&&r.origin!=="manual"?`<p style="color:var(--muted);font-size:.85rem;margin:4px 0 0">Your version replaces what the official page says on the home page, and stays through future updates. Use “Use official” later to undo.</p>`:""}
+    <form class="nw-form" id="drForm" style="margin-top:12px">
+    <label>Draw date<input id="dD" type="date" required value="${esc(r.date)}"></label>
+    <label>Province / federal<select id="dJ">${Object.entries(DR_JUR).map(([k,l])=>`<option value="${k}"${(r.jur||"CA")===k?" selected":""}>${l}</option>`).join("")}</select></label>
+    <label>Program<input id="dP" required maxlength="80" value="${esc(r.program)}" placeholder="e.g. PEI PNP, SINP, Express Entry"></label>
+    <label>Invitations<input id="dI" maxlength="20" value="${esc(r.invites)}" placeholder="e.g. 1,250 or <10"></label>
+    <label class="full">Stream / category<input id="dS" required maxlength="200" value="${esc(r.stream)}" placeholder="e.g. Labour Impact – Occupations in demand"></label>
+    <label>Minimum score (CRS or provincial)<input id="dC" type="number" min="0" max="1500" value="${r.score??""}"></label>
+    <label>Note (optional)<input id="dN" maxlength="200" value="${esc(r.note)}" placeholder="e.g. Draw #283"></label>
+    <label class="full">Official source link<input id="dU" maxlength="500" value="${esc(r.source)}" placeholder="https://… (government page only)"></label>
+    <label class="chk"><input id="dX" type="checkbox"${r.pinned?" checked":""}> Star this draw (shown first on its date)</label>
+    <div class="err full" id="drErr"></div>
+    <div class="nw-acts full"><button class="dl" type="submit" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">${isNew?"Add to home page":"Save changes"}</button><button class="dl" type="button" id="drCancel">Cancel</button></div>
+  </form></div>`;
+  $("#drCancel").onclick=()=>{ drEdit=null; render(); };
+  $("#drForm").onsubmit=async e=>{ e.preventDefault(); const btn=e.target.querySelector("button[type=submit]"); btn.disabled=true;
+    const draw={date:$("#dD").value,jur:$("#dJ").value,program:$("#dP").value.trim(),stream:$("#dS").value.trim(),invites:$("#dI").value.trim(),score:$("#dC").value,note:$("#dN").value.trim(),source:$("#dU").value.trim(),pinned:$("#dX").checked};
+    try{ await newsPost("draws-save",{id:isNew?"":r.id,draw}); drEdit=null; load(); }
+    catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); $("#drErr").textContent=x.message; btn.disabled=false; } };
 }
 /* ---------- Hot & New ticker ---------- */
 const NTAG={hot:"Hot",new:"New",trending:"Trending",update:"Update"};

@@ -1,0 +1,52 @@
+# Latest draws: reads official IRCC, provincial and RCIP community pages and updates data/draws.json,
+# which the home page shows. Runs at 8 am, 2 pm and 8 pm Edmonton time. Cloudflare redeploys the site on each update.
+# Run it by hand any time: GitHub → Actions → Latest draws → Run workflow.
+name: Latest draws
+on:
+  schedule:
+    - cron: "2 14,20,2 * * *" # 8 am, 2 pm, 8 pm Edmonton while on daylight time (UTC-6)
+    - cron: "2 15,21,3 * * *" # the same times while on standard time (UTC-7)
+  workflow_dispatch:
+  push: # also runs once whenever the reader itself changes
+    branches: [main]
+    paths: ["scripts/draws/**", ".github/workflows/draws.yml"]
+permissions:
+  contents: write
+concurrency:
+  group: draws
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Only run the schedule that matches Edmonton's current clock
+        id: gate
+        run: |
+          off=$(TZ=America/Edmonton date +%z)
+          run=yes
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            if [ "${{ github.event.schedule }}" = "2 14,20,2 * * *" ] && [ "$off" != "-0600" ]; then run=no; fi
+            if [ "${{ github.event.schedule }}" = "2 15,21,3 * * *" ] && [ "$off" != "-0700" ]; then run=no; fi
+          fi
+          echo "Edmonton offset $off, run=$run"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'yes'
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.run == 'yes'
+        with:
+          node-version: 22
+      - name: Read official draw pages
+        if: steps.gate.outputs.run == 'yes'
+        run: node scripts/draws/fetch.mjs
+      - name: Publish
+        if: steps.gate.outputs.run == 'yes'
+        run: |
+          git config user.name "WorkerPool draws"
+          git config user.email "draws-bot@users.noreply.github.com"
+          git add data/draws.json
+          git diff --cached --quiet && { echo "No change"; exit 0; }
+          git commit -q -m "Latest draws: update $(TZ=America/Edmonton date '+%Y-%m-%d %H:%M %Z')"
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0; sleep 5; done
+          exit 1
