@@ -1,6 +1,6 @@
 {
- "updated": "2026-10-27T00:19:29.910Z",
- "checked": "2026-10-27T02:23:02.317Z",
+ "updated": "2026-10-27T06:41:15.184Z",
+ "checked": "2026-10-27T06:41:15.184Z",
  "draws": [
   {
    "id": "ee-451",
@@ -1652,6 +1652,19 @@
    "note": "",
    "source": "https://www.gnb.ca/en/topic/family-home-community/immigration/invitation-selection-rounds.html",
    "first": "2026-10-27T00:19:29.910Z"
+  },
+  {
+   "id": "yt-2026-07-17-ca4c5147840d",
+   "jur": "YT",
+   "program": "Yukon Nominee Program",
+   "date": "2026-07-17",
+   "stream": "Employer EOI intake – round 2 (July 6 to 17)",
+   "invites": null,
+   "score": null,
+   "scoreLabel": "",
+   "note": "Highest-scoring employer expressions of interest invited; their applications were due August 26. Yukon doesn't publish invitation numbers.",
+   "source": "https://yukon.ca/en/yukon-nominee-program",
+   "first": "2026-10-27T06:41:15.184Z"
   },
   {
    "id": "ab-2026-07-16-b4d5ada1f8e9",
@@ -4566,6 +4579,19 @@
    "first": "2026-10-27T00:19:29.910Z"
   },
   {
+   "id": "yt-2026-01-30-1c5a602dad4f",
+   "jur": "YT",
+   "program": "Yukon Nominee Program",
+   "date": "2026-01-30",
+   "stream": "Employer EOI intake – round 1 (January 19 to 30)",
+   "invites": null,
+   "score": null,
+   "scoreLabel": "",
+   "note": "Highest-scoring employer expressions of interest invited to apply. Yukon doesn't publish invitation numbers. 2026 allocation: 282 nominations.",
+   "source": "https://yukon.ca/en/news/yukon-nominee-program-expression-interest-intake-open",
+   "first": "2026-10-27T06:41:15.184Z"
+  },
+  {
    "id": "ab-2026-01-29-6f18d40fb6e4",
    "jur": "AB",
    "program": "AAIP",
@@ -5509,11 +5535,12 @@
    "program": "Express Entry",
    "name": "IRCC – Express Entry rounds of invitations",
    "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry/rounds-invitations.html",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 452,
    "manual": false,
-   "watch": false
+   "watch": false,
+   "latest": "2026-10-26"
   },
   {
    "id": "bc",
@@ -5521,11 +5548,12 @@
    "program": "BC PNP",
    "name": "Welcome BC – BC PNP invitations to apply",
    "url": "https://www.welcomebc.ca/immigrate-to-b-c/about-the-bc-provincial-nominee-program/invitations-to-apply",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 63,
    "manual": false,
-   "watch": false
+   "watch": false,
+   "latest": "2026-10-20"
   },
   {
    "id": "ab",
@@ -5533,11 +5561,12 @@
    "program": "AAIP",
    "name": "Alberta.ca – AAIP processing information (draw table)",
    "url": "https://www.alberta.ca/aaip-processing-information",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 90,
    "manual": false,
-   "watch": false
+   "watch": false,
+   "latest": "2026-10-20"
   },
   {
    "id": "mb",
@@ -5545,11 +5574,12 @@
    "program": "MPNP",
    "name": "Immigrate Manitoba – Expression of Interest draws",
    "url": "https://immigratemanitoba.com/draws/",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 30,
    "manual": false,
-   "watch": false
+   "watch": false,
+   "latest": "2026-10-22"
   },
   {
    "id": "on",
@@ -5557,11 +5587,12 @@
    "program": "OINP",
    "name": "Ontario.ca – OINP invitations to apply",
    "url": "https://www.ontario.ca/page/invitations-apply-oinp",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 257,
    "manual": false,
-   "watch": false
+   "watch": false,
+   "latest": "2026-04-30"
   },
   {
    "id": "nb",
@@ -5569,11 +5600,12 @@
    "program": "NBPNP / AIP",
    "name": "GNB – New Brunswick invitation and selection rounds",
    "url": "https://www.gnb.ca/en/topic/family-home-community/immigration/invitation-selection-rounds.html",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 41,
    "manual": false,
-   "watch": false
+   "watch": false,
+   "latest": "2026-09-25"
   },
   {
    "id": "qc",
@@ -5581,25 +5613,26 @@
    "program": "Québec PSTQ (Arrima)",
    "name": "Québec.ca – PSTQ invitations in Arrima",
    "url": "https://www.quebec.ca/en/immigration/permanent/skilled-workers/skilled-worker-selection-program/invitation/2026",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 32,
    "manual": false,
-   "watch": false
+   "watch": false,
+   "latest": "2026-09-24"
   },
   {
    "id": "sk",
    "jur": "SK",
    "program": "SINP",
-   "name": "Saskatchewan.ca – SINP EOI system (results are published as PDFs)",
+   "name": "Saskatchewan.ca – SINP International Skilled Worker EOI selection results (PDF)",
    "url": "https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/by-immigrating/saskatchewan-immigrant-nominee-program/browse-sinp-programs/applicants-international-skilled-workers/international-skilled-worker-eoi-system",
-   "checked": "2026-10-27T02:23:02.317Z",
-   "ok": true,
+   "checked": "2026-10-27T06:41:15.184Z",
+   "ok": false,
    "found": 0,
    "manual": false,
-   "watch": true,
-   "hash": "6596e0d35169",
-   "changed": null
+   "watch": false,
+   "error": "HTTP 522",
+   "lastOk": "2026-10-27T02:23:02.317Z"
   },
   {
    "id": "pe",
@@ -5607,7 +5640,7 @@
    "program": "PEI PNP",
    "name": "PrinceEdwardIsland.ca – EOI draws (blocks automated readers)",
    "url": "https://www.princeedwardisland.ca/en/information/office-of-immigration/expression-of-interest-draws",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 0,
    "manual": true,
@@ -5620,9 +5653,22 @@
    "program": "NLPNP",
    "name": "Gov.nl.ca – Invitations to apply updates (blocks automated readers)",
    "url": "https://www.gov.nl.ca/immigration/invitations-to-apply-updates/",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 0,
+   "manual": true,
+   "watch": false,
+   "note": "This site blocks automated readers. Add its draws by hand in the admin dashboard."
+  },
+  {
+   "id": "yt",
+   "jur": "YT",
+   "program": "Yukon Nominee Program",
+   "name": "Yukon.ca – Yukon Nominee Program intakes (blocks automated readers; no invitation numbers published)",
+   "url": "https://yukon.ca/en/yukon-nominee-program",
+   "checked": "2026-10-27T06:41:15.184Z",
+   "ok": true,
+   "found": 2,
    "manual": true,
    "watch": false,
    "note": "This site blocks automated readers. Add its draws by hand in the admin dashboard."
@@ -5633,7 +5679,7 @@
    "program": "NSNP",
    "name": "Live in Nova Scotia – Nova Scotia Nominee Program",
    "url": "https://liveinnovascotia.com/nova-scotia-nominee-program",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 0,
    "manual": false,
@@ -5647,7 +5693,7 @@
    "program": "RCIP / FCIP – Sudbury",
    "name": "Invest Sudbury – RCIP and FCIP candidates",
    "url": "https://investsudbury.ca/why-sudbury/newcomers/rcip-and-fcip-candidates/",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 0,
    "manual": false,
@@ -5661,7 +5707,7 @@
    "program": "RCIP – Thunder Bay",
    "name": "Thunder Bay CEDC – Rural Community Immigration Pilot",
    "url": "https://gotothunderbay.ca/rural-community-immigration-pilot-rcip/",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 0,
    "manual": false,
@@ -5675,7 +5721,7 @@
    "program": "RCIP – Claresholm",
    "name": "Town of Claresholm – Rural Community Immigration Pilot",
    "url": "https://www.claresholm.ca/business/labour-resources/rural-community-immigration-pilot",
-   "checked": "2026-10-27T02:23:02.317Z",
+   "checked": "2026-10-27T06:41:15.184Z",
    "ok": true,
    "found": 0,
    "manual": false,
