@@ -16,6 +16,11 @@ export async function onRequestGet({ request, env, params }) {
     const r = await env.DB.prepare(`SELECT * FROM visits WHERE t >= ?1 ORDER BY t DESC LIMIT 20000`).bind(since).all();
     return json({ ok: true, rows: r.results });
   }
+  if (route === "scanner-passes") {
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS scan_passes (id TEXT PRIMARY KEY, kind TEXT NOT NULL, created TEXT NOT NULL, expires TEXT NOT NULL, docs_used INTEGER NOT NULL DEFAULT 0, docs_max INTEGER NOT NULL, amount INTEGER, note TEXT)`).run();
+    const r = await env.DB.prepare(`SELECT id, kind, created, expires, docs_used, docs_max, amount, note FROM scan_passes ORDER BY created DESC LIMIT 1000`).all();
+    return json({ ok: true, rows: r.results });
+  }
   if (route === "news") {
     try {
       const r = await env.DB.prepare(`SELECT * FROM news ORDER BY status = 'archived', pinned DESC, created DESC LIMIT 500`).all();

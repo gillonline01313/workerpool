@@ -65,7 +65,16 @@ Run `schema-chat.sql` in the D1 console once. Replies happen in the admin dashbo
 
 ## Profile Scanner
 
-Needs a Workers AI binding: Pages project → Settings → Bindings → Add → **Workers AI** → Variable name `AI`. Save, then redeploy. Until then the scanner still works, but visitors enter their details by hand (the page says so). Workers AI bills per use; one scan of 6 documents costs well under a cent, and the first 10,000 "neurons" a day are free.
+Needs a Workers AI binding: Pages project → Settings → Bindings → Add → **Workers AI** → Variable name `AI`. Save, then redeploy. Workers AI bills per use; one scan of 6 documents costs well under a cent, and the first 10,000 "neurons" a day are free.
+
+**Payments ($9.99 CAD Scanner Pass: 30 days, up to 25 document reads, unlimited rescans).** The scanner only reads documents for visitors with a pass; the free example stays open to everyone.
+
+1. Stripe dashboard → Developers → API keys → copy the **Secret key** (`sk_live_…`; use `sk_test_…` first to try it with Stripe's test card 4242 4242 4242 4242).
+2. Pages project → Settings → Variables and Secrets → Add → Type **Secret** → Name `STRIPE_SECRET_KEY` → paste the key. Save and redeploy.
+3. Optional: `STRIPE_TAX` = `on` to have Stripe Tax add GST/HST at checkout (turn on Stripe Tax and add your GST number in Stripe first).
+4. Optional: `SCANNER_FREE` = `on` opens the scanner to everyone without a pass.
+
+No webhook is needed: `functions/api/scanner/[[path]].js` confirms each payment with Stripe when the buyer returns. Buyers who lose access press **Already paid?** and get their link by email (needs `RESEND_API_KEY`). Promotion codes you create in Stripe work at checkout. The admin dashboard's **Scanner passes** tab shows sales, revenue and documents read, and **+ Free pass** creates a link that unlocks the scanner for a client. Passes live in the `scan_passes` table (created automatically): an ID, dates, amount and a document counter only. Change the price, length or document limit in `functions/_scanpass.js` (`PASS`) and the wording on `tools/profile-scanner/index.html`.
 
 ## Hot & New ticker
 

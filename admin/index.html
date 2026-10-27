@@ -129,6 +129,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="analytics" aria-pressed="true">Analytics</button>
       <button type="button" data-t="draws" aria-pressed="false">Latest draws</button>
       <button type="button" data-t="news" aria-pressed="false">Hot &amp; New</button>
+      <button type="button" data-t="scanner" aria-pressed="false">Scanner passes</button>
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
       <button type="button" data-t="b2b" aria-pressed="false">B2B applications</button>
@@ -159,6 +160,7 @@ async function load(){
     if(tab==="chat"){ await chatList(); render(); return; }
     if(tab==="analytics") data.visits=await api("visits?days="+days);
     else if(tab==="news"){ if(newsEdit) return; data.news=await api("news"); }
+    else if(tab==="scanner"){ data.passes=await api("scanner-passes"); }
     else if(tab==="draws"){ if(drEdit) return; const r=await fetch("/api/admin/draws",{headers:{"x-admin-key":KEY}}); if(r.status===401) throw new Error("auth"); data.draws=await r.json(); }
     else if(tab==="forum"){
       const r=await fetch("/api/admin/forum",{headers:{"x-admin-key":KEY}});
@@ -193,6 +195,9 @@ function controls(){
     c.innerHTML=seg("range",[[1,"Today"],[7,"7 days"],[30,"30 days"],[90,"90 days"],[0,"All"]],range)+seg("page",[["all","All pages"],["home","Home"],["questionnaire","Questionnaire"]],pageF);
     c.querySelectorAll('[data-seg="range"] button').forEach(b=>b.onclick=()=>{range=+b.dataset.v; controls(); load();});
     c.querySelectorAll('[data-seg="page"] button').forEach(b=>b.onclick=()=>{pageF=b.dataset.v; controls(); render();});
+  } else if(tab==="scanner"){
+    c.innerHTML=`<a class="dl" href="/tools/profile-scanner/" target="_blank" rel="noopener" style="text-decoration:none">Open the scanner ↗</a><button class="dl" type="button" id="spAdd">+ Free pass</button>`;
+    $("#spAdd").onclick=()=>{ spForm=!spForm; render(); };
   } else if(tab==="news"){
     c.innerHTML=seg("nf",[["live","Live"],["archived","Archived"],["all","All"]],newsF)+`<button class="dl" type="button" id="nwAdd">+ Add item</button>`;
     c.querySelectorAll('[data-seg="nf"] button').forEach(b=>b.onclick=()=>{ newsF=b.dataset.v; newsEdit=null; controls(); render(); });
@@ -251,6 +256,7 @@ function render(){
   if(tab==="assessments") return renderAssess(body);
   if(tab==="chat") return renderChat(body);
   if(tab==="news") return renderNews(body);
+  if(tab==="scanner") return renderPasses(body);
   if(tab==="forum") return renderForum(body);
   if(tab==="draws") return renderDraws(body);
   const now=new Date(), startDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
@@ -462,6 +468,33 @@ function drawForm(body){
     try{ await newsPost("draws-save",{id:isNew?"":r.id,draw}); drEdit=null; load(); }
     catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); $("#drErr").textContent=x.message; btn.disabled=false; } };
 }
+/* ---------- Profile Scanner passes ---------- */
+let spForm=false, spLink="";
+function renderPasses(body){
+  const rows=data.passes||[], now=new Date().toISOString();
+  const paid=rows.filter(r=>r.kind==="stripe"), test=rows.filter(r=>r.kind==="stripe-test"), comp=rows.filter(r=>r.kind==="comp");
+  const rev=paid.reduce((s,r)=>s+(r.amount||0),0)/100, docs=rows.reduce((s,r)=>s+r.docs_used,0), active=rows.filter(r=>r.expires>now&&r.docs_used<r.docs_max).length;
+  const card=(n,l)=>`<div class="kpi" style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px"><b style="display:block;font-size:1.6rem;font-weight:750">${n}</b><span style="color:var(--muted);font-size:.85rem">${l}</span></div>`;
+  const KIND={stripe:"Paid",["stripe-test"]:"Test payment",comp:"Free pass"};
+  body.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px">
+      ${card(paid.length,"Passes sold")}${card("$"+rev.toFixed(2),"Revenue (CAD, before Stripe fees)")}${card(active,"Active passes")}${card(docs,"Documents read")}${card(comp.length,"Free passes given")}${test.length?card(test.length,"Test payments"):""}</div>
+    ${spForm?`<form id="spF" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px">
+      <label style="display:flex;flex-direction:column;font-size:.8rem">Who is it for (note)<input id="spN" maxlength="120" placeholder="e.g. Client Amanjot" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;min-width:220px"></label>
+      <label style="display:flex;flex-direction:column;font-size:.8rem">Documents<input id="spD" type="number" min="1" max="500" value="25" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;width:90px"></label>
+      <label style="display:flex;flex-direction:column;font-size:.8rem">Days<input id="spY" type="number" min="1" max="365" value="30" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;width:80px"></label>
+      <button class="dl" type="submit" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">Create link</button></form>`:""}
+    ${spLink?`<div style="background:var(--surface);border:1px solid var(--accent);border-radius:14px;padding:14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:0;word-break:break-all;font-size:.85rem">${esc(spLink)}</span><button class="dl" type="button" id="spCopy">Copy link</button></div><p style="color:var(--muted);font-size:.85rem;margin:-6px 0 14px">Send this link to the person. Opening it unlocks the scanner in their browser. Anyone with the link can use the pass.</p>`:""}
+    <div style="overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px"><table style="width:100%;border-collapse:collapse;font-size:.88rem">
+      <tr><th style="text-align:left;padding:10px">Created</th><th style="text-align:left;padding:10px">Type</th><th style="text-align:left;padding:10px">Note</th><th style="text-align:left;padding:10px">Documents</th><th style="text-align:left;padding:10px">Expires</th></tr>
+      ${rows.map(r=>`<tr style="border-top:1px solid var(--line)"><td style="padding:9px 10px;white-space:nowrap">${esc(new Date(r.created).toLocaleString("en-CA",{timeZone:"America/Edmonton",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}))}</td><td style="padding:9px 10px">${KIND[r.kind]||esc(r.kind)}${r.amount?` · $${(r.amount/100).toFixed(2)}`:""}</td><td style="padding:9px 10px">${esc(r.note||"")}</td><td style="padding:9px 10px">${r.docs_used} / ${r.docs_max}</td><td style="padding:9px 10px;white-space:nowrap;color:${r.expires<now?"var(--muted)":"inherit"}">${esc(r.expires.slice(0,10))}${r.expires<now?" (expired)":""}</td></tr>`).join("")||`<tr><td colspan="5" style="padding:16px;color:var(--muted)">No passes yet.</td></tr>`}
+    </table></div>`;
+  if($("#spF")) $("#spF").onsubmit=async e=>{ e.preventDefault(); const btn=e.target.querySelector("button"); btn.disabled=true;
+    try{ const r=await fetch("/api/scanner/comp",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({key:KEY,note:$("#spN").value,docs:$("#spD").value,days:$("#spY").value})}); const j=await r.json();
+      if(r.status===401) return lock("That admin key isn't right."); if(!j.ok) throw new Error(j.error||"Couldn't create the pass");
+      spLink=j.link; spForm=false; load(); }catch(x){ alert(x.message); btn.disabled=false; } };
+  if($("#spCopy")) $("#spCopy").onclick=()=>{ navigator.clipboard&&navigator.clipboard.writeText(spLink); $("#spCopy").textContent="Copied"; };
+}
+
 /* ---------- Hot & New ticker ---------- */
 const NTAG={hot:"Hot",new:"New",trending:"Trending",update:"Update"};
 async function newsPost(route,body){

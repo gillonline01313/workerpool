@@ -3,7 +3,10 @@
       location data is dropped by re-drawing) and sends them to /api/tools/scan, one document per request.
    2. The server reads them with Cloudflare Workers AI in memory and returns facts; nothing is stored.
    3. The facts become an editable profile; the CRS score, strengths, weaknesses and improvement
-      levers are worked out here in the browser. Nothing is saved anywhere, not even in this browser.
+      levers are worked out here in the browser. Nothing about the documents or results is saved.
+   Reading documents needs a paid Scanner Pass ($9.99, functions/_scanpass.js). The pass key is the
+   only thing kept in this browser (localStorage), so the buyer doesn't pay twice.
+
    Scoring matches tools/src/template.html (Pathway Check) and the Express Entry 2026 page. */
 (function () {
 "use strict";
@@ -91,6 +94,51 @@ function crs(p) {
   return f;
 }
 const FSW_FUNDS = [0, 15263, 19001, 23360, 28362, 32168, 36280, 40392];
+
+/* ======================= SCANNER PASS ======================= */
+const PKEY = "wp_scanner_pass";
+let PASSTOK = null, PASSINFO = null, CFG = { free: false, payments: true, ai: true };
+try { PASSTOK = localStorage.getItem(PKEY); } catch (e) {}
+const savePass = (t) => { PASSTOK = t; try { t ? localStorage.setItem(PKEY, t) : localStorage.removeItem(PKEY); } catch (e) {} };
+const unlocked = () => CFG.free || !!(PASSTOK && PASSINFO && PASSINFO.valid !== false);
+const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
+function toast(t) { const d = document.createElement("div"); d.className = "toast"; d.setAttribute("role", "status"); d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 5200); }
+function pmsg(t) { const el = $("pmsg"); el.hidden = !t; el.textContent = t || ""; }
+function renderPass() {
+  const chip = $("passchip");
+  if (CFG.free || !PASSINFO || !PASSINFO.valid) { chip.hidden = true; return; }
+  chip.hidden = false;
+  chip.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--good)"><path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M8.5 12.5l2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>Scanner Pass active</b> · ${PASSINFO.left} of ${PASSINFO.max} document reads left · until ${fmtDate(PASSINFO.expires)}</span>`;
+}
+async function checkPass() {
+  if (!PASSTOK) { PASSINFO = null; return; }
+  try { const j = await (await fetch("/api/scanner/status", { headers: { "x-scan-pass": PASSTOK } })).json(); PASSINFO = j && j.valid ? { valid: true, ...j } : { valid: false }; }
+  catch (e) { PASSINFO = { valid: true, left: "?", max: "?", expires: new Date().toISOString() }; } // offline: let the server decide on each read
+  if (PASSINFO && PASSINFO.valid === false) savePass(null);
+}
+async function claimFromUrl() {
+  const q = new URLSearchParams(location.search); let msg = "";
+  const clean = () => history.replaceState(null, "", location.pathname + "#scanner");
+  if (q.get("paid")) {
+    clean();
+    try {
+      const r = await fetch("/api/scanner/pass?session_id=" + encodeURIComponent(q.get("paid"))); const j = await r.json();
+      if (j.ok) { savePass(j.token); PASSINFO = { valid: true, ...j }; msg = "Payment confirmed. Your scanner is unlocked."; track("pass claimed"); }
+      else pmsg(j.error || "We couldn't confirm your payment.");
+    } catch (e) { pmsg("We couldn't confirm your payment. Refresh this page to try again."); }
+  } else if (q.get("pass")) {
+    clean(); savePass(q.get("pass")); await checkPass();
+    msg = PASSINFO && PASSINFO.valid ? "Your Scanner Pass is active." : ""; if (!msg) pmsg("That pass link has expired or isn't valid.");
+  } else if (q.get("cancelled")) { clean(); pmsg("Checkout was cancelled. You haven't been charged."); }
+  else await checkPass();
+  if (msg) toast(msg);
+}
+async function buy(btn) {
+  btn.disabled = true; const t = btn.textContent; btn.textContent = "Opening secure checkout…"; track("checkout");
+  try { const j = await (await fetch("/api/scanner/checkout", { method: "POST" })).json(); if (j.ok && j.url) { location.href = j.url; return; } pmsg(j.error || "Checkout isn't available right now."); }
+  catch (e) { pmsg("Checkout isn't available right now. Please try again."); }
+  btn.disabled = false; btn.textContent = t;
+}
 
 /* ======================= UPLOAD ======================= */
 const IC = {
@@ -204,11 +252,13 @@ async function prepare(file) {
 /* ======================= SCAN ======================= */
 let RESULTS = [], RECEIPT = [], NOTES = null, DEMO = false;
 async function send(kind, body) {
-  const r = await fetch("/api/tools/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, today: todayISO(), ...body }) });
+  const r = await fetch("/api/tools/scan", { method: "POST", headers: { "content-type": "application/json", ...(PASSTOK ? { "x-scan-pass": PASSTOK } : {}) }, body: JSON.stringify({ kind, today: todayISO(), ...body }) });
   let j = {}; try { j = await r.json(); } catch (e) {}
+  if (j.pass && PASSINFO) { Object.assign(PASSINFO, j.pass); renderPass(); }
   return { j, stored: r.headers.get("x-stored") || "" };
 }
 async function runScan() {
+  if (!unlocked()) { show("p1"); return; }
   track("scan started");
   RESULTS = []; RECEIPT = []; NOTES = null; DEMO = false;
   const jobs = [];
@@ -237,6 +287,7 @@ async function runScan() {
         if (job.kind === "notes") NOTES = res.j.result; else RESULTS.push({ kind: job.kind, name: job.name, ...res.j.result });
         set(i, "ok", "Read · discarded", '<span class="dot ok">✓</span>');
       } else if (res.j && res.j.error === "ai-off") { AI = false; set(i, "err", "Reader off", '<span class="dot err">!</span>'); }
+      else if (res.j && (res.j.error === "used" || res.j.error === "pass")) { set(i, "err", res.j.error === "used" ? "Pass used up" : "Pass expired", '<span class="dot err">!</span>'); if (res.j.error === "pass") { savePass(null); PASSINFO = null; } }
       else set(i, "err", "Couldn't read", '<span class="dot err">!</span>');
       RECEIPT.push({ name: job.name, at: new Date(), ok, stored: res.stored, sent: true, err: ok ? "" : (res.j && res.j.error) || "" });
       done++; bar(done, jobs.length);
@@ -597,6 +648,8 @@ async function renderResults() {
     .map(([n, e]) => `<div class="el"><span class="dot ${e.ok ? "ok" : "err"}">${e.ok ? "✓" : "–"}</span><div><b>${n}</b><small>${esc(e.why)}</small></div></div>`).join("")
     + (cats.length ? `<div class="el"><span class="dot ok">✓</span><div><b>Possible category draws</b><small>${esc(cats.join(", "))}. Check your NOC against IRCC's category lists.</small></div></div>` : "");
   renderReceipt();
+  $("democta").hidden = !(DEMO && !unlocked());
+  document.querySelector(".cta").hidden = !$("democta").hidden;
   track("score shown");
 }
 const li = (x) => `<li><b>${esc(x.t)}</b>${x.v != null ? `<span class="${x.neg ? "minus" : "plus"}">${x.v}</span>` : "<span></span>"}${x.d ? `<p>${x.d}</p>` : ""}</li>`;
@@ -724,7 +777,10 @@ function renderReceipt() {
 
 /* ======================= NAV ======================= */
 function show(id) {
-  ["p1", "pp", "p2", "p3"].forEach((x) => $(x).hidden = x !== id);
+  const lock = id === "p1" && !unlocked();
+  ["p1", "pp", "p2", "p3"].forEach((x) => $(x).hidden = lock || x !== id);
+  $("unlock").hidden = !lock;
+  if (id === "p1") renderPass();
   const s = { p1: 1, pp: 1, p2: 2, p3: 3 }[id];
   document.querySelectorAll("#steps li").forEach((li) => { const n = +li.dataset.s; li.className = n === s ? "on" : n < s ? "done" : ""; });
   $("scanner").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
@@ -748,6 +804,17 @@ function demo() {
 
 /* ======================= START ======================= */
 renderSlots();
+$("buy").onclick = () => buy($("buy"));
+document.querySelectorAll("[data-buy]").forEach((b) => b.onclick = () => buy(b));
+$("demoBuy").onclick = () => { if (unlocked()) { RESULTS = []; NOTES = null; DEMO = false; show("p1"); } else { show("p1"); } };
+$("tryDemo").onclick = () => demo();
+$("showRestore").onclick = () => { $("restoreForm").hidden = !$("restoreForm").hidden; if (!$("restoreForm").hidden) $("restoreEmail").focus(); };
+$("restoreForm").onsubmit = async (e) => {
+  e.preventDefault(); const b = e.target.querySelector("button"); b.disabled = true;
+  try { const j = await (await fetch("/api/scanner/restore", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: $("restoreEmail").value }) })).json(); pmsg(j.message || j.error || "Done."); }
+  catch (x) { pmsg("Something went wrong. Please try again."); }
+  b.disabled = false;
+};
 $("agree").onchange = updGo; $("notes").oninput = updGo;
 $("scan").onclick = () => runScan();
 $("demo").onclick = demo;
@@ -756,6 +823,12 @@ $("back1").onclick = () => show("p1");
 $("edit").onclick = () => { renderReview(); show("p2"); };
 $("print").onclick = () => window.print();
 $("restart").onclick = () => { if (!confirm("Clear everything and start over?")) return; RESULTS = []; RECEIPT = []; NOTES = null; M = null; SRC = {}; FILES = Object.fromEntries(SLOTS.map((s) => [s.k, []])); $("notes").value = ""; $("agree").checked = false; renderSlots(); show("p1"); };
-fetch("/api/tools/scan").then((r) => r.json()).then((j) => { AI = !!(j && j.ai); $("aiOff").hidden = AI; updGo(); }).catch(() => {});
+Promise.all([fetch("/api/tools/scan").then((r) => r.json()).catch(() => ({})), claimFromUrl()]).then(([j]) => {
+  CFG = { free: !!j.free, payments: j.payments !== false, ai: j.ai !== false };
+  AI = !!j.ai; $("aiOff").hidden = AI; updGo();
+  if ($("p2").hidden && $("p3").hidden && $("pp").hidden) show("p1");
+  if (/paid=|pass=/.test(document.referrer) || PASSINFO) renderPass();
+});
+$("p1").hidden = true; // paywall or uploads appear once the pass is checked
 window.__scanner = { crs, toClb, years, toP, build, set: (r, n) => { RESULTS = r; NOTES = n || null; }, get: () => M }; // for tests
 })();

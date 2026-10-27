@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Free Express Entry Profile Scanner: CRS Score From Your Documents | WorkerPool</title>
-<meta name="description" content="Upload your passport, language test, work letters and education documents. Get your Express Entry CRS score, strengths and weaknesses in minutes. Documents are never saved.">
+<meta name="description" content="Upload your passport, language test, work letters and education documents. Get your Express Entry CRS score, strengths, weaknesses and a points plan in minutes. $9.99 one-time. Documents are never saved.">
 <meta name="theme-color" content="#3f7a72">
 <link rel="canonical" href="https://workerpool.ca/tools/profile-scanner/">
 <meta property="og:type" content="website">
@@ -235,6 +235,45 @@ textarea{min-height:104px;resize:vertical;line-height:1.5}
 .cta p{color:var(--muted);max-width:60ch}
 .disc{font-size:.82rem;color:var(--muted);margin-top:18px}
 
+/* paywall */
+.unlock{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.9fr);gap:clamp(18px,3vw,32px);align-items:start}
+@media (max-width:880px){.unlock{grid-template-columns:1fr}}
+.ul-h h2{font-size:clamp(1.6rem,3.6vw,2.4rem);font-weight:800;letter-spacing:-.02em;line-height:1.08}
+.ul-h h2 em{font-style:normal;color:var(--accent)}
+.ul-h p{color:var(--muted);margin-top:10px;max-width:58ch}
+.feats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}
+@media (max-width:560px){.feats{grid-template-columns:1fr}}
+.feat{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:14px;background:var(--bg);border:1px solid var(--line)}
+.feat .fi{flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.feat b{display:block;font-size:.95rem;line-height:1.3}
+.feat span{display:block;font-size:.84rem;color:var(--muted);line-height:1.45;margin-top:3px}
+.price{position:sticky;top:84px;border-radius:20px;padding:22px;background:var(--ink);color:#eef6f4;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 60px -30px rgba(10,30,28,.6)}
+.price .tag{align-self:flex-start;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:#ffc65c;color:#3a2700}
+.amt{display:flex;align-items:baseline;gap:8px}
+.amt b{font-family:var(--display);font-size:3.4rem;font-weight:800;line-height:1;letter-spacing:-.03em}
+.amt span{color:#a9c4bf;font-size:.9rem}
+.price ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;font-size:.93rem}
+.price li{display:flex;gap:9px;align-items:flex-start}
+.price li svg{color:#7fe0b5;flex:none;margin-top:3px}
+.price .btn{background:#7fe0b5;border-color:#7fe0b5;color:#06231b;width:100%;padding:15px 20px;font-size:1.05rem}
+.price .btn:hover{background:#a6f0cf;border-color:#a6f0cf}
+.price small{color:#a9c4bf;font-size:.8rem;text-align:center;display:block}
+.price .links{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.86rem}
+.price .links button{background:none;border:0;color:#cfe5e0;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0}
+.restore{display:flex;gap:8px}
+.mobbuy{display:none;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+.mobbuy span{font-size:.84rem;color:var(--muted)}
+@media (max-width:880px){.mobbuy{display:flex}}
+.restore input{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:#fff}
+.restore .btn{width:auto;padding:9px 14px;font-size:.88rem}
+.pmsg{font-size:.86rem;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.08)}
+.passchip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-radius:12px;background:var(--good-soft);color:var(--fg);font-size:.9rem;margin-bottom:16px}
+.passchip b{color:var(--good)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;box-shadow:0 20px 40px -20px rgba(0,0,0,.6);max-width:calc(100% - 32px)}
+.democta{margin-top:22px;border-radius:18px;padding:22px;background:var(--ink);color:#eef6f4;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.democta p{color:#b3c9c5;max-width:60ch}
+.democta .btn{background:#7fe0b5;border-color:#7fe0b5;color:#06231b}
+
 /* how / faq */
 section.info{padding-block:clamp(36px,6vw,64px)}
 .band{background:var(--band)}
@@ -270,7 +309,7 @@ footer p{max-width:92ch}
 <section class="hero">
   <div class="in">
     <div>
-      <span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>Free · Documents never saved</span>
+      <span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>$9.99 one-time · Documents never saved</span>
       <h1>Upload your documents. <em>Get your Express Entry score.</em></h1>
       <p class="lede">Passport, language test, work letters, pay stubs, education. The scanner reads them, works out your CRS points and tells you plainly what's strong in your profile and what's holding it back.</p>
       <div class="trio">
@@ -292,8 +331,46 @@ footer p{max-width:92ch}
   <div class="in">
     <ol class="steps" id="steps"><li class="on" data-s="1"><span>Upload</span></li><li data-s="2"><span>Check what we found</span></li><li data-s="3"><span>Your score &amp; advice</span></li></ol>
 
+    <!-- PAYWALL -->
+    <div class="panel" id="unlock" hidden>
+      <div class="unlock">
+        <div class="ul-h">
+          <span class="eyebrow">Profile Scanner Pass</span>
+          <h2 style="margin-top:8px">Your documents. Your real score. <em>A plan to raise it.</em></h2>
+          <p>Most CRS calculators make you guess your own answers. This one reads the documents IRCC will actually look at, scores you on the newest rules, and tells you exactly what each improvement is worth.</p>
+          <div class="mobbuy"><button class="btn" type="button" data-buy>Unlock for $9.99</button><span>One-time · 30 days · no subscription</span></div>
+          <div class="feats">
+            <div class="feat"><span class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></span><div><b>Reads your real documents</b><span>Passport, IELTS, CELPIP, PTE Core, TEF, TCF, reference letters, pay stubs, T4s, degrees and ECAs. No quiz, no guessing your CLB.</span></div></div>
+            <div class="feat"><span class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2v4M16 2v4M8 14l2.5 2.5L16 12"/></svg></span><div><b>Built for November 3, 2026</b><span>Scores the new 150-point Canadian experience and high-wage job offer factor, with IRCC's high-wage NOC list built in. See today's rules too.</span></div></div>
+            <div class="feat"><span class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span><div><b>Every improvement priced in points</b><span>Like "+19 with CLB 9" or "+62 with French", with the exact band scores to aim for and what a job offer would add.</span></div></div>
+            <div class="feat"><span class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v5M12 16.5v.5M10.3 3.9L2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span><div><b>Catches problems before IRCC does</b><span>IELTS Academic instead of General, tests about to expire, reference letters missing hours or pay, TEER 4–5 jobs, a missing ECA, the day your age points drop.</span></div></div>
+            <div class="feat"><span class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><b>Measured against live draws</b><span>Your score next to the latest CEC, category and PNP cut-offs, read from official IRCC pages three times a day.</span></div></div>
+            <div class="feat"><span class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><div><b>Private by design</b><span>Documents are read in memory and never saved. You get a receipt confirming every file was discarded.</span></div></div>
+          </div>
+        </div>
+        <aside class="price" aria-label="Price">
+          <span class="tag">One-time · no subscription</span>
+          <div class="amt"><b>$9.99</b><span>CAD</span></div>
+          <ul>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>30 days</b> of access</span></li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Up to <b>25 documents</b>, you and your partner</span></li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Unlimited rescans and what-ifs</span></li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Strengths, weaknesses and a points plan</span></li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>CEC, FSW and Skilled Trades checks</span></li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Save your report as a PDF</span></li>
+          </ul>
+          <button class="btn" type="button" id="buy">Unlock the scanner · $9.99</button>
+          <small>Secure checkout by Stripe. Cards, Apple Pay and Google Pay. We never see your card.</small>
+          <div class="pmsg" id="pmsg" hidden></div>
+          <div class="links"><button type="button" id="tryDemo">See a free example first</button><button type="button" id="showRestore">Already paid?</button></div>
+          <form class="restore" id="restoreForm" hidden><input type="email" id="restoreEmail" placeholder="Email used at checkout" required aria-label="Email used at checkout"><button class="btn" type="submit">Send link</button></form>
+        </aside>
+      </div>
+    </div>
+
     <!-- STEP 1 -->
     <div class="panel" id="p1">
+      <div class="passchip" id="passchip" hidden></div>
       <div class="ph2"><div><h2>Add your documents</h2><p>PDF or photos (JPG, PNG). Add what you have; nothing is required. The more you add, the more accurate your score.</p></div>
         <button class="btn ghost sm" type="button" id="demo">See an example first</button></div>
       <div class="slots" id="slots"></div>
@@ -346,6 +423,7 @@ footer p{max-width:92ch}
           <h3 style="margin-top:6px">Programs you may qualify for</h3><div class="elig" id="elig"></div></div>
       </div>
       <div class="receipt" id="receipt"></div>
+      <div class="democta" id="democta" data-noprint hidden><div><h3>That was an example. What's your score?</h3><p>Scan your own documents and get your real score, your weak spots and the points each fix is worth. $9.99 one-time, 30 days of access.</p></div><button class="btn" type="button" id="demoBuy">Scan my documents · $9.99</button></div>
       <div class="cta" data-noprint><div><h3>Want employers and licensed consultants to find you?</h3><p>Create a free WorkerPool profile. You choose who sees it. Your scan results aren't shared unless you add them yourself.</p></div><a class="btn" href="/apply/">Create free profile</a></div>
       <div class="acts"><button class="btn ghost" type="button" id="edit">← Change details</button><button class="btn ghost" type="button" id="print">Save as PDF</button><button class="btn ghost" type="button" id="restart">Start over</button></div>
       <p class="disc">This is an estimate based on what the scanner read and what you confirmed. It isn't immigration advice and doesn't guarantee an invitation. Express Entry points depend on documents IRCC accepts: valid language tests, an ECA for education outside Canada, and reference letters that meet IRCC's requirements. WorkerPool is a data processing company, not an immigration representative; speak to a licensed consultant (CICC) or lawyer before you apply.</p>
@@ -372,7 +450,7 @@ footer p{max-width:92ch}
     <div class="how">
       <div class="hc"><h3>Shrunk in your browser</h3><p>Before anything leaves your device, your browser turns each file into a small image and removes photo location data. The original file never leaves your device.</p></div>
       <div class="hc"><h3>Read in memory</h3><p>Each image goes over an encrypted connection to an AI reader running on Cloudflare Workers AI. It's held in memory only while it's read. Cloudflare doesn't keep it after the answer is sent and doesn't use it to train AI.</p></div>
-      <div class="hc"><h3>Nothing written down</h3><p>We don't save your files, the text in them or your results in any database, storage bucket, log or email. Close or reset the page and your results are gone too. We keep only an anonymous count of scans to stop abuse.</p></div>
+      <div class="hc"><h3>Nothing written down</h3><p>We don't save your files, the text in them or your results in any database, storage bucket, log or email. Close or reset the page and your results are gone too. We keep only your pass (an ID, its dates and how many documents it has read) and an anonymous count of scans to stop abuse. Payments are handled by Stripe; we never see your card.</p></div>
     </div>
   </div>
 </section>
@@ -381,6 +459,9 @@ footer p{max-width:92ch}
   <div class="in">
     <span class="eyebrow">FAQ</span>
     <h2 style="margin-top:8px">Questions</h2>
+    <details class="q"><summary>What do I get for $9.99?</summary><p>A Scanner Pass: 30 days of access, up to 25 documents for you and your partner, unlimited rescans and edits, your score under both the current and November 2026 rules, how you compare with recent draws, your strengths and weaknesses, the points each improvement is worth, and a PDF report. It's a one-time payment, not a subscription.</p></details>
+    <details class="q"><summary>Can I try it before paying?</summary><p>Yes. Press "See a free example first" to see a full report for a sample profile, with the same score breakdown and advice you'll get for your own.</p></details>
+    <details class="q"><summary>I paid but lost access. What now?</summary><p>Your pass is kept in the browser you paid on. On another device, or if you cleared your browser, press "Already paid?" and enter the email you used at checkout. We'll email you a link back in. For anything else about a payment, write to hello@workerpool.ca.</p></details>
     <details class="q"><summary>Which documents give the most accurate score?</summary><p>Your language test result, your passport (for your age), your education documents with your ECA, and reference letters that show dates, hours a week, duties and pay. Pay stubs and T4s help confirm Canadian work. If you're married or common-law, your partner's language test and education help too.</p></details>
     <details class="q"><summary>Why is my score different from what IRCC shows?</summary><p>The scanner can misread a document, and your Express Entry profile counts only what you can prove. Check every field in step 2. Experience gained while you were a full-time student, self-employment in Canada, and jobs in TEER 4 or 5 occupations don't count for Express Entry work points.</p></details>
     <details class="q"><summary>Which rules does the score use?</summary><p>By default, the rules IRCC announced for November 3, 2026, where Canadian work experience and a high-wage job offer share up to 150 points. You can switch to the rules in force until November 2, 2026 on the results.</p></details>
@@ -396,7 +477,7 @@ footer p{max-width:92ch}
   </div>
 </footer>
 
-<script src="/tools/profile-scanner/scanner.js?v=1" defer></script>
+<script src="/tools/profile-scanner/scanner.js?v=2" defer></script>
 <script>window.WPA_PAGE="scanner";</script>
 <script src="/assets/wpa.js" defer></script>
 <script src="/assets/ticker.js?v=3" defer></script>

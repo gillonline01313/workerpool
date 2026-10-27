@@ -3,7 +3,9 @@
 // Cloudflare Workers AI in memory, and are gone when the response is sent. No document content,
 // file name or extracted fact is written to D1, R2, KV, logs or email. The only thing kept is an
 // anonymous counter (a one-way hash of the IP address and the hour) used to stop abuse.
-import { json } from "../../_lib.js";
+// Reading needs a paid Scanner Pass (functions/_scanpass.js): each document read counts against it.
+// Set SCANNER_FREE=on in Cloudflare to open the scanner to everyone without a pass.
+import { PASS, readPass, useDoc, view } from "../../_scanpass.js";
 
 const MODELS = ["@cf/meta/llama-4-scout-17b-16e-instruct", "@cf/mistralai/mistral-small-3.1-24b-instruct"];
 const KINDS = ["passport", "language", "work", "education", "spouse", "other", "notes"];
@@ -14,11 +16,15 @@ const PER_DAY = 5000;            // reads across the whole site per day (cost gu
 const NO_STORE = { "cache-control": "no-store", "x-stored": "none" };
 
 export async function onRequestGet({ env }) {
-  return new Response(JSON.stringify({ ok: true, ai: !!(env.AI && env.AI.run) }), { headers: { "content-type": "application/json", ...NO_STORE } });
+  return new Response(JSON.stringify({ ok: true, ai: !!(env.AI && env.AI.run), free: env.SCANNER_FREE === "on", payments: !!env.STRIPE_SECRET_KEY, price: PASS.label, days: PASS.days, docs: PASS.docs }), { headers: { "content-type": "application/json", ...NO_STORE } });
 }
 
 export async function onRequestPost({ request, env }) {
   if (!env.AI || !env.AI.run) return reply({ ok: false, error: "ai-off" }, 503);
+  const free = env.SCANNER_FREE === "on";
+  const pass = free ? null : await readPass(env, request.headers.get("x-scan-pass"));
+  if (!free && !pass) return reply({ ok: false, error: "pass", message: "Unlock the scanner to read documents." }, 402);
+  if (pass && pass.docs_used >= pass.docs_max) return reply({ ok: false, error: "used", message: `You've used all ${pass.docs_max} document reads on this pass.` }, 402);
   if ((+request.headers.get("content-length") || 0) > MAX_BODY) return reply({ ok: false, error: "That file is too large. Try a smaller photo or fewer pages." }, 413);
   let raw = await request.text();
   if (raw.length > MAX_BODY) return reply({ ok: false, error: "That file is too large. Try a smaller photo or fewer pages." }, 413);
@@ -53,7 +59,8 @@ export async function onRequestPost({ request, env }) {
   }
   images.length = 0;
   if (!out) return reply({ ok: false, error: "We couldn't read this document automatically. You can enter the details by hand in the review step.", detail: lastErr }, 502);
-  return reply({ ok: true, stored: false, result: clean(out) });
+  const after = pass ? await useDoc(env, pass.id) : null; // count the read only once it worked
+  return reply({ ok: true, stored: false, result: clean(out), ...(after ? { pass: view(after) } : {}) });
 }
 
 const reply = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", ...NO_STORE } });
