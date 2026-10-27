@@ -11,22 +11,20 @@ jobs:
       - uses: actions/checkout@v5
       - name: Fetch
         run: |
-          mkdir -p dbg && cd dbg
+          rm -rf dbg; mkdir -p dbg && cd dbg
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
-          curl -sL --max-time 90 -A "$UA" "https://open.canada.ca/data/dataset/adad580f-76b0-4502-bd05-20c125de9116/resource/9da94d63-b178-4a64-aeb3-b6a3bd721ad2/download/2a71-das-wage2025opendata-esdc-all-19nov2025-vf.csv" -o wages.csv || echo "TIMEOUT wages.csv" >> fails.txt
-          ls -la; file wages.csv || true
-          iconv -f latin1 -t utf-8 wages.csv > w8.csv 2>/dev/null || cp wages.csv w8.csv
-          head -c 3000 w8.csv > csv-head.txt; wc -l w8.csv > csv-lines.txt
-          grep -m 20 "^21232\|,21232," w8.csv > csv-21232.txt || true
-          grep -m 40 "^72310\|,72310," w8.csv > csv-72310.txt || true
-          curl -sL --max-time 90 -A "$UA" "https://open.canada.ca/data/api/action/package_show?id=adad580f-76b0-4502-bd05-20c125de9116" -o package.json || echo "TIMEOUT package.json" >> fails.txt
-          curl -sL --max-time 90 -A "$UA" "https://www.jobbank.gc.ca/wagereport/occupation/12331" -o wr-12331.html || echo "TIMEOUT wr-12331.html" >> fails.txt
-          curl -sL --max-time 90 -A "$UA" "https://www.jobbank.gc.ca/marketreport/wages-occupation/12331/geo9193" -o mr-12331-geo9193.html || echo "TIMEOUT mr-12331-geo9193.html" >> fails.txt
-          curl -sL --max-time 90 -A "$UA" "https://www.jobbank.gc.ca/core/ta-jobtitle_en/select?q=software%20developer&wt=json&rows=5" -o ta.json || echo "TIMEOUT ta.json" >> fails.txt
-          curl -sL --max-time 90 -A "$UA" "https://www.jobbank.gc.ca/trend-analysis/search-wages" -o search.html || echo "TIMEOUT search.html" >> fails.txt
-          curl -sL --max-time 90 -A "$UA" "https://www.jobbank.gc.ca/marketreport/wages-occupation/12331/ca" -o mr-12331-ca.html || echo "TIMEOUT mr-12331-ca.html" >> fails.txt
-          for f in wr-12331.html mr-12331-geo9193.html search.html mr-12331-ca.html; do sed -e 's/<script[^>]*>[^<]*<\/script>//g' "$f" | grep -oE 'href="[^"]*(wages|wagereport|marketreport|noc|geo)[^"]*"' | sort -u | head -80 > "${f%.html}-links.txt"; sed -e 's/<[^>]*>/ /g' "$f" | tr -s ' \n' | head -c 6000 > "${f%.html}.txt"; done
+          curl -sL --max-time 90 -A "$UA" "https://www12.statcan.gc.ca/census-recensement/2021/geo/aip-pia/attribute-attribs/index2021-eng.cfm?year=2021" -o gaf.html || echo "TIMEOUT gaf" >> fails.txt
+          grep -oiE 'href="[^"]*\.(zip|csv)[^"]*"' gaf.html | sort -u > gaf-links.txt || true
+          Z=$(grep -oiE 'href="[^"]*\.zip"' gaf.html | head -1 | sed 's/href="//; s/"$//'); echo "zip: $Z" >> gaf-links.txt
+          case "$Z" in http*) ;; /*) Z="https://www12.statcan.gc.ca$Z";; *) Z="https://www12.statcan.gc.ca/census-recensement/2021/geo/aip-pia/attribute-attribs/$Z";; esac
+          curl -sL --max-time 240 -A "$UA" "$Z" -o gaf.zip || echo "TIMEOUT gafzip" >> fails.txt
+          ls -la gaf.zip; unzip -l gaf.zip > gaf-zip-list.txt || true
+          unzip -o -q gaf.zip -d gafx || true
+          F=$(ls gafx/* | head -1); echo "$F" > gaf-file.txt; head -c 2000 "$F" | iconv -f latin1 -t utf-8 > gaf-head.txt || true
+          for q in "noc21_code:21232" "noc21_code%3A72310"; do curl -sL --max-time 60 -A "$UA" "https://www.jobbank.gc.ca/core/ta-jobtitle_en/select?q=$q&wt=json&rows=3&fl=title,noc21_code,noc_job_title_concordance_id,example_ind,jtt_ind" -o "ta-$(echo $q | tr -dc 0-9).json" || echo "TIMEOUT ta $q" >> fails.txt; done
+          curl -sL --max-time 60 -A "$UA" "https://www.jobbank.gc.ca/core/ta-jobtitle_en/select?q=*:*&wt=json&rows=0" -o ta-all.json || true
           ls -la
       - run: |
           git config user.name dbg; git config user.email dbg@workerpool.ca
-          git add dbg && git commit -qm "wages debug" && git push -q
+          rm -rf dbg/gafx dbg/gaf.zip
+          git add -A dbg && git commit -qm "wages debug 2" && git push -q
