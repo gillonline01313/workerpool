@@ -104,6 +104,20 @@ a:focus-visible,.btn:focus-visible,summary:focus-visible{outline:2px solid var(-
 .dr-badge{--c:var(--accent);min-width:48px;text-align:center;font-family:var(--display);font-weight:750;font-size:.8rem;letter-spacing:.04em;padding:6px 8px;border-radius:9px;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);border:1px solid color-mix(in srgb,var(--c) 28%,transparent)}
 .j-CA{--c:#c0392b}.j-BC{--c:#1f6fb2}.j-AB{--c:#0f7c8a}.j-SK{--c:#2f8a3e}.j-MB{--c:#8a5a12}.j-ON{--c:#6b4bb8}.j-QC{--c:#2554c7}
 .j-NB,.j-NS,.j-PE,.j-NL{--c:#0e7a6b}.j-YT,.j-NT{--c:#5b6b78}.j-RCIP{--c:#b8521d}
+.dr-badge small{display:block;font-size:.62rem;letter-spacing:.06em;opacity:.8;margin-top:1px}
+.dr-comm{margin:4px 0 18px}
+.dr-ch{font-family:var(--display);font-size:1rem;font-weight:700;margin:6px 0 12px}
+.dr-prov{margin-bottom:14px}
+.dr-prov>b{display:block;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.dr-cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.dr-cc{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);text-decoration:none;color:var(--fg);transition:border-color .15s,transform .15s}
+.dr-cc:hover{border-color:#b8521d;transform:translateY(-1px)}
+.dr-ct{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dr-pp{font-size:.66rem;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,#b8521d 14%,transparent);color:#b8521d;white-space:nowrap}
+.dr-cl{font-size:.78rem;font-weight:700;color:#b8521d}
+.dr-cs{font-size:.84rem;color:var(--muted);line-height:1.4}
+.dr-cf{font-size:.76rem;font-weight:650;color:var(--accent);margin-top:auto}
+.dr-cn{font-size:.8rem;color:var(--muted);margin:4px 0 0}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dr-badge{--c:#e3ebe9}:root:not([data-theme="light"]) .j-CA{--c:#ff8a7a}:root:not([data-theme="light"]) .j-BC{--c:#7fb6ea}:root:not([data-theme="light"]) .j-AB{--c:#6fd0dc}:root:not([data-theme="light"]) .j-SK{--c:#8fd49a}:root:not([data-theme="light"]) .j-MB{--c:#e2b56d}:root:not([data-theme="light"]) .j-ON{--c:#b9a3f2}:root:not([data-theme="light"]) .j-QC{--c:#8fb0ff}:root:not([data-theme="light"]) .j-RCIP{--c:#f2a06d}}
 :root[data-theme="dark"] .j-CA{--c:#ff8a7a}:root[data-theme="dark"] .j-BC{--c:#7fb6ea}:root[data-theme="dark"] .j-AB{--c:#6fd0dc}:root[data-theme="dark"] .j-RCIP{--c:#f2a06d}
 .dr-what{min-width:0;display:flex;flex-direction:column;line-height:1.35}
@@ -627,7 +641,7 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
 <script>window.WPA_PAGE="home";</script>
 <script src="/assets/wpa.js" defer></script>
 <script src="/assets/ticker.js?v=3" defer></script>
-<script src="/assets/draws.js?v=2" defer></script>
+<script src="/assets/draws.js?v=3" defer></script>
 <script src="/assets/chat.js?v=4" defer></script>
 </body>
 </html>

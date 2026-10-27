@@ -117,15 +117,116 @@ const SOURCES = [
     ] },
   { id: "ns", jur: "NS", program: "NSNP", name: "Live in Nova Scotia – Nova Scotia Nominee Program", watch: true,
     url: "https://liveinnovascotia.com/nova-scotia-nominee-program" },
-  { id: "rcip-sudbury", jur: "RCIP", program: "RCIP / FCIP – Sudbury", name: "Invest Sudbury – RCIP and FCIP candidates", watch: true,
-    url: "https://investsudbury.ca/why-sudbury/newcomers/rcip-and-fcip-candidates/" },
-  { id: "rcip-thunderbay", jur: "RCIP", program: "RCIP – Thunder Bay", name: "Thunder Bay CEDC – Rural Community Immigration Pilot", watch: true,
-    url: "https://gotothunderbay.ca/rural-community-immigration-pilot-rcip/" },
-  { id: "rcip-claresholm", jur: "RCIP", program: "RCIP – Claresholm", name: "Town of Claresholm – Rural Community Immigration Pilot", watch: true,
-    url: "https://www.claresholm.ca/business/labour-resources/rural-community-immigration-pilot" },
+  // ---------- RCIP and FCIP communities (IRCC's list: canada.ca → Rural and Francophone Community Immigration pilots) ----------
+  // jur "RCIP" for both pilots; prov = the community's province. "status" is what the official page says when results
+  // aren't published as draws (checked on the date given); watched pages flag the admin when they change.
+  ...[
+    { id: "rcip-pictou", prov: "NS", pilot: "RCIP", program: "RCIP – Pictou County", name: "Pictou County Partnership – RCIP", url: "https://pictoucountypartnership.com/program/rural-community-immigration-pilot-rcip/", watch: true,
+      status: "Doesn't publish draw results." },
+    { id: "fcip-acadian", prov: "NB", pilot: "FCIP", program: "FCIP – Acadian Peninsula", name: "Inspire Péninsule acadienne – FCIP (French)", url: "https://inspirepeninsuleacadienne.ca/programme-pilote-immigration-communautes-francophones/", watch: true,
+      status: "Monthly draws from a points-based pool; results aren't published." },
+    { id: "rcip-northbay", prov: "ON", pilot: "RCIP", program: "RCIP – North Bay and Area", name: "North Bay and Area RCIP", url: "https://nbrcip.ca/", manual: true,
+      status: "This site blocks automated readers. Check the official page for draw results." },
+    { id: "rcip-sudbury", prov: "ON", pilot: "RCIP / FCIP", program: "RCIP / FCIP – Sudbury", name: "Invest Sudbury – RCIP and FCIP draws", url: "https://investsudbury.ca/why-sudbury/newcomers/rcip-and-fcip-candidates/", parse: parseSudbury },
+    { id: "rcip-timmins", prov: "ON", pilot: "RCIP / FCIP", program: "RCIP / FCIP – Timmins", name: "Timmins EDC – RCIP and FCIP draw statistics (published as an image PDF)", url: "https://timminsedc.com/immigration/", watch: true,
+      seed: [["2026-03-24", 86, 78], ["2026-04-20", 85, 73], ["2026-05-20", 84, 67], ["2026-06-17", 83, 68], ["2026-07-16", 82, 70], ["2026-09-08", null, 80], ["2026-10-06", 85, null]].flatMap(([date, r, f]) => [
+        r != null && { date, program: "RCIP – Timmins", stream: "Community draw", score: r, scoreLabel: "lowest score", link: "https://timminsedc.com/wp-content/uploads/2026/10/6-RCIP-FCIP-Draw-Statistics.pdf" },
+        f != null && { date, program: "FCIP – Timmins", stream: "Community draw", score: f, scoreLabel: "lowest score", link: "https://timminsedc.com/wp-content/uploads/2026/10/6-RCIP-FCIP-Draw-Statistics.pdf" }]).filter(Boolean),
+      status: "Draw statistics are posted as a PDF (last updated October 6, 2026)." },
+    { id: "rcip-ssm", prov: "ON", pilot: "RCIP", program: "RCIP – Sault Ste. Marie", name: "Welcome to Sault Ste. Marie – RCIP", url: "https://welcometossm.com/rcip/", watch: true,
+      status: "August 17–23, 2026 was the last intake for 2026. Results aren't published." },
+    { id: "rcip-thunderbay", prov: "ON", pilot: "RCIP", program: "RCIP – Thunder Bay", name: "Thunder Bay CEDC – RCIP", url: "https://gotothunderbay.ca/rural-community-immigration-pilot-rcip/", watch: true,
+      status: "338 recommendation certificates issued in 2026 as of August (highest score 116, average 89.34). Final 2026 intake closed October 15; remaining certificates are issued in November." },
+    { id: "fcip-superioreast", prov: "ON", pilot: "FCIP", program: "FCIP – Superior East", name: "Superior East CFDC – FCIP", url: "https://superioreastcfdc.ca/superioreastcfdc.ca/index.php/en-ca/fcip", watch: true,
+      status: "Doesn't publish draw results." },
+    { id: "rcip-steinbach", prov: "MB", pilot: "RCIP", program: "RCIP – Steinbach", name: "Steinbach Economic Development – RCIP", url: "https://steinbachedc.com/rcip/", watch: true,
+      status: "Monthly intake (1st business day to the 15th, or 7 applications); up to 5 recommendations a month, first come, first served." },
+    { id: "rcip-altona", prov: "MB", pilot: "RCIP", program: "RCIP – Altona / Rhineland", name: "Altona-Rhineland Economic Development – RCIP", url: "https://ared-rpga.com/immigration/rcip/", watch: true,
+      status: "Doesn't publish draw results." },
+    { id: "rcip-brandon", prov: "MB", pilot: "RCIP", program: "RCIP – Brandon", name: "Economic Development Brandon – RCIP", url: "https://economicdevelopmentbrandon.com/rcip/", manual: true,
+      status: "Our reader can't reach this site. Check the official page for updates." },
+    { id: "fcip-stpierre", prov: "MB", pilot: "FCIP", program: "FCIP – St-Pierre-Jolys", name: "Village of St-Pierre-Jolys – FCIP", url: "https://villagestpierrejolys.ca/p/francophone-communities-immigration-pilot-program", watch: true,
+      status: "Doesn't publish draw results." },
+    { id: "rcip-moosejaw", prov: "SK", pilot: "RCIP", program: "RCIP – Moose Jaw", name: "Moose Jaw & District Chamber – RCIP", url: "https://rcip.mjchamber.com/", watch: true,
+      status: "Monthly intakes March to November 2026. 2026 caps reached for NOC 63200 Cooks and 62010 Retail supervisors." },
+    { id: "rcip-claresholm", prov: "AB", pilot: "RCIP", program: "RCIP – Claresholm", name: "Town of Claresholm – RCIP", url: "https://claresholm-rcip.ca/", watch: true,
+      status: "3 recommendations a month from a points-based pool; intake from the 1st to the second-last Tuesday of each month." },
+    { id: "rcip-westkootenay", prov: "BC", pilot: "RCIP", program: "RCIP – West Kootenay", name: "West Kootenay RCIP – updates", url: "https://westkootenayimmigration.ca/updates/", parse: parseWestKootenay,
+      status: "September 2026 intake: 367 eligible applications; those scoring 93 or more were reviewed." },
+    { id: "rcip-nos", prov: "BC", pilot: "RCIP", program: "RCIP – North Okanagan Shuswap", name: "Community Futures North Okanagan – RCIP intakes", url: "https://rcipnorthokanaganshuswap.com/", parse: parseNOS },
+    { id: "rcip-peaceliard", prov: "BC", pilot: "RCIP", program: "RCIP – Peace Liard (Northeast BC)", name: "Northeast BC – RCIP", url: "https://www.nebcimmigration.ca/", watch: true,
+      status: "Second 2026 intake ran October 13–20 for 25 extra allocations (employers without a 2026 recommendation)." },
+    { id: "fcip-kelowna", prov: "BC", pilot: "FCIP", program: "FCIP – Kelowna", name: "SDÉCB – Francophone Community Immigration Pilot", url: "https://www.sdecb.com/en/pilot-program/", watch: true,
+      status: "Doesn't publish draw results." },
+  ].map((c) => ({ jur: "RCIP", checkedStatus: "2026-10-27", ...c })),
+
+  // Northwest Territories Nominee Program (Yellowknife): EOI draws are announced in news releases
+  { id: "nt", jur: "NT", program: "NWT Nominee Program", name: "ImmigrateNWT.ca – Employer-Driven Stream EOI draws (news releases)", url: "https://www.immigratenwt.ca/newsroom", watch: true,
+    seed: [{ date: "2026-03-25", stream: "Employer-Driven Stream – EOI draw (NWT Express Entry 32, Skilled Worker 20, Entry Level/Semi-Skilled 13)", invites: "65", score: 417,
+      scoreLabel: "lowest EOI score", note: "295 profiles in the pool; selected scores ranged from 417 to 597.",
+      link: "https://www.immigratenwt.ca/newsroom/nwt-nominee-program%E2%80%99s-employer-driven-stream-expression-interest-draw-dates-released" }] },
 ];
 
 // ---------- page-specific parsers ----------
+const flat = (html) => clean(stripScripts(html).replace(/<[^>]+>/g, " | ")).replace(/(\s*\|\s*)+/g, " | ");
+const MON = "January|February|March|April|May|June|July|August|September|October|November|December";
+// "February 17-20" → Feb 20; "September 28-October 2" → Oct 2; "June 23-27 2025" → June 27 2025 (the intake's last day)
+function rangeEnd(range, year) {
+  const y = (range.match(/20\d\d/) || [])[0] || year;
+  const parts = range.replace(/\s*20\d\d\s*/, " ").trim().split(/\s*[-–]\s*/);
+  const last = parts[parts.length - 1], first = parts[0];
+  const m = /^\d{1,2}$/.test(last) ? first.match(new RegExp(`(${MON})`, "i"))[1] + " " + last : last;
+  return isoDate(`${m}, ${y}`);
+}
+// Sudbury: "| 2026 | Draw Date | Intake 1 – February 17-20 | Lowest Score Considered* | 88 | Number of Candidates Recommended | 66 |"
+function parseSudbury(html) {
+  const t = flat(html), out = [];
+  const fcipAt = t.search(/FCIP Draws \| The Sudbury Francophone/i);
+  const re = /Intake (\d+)\s*[–-]\s*([^|]+?)\s*\|\s*(?:Lowest Score Considered\*?\s*\|\s*(\d+)\**\s*\|\s*)?Number of Candidates Recommended\s*\|\s*(\d+)/gi;
+  let m;
+  while ((m = re.exec(t))) {
+    const before = t.slice(0, m.index), year = ([...before.matchAll(/\|\s*(20\d\d)\s*\|\s*Draw Date/g)].pop() || [])[1];
+    const fcip = fcipAt > 0 && m.index > fcipAt;
+    const date = rangeEnd(m[2], year);
+    if (!date) continue;
+    out.push({ date, program: (fcip ? "FCIP" : "RCIP") + " – Sudbury", stream: `Intake ${m[1]} (${m[2].replace(/\s*20\d\d/, "")})`, invites: invites(m[4]), score: m[3] ? Number(m[3]) : null,
+      scoreLabel: m[3] ? "lowest score" : "", note: fcip ? "First in, first out" : "", key: `sudbury-${fcip ? "f" : "r"}-${year}-${m[1]}` });
+  }
+  return out;
+}
+// North Okanagan Shuswap: "| One | January 17 to January 25 | Jan 26 to Feb 28 | Thursday, March 5 | 91 |" (meeting date + cut-off)
+function parseNOS(html) {
+  const t = flat(html), out = [];
+  const year = (t.match(/(20\d\d) Schedule/) || [])[1] || String(new Date().getFullYear());
+  const i = t.search(/Cut-off score/i); if (i < 0) return out;
+  const body = t.slice(i, i + 4000);
+  const re = /\|\s*(One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten)\s*\|([\s\S]*?)\|\s*(\d{2,3}|–|-)\s*(?=\|)/g;
+  let m;
+  while ((m = re.exec(body))) {
+    if (!/\d/.test(m[3])) continue; // no cut-off yet: the meeting hasn't happened
+    const seg = m[2], wd = seg.search(/(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/);
+    const meet = wd >= 0 ? seg.slice(wd) : seg;
+    const dates = [...meet.matchAll(new RegExp(`(${MON}|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\\.? (\\d{1,2})`, "gi"))];
+    const d = dates.length ? isoDate(`${dates[dates.length - 1][1]} ${dates[dates.length - 1][2]}, ${year}`) : null;
+    if (!d) continue;
+    out.push({ date: d, program: "RCIP – North Okanagan Shuswap", stream: `Intake ${m[1].toLowerCase()} – recommendation meeting`, score: Number(m[3]), scoreLabel: "cut-off score", key: `nos-${year}-${m[1].toLowerCase()}` });
+  }
+  return out;
+}
+// West Kootenay update posts: "...June 2026 intake received 281 applications ... approved 70 candidates ... lowest score assessed was 91"
+function parseWestKootenay(html) {
+  const t = flat(html), out = [];
+  const re = /(\w+ 20\d\d) intake received (\d+) applications[\s\S]{0,500}?approved (\d+) candidates[\s\S]{0,300}?lowest score assessed was (\d+)/gi;
+  let m;
+  while ((m = re.exec(t))) {
+    const pre = t.slice(Math.max(0, m.index - 300), m.index);
+    const ds = [...pre.matchAll(new RegExp(`(${MON}) \\d{1,2}, 20\\d\\d`, "g"))];
+    const date = ds.length ? isoDate(ds[ds.length - 1][0]) : null;
+    if (!date) continue;
+    out.push({ date, program: "RCIP – West Kootenay", stream: `${m[1]} intake (${m[2]} applications)`, invites: invites(m[3]), score: Number(m[4]), scoreLabel: "lowest score", key: `wk-${m[1].toLowerCase().replace(/\s+/g, "-")}` });
+  }
+  return out;
+}
 // Saskatchewan: find the "Selection Results" PDF on the EOI page, then turn it into text with pdftotext -layout.
 async function loadSaskatchewanPdf(url) {
   const html = await fetchPage(url);
@@ -211,17 +312,19 @@ let added = 0, changed = 0;
 for (const s of SOURCES) {
   const url = typeof s.url === "function" ? s.url() : s.url;
   const prev = (old.sources || []).find((x) => x.id === s.id) || {};
-  const st = { id: s.id, jur: s.jur, program: s.program, name: s.name, url: s.page || url, checked: now, ok: false, found: 0, manual: !!s.manual, watch: !!s.watch };
+  const st = { id: s.id, jur: s.jur, program: s.program, name: s.name, url: s.page || url, checked: now, ok: false, found: 0, manual: !!s.manual, watch: !!s.watch,
+    ...(s.prov ? { prov: s.prov, pilot: s.pilot } : {}), ...(s.status ? { status: s.status, statusChecked: s.checkedStatus } : {}) };
+  const addRow = (r) => { // one draw from a parser or a seed
+    let key = r.key || `${s.id}-${r.date}-${sha(norm((r.program || "") + r.stream))}`;
+    const draw = { id: key, jur: s.jur, program: r.program || s.program, date: r.date, stream: String(r.stream).slice(0, 160), invites: r.invites || null,
+      score: r.score ?? null, scoreLabel: r.scoreLabel || "", note: r.note || "", source: r.link || s.page || url, ...(s.prov ? { prov: s.prov } : {}) };
+    const was = byId.get(key);
+    if (!was) { byId.set(key, { ...draw, first: now }); added++; }
+    else if (JSON.stringify({ ...was, first: 0 }) !== JSON.stringify({ ...draw, first: 0 })) { byId.set(key, { ...draw, first: was.first || now }); changed++; }
+  };
+  for (const r of s.seed || []) if (r.date >= cutoff) addRow(r); // official rounds entered here, with their source
   if (s.manual) {
     st.ok = true; st.note = "This site blocks automated readers. Add its draws by hand in the admin dashboard.";
-    for (const r of s.seed || []) { // official rounds entered here, with their source
-      if (r.date < cutoff) continue;
-      const key = `${s.id}-${r.date}-${sha(norm(r.stream))}`;
-      const draw = { id: key, jur: s.jur, program: s.program, date: r.date, stream: r.stream, invites: r.invites || null, score: r.score ?? null, scoreLabel: "", note: r.note || "", source: r.link || url };
-      const was = byId.get(key);
-      if (!was) { byId.set(key, { ...draw, first: now }); added++; }
-      else if (JSON.stringify({ ...was, first: 0 }) !== JSON.stringify({ ...draw, first: 0 })) { byId.set(key, { ...draw, first: was.first || now }); changed++; }
-    }
     st.found = (s.seed || []).length; sources.push(st); console.log(`man  ${s.id}`); continue;
   }
   try {
@@ -235,15 +338,12 @@ for (const s of SOURCES) {
       const rows = s.parse(body).filter((r) => r.date && r.stream && (r.invites || r.score != null))
         .map((r) => ({ ...r, stream: clean(r.stream) }))
         .filter((r) => { const k = [r.date, norm(r.stream), r.invites, r.score].join("|"); if (same.has(k)) return false; same.add(k); return true; }); // a page listing the same round twice
+      const seenKey = {};
       for (const r of rows) {
         if (r.date < cutoff) continue;
         let key = r.key || `${s.id}-${r.date}-${sha(norm(r.stream))}`;
-        seen[key] = (seen[key] || 0) + 1; if (seen[key] > 1) key += "-" + seen[key];
-        const draw = { id: key, jur: s.jur, program: s.program, date: r.date, stream: r.stream.slice(0, 160), invites: r.invites || null,
-          score: r.score ?? null, scoreLabel: r.scoreLabel || "", note: r.note || "", source: r.link || s.page || url };
-        const was = byId.get(key);
-        if (!was) { byId.set(key, { ...draw, first: now }); added++; }
-        else if (JSON.stringify({ ...was, first: 0 }) !== JSON.stringify({ ...draw, first: 0 })) { byId.set(key, { ...draw, first: was.first || now }); changed++; }
+        seenKey[key] = (seenKey[key] || 0) + 1; if (seenKey[key] > 1) key += "-" + seenKey[key];
+        addRow({ ...r, key });
       }
       st.ok = rows.length > 0; st.found = rows.length;
       if (rows.length) st.latest = rows.map((r) => r.date).sort().pop();

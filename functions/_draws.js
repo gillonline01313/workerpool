@@ -1,7 +1,7 @@
 // Latest draws = the automatic list (data/draws.json, refreshed 3x a day from official pages) + admin changes in D1.
 // draw_edits.kind: "edit" (fields replace the automatic ones), "hide" (removed from the site), "add" (a draw entered by hand).
 export const JUR = { CA: "Federal", BC: "British Columbia", AB: "Alberta", SK: "Saskatchewan", MB: "Manitoba", ON: "Ontario", QC: "Québec",
-  NB: "New Brunswick", NS: "Nova Scotia", PE: "Prince Edward Island", NL: "Newfoundland and Labrador", YT: "Yukon", NT: "Northwest Territories", RCIP: "RCIP / FCIP communities" };
+  NB: "New Brunswick", NS: "Nova Scotia", PE: "Prince Edward Island", NL: "Newfoundland and Labrador", YT: "Yukon", NT: "Northwest Territories (Yellowknife)", RCIP: "RCIP / FCIP communities" };
 export const FIELDS = ["jur", "program", "date", "stream", "invites", "score", "scoreLabel", "note", "source", "pinned"];
 
 export async function autoDraws(request, env) {
