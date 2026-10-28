@@ -162,3 +162,49 @@ export async function chatStartThread(env, request, { name, email, page, open })
     .bind(t.id, await sha256hex(token), name, email || null, page || "", ipHash, now).run();
   return { t, cookie: `wp_chat=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 86400}` };
 }
+
+/* ---------- sign-up report (admin → Analytics → Sign-ups) ---------- */
+// One row per sign-up event: successful accounts, attempts the server turned down (with the reason),
+// attempts the form itself stopped, and people who opened the sign-up form. Passwords are never logged.
+export function parseUA(ua) {
+  const u = ua || "";
+  if (/bot|crawl|spider|slurp|facebookexternalhit|preview|headless|lighthouse|curl|wget|python|axios/i.test(u)) return { dev: "Bot", os: "", browser: "Bot" };
+  const dev = /iPad|Tablet|PlayBook|Silk|(Android(?!.*Mobile))/i.test(u) ? "Tablet" : /Mobi|iPhone|iPod|Android/i.test(u) ? "Mobile" : "Desktop";
+  let os = "Other", m;
+  if ((m = u.match(/(?:iPhone|CPU) OS (\d+)/))) os = (/iPad/.test(u) ? "iPadOS " : "iOS ") + m[1];
+  else if ((m = u.match(/Android (\d+(?:\.\d+)?)/))) os = "Android " + m[1];
+  else if (/Windows NT 10/.test(u)) os = "Windows 10/11";
+  else if (/Mac OS X/.test(u)) os = "macOS";
+  else if (/CrOS/.test(u)) os = "ChromeOS";
+  else if (/Linux/.test(u)) os = "Linux";
+  let browser = "Other";
+  if ((m = u.match(/Edg(?:A|iOS)?\/(\d+)/))) browser = "Edge " + m[1];
+  else if ((m = u.match(/SamsungBrowser\/(\d+)/))) browser = "Samsung Internet " + m[1];
+  else if (/FBAN|FBAV|FB_IAB/.test(u)) browser = "Facebook app";
+  else if (/Instagram/.test(u)) browser = "Instagram app";
+  else if (/; wv\)/.test(u)) browser = "In-app browser";
+  else if ((m = u.match(/(?:Firefox|FxiOS)\/(\d+)/))) browser = "Firefox " + m[1];
+  else if ((m = u.match(/(?:Chrome|CriOS)\/(\d+)/))) browser = "Chrome " + m[1];
+  else if ((m = u.match(/Version\/(\d+).*Safari/))) browser = "Safari " + m[1];
+  return { dev, os, browser };
+}
+export async function ensureSignupLog(env) {
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS signup_log (id INTEGER PRIMARY KEY AUTOINCREMENT, t TEXT NOT NULL, source TEXT NOT NULL, outcome TEXT NOT NULL,
+    reason TEXT, name TEXT, email TEXT, phone TEXT, username TEXT, user_id TEXT, vid TEXT, country TEXT, region TEXT, city TEXT, tz TEXT,
+    dev TEXT, os TEXT, browser TEXT, lang TEXT, ref TEXT, ua TEXT)`).run();
+}
+// Never throws: a logging problem must not break sign-up.
+export async function logSignup(request, env, e) {
+  try {
+    if (!env.DB) return;
+    await ensureSignupLog(env);
+    const cf = request.cf || {}, ua = request.headers.get("user-agent") || "", d = parseUA(ua);
+    const ref = e.ref || request.headers.get("referer") || "";
+    await env.DB.prepare(`INSERT INTO signup_log (t, source, outcome, reason, name, email, phone, username, user_id, vid, country, region, city, tz, dev, os, browser, lang, ref, ua)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)`).bind(
+      new Date().toISOString(), str(e.source, 30), str(e.outcome, 12), str(e.reason, 200) || null, str(e.name, 120) || null, str(e.email, 120).toLowerCase() || null,
+      str(e.phone, 40) || null, str(e.username, 30) || null, e.userId || null, /^[a-z0-9]{6,24}$/.test(e.vid || "") ? e.vid : null,
+      str(cf.country, 4) || null, str(cf.region, 60) || null, str(cf.city, 60) || null, str(e.tz || cf.timezone || "", 60) || null,
+      d.dev, d.os, d.browser, str((request.headers.get("accept-language") || "").split(",")[0], 16) || null, str(ref, 200) || null, str(ua, 300) || null).run();
+  } catch (x) { console.warn("signup log", x.message); }
+}

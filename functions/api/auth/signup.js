@@ -1,6 +1,15 @@
-import { json, str, isEmail, readJson, id, hashPassword, createSession } from "../../_lib.js";
-export async function onRequestPost({ request, env }) {
-  const b = await readJson(request, 4000);
+import { json, str, isEmail, readJson, id, hashPassword, createSession, logSignup } from "../../_lib.js";
+// Every attempt is recorded for the admin's Sign-ups report (outcome, reason, location, device), never the password.
+export async function onRequestPost(ctx) {
+  const b = await readJson(ctx.request, 4000);
+  const res = await create(ctx, b);
+  let j = {}; try { j = await res.clone().json(); } catch {}
+  const u = j.ok ? await ctx.env.DB.prepare(`SELECT id FROM users WHERE email = ?1`).bind(str(b && b.email, 120).toLowerCase()).first().catch(() => null) : null;
+  await logSignup(ctx.request, ctx.env, { source: "Main site", outcome: j.ok ? "success" : "failed", reason: j.ok ? null : j.error,
+    name: b && b.name, email: b && b.email, phone: b && b.phone, userId: u && u.id, vid: b && b.vid, tz: b && b.tz, ref: b && b.ref });
+  return res;
+}
+async function create({ request, env }, b) {
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
   const name = str(b.name, 120), email = str(b.email, 120).toLowerCase(), phone = str(b.phone, 40), pass = typeof b.password === "string" ? b.password : "";
   if (!name) return json({ ok: false, error: "Enter your full name." }, 400);

@@ -1,5 +1,5 @@
 // Admin data API. Every request must carry the ADMIN_KEY secret set in Cloudflare.
-import { json, readJson, str, sendEmail, chatOpen, CHAT_MSG_SQL, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
+import { json, readJson, str, sendEmail, ensureSignupLog, chatOpen, CHAT_MSG_SQL, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
 import { NEWS_SEED } from "../../_news.js";
 import { autoDraws, edits as drawEdits, merge as mergeDraws, FIELDS as DRAW_FIELDS } from "../../_draws.js";
 function same(a, b) {
@@ -15,6 +15,20 @@ export async function onRequestGet({ request, env, params }) {
   if (route === "visits") {
     const r = await env.DB.prepare(`SELECT * FROM visits WHERE t >= ?1 ORDER BY t DESC LIMIT 20000`).bind(since).all();
     return json({ ok: true, rows: r.results });
+  }
+  if (route === "signups") {
+    await ensureSignupLog(env);
+    const log = await env.DB.prepare(`SELECT * FROM signup_log WHERE t >= ?1 ORDER BY t DESC LIMIT 20000`).bind(since).all();
+    // Accounts made before the sign-up log existed (or whose log row failed) still count as sign-ups
+    const users = await env.DB.prepare(`SELECT u.id, u.email, u.name, u.phone, u.created, u.profile, f.username FROM users u LEFT JOIN forum_users f ON f.user_id = u.id
+      WHERE u.created >= ?1 AND NOT EXISTS (SELECT 1 FROM signup_log l WHERE l.user_id = u.id AND l.outcome = 'success') ORDER BY u.created DESC LIMIT 5000`).bind(since).all()
+      .catch(() => env.DB.prepare(`SELECT u.id, u.email, u.name, u.phone, u.created, u.profile, NULL AS username FROM users u
+        WHERE u.created >= ?1 AND NOT EXISTS (SELECT 1 FROM signup_log l WHERE l.user_id = u.id AND l.outcome = 'success') ORDER BY u.created DESC LIMIT 5000`).bind(since).all());
+    const extra = users.results.map((u) => {
+      let src = "Main site"; try { if (JSON.parse(u.profile || "{}").source === "forum") src = "Forum"; } catch {}
+      return { id: "u_" + u.id, t: u.created, source: src, outcome: "success", name: u.name, email: u.email, phone: u.phone, username: u.username, user_id: u.id, untracked: 1 };
+    });
+    return json({ ok: true, rows: log.results.concat(extra).sort((a, b) => (a.t < b.t ? 1 : -1)) });
   }
   if (route === "scanner-passes") {
     await env.DB.prepare(`CREATE TABLE IF NOT EXISTS scan_passes (id TEXT PRIMARY KEY, kind TEXT NOT NULL, created TEXT NOT NULL, expires TEXT NOT NULL, docs_used INTEGER NOT NULL DEFAULT 0, docs_max INTEGER NOT NULL, amount INTEGER, note TEXT)`).run();

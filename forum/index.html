@@ -207,7 +207,8 @@ function authDlg(mode,then){
   $("#af").onsubmit=async e=>{
     e.preventDefault(); const btn=e.submitter||$("#af button[type=submit]"); btn.disabled=true; $("#ae").textContent="";
     const u=$("#fu").value.trim(), p=$("#fp").value;
-    const j=up?await post("/api/forum",{action:"signup",username:u,email:$("#fe").value.trim(),password:p})
+    let ctx={}; try{ ctx={vid:localStorage.getItem("wp_vid")||"",tz:Intl.DateTimeFormat().resolvedOptions().timeZone||""}; }catch(x){}
+    const j=up?await post("/api/forum",{action:"signup",username:u,email:$("#fe").value.trim(),password:p,...ctx})
               :await post("/api/auth/login",{email:u,password:p});
     btn.disabled=false;
     if(!j.ok){ $("#ae").textContent=(j.error)||"Something went wrong. Try again."; return; }
@@ -215,6 +216,7 @@ function authDlg(mode,then){
     if(m.me&&m.me.signedIn&&!m.me.username) return nameDlg();
     done();
   };
+  if(up){ try{ fetch("/api/signup-log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({outcome:"opened",source:"Forum",vid:localStorage.getItem("wp_vid")||"",tz:Intl.DateTimeFormat().resolvedOptions().timeZone||"",ref:document.referrer||""})}).catch(()=>{}); }catch(x){} }
   if(!dlg.open) dlg.showModal(); setTimeout(()=>$("#fu").focus(),30);
 }
 function nameDlg(then){

@@ -1,6 +1,7 @@
 // Discussion forum. Reading is public; posting needs a WorkerPool account with a forum username.
 // Every topic keeps the date and time it was opened, and every post the exact date and time it was received (UTC, shown in the reader's time zone).
 import { json, str, isEmail, readJson, id, hashPassword, createSession, getUser, sha256hex, sendEmail } from "../_lib.js";
+import { logSignup } from "../_lib.js";
 import { META, getCat, isCityLoc, validLoc, checkUsername } from "../_forum.js";
 
 const PAGE_TOPICS = 25, PAGE_POSTS = 40;
@@ -111,7 +112,13 @@ export async function onRequestPost({ request, env }) {
   const b = await readJson(request, 20000);
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
   try {
-    if (b.action === "signup") return signup(request, env, b);
+    if (b.action === "signup") {
+      const res = await signup(request, env, b);
+      let j = {}; try { j = await res.clone().json(); } catch {}
+      const u = j.ok ? await env.DB.prepare(`SELECT id FROM users WHERE email = ?1`).bind(str(b.email, 120).toLowerCase()).first().catch(() => null) : null;
+      await logSignup(request, env, { source: "Forum", outcome: j.ok ? "success" : "failed", reason: j.ok ? null : j.error, email: b.email, username: b.username, userId: u && u.id, vid: b.vid, tz: b.tz });
+      return res;
+    }
     const m = await me(request, env);
     if (!m.u) return json({ ok: false, error: "Sign in to take part.", signin: true }, 401);
     if (b.action === "username") return setUsername(env, m, b);

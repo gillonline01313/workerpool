@@ -273,17 +273,18 @@ function renderAuth(mode,notice){
       ${mode==='login'?`<div class="f full"><button class="linkbtn" id="aForgot" type="button">Forgot your password?</button></div>`:`<p class="hint full">By creating an account you agree to our <a href="/terms/">terms</a> and <a href="/privacy/">privacy policy</a>.</p>`}
     </form>
   </div>`;
+  if(mode==="signup") signupLog("opened");
   $("#tSign").onclick=()=>renderAuth("signup");
   $("#tLog").onclick=()=>renderAuth("login");
   const fg=$("#aForgot"); if(fg) fg.onclick=()=>renderAuth("forgot");
   $("#authForm").onsubmit=async e=>{
     e.preventDefault();
     const email=$("#aEmail").value.trim().toLowerCase(), pass=$("#aPass").value;
-    const err=m=>{$("#aErr").textContent=m};
+    const err=m=>{$("#aErr").textContent=m; if(mode==="signup") signupLog("blocked",{reason:m,name:($("#aName")||{}).value,email,phone:($("#aPhone")||{}).value});};
     if(!/^\S+@\S+\.\S+$/.test(email)) return err("Enter a valid email address.");
     const body={email,password:pass};
     if(mode==="signup"){
-      body.name=$("#aName").value.trim(); body.phone=$("#aPhone").value.trim();
+      body.name=$("#aName").value.trim(); body.phone=$("#aPhone").value.trim(); Object.assign(body,signupCtx());
       if(!body.name) return err("Enter your full name.");
       if(body.phone.replace(/\D/g,"").length<7) return err("Enter a phone number we can reach you on.");
       if(pass.length<8) return err("Password needs at least 8 characters.");
@@ -294,6 +295,10 @@ function renderAuth(mode,notice){
     await boot();
   };
 }
+
+/* ---------- sign-up report: who opened the form, and what stopped them (never the password) ---------- */
+function signupCtx(){ let vid="",tz=""; try{ vid=localStorage.getItem("wp_vid")||""; }catch(e){} try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""; }catch(e){} return {vid,tz,ref:document.referrer||""}; }
+function signupLog(outcome,x){ try{ fetch("/api/signup-log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({outcome,source:"Main site",...signupCtx(),...(x||{})}),keepalive:true}).catch(()=>{}); }catch(e){} }
 
 /* ---------- helpers ---------- */
 function opts(list,val,ph){return `<option value="">${ph}</option>`+list.map(o=>{const [v,l]=Array.isArray(o)?o:[o,o];return `<option value="${esc(v)}" ${v===val?'selected':''}>${esc(l)}</option>`}).join("")}
