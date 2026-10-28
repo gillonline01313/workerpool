@@ -211,7 +211,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const fmtDur=s=>!s?"–":s<60?s+"s":Math.floor(s/60)+"m "+String(s%60).padStart(2,"0")+"s";
 const when=t=>new Date(t).toLocaleString("en-CA",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
 let KEY=""; try{KEY=sessionStorage.getItem("wp_admin")||"";}catch(e){}
-let anView="visits", suF="all", suQ="", suOpen=null, suShown=100, drF="all", drQ="", drEdit=null, fvTopic=null, forumF="reports", tab="analytics", range=7, pageF="all", data={}, newsF="live", newsEdit=null;
+let anView="visits", qF="left", qQ="", qShown=100, suF="all", suQ="", suOpen=null, suShown=100, drF="all", drQ="", drEdit=null, fvTopic=null, forumF="reports", tab="analytics", range=7, pageF="all", data={}, newsF="live", newsEdit=null;
 async function api(path){
   const r=await fetch("/api/admin/"+path,{headers:{"x-admin-key":KEY}});
   if(r.status===401) throw new Error("auth");
@@ -222,6 +222,7 @@ async function load(){
   try{
     if(tab==="chat"){ await chatList(); render(); return; }
     if(tab==="analytics"&&anView==="signups") data.signups=await api("signups?days="+days);
+    else if(tab==="analytics"&&anView==="questionnaire") data.quest=await api("questionnaire?days="+days);
     else if(tab==="analytics") data.visits=await api("visits?days="+days);
     else if(tab==="news"){ if(newsEdit) return; data.news=await api("news"); }
     else if(tab==="scanner"){ data.passes=await api("scanner-passes"); data.shop=await shopPost({action:"list"}); }
@@ -271,13 +272,18 @@ function seg(name,opts,cur,cb){ return `<div class="wpa-seg" data-seg="${name}">
 function controls(){
   const c=$("#ctl");
   if(tab==="analytics"){
-    c.innerHTML=seg("anv",[["visits","Visitors"],["signups","Sign-ups"]],anView)+seg("range",[[1,"Today"],[7,"7 days"],[30,"30 days"],[90,"90 days"],[0,"All"]],range)+(anView==="signups"
+    c.innerHTML=seg("anv",[["visits","Visitors"],["signups","Sign-ups"],["questionnaire","Questionnaire"]],anView)+seg("range",[[1,"Today"],[7,"7 days"],[30,"30 days"],[90,"90 days"],[0,"All"]],range)+(anView==="questionnaire"
+      ?seg("qf",[["left","Left without submitting"],["done","Submitted"],["all","Everyone"]],qF)+`<input id="qQ" type="search" placeholder="Search name, email, step…" value="${esc(qQ)}" style="font:inherit;font-size:.85rem;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);min-width:200px"><button class="dl" type="button" id="qCsv">Download CSV</button>`
+      :anView==="signups"
       ?seg("suf",[["all","Everything"],["success","Signed up"],["failed","Turned down"],["blocked","Stopped by form"],["opened","Didn't finish"]],suF)+`<input id="suQ" type="search" placeholder="Search name, email, city…" value="${esc(suQ)}" style="font:inherit;font-size:.85rem;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);min-width:200px"><button class="dl" type="button" id="suCsv">Download CSV</button>`
       :seg("page",[["all","All pages"],["home","Home"],["questionnaire","Questionnaire"]],pageF));
     c.querySelectorAll('[data-seg="anv"] button').forEach(b=>b.onclick=()=>{anView=b.dataset.v; suOpen=null; controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load();});
     c.querySelectorAll('[data-seg="suf"] button').forEach(b=>b.onclick=()=>{suF=b.dataset.v; suOpen=null; suShown=100; controls(); render();});
     if($("#suQ")) $("#suQ").oninput=e=>{ suQ=e.target.value; suShown=100; render(); };
     if($("#suCsv")) $("#suCsv").onclick=suCsv;
+    c.querySelectorAll('[data-seg="qf"] button').forEach(b=>b.onclick=()=>{qF=b.dataset.v; qShown=100; controls(); render();});
+    if($("#qQ")) $("#qQ").oninput=e=>{ qQ=e.target.value; qShown=100; render(); };
+    if($("#qCsv")) $("#qCsv").onclick=qCsv;
     c.querySelectorAll('[data-seg="range"] button').forEach(b=>b.onclick=()=>{range=+b.dataset.v; controls(); load();});
     c.querySelectorAll('[data-seg="page"] button').forEach(b=>b.onclick=()=>{pageF=b.dataset.v; controls(); render();});
   } else if(tab==="scanner"){
@@ -424,6 +430,7 @@ function render(){
   if(tab==="forum") return renderForum(body);
   if(tab==="draws") return renderDraws(body);
   if(tab==="analytics"&&anView==="signups") return renderSignups(body);
+  if(tab==="analytics"&&anView==="questionnaire") return renderQuest(body);
   const now=new Date(), startDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const from=range===0?0:range===1?startDay.getTime():startDay.getTime()-(range-1)*864e5;
   const V=(data.visits||[]).map(v=>({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk),ev:J(v.ev)})).filter(v=>v.ts>=from&&(pageF==="all"||v.page===pageF)).sort((a,b)=>b.ts-a.ts);
@@ -473,6 +480,100 @@ function render(){
   </div>
   <p class="wpa-note">Click any number, bar or chart column to see the visits behind it. Country and city come from Cloudflare's network data. IP addresses are not stored.</p>`;
   wireTips(body);
+}
+/* ---------- Questionnaire report: how far each person got, and their answers so far ---------- */
+const Q_LABEL={basics:"Basics",location:"Location",province:"Province & city",country:"Country & city",status:"Status",work:"Work experience",lang:"Language tests",services:"Services"};
+const Q_ALL=["basics","location","province","country","status","work","lang","services","done"];
+function qSeq(p){ const s=["basics","location"]; if(p.location==="outside") s.push("country"); else s.push("province","status"); s.push("work","lang","services"); return s; }
+function qRows(){
+  const now=new Date(), startDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const from=range===0?0:range===1?startDay.getTime():startDay.getTime()-(range-1)*864e5;
+  return (data.quest||[]).map(u=>{
+    let p={}; try{p=JSON.parse(u.profile||"{}")}catch(e){}
+    const seq=qSeq(p), done=!!u.submitted||u.step==="done";
+    // furthest step: the saved max (tracked from now on), else the step they were on
+    let far=Q_ALL.indexOf(u.max_step)>Q_ALL.indexOf(u.step)?u.max_step:u.step; if(far==="checkout") far="services";
+    if(far==="province"&&p.location==="outside") far="country";
+    const idx=done?seq.length:Math.max(0,seq.indexOf(far));
+    const [city,region,country,dev,tz]=(u.geo||"").split("|");
+    const last=Date.parse(u.progress_at||u.created);
+    const started=done||!!u.progress_at||u.step!=="basics"||!!(p.age||p.gender);
+    return {...u,p,seq,done,far,idx,last,started,city,region,country,dev,tz,forum:p.source==="forum"};
+  }).filter(r=>r.started&&r.last>=from);
+}
+function qFiltered(rows){
+  const q=qQ.trim().toLowerCase();
+  return rows.filter(r=>(qF==="all"||(qF==="done"?r.done:!r.done))&&(!q||[r.name,r.email,r.phone,Q_LABEL[r.far],r.city,r.country].join(" ").toLowerCase().includes(q)));
+}
+const qWhere=r=>[r.city,r.region,r.country].filter(Boolean).join(", ")||(r.p.city?r.p.city+(r.p.province?", "+r.p.province:r.p.country?", "+r.p.country:"")+" (from answers)":"Not recorded");
+const qStep=r=>r.done?"Submitted":`Step ${r.idx+1} of ${r.seq.length} · ${Q_LABEL[r.seq[r.idx]]||r.far}`;
+function renderQuest(body){
+  const rows=qRows(), R=qFiltered(rows), left=rows.filter(r=>!r.done), done=rows.filter(r=>r.done);
+  // where people stop: the step they were on when they left
+  const stopAt=new Map(); left.forEach(r=>{ const k=r.seq[r.idx]; stopAt.set(k,(stopAt.get(k)||0)+1); });
+  const order=["basics","location","province","country","status","work","lang","services"];
+  const reach=order.map(k=>[k,rows.filter(r=>r.seq.includes(k)&&(r.done||r.seq.indexOf(k)<=r.idx)).length]).filter(x=>x[1]);
+  const mx=Math.max(1,...reach.map(x=>x[1]));
+  const kpi=(n,l,sub)=>`<div class="wpa-kpi"><small>${l}</small><b>${n}</b><span>${sub}</span></div>`;
+  const bar=(r)=>`<span style="display:inline-block;width:80px;height:8px;border-radius:9px;background:var(--line);vertical-align:middle;overflow:hidden"><i style="display:block;height:100%;width:${Math.round((r.done?1:(r.idx)/r.seq.length)*100)}%;background:${r.done?"#0f7a4a":"var(--accent)"}"></i></span>`;
+  body.innerHTML=`
+  <div class="wpa-kpis">
+    ${kpi(rows.length,"Started","answered at least the first questions")}
+    ${kpi(done.length,"Submitted","finished and sent their profile")}
+    ${kpi(left.length,"Left without submitting","click a name to see their answers")}
+    ${kpi(rows.length?Math.round(done.length/rows.length*100)+"%":"–","Completion","of people who started")}
+  </div>
+  <div class="wpa-grid">
+    <div class="wpa-card"><h3>How far people get</h3><p class="sub">People who reached each step</p><div class="wpa-bars">${reach.map(([k,n])=>`<div class="wpa-row"><span class="l">${esc(Q_LABEL[k])}</span><span class="t"><i style="width:${(n/mx*100).toFixed(1)}%"></i></span><span class="v">${n}</span></div>`).join("")}<div class="wpa-row"><span class="l"><b>Submitted</b></span><span class="t"><i style="width:${(done.length/mx*100).toFixed(1)}%;background:#0f7a4a"></i></span><span class="v">${done.length}</span></div></div></div>
+    <div class="wpa-card"><h3>Where people stop</h3><p class="sub">The step they were on when they left, without submitting</p>${left.length?`<div class="wpa-bars">${order.filter(k=>stopAt.get(k)).map(k=>{const n=stopAt.get(k),m=Math.max(...stopAt.values());return `<div class="wpa-row" role="button" tabindex="0" data-qstep="${k}" style="cursor:pointer"><span class="l">${esc(Q_LABEL[k])}</span><span class="t"><i style="width:${(n/m*100).toFixed(1)}%;background:#c2410c"></i></span><span class="v">${n}</span></div>`;}).join("")}</div>`:`<p class="wpa-note">Nobody has left part-way in this period.</p>`}</div>
+    <div class="wpa-card wide"><h3>${R.length} ${qF==="left"?"left without submitting":qF==="done"?"submitted":"people"} <span class="sub" style="margin:0;font-weight:400">· click "View answers" to see everything they entered</span></h3>
+      <div class="wpa-tbl"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Got to</th><th>Progress</th><th>Started</th><th>Last activity</th><th>Location</th><th>Answers</th></tr></thead><tbody>
+      ${R.slice(0,qShown).map(r=>`<tr><td>${esc(r.name||"–")}${r.forum?` <span class="pill">forum</span>`:""}</td><td>${esc(r.email)}</td><td>${esc(r.phone||r.p.phone||"–")}</td><td style="white-space:nowrap">${esc(qStep(r))}</td><td>${bar(r)}</td><td style="white-space:nowrap">${when(r.created)}</td><td style="white-space:nowrap">${r.progress_at?when(r.last):`<span style="color:var(--muted)">not recorded</span>`}</td><td>${esc(qWhere(r))}</td><td><a href="#" data-qview="${esc(r.id)}" style="color:var(--accent);font-weight:650;white-space:nowrap">View answers →</a></td></tr>`).join("")||`<tr><td colspan="9" style="color:var(--muted)">Nobody in this period${qQ?" matching your search":""}.</td></tr>`}
+      </tbody></table></div>${R.length>qShown?`<button class="dl dr-more" type="button" id="qMore">Show more (${R.length-qShown} left)</button>`:""}</div>
+  </div>
+  <p class="wpa-note">The questionnaire saves as people go, so you see everything up to the point they stopped. "Last activity" and the furthest step are recorded from today on; for people who started earlier, "Got to" is the step they were on when they last saved. Location comes from their sign-up (Cloudflare network data).</p>`;
+  body.querySelectorAll("[data-qstep]").forEach(el=>el.onclick=()=>{ qQ=Q_LABEL[el.dataset.qstep]; qF="left"; controls(); render(); });
+  if($("#qMore")) $("#qMore").onclick=()=>{ qShown+=100; render(); };
+}
+document.addEventListener("click",e=>{ const a=e.target.closest("[data-qview]"); if(!a) return; e.preventDefault(); const r=qRows().find(x=>x.id===a.dataset.qview); if(r) qAnswers(r); });
+function qAnswers(r){
+  const p=r.p, yes=v=>v==="yes"||v===true?"Yes":v==="no"||v===false?"No":v;
+  const val=v=>v==null||v===""?`<span style="color:var(--muted)">–</span>`:esc(yes(v));
+  const row=(l,v)=>`<div style="display:grid;grid-template-columns:minmax(120px,38%) 1fr;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">${esc(l)}</span><span>${v}</span></div>`;
+  const test=t=>t&&t.type?`${esc(t.type)} · L ${esc(t.L||"–")} R ${esc(t.R||"–")} W ${esc(t.W||"–")} S ${esc(t.S||"–")}${t.date?` · taken ${esc(t.date)}`:""}${t.expiry?` · valid until ${esc(t.expiry)}`:""}`:`<span style="color:var(--muted)">–</span>`;
+  const used=new Set(["source","submittedAt","sent","type","resume"]);
+  const S={
+    basics:()=>{ ["age","gender","email","phone"].forEach(k=>used.add(k)); return row("Age",val(p.age))+row("Gender",val(p.gender))+row("Email",val(p.email||r.email))+row("Phone",val(p.phone||r.phone)); },
+    location:()=>{ used.add("location"); return row("Where they live",val(p.location==="outside"?"Outside Canada":p.location==="inside"||p.location==="canada"?"In Canada":p.location)); },
+    province:()=>{ ["province","city"].forEach(k=>used.add(k)); return row("Province",val(p.province))+row("City",val(p.city)); },
+    country:()=>{ ["country","city"].forEach(k=>used.add(k)); return row("Country",val(p.country))+row("City",val(p.city)); },
+    status:()=>{ ["status","expiry"].forEach(k=>used.add(k)); return row("Status",val(p.status))+row("Document expiry",val(p.expiry)); },
+    work:()=>{ ["jobs","noWork"].forEach(k=>used.add(k)); const J=(p.jobs||[]).filter(j=>j&&(j.title||j.employer)); return p.noWork?row("Work experience","No work experience"):J.length?J.map((j,i)=>row("Job "+(i+1),`<b>${esc(j.title||"–")}</b> at ${esc(j.employer||"–")}${j.location?", "+esc(j.location):""}<br><span style="color:var(--muted)">${esc(j.start||"?")} to ${j.current?"present":esc(j.end||"?")}${j.noc?" · NOC "+esc(j.noc):""}${j.hours?" · "+esc(j.hours)+" h/week":""}</span>`)).join(""):row("Work experience",val("")); },
+    lang:()=>{ ["engValid","engExpired","eng","frStudied","frTested","fr"].forEach(k=>used.add(k)); return row("Valid English test",val(p.engValid))+(p.engValid==="no"?row("Had an expired test",val(p.engExpired)):"")+row("English test",test(p.eng))+row("Studied French",val(p.frStudied))+(p.frStudied==="yes"?row("French test",val(p.frTested)):"")+(p.fr&&p.fr.type?row("French test scores",test(p.fr)):""); },
+    services:()=>{ ["wantsImm","wantsMatch","cData","cImm","cEmp","cMkt"].forEach(k=>used.add(k)); return row("Wants a consultant call",val(p.wantsImm))+row("Wants Employer Match",val(p.wantsMatch))+row("Consent: store data",val(p.cData))+row("Consent: share with consultant",val(p.cImm))+row("Consent: share with employers",val(p.cEmp))+row("Consent: updates",val(p.cMkt)); },
+  };
+  const parts=r.seq.map((k,i)=>{ const reached=r.done||i<=r.idx; const html=S[k]?S[k]():"";
+    return `<section style="margin:0 0 16px"><h4 style="margin:0 0 6px;font-size:.95rem;display:flex;gap:8px;align-items:center">${i+1}. ${esc(Q_LABEL[k])}${!reached?` <span class="pill" style="font-weight:500">not reached</span>`:i===r.idx&&!r.done?` <span class="pill" style="background:#fde4e1;color:#b42318;border:0">stopped here</span>`:""}</h4>${reached?html:`<p style="color:var(--muted);margin:0">They didn't get this far.</p>`}</section>`; }).join("");
+  const other=Object.keys(p).filter(k=>!used.has(k)&&p[k]!==""&&p[k]!=null&&typeof p[k]!=="object");
+  closeDrill();
+  const ov=document.createElement("div"); ov.id="drOv"; ov.className="dr-ov"; ov.onclick=closeDrill; document.body.appendChild(ov);
+  const pn=document.createElement("aside"); pn.id="drPn"; pn.className="dr-pn"; pn.setAttribute("role","dialog"); pn.setAttribute("aria-modal","true"); document.body.appendChild(pn); document.body.style.overflow="hidden";
+  pn.innerHTML=`<div class="dr-hd"><div><h3>${esc(r.name||r.email)}'s answers</h3><p>${esc(qStep(r))} · started ${esc(fullWhen(Date.parse(r.created)))}${r.progress_at?" · last saved "+esc(fullWhen(r.last)):""}</p></div><button class="dl" type="button" id="drX">Close ✕</button></div>
+    <div class="dr-body" style="font-size:.9rem">
+      ${row("Account",`${esc(r.name||"–")}<br>${esc(r.email)}<br>${esc(r.phone||"")}`)}${row("Location",esc(qWhere(r))+(r.dev?" · "+esc(r.dev):""))}
+      <div style="height:14px"></div>${parts}
+      ${other.length?`<section><h4 style="margin:0 0 6px;font-size:.95rem">Other answers</h4>${other.map(k=>row(k.replace(/([A-Z])/g," $1").replace(/^./,c=>c.toUpperCase()),val(p[k]))).join("")}</section>`:""}
+      ${r.resume_key?`<p><button class="dl" type="button" data-key="${esc(r.resume_key)}" data-name="${esc(r.resume_name||"resume")}">Download resume (${esc(r.resume_name||"file")})</button></p>`:""}
+      <p style="margin-top:14px"><a href="mailto:${esc(r.email)}?subject=${encodeURIComponent("Your WorkerPool profile")}" class="dl" style="text-decoration:none">Email ${esc((r.name||"").split(" ")[0]||"them")}</a></p>
+    </div>`;
+  pn.querySelector("#drX").onclick=closeDrill; pn.querySelector("#drX").focus();
+}
+function qCsv(){
+  const R=qFiltered(qRows()); if(!R.length) return;
+  const cell=x=>`"${String(x??"").replace(/"/g,'""')}"`;
+  const lines=[["Name","Email","Phone","Got to","Submitted","Started (UTC)","Last activity (UTC)","City","Region","Country","Age","Gender","Lives","Province/Country","Status","Jobs","English test","Wants consultant","Wants Employer Match"].map(cell).join(",")]
+    .concat(R.map(r=>{const p=r.p; return [r.name,r.email,r.phone||p.phone,qStep(r),r.done?"yes":"no",r.created,r.progress_at||"",r.city,r.region,r.country,p.age,p.gender,p.location,p.province||p.country,p.status,(p.jobs||[]).filter(j=>j&&j.title).map(j=>j.title+" at "+(j.employer||"?")).join(" | "),p.eng&&p.eng.type?`${p.eng.type} L${p.eng.L} R${p.eng.R} W${p.eng.W} S${p.eng.S}`:"",p.wantsImm,p.wantsMatch].map(cell).join(",");}));
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/csv"})); a.download=`workerpool-questionnaire-${new Date().toISOString().slice(0,10)}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 /* ---------- Sign-ups report ---------- */
 const SU_OUT={success:["Signed up","#0f7a4a","#dcf5e8"],failed:["Turned down","#b42318","#fde4e1"],blocked:["Stopped by form","#8a5a00","#fbf0d9"],opened:["Didn't finish","#5a696b","#e9efed"]};

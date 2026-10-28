@@ -16,6 +16,16 @@ export async function onRequestGet({ request, env, params }) {
     const r = await env.DB.prepare(`SELECT * FROM visits WHERE t >= ?1 ORDER BY t DESC LIMIT 20000`).bind(since).all();
     return json({ ok: true, rows: r.results });
   }
+  if (route === "questionnaire") {
+    // Everyone who started the questionnaire (has an account), how far they got, and their answers so far.
+    for (const c of ["progress_at TEXT", "max_step TEXT"]) { try { await env.DB.prepare(`ALTER TABLE users ADD COLUMN ${c}`).run(); } catch {} }
+    await ensureSignupLog(env);
+    const r = await env.DB.prepare(`SELECT u.id, u.name, u.email, u.phone, u.created, u.step, u.max_step, u.progress_at, u.profile, u.resume_name, u.resume_key,
+        (SELECT MAX(s.created) FROM submissions s WHERE s.email = u.email) AS submitted,
+        (SELECT l.city || '|' || COALESCE(l.region,'') || '|' || COALESCE(l.country,'') || '|' || COALESCE(l.dev,'') || '|' || COALESCE(l.tz,'') FROM signup_log l WHERE l.user_id = u.id ORDER BY l.t DESC LIMIT 1) AS geo
+      FROM users u WHERE COALESCE(u.progress_at, u.created) >= ?1 ORDER BY COALESCE(u.progress_at, u.created) DESC LIMIT 5000`).bind(since).all();
+    return json({ ok: true, rows: r.results });
+  }
   if (route === "signups") {
     await ensureSignupLog(env);
     const log = await env.DB.prepare(`SELECT * FROM signup_log WHERE t >= ?1 ORDER BY t DESC LIMIT 20000`).bind(since).all();
