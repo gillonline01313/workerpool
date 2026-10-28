@@ -344,7 +344,7 @@ const loc=v=>[v.city,v.region,v.country].filter(Boolean).join(", ")||(v.tz?"Unkn
 const pg=v=>v.page==="home"?"Home":v.page==="questionnaire"?"Questionnaire":v.page||"–";
 const nClk=(v,label)=>label?(v.clk.find(c=>c.l===label)||{n:0}).n:v.clk.reduce((s,c)=>s+c.n,0);
 let drState=null;
-function allVisits(){ return (data.visits||[]).map(v=>v.ts?v:({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk)})); }
+function allVisits(){ return (data.visits||[]).map(v=>v.ts?v:({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk),ev:J(v.ev)})); }
 function openDrill(id){ const d=DR.get(id); if(!d) return; drState={...d,q:"",shown:100,open:d.open?0:-1}; drawDrill(); }
 function openVisitor(vid){ const vs=allVisits().filter(v=>v.vid===vid).sort((a,b)=>b.ts-a.ts); drState={title:"One visitor's visits ("+vid.slice(0,6)+")",visits:vs,q:"",shown:100,open:-1,back:drState}; drawDrill(); }
 function closeDrill(){ drState=null; const o=document.getElementById("drOv"); if(o) o.remove(); const p=document.getElementById("drPn"); if(p) p.remove(); document.body.style.overflow=""; }
@@ -382,6 +382,7 @@ function drawDrill(){
           <div><small>Device and browser</small>${esc(v.dev||"–")} · language ${esc(v.lang||"–")}<br>Arrived via ${esc(v.src||"Direct")}</div>
           <div><small>Time on page</small>${v.dur?fmtDur(v.dur)+" active":"Not recorded (left within a few seconds)"}</div>
           <div><small>Sections reached (${v.sec.length})</small>${v.sec.length?`<ul>${v.sec.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:"None"}</div>
+          ${(v.ev||[]).length?`<div><small>Saved &amp; shared</small><ul>${v.ev.map(e=>`<li>${esc(e.l)}${e.n>1?` ×${e.n}`:""}${e.by?` (shared by <button class="dr-vid" type="button" data-vid="${esc(e.by)}">${esc(e.by.slice(0,6))}</button>)`:""}</li>`).join("")}</ul></div>`:""}
           <div><small>Clicks (${nClk(v)})</small>${v.clk.length?`<ul>${v.clk.map(c=>`<li>${esc(c.l)}${c.n>1?` ×${c.n}`:""}</li>`).join("")}</ul>`:"None"}</div>
           <div><small>Visitor</small>${esc(v.vid)}<br><button class="dr-vid" type="button" data-vid="${esc(v.vid)}">See all ${per.get(v.vid)||1} visit${(per.get(v.vid)||1)>1?"s":""} by this visitor</button></div>
         </div></td></tr>`:""}`).join("")||`<tr><td colspan="9" style="color:var(--muted)">Nothing matches.</td></tr>`}</tbody></table>
@@ -404,6 +405,7 @@ function drawDrill(){
   if(!pn.contains(document.activeElement)) pn.querySelector("#drX").focus();
 }
 document.addEventListener("click",e=>{ const t=e.target.closest("[data-drill]"); if(t&&!t.closest("#drPn")) openDrill(t.dataset.drill); });
+document.addEventListener("click",e=>{ const b=e.target.closest("#wpaBody .dr-vid[data-vid]"); if(b){ drState=null; openVisitor(b.dataset.vid); } });
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape"&&drState){ closeDrill(); return; }
   const t=e.target.closest&&e.target.closest("[data-drill]"); if(t&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); openDrill(t.dataset.drill); }
@@ -424,7 +426,7 @@ function render(){
   if(tab==="analytics"&&anView==="signups") return renderSignups(body);
   const now=new Date(), startDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const from=range===0?0:range===1?startDay.getTime():startDay.getTime()-(range-1)*864e5;
-  const V=(data.visits||[]).map(v=>({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk)})).filter(v=>v.ts>=from&&(pageF==="all"||v.page===pageF)).sort((a,b)=>b.ts-a.ts);
+  const V=(data.visits||[]).map(v=>({...v,ts:Date.parse(v.t),sec:J(v.sec),clk:J(v.clk),ev:J(v.ev)})).filter(v=>v.ts>=from&&(pageF==="all"||v.page===pageF)).sort((a,b)=>b.ts-a.ts);
   if(!V.length){ body.innerHTML=`<div class="wpa-empty">No visits in this period yet.</div>`; return; }
   const uids=new Set(V.map(v=>v.vid)), perUser=count(V.map(v=>v.vid));
   const wd=V.filter(v=>v.dur>0), avg=wd.length?Math.round(wd.reduce((s,v)=>s+v.dur,0)/wd.length):0;
@@ -453,6 +455,7 @@ function render(){
     <div class="wpa-kpi"${drAttr(kRet)}><small>Returning</small><b>${Math.round(ret/uids.size*100)}%</b><span>visited more than once</span></div>
   </div>
   <div class="wpa-grid">
+    <div class="wpa-card wide"><h3>Saved &amp; shared</h3><p class="sub">Every signal a browser lets a website see. Click a bar for the visits behind it.</p>${savedShared(V)}</div>
     <div class="wpa-card wide"><h3>${range===1?"Visits by hour today":"Visits per day"}</h3>${timeChart}</div>
     <div class="wpa-card"><h3>Pages</h3>${bars(drill(grp(V,pageName),"Page"))}</div>
     <div class="wpa-card"><h3>Sections and steps reached</h3><p class="sub">Share of visits that reached each part</p>${bars(drill(grp(V,v=>v.sec).slice(0,16),"Reached section"),V.length)}</div>
@@ -534,6 +537,22 @@ function suCsv(){
   const lines=[["Time (Edmonton)","Time (UTC)","Result","Where","Name","Username","Email","Phone","Reason","City","Region","Country","Their time zone","Device","OS","Browser","Language","Came from","Visitor"].map(cell).join(",")]
     .concat(R.map(r=>[suWhen(r.ts),new Date(r.ts).toISOString(),(SU_OUT[r.outcome]||[r.outcome])[0],r.source,r.name,r.username,r.email,r.phone,r.reason,r.city,r.region,r.country,r.tz,r.dev,r.os,r.browser,r.lang,r.untracked?"":suRef(r),r.vid].map(cell).join(",")));
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/csv"})); a.download=`workerpool-signups-${new Date().toISOString().slice(0,10)}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+/* ---------- Saved & shared ----------
+   Browsers don't report bookmarks or address-bar copies to websites. These are what the page can see:
+   events recorded by assets/wpa.js, plus "came back directly", worked out from visit history. */
+const SS_ORDER=["Opened a shared link","Shared with the phone's share menu","Shared: WhatsApp","Shared: Facebook","Shared: Email","Shared: Copy link","Copied a link from the page","Copied text from the page","Installed to home screen","Opened from the home-screen icon","Opened in the Android app","Browser offered to install","Bookmark shortcut (Ctrl/Cmd+D)","Save page shortcut (Ctrl/Cmd+S)","Printed or saved as PDF"];
+function savedShared(V){
+  const first=new Map(); allVisits().forEach(v=>{ const f=first.get(v.vid); if(f==null||v.ts<f) first.set(v.vid,v.ts); });
+  const back=V.filter(v=>(v.src||"Direct")==="Direct"&&first.get(v.vid)<v.ts-30*60000); // a later visit, typed/bookmarked/from history
+  const g=grp(V,v=>(v.ev||[]).map(e=>e.l)).sort((a,b)=>{ const i=SS_ORDER.indexOf(a[0]),j=SS_ORDER.indexOf(b[0]); return (i<0?99:i)-(j<0?99:j); });
+  const rows=drill(g,"Saved & shared");
+  if(back.length) rows.push(["Came back directly (bookmark, typed address or history)",back.length,reg("Came back directly: returning visits with no referrer",back)]);
+  const opens=V.filter(v=>(v.ev||[]).some(e=>e.l==="Opened a shared link"));
+  const sharers=count(opens.map(v=>((v.ev||[]).find(e=>e.l==="Opened a shared link")||{}).by).filter(Boolean));
+  const note=`<p class="wpa-note" style="margin-top:10px">Browsers never tell a website when someone bookmarks it, adds it to favourites or copies the address from the address bar. What you see here: the bookmark and save keyboard shortcuts (a strong hint, not proof), copying from the page, prints, the Share button on the home page, installs to the home screen and opens from that icon or the Android app, people opening a link someone shared with the Share button, and returning visitors who came back directly. A link copied from the address bar and pasted into WhatsApp shows up as a "Direct" visit, or as "whatsapp" when the app passes that on.</p>`;
+  if(!rows.length) return `<p class="wpa-note">No saves or shares in this period yet.</p>`+note;
+  return bars(rows)+(sharers.length?`<p class="sub" style="margin-top:12px">Shared links opened ${opens.length} time${opens.length===1?"":"s"}, from ${sharers.length} sharer${sharers.length===1?"":"s"}: ${sharers.slice(0,6).map(([vid,n])=>`<button class="dr-vid" type="button" data-vid="${esc(vid)}">${esc(vid.slice(0,6))}</button> ×${n}`).join(" · ")}</p>`:"")+note;
 }
 function renderInterest(body){
   const R=data.interest||[];
