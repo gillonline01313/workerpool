@@ -7,7 +7,8 @@
    Reading documents needs a paid Scanner Pass ($9.99, functions/_scanpass.js). The pass key is the
    only thing kept in this browser (localStorage), so the buyer doesn't pay twice.
 
-   Scoring matches tools/src/template.html (Pathway Check) and the Express Entry 2026 page. */
+   Scoring matches tools/src/template.html (Pathway Check) and the Express Entry 2026 page.
+   BC PNP (SIRS) and Alberta AAIP (EOI) assessments come from pnp.js, using live BC and AB draws. */
 (function () {
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -377,6 +378,10 @@ const bar = (d, t) => { $("pbar").style.width = Math.round(d / t * 100) + "%"; }
 const todayISO = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const ym = (iso) => iso && iso !== "present" ? iso.slice(0, 7) : iso === "present" ? "present" : "";
 const isCanada = (s) => /canada|\b(ab|bc|on|mb|sk|qc|ns|nb|pe|nl|yt|nt|nu)\b|alberta|ontario|british columbia|manitoba|saskatchewan|quebec|québec|nova scotia|new brunswick|newfoundland|prince edward/i.test(String(s || ""));
+const provOf = (...a) => { const s = a.filter(Boolean).join(" ");
+  if (/british columbia|\bB\.?C\.?\b|vancouver|surrey|burnaby|richmond|coquitlam|abbotsford|chilliwack|kelowna|kamloops|nanaimo|victoria,? b|langley|delta,? b|vernon|penticton|prince george|squamish|whistler|fort st\.? john/i.test(s)) return "bc";
+  if (/alberta|\bAB\b|calgary|edmonton|red deer|lethbridge|grande prairie|medicine hat|fort mcmurray|airdrie|st\.? albert|sherwood park|leduc|canmore|brooks|claresholm/i.test(s)) return "ab";
+  return ""; };
 const LEVEL = { secondary: "hs", one_year: "one", two_year: "two", bachelors: "bach", two_or_more: "twoplus", masters: "master", phd: "phd" };
 const TESTMAP = { ielts_general: "ielts", ielts_academic: "ielts_ac", celpip_general: "celpip", pte_core: "pte", pte_academic: "pte_ac", tef_canada: "tef", tcf_canada: "tcf" };
 function ecaLevel(s) {
@@ -400,7 +405,9 @@ function blank() {
     frTest: "none", fr: { L: "", R: "", W: "", S: "" }, frDate: "",
     edu: "bach", eduWhere: "foreign", eca: "yes", cdnEdu: "none", creds: [],
     jobs: [], offer: "no", offerNoc: "", pnp: "no", sibling: "no", cert: "no",
-    spEdu: "bach", spClb: "", spCdn: "0", family: "", funds: "", rules: "new" };
+    spEdu: "bach", spClb: "", spCdn: "0", family: "", funds: "", rules: "new",
+    eduProv: "", offerProv: "", offerWage: "", offerCurrent: "no", bcArea: "1", bcRegional: "no", bcHA: "no",
+    abLoc: "cma", abEndorse: "none", abFamily: "no", provCert: "none" };
 }
 
 function build() {
@@ -441,6 +448,8 @@ function build() {
     const cdn = p.creds.filter((r) => isCanada(r.education.country) || isCanada(r.education.institution));
     const foreign = p.creds.length > cdn.length;
     m.eduWhere = foreign ? "foreign" : "canada"; SRC.eduWhere = SRC.edu;
+    const cp = cdn.map((r) => r.education.province || provOf(r.education.institution, r.education.country)).find(Boolean);
+    if (cp) { m.eduProv = cp; SRC.eduProv = SRC.edu; }
     m.eca = p.eca ? "yes" : foreign ? "no" : "yes"; SRC.eca = p.eca ? p.eca.name : "assumed";
     const cdnPost = cdn.filter((r) => !["secondary", "other"].includes(r.education.level));
     if (cdnPost.length) { const yrs = Math.max(...cdnPost.map((r) => r.education.length_years || (r.education.level === "bachelors" ? 4 : r.education.level === "two_year" ? 2 : 1))); m.cdnEdu = yrs >= 3 ? "long" : "short"; SRC.cdnEdu = cdnPost[0].name; }
@@ -453,18 +462,24 @@ function build() {
     const list = who === "sp" ? (m._spJobs = m._spJobs || []) : m.jobs;
     let j = key && list.find((x) => normEmp(x.employer) === key);
     const s = ym(w.start_date), e = ym(w.end_date);
-    if (!j) { j = { employer: w.employer || "", country: isCanada(w.country) || isCanada(w.employer) ? "canada" : w.country ? "foreign" : "canada", noc: w.noc_code || "", title: w.job_title || w.noc_title || "", start: s, end: e, hours: w.hours_per_week || "", src: r.name, letter: r.doc_type === "work_letter" }; list.push(j); }
-    else { if (s && (!j.start || s < j.start)) j.start = s; if (e === "present" || (e && j.end !== "present" && (!j.end || e > j.end))) j.end = e; if (w.hours_per_week && !j.hours) j.hours = w.hours_per_week; if (!j.noc && w.noc_code) j.noc = w.noc_code; j.src += ", " + r.name; if (r.doc_type === "work_letter") j.letter = true; }
+    const pv = w.province || provOf(w.country, w.employer);
+    if (!j) { j = { employer: w.employer || "", country: pv || isCanada(w.country) || isCanada(w.employer) ? "canada" : w.country ? "foreign" : "canada", prov: pv, noc: w.noc_code || "", title: w.job_title || w.noc_title || "", start: s, end: e, hours: w.hours_per_week || "", wage: w.hourly_wage || "", src: r.name, letter: r.doc_type === "work_letter" }; list.push(j); }
+    else { if (s && (!j.start || s < j.start)) j.start = s; if (e === "present" || (e && j.end !== "present" && (!j.end || e > j.end))) j.end = e; if (w.hours_per_week && !j.hours) j.hours = w.hours_per_week; if (!j.noc && w.noc_code) j.noc = w.noc_code; if (!j.prov && pv) j.prov = pv; if (!j.wage && w.hourly_wage) j.wage = w.hourly_wage; j.src += ", " + r.name; if (r.doc_type === "work_letter") j.letter = true; }
     if (r.doc_type === "work_letter") { const miss = [!w.hours_per_week && "hours a week", !w.pay && "pay", !w.duties_summary && "duties", !w.start_date && "start date"].filter(Boolean); if (miss.length) issues.push([r.name, `IRCC reference letters must show ${miss.join(", ")}. We couldn't find ${miss.length > 1 ? "these" : "this"} in the letter.`]); }
   };
   works.forEach((r) => {
-    if (r.work.is_job_offer || r.doc_type === "job_offer") { if (mine(r)) { m.offer = "yes"; m.offerNoc = r.work.noc_code || ""; SRC.offer = r.name; } return; }
+    if (r.work.is_job_offer || r.doc_type === "job_offer") { if (mine(r)) { m.offer = "yes"; m.offerNoc = r.work.noc_code || ""; SRC.offer = r.name;
+      const pv = r.work.province || provOf(r.work.country, r.work.employer); if (pv) { m.offerProv = pv; SRC.offerProv = r.name; }
+      if (r.work.hourly_wage) { m.offerWage = String(r.work.hourly_wage); SRC.offerWage = r.name; } m._offerEmp = normEmp(r.work.employer); } return; }
     addJob(r, theirs(r) ? "sp" : "me");
   });
   m.jobs.forEach((j) => {
     if (!j.start) issues.push([j.src, `We couldn't find when the job at ${j.employer || "this employer"} started. Add the dates below so it counts.`]);
     else if (!j.end) { j.end = "present"; issues.push([j.src, `No end date for ${j.employer || "this job"}, so we've assumed you still work there. Change it below if not.`]); }
   });
+  // already working for the employer that made the offer?
+  if (m._offerEmp && m.jobs.some((j) => normEmp(j.employer) === m._offerEmp && j.end === "present")) { m.offerCurrent = "yes"; SRC.offerCurrent = SRC.offer; }
+  delete m._offerEmp;
   if (m._spJobs) { const y = years(m._spJobs).cdn; m.spCdn = String(Math.min(5, Math.floor(y))); SRC.spCdn = m._spJobs[0].src; delete m._spJobs; }
   // other documents
   by((r) => r.other && r.other.provincial_nomination || r.doc_type === "nomination").forEach((r) => { m.pnp = "yes"; SRC.pnp = r.name; });
@@ -482,6 +497,9 @@ function build() {
     setIf("spCdn", f.spouse_canadian_work_years != null ? String(Math.min(5, Math.floor(f.spouse_canadian_work_years))) : null);
     if (f.job_offer) { m.offer = "yes"; SRC.offer = SRC.offer || N; if (f.job_offer_noc && !m.offerNoc) m.offerNoc = f.job_offer_noc; }
     if (f.provincial_nomination) { m.pnp = "yes"; SRC.pnp = SRC.pnp || N; }
+    if (f.job_offer_province && !SRC.offerProv) { const pv = provOf(f.job_offer_province) || (/^(bc|ab)$/i.test(f.job_offer_province) ? f.job_offer_province.toLowerCase() : "other"); m.offerProv = pv; SRC.offerProv = N; }
+    if (f.job_offer_wage_hourly && !SRC.offerWage) { m.offerWage = String(f.job_offer_wage_hourly); SRC.offerWage = N; }
+    if (f.family_in_alberta != null) { m.abFamily = f.family_in_alberta ? "yes" : "no"; SRC.abFamily = N; }
     if (f.sibling_in_canada != null) { m.sibling = f.sibling_in_canada ? "yes" : "no"; SRC.sibling = N; }
     if (f.canadian_study && !SRC.cdnEdu) { m.cdnEdu = { none: "none", one_or_two_years: "short", three_plus_years: "long" }[f.canadian_study]; SRC.cdnEdu = N; }
     if (f.trade_certificate) { m.cert = "yes"; SRC.cert = SRC.cert || N; }
@@ -489,7 +507,7 @@ function build() {
     if (f.family_size) { m.family = String(f.family_size); SRC.family = N; }
     if (f.funds_cad) { m.funds = String(f.funds_cad); SRC.funds = N; }
     const yAgo = (y) => { const d = new Date(); d.setMonth(d.getMonth() - Math.round(y * 12)); return d.toISOString().slice(0, 7); };
-    if (!m.jobs.some((j) => j.country === "canada") && f.canadian_work_years) m.jobs.push({ employer: "From your notes", country: "canada", noc: f.noc_code || "", title: f.occupation || "", start: yAgo(f.canadian_work_years), end: "present", hours: "", src: N });
+    if (!m.jobs.some((j) => j.country === "canada") && f.canadian_work_years) m.jobs.push({ employer: "From your notes", country: "canada", prov: provOf(f.current_province), noc: f.noc_code || "", title: f.occupation || "", start: yAgo(f.canadian_work_years), end: "present", hours: "", src: N });
     if (!m.jobs.some((j) => j.country === "foreign") && f.foreign_work_years) {
       const cs = m.jobs.filter((j) => j.country === "canada" && j.start).map((j) => j.start).sort()[0]; // foreign work ends where Canadian work starts
       const end = cs || yAgo(f.canadian_work_years || 0), e = new Date(end + "-15"); e.setMonth(e.getMonth() - Math.round(f.foreign_work_years * 12));
@@ -594,7 +612,7 @@ function renderReview() {
   <div class="grp"><h3>${svgI("education", 18)} Education</h3>
     <div class="fg">
       ${fld("edu", "Highest education", sel("edu", EDUOPTS))}
-      ${fld("eduWhere", "Where you studied", sel("eduWhere", [["foreign", "Outside Canada"], ["canada", "In Canada"]]))}
+      ${fld("eduWhere", "Where you studied", `<select data-k="eduLoc">${[["foreign", "Outside Canada"], ["bc", "In Canada: British Columbia"], ["ab", "In Canada: Alberta"], ["canada", "In Canada: another province"]].map(([v, l]) => opt(v, l, M.eduWhere === "foreign" ? "foreign" : (M.eduProv === "bc" || M.eduProv === "ab") ? M.eduProv : "canada")).join("")}</select>`)}
       ${M.eduWhere === "foreign" ? fld("eca", "Educational Credential Assessment (ECA)", sel("eca", [["yes", "I have one or will get one"], ["no", "No ECA"]])) : ""}
       ${fld("cdnEdu", "Study in Canada", sel("cdnEdu", [["none", "None"], ["short", "1 or 2-year credential"], ["long", "3+ year credential"]]))}
       ${fld("cert", "Canadian trade certificate", sel("cert", [["no", "No"], ["yes", "Yes"]]))}
@@ -605,6 +623,8 @@ function renderReview() {
     <div class="fg">
       ${fld("offer", "Job offer in Canada", sel("offer", [["no", "No"], ["yes", "Yes"]]))}
       ${M.offer === "yes" ? fld("offerNoc", "Job offer NOC (5 digits)", inp("offerNoc", "text", 'inputmode="numeric" maxlength="5" placeholder="e.g. 21232"') ) : ""}
+      ${M.offer === "yes" ? fld("offerProv", "Province of the job offer", sel("offerProv", [["", "Choose"], ["bc", "British Columbia"], ["ab", "Alberta"], ["other", "Another province"]])) : ""}
+      ${M.offer === "yes" ? fld("offerWage", "Hourly wage (CAD)", inp("offerWage", "number", 'min="0" step="0.01" placeholder="e.g. 32.50"')) : ""}
       ${fld("pnp", "Provincial nomination", sel("pnp", [["no", "No"], ["yes", "Yes"]]))}
     </div>
     ${M.offer === "yes" ? `<p class="hint">${nocLine(M.offerNoc, true)}</p>` : ""}
@@ -613,6 +633,19 @@ function renderReview() {
     <div class="jobs" id="jobs">${M.jobs.map(jobRow).join("") || '<p class="hint">No work found yet. Add each job below.</p>'}</div>
     <div><button class="btn ghost sm" type="button" id="addJob">+ Add a job</button></div>
     <p class="clbline" id="ysum"></p>
+  </div>
+  <div class="grp wide"><h3>${svgI("other", 18)} BC and Alberta programs <span class="hint" style="font-weight:400;margin-left:auto">For your BC PNP and AAIP scores</span></h3>
+    <div class="fg">
+      ${M.offer === "yes" && (M.offerProv === "bc" || M.offerProv === "ab") ? fld("offerCurrent", "Working full-time for the job-offer employer now?", sel("offerCurrent", [["no", "No"], ["yes", "Yes"]])) : ""}
+      ${M.offer === "yes" && M.offerProv === "bc" ? fld("bcArea", "Where in BC is the job?", sel("bcArea", [["1", "Metro Vancouver"], ["2", "Squamish, Abbotsford, Agassiz, Mission or Chilliwack"], ["3", "Anywhere else in BC"]])) : ""}
+      ${M.offer === "yes" && M.offerProv === "bc" && M.bcArea !== "1" ? fld("bcRegional", "1+ year of work or study in that region (outside Metro Vancouver)?", sel("bcRegional", [["no", "No"], ["yes", "Yes"]])) : ""}
+      ${M.offer === "yes" && M.offerProv === "bc" ? fld("bcHA", "Employer is a BC public health authority?", sel("bcHA", [["no", "No"], ["yes", "Yes"]])) : ""}
+      ${M.offer === "yes" && M.offerProv === "ab" ? fld("abLoc", "Where in Alberta is the job?", sel("abLoc", [["cma", "Calgary or Edmonton area"], ["outside", "Elsewhere in Alberta"]])) : ""}
+      ${M.offer === "yes" && M.offerProv === "ab" ? fld("abEndorse", "Endorsement or designated employer", sel("abEndorse", [["none", "None"], ["rrs", "Rural Renewal community endorsement"], ["tourism", "Approved tourism and hospitality employer"], ["law", "Alberta police service"]])) : ""}
+      ${fld("abFamily", "Parent, child or sibling in Alberta (citizen or PR)?", sel("abFamily", [["no", "No"], ["yes", "Yes"]]))}
+      ${fld("provCert", "Licence, certification or professional designation", sel("provCert", [["none", "None"], ["bc", "From a BC regulator (e.g. BCCNM, SkilledTradesBC)"], ["ab", "From an Alberta regulator (e.g. journeyperson, nursing licence)"], ["both", "From both"]]))}
+    </div>
+    ${M.offer !== "yes" ? '<p class="hint">Add a BC or Alberta job offer in the section above to see your full SIRS score and the Alberta Opportunity Stream. You can try a hypothetical offer too.</p>' : ""}
   </div>
   ${married && M.spouseAcc === "yes" && M.spousePR !== "yes" ? `<div class="grp wide"><h3>${svgI("spouse", 18)} Your partner</h3><div class="fg">
       ${fld("spEdu", "Partner's education", sel("spEdu", EDUOPTS))}
@@ -633,7 +666,7 @@ function nocLine(c, offer) {
 function jobRow(j, i) {
   return `<div class="job" data-j="${i}">
     <label class="f c3 wide"><span>Employer${j.src ? `<span class="src" title="${esc(j.src)}">from ${esc(j.src)}</span>` : ""}</span><input data-jk="employer" value="${esc(j.employer)}" placeholder="Employer name"></label>
-    <label class="f c1"><span>Where</span><select data-jk="country">${opt("canada", "Canada", j.country)}${opt("foreign", "Outside Canada", j.country)}</select></label>
+    <label class="f c1"><span>Where</span><select data-jk="where">${[["bc", "Canada: BC"], ["ab", "Canada: Alberta"], ["canada", "Canada: other"], ["foreign", "Outside Canada"]].map(([v, l]) => opt(v, l, j.country === "foreign" ? "foreign" : j.prov === "bc" || j.prov === "ab" ? j.prov : "canada")).join("")}</select></label>
     <label class="f c1"><span>NOC</span><input data-jk="noc" value="${esc(j.noc)}" inputmode="numeric" maxlength="5" placeholder="5 digits"></label>
     <label class="f c1"><span>Hours/week</span><input data-jk="hours" type="number" min="1" max="80" value="${esc(j.hours)}" placeholder="40"></label>
     <label class="f c2"><span>Started</span><input data-jk="start" type="month" value="${esc(j.start)}" placeholder="YYYY-MM"></label>
@@ -645,6 +678,7 @@ function jobRow(j, i) {
 }
 function bindReview() {
   $("rv").querySelectorAll("[data-k]").forEach((el) => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+    if (el.dataset.k === "eduLoc") { M.eduWhere = el.value === "foreign" ? "foreign" : "canada"; M.eduProv = el.value === "bc" || el.value === "ab" ? el.value : ""; delete SRC.eduWhere; renderReview(); return; }
     M[el.dataset.k] = el.value; if (SRC[el.dataset.k] === "assumed") delete SRC[el.dataset.k];
     if (el.tagName === "SELECT" || el.dataset.k === "dob") renderReview(); else liveScore();
   }));
@@ -654,6 +688,7 @@ function bindReview() {
     row.querySelectorAll("[data-jk]").forEach((el) => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
       const k = el.dataset.jk;
       if (k === "now") { j.end = el.value === "yes" ? "present" : ""; renderReview(); return; }
+      if (k === "where") { j.country = el.value === "foreign" ? "foreign" : "canada"; j.prov = el.value === "bc" || el.value === "ab" ? el.value : ""; renderReview(); return; }
       j[k] = el.value.trim();
       if (k === "noc") row.querySelector(".jm").innerHTML = (j.title ? esc(j.title) + " · " : "") + (nocLine(j.noc) || "");
       if (k === "country") renderReview(); else liveScore();
@@ -671,7 +706,64 @@ function liveScore() {
 
 /* ======================= RESULTS ======================= */
 let DRAWS = null;
-function loadDraws() { if (!DRAWS) DRAWS = fetch("/api/draws?days=200").then((r) => r.json()).then((j) => (j.draws || []).filter((d) => d.jur === "CA" && d.score != null)).catch(() => []); return DRAWS; }
+function loadDraws() { if (!DRAWS) DRAWS = fetch("/api/draws?days=240").then((r) => r.json()).then((j) => (j.draws || []).filter((d) => ["CA", "BC", "AB"].includes(d.jur))).catch(() => []); return DRAWS; }
+
+/* ======================= BC AND ALBERTA ======================= */
+// Full-time-equivalent years in one occupation (same NOC), last 10 years.
+function occYears(jobs, noc) {
+  const now = monthIdx("present"), from = now - 120, all = {}, cdn = {};
+  jobs.filter((j) => j.noc === noc).forEach((j) => {
+    const s = monthIdx(j.start), e = monthIdx(j.end || (j.start ? "present" : "")); if (s == null || e == null || e < s) return;
+    const fte = Math.min(1, (+j.hours || 30) / 30);
+    for (let m = Math.max(s, from); m <= Math.min(e, now); m++) { all[m] = Math.min(1, (all[m] || 0) + fte); if (j.country === "canada") cdn[m] = Math.min(1, (cdn[m] || 0) + fte); }
+  });
+  const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+  return { all: sum(all) / 12, cdn: sum(cdn) / 12 };
+}
+function mainNoc(jobs) { // occupation with the most months
+  const t = {}; jobs.forEach((j) => { if (!/^\d{5}$/.test(j.noc || "")) return; const s = monthIdx(j.start), e = monthIdx(j.end || "present"); if (s != null && e != null && e >= s) t[j.noc] = (t[j.noc] || 0) + e - s + 1; });
+  return Object.keys(t).sort((a, b) => t[b] - t[a])[0] || "";
+}
+function provinces(p, c, elig, draws) {
+  if (!window.WP_PNP) return null;
+  const y = p.y, offerNoc = /^\d{5}$/.test(M.offerNoc || "") ? M.offerNoc : "", noc = mainNoc(M.jobs);
+  const occ = occYears(M.jobs, offerNoc || noc);
+  const eeOk = elig.cec.ok || elig.fsw.ok || (elig.fst.show && elig.fst.ok);
+  const wRaw = parseFloat(M.offerWage) || 0, wage = wRaw > 1000 ? wRaw / 2080 : wRaw; // an annual salary typed by mistake
+  const loc = (pv) => M.eduWhere === "foreign" ? "foreign" : M.eduProv === pv ? "prov" : "canada";
+  const base = { en: p.en, fr: p.fr, edu: p.eduRaw, ecaOk: M.eca === "yes", age: p.age, crs: c.total, eeOk, noc, offerNoc,
+    drYears: Math.round(occ.all * 10) / 10, skilledYears: y.cdn + y.foreign, cdnYears: y.cdn };
+  const cert = M.provCert;
+  const bcX = { ...base, eduWhere: loc("bc"), offer: p.jobOffer && M.offerProv === "bc", wage, area: +M.bcArea || 1, regional: M.bcRegional === "yes",
+    current: M.offerProv === "bc" && M.offerCurrent === "yes", designation: cert === "bc" || cert === "both", ha: M.bcHA === "yes", drCdn: occ.cdn >= 1 };
+  const abNow = M.jobs.some((j) => j.country === "canada" && j.prov === "ab" && j.end === "present") || (M.offerProv === "ab" && M.offerCurrent === "yes");
+  const expWhere = M.jobs.some((j) => j.country === "canada" && j.prov === "ab") ? "ab" : M.jobs.some((j) => j.country === "canada") ? "canada" : "none";
+  const abX = { ...base, eduWhere: loc("ab"), cert: p.cert, offer: p.jobOffer && M.offerProv === "ab", loc: M.abLoc, endorse: M.offer === "yes" && M.offerProv === "ab" ? M.abEndorse : "none",
+    family: M.abFamily === "yes", certReg: cert === "ab" || cert === "both", current: abNow, expWhere };
+  return { bc: WP_PNP.bc(bcX, draws), ab: WP_PNP.ab(abX, draws) };
+}
+let PNPHINT = "";
+function pnpCard(r) {
+  if (!r) return "";
+  const ok = r.streams.some((s) => s.ok), comp = /^Competitive/.test(r.headline);
+  const cls = comp ? "good" : ok ? "warn" : "bad";
+  const pct = Math.round(Math.min(1, r.score / r.max) * 100);
+  const line = (s) => {
+    const cut = s.draw ? (s.draw.score != null ? `Latest cut-off <b>${s.draw.score}</b> on ${fmtDay(s.draw.date)}${s.gap != null ? ` · <span class="${s.gap >= 0 ? "gp" : "gm"}">${s.gap >= 0 ? "+" + s.gap + " above" : s.gap + " below"}</span>` : ""}` : `Latest round ${fmtDay(s.draw.date)}${s.draw.invites ? ` · ${esc(s.draw.invites)} invited` : ""}`) : "";
+    const sub = [s.why.length ? esc(s.why.join("; ")) : "", cut, s.note ? esc(s.note) : ""].filter(Boolean).join("<br>");
+    return `<div class="el"><span class="dot ${s.ok ? "ok" : "err"}">${s.ok ? "✓" : "–"}</span><div><b>${esc(s.name)}</b>${sub ? `<small>${sub}</small>` : ""}</div></div>`;
+  };
+  const mini = (arr, kind) => arr.map((x) => `<li><b>${esc(x.t)}</b>${kind === "l" ? (x.g != null ? `<span class="plus">+${x.g}</span>` : "<span></span>") : x.v != null ? `<span class="${kind === "w" ? "minus" : "plus"}">${x.v}</span>` : "<span></span>"}${x.d ? `<p>${esc(x.d)}</p>` : ""}</li>`).join("");
+  return `<div class="box pv">
+    <div class="pv-h"><div><span class="eyebrow">${esc(r.prov)}</span><h3>${esc(r.program)}</h3><span class="pill ${cls}">${esc(r.headline)}</span>${r.group ? ` <span class="pill">${esc(r.group)}</span>` : ""}</div>
+      <div class="pv-sc"><b>${r.score}</b><small>of ${r.max}</small><span class="meter"><i style="width:${pct}%"></i></span><em>${esc(r.scoreNote)}</em></div></div>
+    <h4>Streams</h4><div class="elig">${r.streams.map(line).join("")}</div>
+    ${r.strong.length ? `<h4><i class="ic s">✓</i>Strengths</h4><ul>${mini(r.strong, "s")}</ul>` : ""}
+    ${r.weak.length ? `<h4><i class="ic w">!</i>Weaknesses</h4><ul>${mini(r.weak, "w")}</ul>` : ""}
+    ${r.levers.length ? `<h4><i class="ic l">↗</i>Ways to raise your ${esc(r.label)} score</h4><ul>${mini(r.levers, "l")}</ul>` : ""}
+    <details class="more"><summary>${esc(r.label)} breakdown</summary><table class="bd">${r.rows.map(([n, v, mx, why]) => `<tr><td>${esc(n)}${why ? ` <small>· ${esc(why)}</small>` : ""}<span class="meter"><i style="width:${mx ? Math.round(v / mx * 100) : 0}%"></i></span></td><td>${v}<small>/${mx}</small></td></tr>`).join("")}<tr class="tot"><td>Total</td><td>${r.score}</td></tr></table></details>
+  </div>`;
+}
 const cleanStream = (t) => String(t).replace(/,?\s*\d{4}\s*-\s*Version\s*\d+/i, "").replace(/\s*\(Version \d+\)/i, "").replace(/ with Canadian Work Experience/i, "").replace(/ occupations?$/i, "").trim();
 const fmtDay = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-CA", { month: "short", day: "numeric" });
 
@@ -685,7 +777,7 @@ async function renderResults() {
   requestAnimationFrame(() => requestAnimationFrame(() => { const a = $("arc"); if (a) a.style.strokeDashoffset = C * (1 - Math.max(0.02, pct)); }));
   countUp($("big"), c.total);
   const draws = await loadDraws();
-  const latest = (re) => draws.filter((d) => re.test(d.stream)).sort((a, b) => b.date.localeCompare(a.date))[0];
+  const latest = (re) => draws.filter((d) => d.jur === "CA" && d.score != null && re.test(d.stream)).sort((a, b) => b.date.localeCompare(a.date))[0];
   const cec = latest(/canadian experience/i), gen = latest(/general|no program specified|all programs/i), pnpD = latest(/provincial nominee/i), frD = latest(/french/i);
   const cats = categories(p);
   const catD = cats.map((k) => latest(CAT_RE[k])).filter(Boolean);
@@ -711,6 +803,14 @@ async function renderResults() {
     ...c.extra.map(([n, v]) => [n, v, null, ""]),
   ];
   $("bd").innerHTML = rows.map(([n, v, mx, why]) => `<tr><td>${esc(n)}${why ? ` <small>· ${esc(why)}</small>` : ""}${mx ? `<span class="meter"><i style="width:${Math.round(v / mx * 100)}%"></i></span>` : ""}</td><td>${v}${mx ? `<small>/${mx}</small>` : ""}</td></tr>`).join("") + `<tr class="tot"><td>Total</td><td>${c.total}</td></tr>`;
+  // BC and Alberta
+  const pv = provinces(p, c, elig, draws);
+  if (pv) {
+    const best = [pv.bc, pv.ab].map((r) => ({ r, s: r.streams.filter((x) => x.ok).sort((a, b) => (b.gap ?? -999) - (a.gap ?? -999))[0] })).filter((x) => x.s);
+    const top = best.sort((a, b) => (b.s.gap ?? -999) - (a.s.gap ?? -999))[0];
+    PNPHINT = top ? ` Your closest route here: <b>${esc(top.s.name)}</b> (${esc(top.r.prov)})${top.s.gap != null ? `, ${top.s.gap >= 0 ? top.s.gap + " points above" : -top.s.gap + " points below"} its latest cut-off` : ""}.` : "";
+    $("pnp").innerHTML = `<div class="pnp-h"><span class="eyebrow">Provincial Nominee Programs</span><h2>British Columbia and Alberta</h2><p>Your profile scored on each province's own grid, checked against each stream's basic rules and compared with the latest provincial draws${draws.some((d) => d.jur === "BC" || d.jur === "AB") ? "" : " (draw data didn't load; try again later)"}.</p></div><div class="cols">${pnpCard(pv.bc)}${pnpCard(pv.ab)}</div>`;
+  } else { PNPHINT = ""; $("pnp").innerHTML = ""; }
   // strengths, weaknesses, levers
   const { strong, weak } = assess(p, c, y);
   $("strong").innerHTML = strong.map(li).join("") || '<li><span>Add more documents to see your strengths.</span></li>';
@@ -835,7 +935,7 @@ function levers(p, c) {
   if (M.rules === "new" && !(c.offerPts) && !c.hwBonus) { const g = gain({ ...p, jobOffer: true, offerTier: 15 }); if (g > 0) out.push({ t: "A job offer in a high-wage occupation", g, d: "A 1.5× tier job offer is worth 70 points (2× tier: 100). No LMIA needed from November 3, 2026. <a href=\"/express-entry-2026/#noc-check\">Check which NOCs qualify</a>." }); }
   if (p.withSpouse && p.spClb < 9) { const g = gain({ ...p, spClb: 9 }); if (g > 0) out.push({ t: "Your partner reaches CLB 9", g, d: "Your partner's language test adds up to 20 points." }); }
   if (p.withSpouse) { const g = gain({ ...p, withSpouse: false }); if (g > 0) out.push({ t: "If your partner were not coming with you", g, d: "Only relevant if that's genuinely your plan. A partner who isn't coming still has to be declared and examined." }); }
-  if (!p.pnp) out.push({ t: "A provincial nomination", g: 600, d: "The biggest single boost. Many provinces select straight from the Express Entry pool. <a href=\"/tools/bc/\">BC</a>, <a href=\"/tools/ab/\">Alberta</a> and <a href=\"/tools/mb/\">Manitoba</a> pathway checks." });
+  if (!p.pnp) out.push({ t: "A provincial nomination", g: 600, d: "The biggest single boost. Many provinces select straight from the Express Entry pool. <a href=\"/tools/bc/\">BC</a>, <a href=\"/tools/ab/\">Alberta</a> and <a href=\"/tools/mb/\">Manitoba</a> pathway checks." + PNPHINT });
   return out.sort((a, b) => b.g - a.g).slice(0, 7);
 }
 function renderReceipt() {
@@ -866,9 +966,9 @@ function demo() {
     { kind: "language", name: "Sample IELTS result", doc_type: "language_test", person: "applicant", language: { test: "ielts_general", listening: 8, reading: 6.5, writing: 6.5, speaking: 7, test_date: (new Date().getFullYear() - 1) + "-06-10" } },
     { kind: "education", name: "Sample WES report", doc_type: "eca_report", person: "applicant", education: { credential: "Bachelor of Technology", level: "bachelors", country: "India", is_eca: true, eca_equivalent: "Bachelor's degree (four years)" } },
     { kind: "work", name: "Sample reference letter", doc_type: "work_letter", person: "applicant", work: { employer: "Infosys Ltd", country: "India", job_title: "Software Developer", start_date: (new Date().getFullYear() - 6) + "-07-01", end_date: (new Date().getFullYear() - 2) + "-05-01", hours_per_week: 45, pay: "INR 9,00,000 a year", noc_code: "21232", duties_summary: "Built and maintained web applications." } },
-    { kind: "work", name: "Sample pay stubs", doc_type: "paystub", person: "applicant", work: { employer: "Maple Systems Inc.", country: "Canada", job_title: "Software Developer", start_date: (new Date().getFullYear() - 2) + "-08-01", end_date: "present", hours_per_week: 40, noc_code: "21232" } },
+    { kind: "work", name: "Sample pay stubs", doc_type: "paystub", person: "applicant", work: { employer: "Maple Systems Inc.", country: "Canada", province: "bc", job_title: "Software Developer", start_date: (new Date().getFullYear() - 2) + "-08-01", end_date: "present", hours_per_week: 40, noc_code: "21232" } },
   ];
-  NOTES = { facts: { marital_status: "married", spouse_accompanying: true, spouse_education: "bachelors", spouse_language_clb: 6 } };
+  NOTES = { facts: { marital_status: "married", spouse_accompanying: true, spouse_education: "bachelors", spouse_language_clb: 6, job_offer: true, job_offer_noc: "21232", job_offer_province: "bc", job_offer_wage_hourly: 46 } };
   RECEIPT = []; DEMO = true;
   track("demo");
   toReview();
@@ -906,5 +1006,5 @@ Promise.all([fetch("/api/tools/scan").then((r) => r.json()).catch(() => ({})), c
   if (/paid=|pass=/.test(document.referrer) || PASSINFO) renderPass();
 });
 $("p1").hidden = true; // paywall or uploads appear once the pass is checked
-window.__scanner = { inApp: IN_APP, crs, toClb, years, toP, build, set: (r, n) => { RESULTS = r; NOTES = n || null; }, get: () => M }; // for tests
+window.__scanner = { inApp: IN_APP, crs, toClb, years, toP, build, provinces, eligibility, set: (r, n) => { RESULTS = r; NOTES = n || null; }, get: () => M }; // for tests
 })();

@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Free Express Entry Profile Scanner: CRS Score From Your Documents | WorkerPool</title>
-<meta name="description" content="Upload your passport, language test, work letters and education documents. Get your Express Entry CRS score, strengths, weaknesses and a points plan in minutes. $9.99 one-time. Documents are never saved.">
+<meta name="description" content="Upload your passport, language test, work letters and education documents. Get your Express Entry CRS score, your BC PNP and Alberta AAIP scores, strengths, weaknesses and a points plan in minutes. $9.99 one-time. Documents are never saved.">
 <meta name="theme-color" content="#3f7a72">
 <link rel="canonical" href="https://workerpool.ca/tools/profile-scanner/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="WorkerPool">
 <meta property="og:locale" content="en_CA">
 <meta property="og:title" content="Profile Scanner: your Express Entry score from your documents">
-<meta property="og:description" content="Upload your documents, get your CRS score and what to improve. Free. Nothing is saved.">
+<meta property="og:description" content="Upload your documents, get your CRS, BC PNP and Alberta AAIP scores and what to improve. Free. Nothing is saved.">
 <meta property="og:url" content="https://workerpool.ca/tools/profile-scanner/">
 <meta property="og:image" content="https://workerpool.ca/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -223,6 +223,28 @@ textarea{min-height:104px;resize:vertical;line-height:1.5}
 .el{display:flex;gap:10px;align-items:flex-start;font-size:.92rem}
 .el .dot{margin-top:2px;flex:none}
 .el small{display:block;color:var(--muted);font-size:.84rem}
+/* BC and Alberta */
+.pnp{margin-top:30px}
+.pnp-h p{color:var(--muted);max-width:70ch;margin-top:6px}
+.pnp-h h2{margin-top:6px}
+.pv{gap:14px}
+.pv-h{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.pv-h h3{margin:4px 0 8px}
+.pv-sc{flex:none;text-align:right;min-width:96px}
+.pv-sc b{display:block;font-family:var(--display);font-size:2.4rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.pv-sc small{font-size:.74rem;color:var(--muted);font-weight:700}
+.pv-sc em{display:block;font-style:normal;font-size:.7rem;color:var(--muted);margin-top:4px;max-width:14ch;margin-left:auto}
+.pv-sc .meter{display:block;height:5px;border-radius:9px;background:var(--band);margin-top:6px;overflow:hidden}
+.pv-sc .meter i{display:block;height:100%;background:var(--accent);border-radius:9px}
+.pv h4{display:flex;align-items:center;gap:8px;font-size:.92rem;margin:4px 0 0}
+.pv h4 .ic{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-size:.85rem}
+.ic.s{background:var(--good-soft);color:var(--good)}.ic.w{background:var(--bad-soft);color:var(--bad)}.ic.l{background:var(--accent-soft);color:var(--accent)}
+.pill{display:inline-block;font-size:.74rem;font-weight:750;padding:3px 10px;border-radius:999px;background:var(--band);color:var(--muted);margin:2px 4px 2px 0}
+.pill.good{background:var(--good-soft);color:var(--good)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.gp{color:var(--good);font-weight:700}.gm{color:var(--bad);font-weight:700}
+.more summary{cursor:pointer;font-weight:650;font-size:.9rem;color:var(--accent)}
+.more .bd{margin-top:8px}
+@media (max-width:520px){.pv-h{flex-direction:column}.pv-sc{text-align:left}.pv-sc em{margin-left:0}}
 .receipt{margin-top:22px;border-radius:16px;padding:18px;background:var(--ink);color:#e9f3f1;display:flex;flex-direction:column;gap:10px}
 .receipt h3{display:flex;align-items:center;gap:10px;color:#fff}
 .receipt ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:.86rem}
@@ -384,7 +406,7 @@ footer p{max-width:92ch}
       <div class="notes">
         <label for="notes">Anything else we should know? <span class="opt">Optional</span></label>
         <textarea id="notes" maxlength="3000" placeholder="Write it however you like. For example: I'm married and my wife is coming with me, she has IELTS 6.5 and a bachelor's. My brother lives in Toronto. I have a job offer as a cook in Alberta. I studied a 2-year diploma at Conestoga College."></textarea>
-        <p class="hint">Marital status, spouse, siblings in Canada, job offers, Canadian study, provincial nomination, French: anything that isn't in your documents.</p>
+        <p class="hint">Marital status, spouse, siblings in Canada, job offers (province and hourly wage), family in Alberta, Canadian study, provincial nomination, French: anything that isn't in your documents.</p>
       </div>
       <div class="lock" id="privacy-mini"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>
         <div><b>Your documents are never saved.</b> Your browser shrinks each file and sends it straight to the reader. It's read in memory, the facts come back, and the file is gone. Nothing is written to our database, file storage or logs, and we can't see your documents. <a href="#privacy">How this works</a></div></div>
@@ -429,11 +451,12 @@ footer p{max-width:92ch}
         <div class="box"><h3>Score breakdown</h3><table class="bd" id="bd"></table>
           <h3 style="margin-top:6px">Programs you may qualify for</h3><div class="elig" id="elig"></div></div>
       </div>
+      <div class="pnp" id="pnp"></div>
       <div class="receipt" id="receipt"></div>
       <div class="democta" id="democta" data-noprint hidden><div><h3>That was an example. What's your score?</h3><p>Scan your own documents and get your real score, your weak spots and the points each fix is worth. <span data-price>$9.99</span> one-time, 30 days of access.</p></div><button class="btn" type="button" id="demoBuy">Scan my documents · <span data-price>$9.99</span></button></div>
       <div class="cta" data-noprint><div><h3>Want employers and licensed consultants to find you?</h3><p>Create a free WorkerPool profile. You choose who sees it. Your scan results aren't shared unless you add them yourself.</p></div><a class="btn" href="/apply/">Create free profile</a></div>
       <div class="acts"><button class="btn ghost" type="button" id="edit">← Change details</button><button class="btn ghost" type="button" id="print">Save as PDF</button><button class="btn ghost" type="button" id="restart">Start over</button></div>
-      <p class="disc">This is an estimate based on what the scanner read and what you confirmed. It isn't immigration advice and doesn't guarantee an invitation. Express Entry points depend on documents IRCC accepts: valid language tests, an ECA for education outside Canada, and reference letters that meet IRCC's requirements. WorkerPool is a data processing company, not an immigration representative; speak to a licensed consultant (CICC) or lawyer before you apply.</p>
+      <p class="disc">This is an estimate based on what the scanner read and what you confirmed. BC PNP scores follow the Skills Immigration Registration System and Alberta scores follow the AAIP Worker EOI grid; stream rules are simplified and provincial cut-offs come from the latest published draws. It isn't immigration advice and doesn't guarantee an invitation. Express Entry points depend on documents IRCC accepts: valid language tests, an ECA for education outside Canada, and reference letters that meet IRCC's requirements. WorkerPool is a data processing company, not an immigration representative; speak to a licensed consultant (CICC) or lawyer before you apply.</p>
     </div>
   </div>
 </section>
@@ -445,7 +468,7 @@ footer p{max-width:92ch}
     <div class="how">
       <div class="hc"><span class="n">1</span><h3>Upload what you have</h3><p>Passport, IELTS, CELPIP, PTE Core, TEF or TCF results, reference letters, pay stubs, T4s, degrees, transcripts and your ECA. Phone photos are fine.</p></div>
       <div class="hc"><span class="n">2</span><h3>Check what we found</h3><p>We turn your documents into the facts Express Entry scores: age, CLB levels, education, years of skilled work and the NOC for each job. You can fix anything.</p></div>
-      <div class="hc"><span class="n">3</span><h3>Get your score and a plan</h3><p>Your CRS under the rules from November 3, 2026, how it compares with recent draws, your strongest and weakest factors, and exactly how many points each improvement is worth.</p></div>
+      <div class="hc"><span class="n">3</span><h3>Get your score and a plan</h3><p>Your CRS under the rules from November 3, 2026, how it compares with recent draws, your strongest and weakest factors, and exactly how many points each improvement is worth. Plus your BC PNP (SIRS) and Alberta AAIP (EOI) scores, the provincial streams you may fit, and the latest provincial cut-offs.</p></div>
     </div>
   </div>
 </section>
@@ -484,7 +507,8 @@ footer p{max-width:92ch}
   </div>
 </footer>
 
-<script src="/tools/profile-scanner/scanner.js?v=4" defer></script>
+<script src="/tools/profile-scanner/pnp.js?v=1" defer></script>
+<script src="/tools/profile-scanner/scanner.js?v=5" defer></script>
 <script>window.WPA_PAGE="scanner";</script>
 <script src="/assets/wpa.js" defer></script>
 <script src="/assets/ticker.js?v=3" defer></script>
