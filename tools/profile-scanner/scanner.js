@@ -980,6 +980,8 @@ $("buy").onclick = () => buy($("buy"));
 document.querySelectorAll("[data-buy]").forEach((b) => b.onclick = () => buy(b));
 $("demoBuy").onclick = () => { if (unlocked()) { RESULTS = []; NOTES = null; DEMO = false; show("p1"); } else { show("p1"); } };
 $("tryDemo").onclick = () => demo();
+/* Home page "See a sample result free" link lands here with ?demo=1 */
+if (new URLSearchParams(location.search).has("demo")) setTimeout(demo, 0);
 $("showCoupon").onclick = () => { $("couponForm").hidden = !$("couponForm").hidden; if (!$("couponForm").hidden) $("couponCode").focus(); };
 $("couponForm").onsubmit = async (e) => { e.preventDefault(); const b = e.target.querySelector("button"); b.disabled = true; await applyCoupon($("couponCode").value); b.disabled = false; };
 $("showRestore").onclick = () => { $("restoreForm").hidden = !$("restoreForm").hidden; if (!$("restoreForm").hidden) $("restoreEmail").focus(); };

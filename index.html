@@ -65,7 +65,8 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:col
 .nav{display:flex;align-items:center;gap:24px;height:64px}
 .logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:750;font-size:1.2rem;text-decoration:none;letter-spacing:-.02em}
 .links{display:flex;gap:22px;margin-left:auto;font-size:.92rem}
-.links a{text-decoration:none;color:var(--muted)}
+.links a{text-decoration:none;color:var(--muted);white-space:nowrap}
+@media (max-width:1240px){.links{gap:16px}.links a[href="#compliance"],.links a[href="#about"]{display:none}}
 .links a:hover{color:var(--fg)}
 .navcta{display:flex;gap:10px;align-items:center}
 @media (max-width:880px){.links{display:none}.navcta{margin-left:auto}}
@@ -305,6 +306,58 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
 .fgrid a:hover{color:var(--fg)}
 .legal{margin-top:36px;padding-top:20px;border-top:1px solid var(--line);font-size:.8rem;line-height:1.6;max-width:90ch}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+/* Profile Scanner showcase: dark full-bleed band so it reads as the flagship tool */
+.scan-sec{--s-bg:#0f2a27;--s-bg2:#153834;--s-fg:#eef5f3;--s-muted:#a9c3be;--s-line:rgba(255,255,255,.12);--s-glow:#5fe0c4;--s-gold:#f2c46d;
+  position:relative;overflow:hidden;background:radial-gradient(1200px 500px at 85% -10%,#1f5a52 0%,transparent 60%),radial-gradient(800px 400px at -10% 110%,#1a4741 0%,transparent 60%),var(--s-bg);color:var(--s-fg);padding-block:clamp(56px,9vw,104px)}
+.scan-sec{border-block:1px solid var(--s-line)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .scan-sec{--s-bg:#0a1e1c;--s-bg2:#102b28}}
+:root[data-theme="dark"] .scan-sec{--s-bg:#0a1e1c;--s-bg2:#102b28}
+.scan-sec .in{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(36px,6vw,72px);align-items:center}
+@media (max-width:900px){.scan-sec .in{grid-template-columns:1fr}}
+.scan-copy{min-width:0;display:flex;flex-direction:column;gap:20px}
+.scan-badge{align-self:flex-start;display:inline-flex;align-items:center;gap:10px;font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;padding:6px 14px 6px 6px;border-radius:999px;background:rgba(95,224,196,.1);border:1px solid rgba(95,224,196,.35);color:var(--s-glow)}
+.scan-badge b{background:var(--s-glow);color:#08201d;padding:3px 9px;border-radius:999px;font-size:.68rem}
+.scan-sec h2{color:var(--s-fg);font-size:clamp(2.2rem,5.6vw,3.9rem);font-weight:750;line-height:1;letter-spacing:-.035em;margin:0}
+.scan-sec h2 em{font-style:normal;background:linear-gradient(90deg,var(--s-glow),#b9f5e6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.scan-punch{font-family:var(--display);font-size:clamp(1.15rem,2.4vw,1.5rem);font-weight:650;line-height:1.25;color:var(--s-fg);margin:0;max-width:30ch}
+.scan-punch s{color:var(--s-muted);text-decoration-color:var(--s-gold);text-decoration-thickness:2px;font-weight:500}
+.scan-lede{color:var(--s-muted);font-size:1.05rem;margin:0;max-width:54ch}
+.scan-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+@media (max-width:520px){.scan-grid{grid-template-columns:1fr}}
+.scan-tile{background:rgba(255,255,255,.04);border:1px solid var(--s-line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.scan-tile b{font-family:var(--display);font-size:1.08rem;font-weight:650;color:var(--s-fg);display:flex;align-items:center;gap:8px}
+.scan-tile b svg{flex:none;color:var(--s-glow)}
+.scan-tile span{color:var(--s-muted);font-size:.9rem;line-height:1.45}
+.scan-facts{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.scan-facts li{font-size:.8rem;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--s-line);color:var(--s-fg);background:rgba(255,255,255,.03)}
+.scan-cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:6px}
+.scan-cta .btn{background:var(--s-glow);border-color:var(--s-glow);color:#08201d;font-size:1rem;padding:13px 24px;box-shadow:0 10px 30px -10px rgba(95,224,196,.6)}
+.scan-cta .btn:hover{background:#86ecd5;border-color:#86ecd5;transform:translateY(-1px)}
+.scan-cta .btn.ghost{background:transparent;color:var(--s-fg);border-color:rgba(255,255,255,.3);box-shadow:none}
+.scan-cta .btn.ghost:hover{background:rgba(255,255,255,.06);border-color:var(--s-fg)}
+.scan-fine{font-size:.82rem;color:var(--s-muted);margin:0}
+/* visual: documents being read, then three scores */
+.scan-vis{position:relative;min-width:0;background:linear-gradient(180deg,var(--s-bg2),rgba(255,255,255,.02));border:1px solid var(--s-line);border-radius:26px;padding:22px;box-shadow:0 40px 80px -40px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
+.sv-top{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--s-muted);margin-bottom:14px}
+.sv-top i{font-style:normal;padding:3px 9px;border-radius:999px;border:1px solid var(--s-line)}
+.sv-docs{position:relative;display:flex;flex-direction:column;gap:8px;overflow:hidden;border-radius:14px}
+.sv-doc{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--s-line);font-size:.88rem}
+.sv-doc .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:rgba(95,224,196,.12);color:var(--s-glow);flex:none}
+.sv-doc span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-doc em{font-style:normal;font-size:.75rem;color:var(--s-glow);font-weight:600;flex:none}
+.sv-beam{position:absolute;left:0;right:0;height:46px;top:-46px;background:linear-gradient(180deg,transparent,rgba(95,224,196,.22) 70%,rgba(95,224,196,.9) 98%,transparent);pointer-events:none;animation:svscan 3.2s cubic-bezier(.5,0,.5,1) infinite}
+@keyframes svscan{0%{top:-46px}100%{top:100%}}
+.sv-scores{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.sv-score{border-radius:14px;padding:12px 10px;text-align:center;background:rgba(255,255,255,.05);border:1px solid var(--s-line)}
+.sv-score small{display:block;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--s-muted);font-weight:600}
+.sv-score b{display:block;font-family:var(--display);font-size:clamp(1.5rem,3.4vw,2rem);font-weight:750;color:var(--s-fg);line-height:1.1;margin-top:4px}
+.sv-score span{font-size:.72rem;color:var(--s-muted)}
+.sv-score.main{background:rgba(95,224,196,.12);border-color:rgba(95,224,196,.45)}
+.sv-score.main b{color:var(--s-glow)}
+.sv-fix{margin-top:10px;display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;background:rgba(242,196,109,.1);border:1px solid rgba(242,196,109,.35);font-size:.86rem;color:var(--s-fg)}
+.sv-fix b{color:var(--s-gold);font-family:var(--display);font-size:1.05rem;flex:none}
+.sv-fix span{min-width:0}
+@media (prefers-reduced-motion:reduce){.sv-beam{animation:none;display:none}}
 </style>
 </head>
 <body>
@@ -315,7 +368,7 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
       WorkerPool
     </a>
     <nav class="links" aria-label="Main">
-      <a href="#draws">Latest draws</a><a href="/forum/">Forum</a><a href="#how">How it works</a><a href="#employers">For employers</a><a href="#about">About</a><a href="#compliance">Compliance</a><a href="#faq">FAQ</a>
+      <a href="#scanner">Profile Scanner</a><a href="#draws">Latest draws</a><a href="/forum/">Forum</a><a href="#how">How it works</a><a href="#employers">For employers</a><a href="#about">About</a><a href="#compliance">Compliance</a><a href="#faq">FAQ</a>
     </nav>
     <div class="navcta">
       <a class="btn ghost sm" href="/apply/#signin">Sign in</a>
@@ -338,7 +391,7 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
           <button class="btn ghost" type="button" data-interest="employer">I'm an employer</button>
           <button class="btn ghost" type="button" data-share data-track="Share WorkerPool" aria-label="Share WorkerPool"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Share</button>
         </div>
-        <a class="scanpromo" href="/tools/profile-scanner/"><b>New</b><span>Profile Scanner: upload your documents, get your Express Entry score. Nothing is saved.</span><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a class="scanpromo" href="#scanner"><b>New</b><span>Profile Scanner: your documents in, your CRS, BC PNP and Alberta scores out. Nothing saved.</span><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
         <div class="hero-meta">
           <span><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Free for candidates</span>
           <span><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Shared only with your consent</span>
@@ -363,6 +416,50 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
           <span class="chip on"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>Licensed consultant</span>
           <span class="chip off">Marketing emails off</span>
         </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="scan-sec" id="scanner" data-sec="Profile Scanner">
+    <div class="in">
+      <div class="scan-copy">
+        <span class="scan-badge"><b>New</b>WorkerPool Profile Scanner</span>
+        <h2>Stop guessing your score. <em>Let your documents prove it.</em></h2>
+        <p class="scan-punch"><s>Type in what you think your CLB is.</s> Upload your actual papers and get the real number.</p>
+        <p class="scan-lede">Drop in your passport, IELTS, CELPIP, PTE Core, TEF or TCF results, reference letters, pay stubs and ECA. In about three minutes the scanner reads every page and hands back your Express Entry, BC PNP and Alberta AAIP scores, plus the exact moves that add the most points.</p>
+        <div class="scan-grid">
+          <div class="scan-tile"><b><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>It reads. It doesn't quiz.</b><span>No forms to fill and no guessing. Phone photos of your documents are enough.</span></div>
+          <div class="scan-tile"><b><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Three scores. One scan.</b><span>Express Entry CRS, BC PNP and Alberta AAIP, side by side, against recent draws.</span></div>
+          <div class="scan-tile"><b><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Every weak spot, priced in points.</b><span>See which fix is worth +10 and which is worth +50, so you spend your effort where it counts.</span></div>
+          <div class="scan-tile"><b><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Read once. Gone forever.</b><span>Each file is read and thrown away. Nothing is saved, stored or emailed.</span></div>
+        </div>
+        <ul class="scan-facts" aria-label="What's included">
+          <li>Up to 25 documents</li><li>You and your partner</li><li>Current and November 2026 rules</li><li>Downloadable PDF report</li>
+        </ul>
+        <div class="scan-cta">
+          <a class="btn" href="/tools/profile-scanner/" data-track="Home scanner: scan my documents">Scan my documents · $9.99
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <a class="btn ghost" href="/tools/profile-scanner/?demo=1" data-track="Home scanner: free sample">See a sample result free</a>
+        </div>
+        <p class="scan-fine">One-time payment, 30 days of access, unlimited rescans. No subscription.</p>
+      </div>
+
+      <aside class="scan-vis" aria-label="Sample scan result">
+        <div class="sv-top"><span>Scanning 5 documents</span><i>Sample</i></div>
+        <div class="sv-docs">
+          <div class="sv-beam" aria-hidden="true"></div>
+          <div class="sv-doc"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="3"/></svg></span><span>Passport</span><em>Age read</em></div>
+          <div class="sv-doc"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/></svg></span><span>IELTS General result</span><em>CLB 9 · 8 · 8 · 9</em></div>
+          <div class="sv-doc"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 10l8-5 8 5-8 5z"/><path d="M8 12.5V16c2.5 2 5.5 2 8 0v-3.5"/></svg></span><span>WES report</span><em>Bachelor's</em></div>
+          <div class="sv-doc"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5h8v2"/></svg></span><span>Reference letter</span><em>4 yrs abroad</em></div>
+          <div class="sv-doc"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></span><span>Canadian pay stubs</span><em>1 yr in Canada</em></div>
+        </div>
+        <div class="sv-scores">
+          <div class="sv-score main"><small>Express Entry</small><b>478</b><span>CRS</span></div>
+          <div class="sv-score"><small>BC PNP</small><b>121</b><span>of 200</span></div>
+          <div class="sv-score"><small>Alberta</small><b>64</b><span>AAIP</span></div>
+        </div>
+        <div class="sv-fix"><b>+50</b><span>Biggest win: reach CLB 7 in French. Next best: one more year of Canadian work.</span></div>
       </aside>
     </div>
   </section>
