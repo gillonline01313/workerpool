@@ -14,6 +14,25 @@
     ["NT", "NWT · Yellowknife", (d) => d.jur === "NT"], ["YT", "Yukon", (d) => d.jur === "YT"],
     ["RCIP", "RCIP / FCIP", (d) => d.jur === "RCIP"],
   ];
+  /* Express Entry categories, read from the stream name IRCC gives each round (first match wins) */
+  const EE_CATS = [
+    ["fst", "Federal Skilled Trades", /federal skilled trades/i],
+    ["fsw", "Federal Skilled Worker", /federal skilled worker/i],
+    ["cec", "Canadian Experience Class", /canadian experience/i],
+    ["pnp", "Provincial Nominee", /provincial nominee/i],
+    ["french", "French", /french/i],
+    ["health", "Healthcare", /health/i],
+    ["physician", "Physicians", /physician/i],
+    ["trades", "Trades", /trade/i],
+    ["transport", "Transport", /transport/i],
+    ["education", "Education", /education|teacher/i],
+    ["stem", "STEM", /\bSTEM\b|science|technolog|engineer/i],
+    ["agri", "Agriculture", /agricult|agri-food/i],
+    ["senior", "Senior managers", /senior manager/i],
+    ["military", "Military", /military/i],
+    ["general", "General (all programs)", /general|no program specified|all program/i],
+  ];
+  const eeCat = (d) => (EE_CATS.find(([, , re]) => re.test(d.stream || "")) || ["other"])[0];
   const PROVS = { NL: "Newfoundland and Labrador", PE: "Prince Edward Island", NS: "Nova Scotia", NB: "New Brunswick", ON: "Ontario", MB: "Manitoba", SK: "Saskatchewan", AB: "Alberta", BC: "British Columbia" };
   const GROUP_PROVS = { BC: ["BC"], AB: ["AB"], SK: ["SK"], MB: ["MB"], ON: ["ON"], ATL: ["NB", "NS", "PE", "NL"], RCIP: Object.keys(PROVS) };
   const BADGE = { CA: "EE", NT: "NWT" };
@@ -23,7 +42,7 @@
   const longDay = (iso) => dayOf(iso).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric", year: dayOf(iso).getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
   const rel = (iso) => { const n = Math.round((today() - dayOf(iso)) / 864e5); return n <= 0 ? "Today" : n === 1 ? "Yesterday" : n < 7 ? n + " days ago" : n < 14 ? "Last week" : ""; };
   const stamp = (iso) => iso ? new Date(iso).toLocaleString("en-CA", { timeZone: "America/Edmonton", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " MT" : "";
-  let all = [], group = "all", shown = 8, data = null;
+  let all = [], group = "all", cat = "all", shown = 8, data = null;
 
   fetch("/api/draws?days=400").then((r) => r.json()).then((j) => {
     if (!j || !j.ok) throw 0;
@@ -38,6 +57,7 @@
         <div class="dr-chips" role="tablist" aria-label="Filter draws">${chips.map(([k, l]) => `<button type="button" role="tab" data-g="${k}" aria-selected="${k === group}">${esc(l)}</button>`).join("")}</div>
         <p class="dr-stamp">${j.checked ? `<span class="dr-live" aria-hidden="true"></span>Last checked ${esc(stamp(j.checked))}` : ""}</p>
       </div>
+      <div class="dr-cats" id="drCats" hidden></div>
       <div class="dr-comm" id="drComm" hidden></div>
       <div class="dr-list" id="drList"></div>
       <div class="dr-more"><button type="button" class="btn ghost" id="drMore">Show earlier draws</button></div>
@@ -55,8 +75,10 @@
   }).catch(() => { root.innerHTML = `<p class="dr-empty">Draws couldn't load right now. See <a href="https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry/rounds-invitations.html" target="_blank" rel="noopener">IRCC's rounds of invitations</a>.</p>`; });
 
   function draw() {
-    const f = GROUPS.find((g) => g[0] === group)[2];
+    const gf = GROUPS.find((g) => g[0] === group)[2];
+    const f = group === "CA" && cat !== "all" ? (d) => gf(d) && eeCat(d) === cat : gf;
     const rows = all.filter(f);
+    paintCats();
     paintCommunities();
     const days = [...new Set(rows.map((d) => d.date))];
     const list = document.getElementById("drList");
@@ -74,6 +96,21 @@
         <ul class="dr-rows">${ds.map(row).join("")}</ul></section>`;
     }).join("");
     document.getElementById("drMore").hidden = days.length <= shown;
+  }
+  /* Express Entry category chips: only under the federal filter, only categories that have had a round */
+  function paintCats() {
+    const box = document.getElementById("drCats"); if (!box) return;
+    if (group !== "CA") { box.hidden = true; box.innerHTML = ""; return; }
+    const ee = all.filter((d) => d.jur === "CA");
+    const cats = [...EE_CATS, ["other", "Other"]].filter(([k]) => ee.some((d) => eeCat(d) === k));
+    if (!cats.some(([k]) => k === cat)) cat = "all";
+    const pick = cat === "all" ? ee : ee.filter((d) => eeCat(d) === cat);
+    const last = pick[0] && [...pick].sort((a, b) => b.date.localeCompare(a.date))[0];
+    box.hidden = false;
+    box.innerHTML = `<p class="dr-cl2" id="drCatLbl">Category</p>
+      <div class="dr-chips dr-sub" role="tablist" aria-labelledby="drCatLbl">${[["all", "All categories"], ...cats].map(([k, l]) => `<button type="button" role="tab" data-c="${k}" aria-selected="${k === cat}">${esc(l)}</button>`).join("")}</div>
+      ${cat !== "all" && last ? `<p class="dr-sum">${pick.length} round${pick.length === 1 ? "" : "s"} in the last 13 months · latest ${esc(longDay(last.date))}${last.score != null ? `, CRS cut-off <b>${esc(last.score)}</b>` : ""}${last.invites ? `, <b>${esc(last.invites)}</b> invited` : ""}</p>` : ""}`;
+    box.querySelectorAll("[data-c]").forEach((b) => b.onclick = () => { cat = b.dataset.c; shown = 8; draw(); });
   }
   /* RCIP / FCIP communities, province by province: latest draw read from the official page, or what the page says */
   function paintCommunities() {
