@@ -1,6 +1,7 @@
 // Admin data API. Every request must carry the ADMIN_KEY secret set in Cloudflare.
 import { json, readJson, str, sendEmail, ensureSignupLog, chatOpen, CHAT_MSG_SQL, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
 import { NEWS_SEED } from "../../_news.js";
+import { ensureTable as ensureStudents, STATUSES as STUDENT_STATUSES } from "../../_students.js";
 import { autoDraws, edits as drawEdits, merge as mergeDraws, FIELDS as DRAW_FIELDS } from "../../_draws.js";
 function same(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
@@ -87,6 +88,11 @@ export async function onRequestGet({ request, env, params }) {
     const r = await env.DB.prepare(`SELECT * FROM submissions ORDER BY created DESC LIMIT 2000`).all();
     return json({ ok: true, rows: r.results });
   }
+  if (route === "students") { // Student Pool profiles (typed facts only; documents are never kept)
+    await ensureStudents(env);
+    const r = await env.DB.prepare(`SELECT * FROM student_profiles ORDER BY created DESC LIMIT 3000`).all();
+    return json({ ok: true, rows: r.results });
+  }
   if (route === "assessments") {
     const r = await env.DB.prepare(
       `SELECT a.*, u.name AS acct_name, u.email AS acct_email, u.phone AS acct_phone FROM assessments a JOIN users u ON u.id = a.user_id ORDER BY a.updated DESC LIMIT 2000`
@@ -155,6 +161,13 @@ export async function onRequestPost({ request, env, params }) {
   if (route.startsWith("news-")) return newsAction(env, route, b);
   if (route.startsWith("forum-")) return forumAction(env, route, b);
   if (route.startsWith("draws-")) return drawsAction(request, env, route, b);
+  if (route === "student-status") {
+    await ensureStudents(env);
+    const status = STUDENT_STATUSES.includes(b.status) ? b.status : null;
+    if (!status) return json({ ok: false, error: "Unknown status." }, 400);
+    const r = await env.DB.prepare(`UPDATE student_profiles SET status = ?1, note = ?2, updated = ?3 WHERE id = ?4`).bind(status, str(b.note, 2000) || null, new Date().toISOString(), str(b.id, 64)).run();
+    return r.meta && r.meta.changes ? json({ ok: true }) : json({ ok: false, error: "Profile not found." }, 404);
+  }
   const t = await env.DB.prepare(`SELECT * FROM chat_threads WHERE id = ?1`).bind(str(b.id, 64)).first();
   if (!t) return json({ ok: false, error: "Chat not found." }, 404);
   const now = new Date().toISOString();
