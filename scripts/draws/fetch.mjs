@@ -10,7 +10,7 @@ import os from "node:os";
 import path from "node:path";
 
 const OUT = new URL("../../data/draws.json", import.meta.url);
-const KEEP_DAYS = 430; // about 14 months of history
+const KEEP_DAYS = 745; // a little over 2 years of history
 const LOCAL = process.env.DRAWS_LOCAL ? JSON.parse(fs.readFileSync(process.env.DRAWS_LOCAL, "utf8")) : null; // tests: url → file
 const fetchPage = (url) => (LOCAL ? Promise.resolve(LOCAL[url] ? fs.readFileSync(LOCAL[url], "utf8") : Promise.reject(new Error("no local copy"))) : get(url));
 
@@ -347,7 +347,7 @@ for (const s of SOURCES) {
       }
       st.ok = rows.length > 0; st.found = rows.length;
       if (rows.length) st.latest = rows.map((r) => r.date).sort().pop();
-      if (rows.length && st.latest < cutoff) st.note = `Latest selection on the official page is ${st.latest}, older than the 14 months shown on the site.`;
+      if (rows.length && st.latest < cutoff) st.note = `Latest selection on the official page is ${st.latest}, older than the 2 years shown on the site.`;
       if (!rows.length) st.error = "Page loaded but no draws were recognised. The page layout may have changed.";
     }
   } catch (e) {

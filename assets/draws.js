@@ -32,6 +32,8 @@
     ["military", "Military", /military/i],
     ["general", "General (all programs)", /general|no program specified|all program/i],
   ];
+  // dropdown order; every one of these is always listed, even with no round in the last 2 years
+  const EE_MENU = ["cec", "fsw", "fst", "pnp", "french", "health", "physician", "trades", "transport", "education", "stem", "agri", "senior", "military", "general"];
   const eeCat = (d) => (EE_CATS.find(([, , re]) => re.test(d.stream || "")) || ["other"])[0];
   const PROVS = { NL: "Newfoundland and Labrador", PE: "Prince Edward Island", NS: "Nova Scotia", NB: "New Brunswick", ON: "Ontario", MB: "Manitoba", SK: "Saskatchewan", AB: "Alberta", BC: "British Columbia" };
   const GROUP_PROVS = { BC: ["BC"], AB: ["AB"], SK: ["SK"], MB: ["MB"], ON: ["ON"], ATL: ["NB", "NS", "PE", "NL"], RCIP: Object.keys(PROVS) };
@@ -44,7 +46,7 @@
   const stamp = (iso) => iso ? new Date(iso).toLocaleString("en-CA", { timeZone: "America/Edmonton", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " MT" : "";
   let all = [], group = "all", cat = "all", shown = 8, data = null;
 
-  fetch("/api/draws?days=400").then((r) => r.json()).then((j) => {
+  fetch("/api/draws?days=731").then((r) => r.json()).then((j) => {
     if (!j || !j.ok) throw 0;
     data = j; all = j.draws || [];
     const has = new Set(all.map((d) => d.jur));
@@ -82,10 +84,11 @@
     paintCommunities();
     const days = [...new Set(rows.map((d) => d.date))];
     const list = document.getElementById("drList");
+    if (!rows.length && group === "CA" && cat !== "all") { document.getElementById("drList").innerHTML = ""; document.getElementById("drMore").hidden = true; return; }
     if (!rows.length) {
       const q = ((data && data.sources) || []).filter((s) => s.latest && !s.prov && f({ jur: s.jur }));
       list.innerHTML = q.length
-        ? q.map((s) => `<p class="dr-empty"><b>${esc(s.program)}</b> hasn't published a selection in the last 14 months. The latest on the official page was on <b>${esc(longDay(s.latest))}</b>. <a href="${esc(s.url)}" target="_blank" rel="noopener">See the official page ↗</a></p>`).join("")
+        ? q.map((s) => `<p class="dr-empty"><b>${esc(s.program)}</b> hasn't published a selection in the last 2 years. The latest on the official page was on <b>${esc(longDay(s.latest))}</b>. <a href="${esc(s.url)}" target="_blank" rel="noopener">See the official page ↗</a></p>`).join("")
         : `<p class="dr-empty">No draws in the last few months for this filter.</p>`;
       document.getElementById("drMore").hidden = true; return;
     }
@@ -97,20 +100,22 @@
     }).join("");
     document.getElementById("drMore").hidden = days.length <= shown;
   }
-  /* Express Entry category chips: only under the federal filter, only categories that have had a round */
+  /* Express Entry category dropdown: only under the federal filter */
   function paintCats() {
     const box = document.getElementById("drCats"); if (!box) return;
     if (group !== "CA") { box.hidden = true; box.innerHTML = ""; return; }
     const ee = all.filter((d) => d.jur === "CA");
-    const cats = [...EE_CATS, ["other", "Other"]].filter(([k]) => ee.some((d) => eeCat(d) === k));
-    if (!cats.some(([k]) => k === cat)) cat = "all";
+    const n = (k) => ee.filter((d) => eeCat(d) === k).length;
+    const label = Object.fromEntries(EE_CATS.map(([k, l]) => [k, l]));
+    const opts = [["all", "All categories", ee.length], ...EE_MENU.map((k) => [k, label[k], n(k)]), ...(n("other") ? [["other", "Other", n("other")]] : [])];
+    if (!opts.some(([k]) => k === cat)) cat = "all";
     const pick = cat === "all" ? ee : ee.filter((d) => eeCat(d) === cat);
-    const last = pick[0] && [...pick].sort((a, b) => b.date.localeCompare(a.date))[0];
+    const last = pick.length ? [...pick].sort((a, b) => b.date.localeCompare(a.date))[0] : null;
     box.hidden = false;
-    box.innerHTML = `<p class="dr-cl2" id="drCatLbl">Category</p>
-      <div class="dr-chips dr-sub" role="tablist" aria-labelledby="drCatLbl">${[["all", "All categories"], ...cats].map(([k, l]) => `<button type="button" role="tab" data-c="${k}" aria-selected="${k === cat}">${esc(l)}</button>`).join("")}</div>
-      ${cat !== "all" && last ? `<p class="dr-sum">${pick.length} round${pick.length === 1 ? "" : "s"} in the last 13 months · latest ${esc(longDay(last.date))}${last.score != null ? `, CRS cut-off <b>${esc(last.score)}</b>` : ""}${last.invites ? `, <b>${esc(last.invites)}</b> invited` : ""}</p>` : ""}`;
-    box.querySelectorAll("[data-c]").forEach((b) => b.onclick = () => { cat = b.dataset.c; shown = 8; draw(); });
+    box.innerHTML = `<label class="dr-cl2" for="drCat">Express Entry category</label>
+      <div class="dr-sel"><select id="drCat">${opts.map(([k, l, c]) => `<option value="${k}"${k === cat ? " selected" : ""}>${esc(l)} (${c})</option>`).join("")}</select></div>
+      ${cat !== "all" ? `<p class="dr-sum">${last ? `${pick.length} round${pick.length === 1 ? "" : "s"} in the last 2 years · latest ${esc(longDay(last.date))}${last.score != null ? `, CRS cut-off <b>${esc(last.score)}</b>` : ""}${last.invites ? `, <b>${esc(last.invites)}</b> invited` : ""}` : `No ${esc(label[cat] || "")} rounds in the last 2 years.`}</p>` : ""}`;
+    document.getElementById("drCat").onchange = (e) => { cat = e.target.value; shown = 8; draw(); };
   }
   /* RCIP / FCIP communities, province by province: latest draw read from the official page, or what the page says */
   function paintCommunities() {

@@ -95,7 +95,11 @@ a:focus-visible,.btn:focus-visible,summary:focus-visible{outline:2px solid var(-
 .dr-chips button[aria-selected="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
 .dr-cats{padding:12px 0 2px}
 .dr-cl2{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
-.dr-sub button{font-size:.8rem;padding:5px 12px}
+.dr-cl2{display:block}
+.dr-sel{position:relative;max-width:360px}
+.dr-sel select{width:100%;appearance:none;-webkit-appearance:none;font:inherit;font-size:.95rem;font-weight:600;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 40px 10px 14px;cursor:pointer}
+.dr-sel select:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.dr-sel::after{content:"";position:absolute;right:16px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
 .dr-sum{font-size:.84rem;color:var(--muted);margin:10px 0 0}
 .dr-sum b{color:var(--fg)}
 .dr-stamp{font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:8px;white-space:nowrap}
@@ -747,7 +751,7 @@ footer{padding-block:48px 56px;border-top:1px solid var(--line);font-size:.88rem
 <script src="/assets/wpa.js" defer></script>
 <script src="/assets/share.js?v=1" defer></script>
 <script src="/assets/ticker.js?v=3" defer></script>
-<script src="/assets/draws.js?v=4" defer></script>
+<script src="/assets/draws.js?v=5" defer></script>
 <script src="/assets/chat.js?v=4" defer></script>
 </body>
 </html>
