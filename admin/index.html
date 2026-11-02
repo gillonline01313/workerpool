@@ -234,6 +234,12 @@ async function load(){
       const j=await r.json(); if(!j.ok) throw new Error(j.error||"Request failed"); data.forum=j;
       if(forumF==="views"){ const v=await fetch("/api/admin/forum-views?days="+days+(fvTopic?"&topic="+encodeURIComponent(fvTopic.id):""),{headers:{"x-admin-key":KEY}}); const vj=await v.json(); data.fviews=vj.ok?vj.rows:null; data.fviewsErr=vj.ok?"":(vj.error||"Couldn't load views"); }
     }
+    else if(tab==="students"){
+      const r=await fetch("/api/admin/students",{headers:{"x-admin-key":KEY}});
+      if(r.status===401) throw new Error("auth");
+      const j=await r.json(); if(!j.ok) throw new Error(j.error||"Request failed");
+      data.students=j.rows; data.studentDocs=j.docs||[];
+    }
     else if(tab==="b2b"){
       const r=await fetch("/api/admin/b2b",{headers:{"x-admin-key":KEY}});
       if(r.status===401) throw new Error("auth");
@@ -711,22 +717,45 @@ function renderStudents(body){
     .filter(r=>!q||[r.name,r.email,r.phone,r.ref,r.highest,r.english,r.plans].join(" ").toLowerCase().includes(q));
   if(!R.length){ body.innerHTML=`<div class="wpa-empty">No Student Pool profiles yet. They appear here when students send their profile from workerpool.ca/student-pool/.</div>`; return; }
   const due=r=>{ const h=(Date.parse(r.created)+864e5-Date.now())/36e5; if(r.status==="options-sent"||r.status==="closed") return ""; return h<0?`<span class="pill" style="background:#fbe3de;color:#b4321f">${Math.ceil(-h)}h overdue</span>`:`<span class="pill">${Math.floor(h)}h left</span>`; };
-  body.innerHTML=`<div class="wpa-card wide"><h3>${open.length} to do${late?` · <span style="color:#b4321f">${late} past 24 hours</span>`:""} · ${R.length} total</h3><p class="sub">Students were promised a free reply with study options within 24 hours. Only typed profile details are kept; their documents were deleted after reading.</p>
+  body.innerHTML=`<div class="wpa-card wide"><h3>${open.length} to do${late?` · <span style="color:#b4321f">${late} past 24 hours</span>`:""} · ${R.length} total</h3><p class="sub">Students were promised a free reply with study options within 24 hours. Documents are kept only for students who gave permission; delete them if a student asks.</p>
   <div class="wpa-tbl"><table><thead><tr><th>Received</th><th>Student</th><th>Highest</th><th>English</th><th>Looking for</th><th>Status</th></tr></thead><tbody>
   ${rows.map(r=>{ let p={},pr={}; try{p=JSON.parse(r.plans||"{}")}catch(e){} try{pr=JSON.parse(r.profile||"{}")}catch(e){}
     const wa=(r.whatsapp||r.phone||"").replace(/\D/g,"");
     const edu=(pr.education||[]).map(e=>`${LV[e.level]||e.level}: ${[e.credential,e.major,e.institution||e.board,e.country,e.completed&&"completed "+e.completed,e.result,e.english&&"English "+e.english,e.maths&&"Maths "+e.maths,e.backlogs&&e.backlogs!=="0"&&e.backlogs+" backlog(s)",e.medium&&"medium "+e.medium].filter(Boolean).join(" · ")}`).join("\n");
+    const sd=(data.studentDocs||[]).filter(d=>d.profile_id===r.id);
+    const kb=n=>n>1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB";
+    const docs=sd.length?`<div style="margin-top:6px">${sd.map(d=>`<div style="display:flex;gap:6px;align-items:center;justify-content:space-between;margin:3px 0"><span style="overflow-wrap:anywhere">${esc(LV[d.kind]||(d.kind==="english"?"English test":"Other"))}: ${esc(d.name)} <span class="sub">${kb(d.size||0)}</span></span><button class="dl" type="button" data-sdoc="${esc(d.id)}" data-name="${esc(d.name)}">Download</button></div>`).join("")}<button class="dl" type="button" data-sdel="${esc(r.id)}" style="margin-top:4px">Delete all documents</button></div>`
+      :`<div class="sub" style="margin-top:6px">${r.docs_consent?"Permission given, but no files arrived.":"Documents not kept (no permission)."}</div>`;
     const det=`${edu}\n\nEnglish: ${r.english||"–"}\n\n${Object.entries(p).filter(([,v])=>v).map(([k,v])=>`${k.replace(/_/g," ")}: ${v}`).join("\n")}`;
     return `<tr><td>${when(r.created)}<br>${due(r)}<br><span class="sub">${esc(r.ref||"")}</span></td>
       <td><b>${esc(r.name)}</b><br><a href="mailto:${esc(r.email)}?subject=${encodeURIComponent("Your study options – WorkerPool Student Pool "+(r.ref||""))}">${esc(r.email)}</a><br><a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>${wa?` · <a href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>`:""}</td>
       <td>${esc(r.highest||"–")}</td><td>${esc(r.english||"–")}</td>
       <td>${esc([p.level,p.field].filter(Boolean).join(" · ")||"–")}<br><span class="sub">${esc([p.country,p.intake,p.budget].filter(Boolean).join(" · "))}</span>
-        <details${stOpen===r.id?" open":""} data-sd="${esc(r.id)}"><summary>Full profile</summary><pre>${esc(det)}</pre></details></td>
+        <details${stOpen===r.id?" open":""} data-sd="${esc(r.id)}"><summary>Full profile${sd.length?` · ${sd.length} doc${sd.length>1?"s":""}`:""}</summary><pre>${esc(det)}</pre>${docs}</details></td>
       <td style="min-width:190px"><select data-st="${esc(r.id)}" style="font:inherit;font-size:.82rem;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);width:100%">${Object.entries(ST_NAME).map(([k,l])=>`<option value="${k}"${k===r.status?" selected":""}>${l}</option>`).join("")}</select>
         <textarea data-sn="${esc(r.id)}" rows="2" placeholder="Notes (colleges suggested, follow-up…)" style="font:inherit;font-size:.8rem;margin-top:6px;width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)">${esc(r.note||"")}</textarea>
         <button class="dl" type="button" data-ss="${esc(r.id)}" style="margin-top:4px">Save</button></td></tr>`;}).join("")||`<tr><td colspan="6" class="sub">Nothing here.</td></tr>`}
   </tbody></table></div></div>`;
   body.querySelectorAll("[data-sd]").forEach(d=>d.ontoggle=()=>{ stOpen=d.open?d.dataset.sd:(stOpen===d.dataset.sd?null:stOpen); });
+  body.querySelectorAll("[data-sdoc]").forEach(b=>b.onclick=async()=>{
+    const label=b.textContent; b.disabled=true; b.textContent="Downloading…";
+    try{ const r=await fetch("/api/admin/student-doc?id="+encodeURIComponent(b.dataset.sdoc),{headers:{"x-admin-key":KEY}});
+      if(!r.ok){ let j={}; try{j=await r.json();}catch(x){} throw new Error(j.error||"Download failed."); }
+      const a=document.createElement("a"); a.href=URL.createObjectURL(await r.blob()); a.download=b.dataset.name||"document"; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),3000); b.textContent=label;
+    }catch(e){ b.textContent=e.message; }
+    b.disabled=false;
+  });
+  body.querySelectorAll("[data-sdel]").forEach(b=>b.onclick=async()=>{
+    if(!confirm("Delete all of this student's documents for good? Their profile stays.")) return;
+    b.disabled=true; b.textContent="Deleting…";
+    try{ const r=await fetch("/api/admin/student-docs-delete",{method:"POST",headers:{"content-type":"application/json","x-admin-key":KEY},body:JSON.stringify({id:b.dataset.sdel})});
+      const j=await r.json(); if(!j.ok) throw new Error(j.error||"Couldn't delete");
+      data.studentDocs=(data.studentDocs||[]).filter(d=>d.profile_id!==b.dataset.sdel);
+      const row=(data.students||[]).find(x=>x.id===b.dataset.sdel); if(row) row.docs_consent=null;
+      render();
+    }catch(e){ b.textContent=e.message; b.disabled=false; }
+  });
   body.querySelectorAll("[data-ss]").forEach(b=>b.onclick=async()=>{
     const id=b.dataset.ss, status=body.querySelector(`[data-st="${id}"]`).value, note=body.querySelector(`[data-sn="${id}"]`).value;
     b.disabled=true; b.textContent="Saving…";

@@ -90,8 +90,18 @@ export async function onRequestGet({ request, env, params }) {
   }
   if (route === "students") { // Student Pool profiles (typed facts only; documents are never kept)
     await ensureStudents(env);
-    const r = await env.DB.prepare(`SELECT * FROM student_profiles ORDER BY created DESC LIMIT 3000`).all();
-    return json({ ok: true, rows: r.results });
+    const r = await env.DB.prepare(`SELECT id, ref, created, updated, name, email, phone, whatsapp, highest, english, plans, profile, status, note, country_seen, docs_consent FROM student_profiles ORDER BY created DESC LIMIT 3000`).all();
+    const d = await env.DB.prepare(`SELECT id, profile_id, kind, name, size, created FROM student_docs ORDER BY created`).all();
+    return json({ ok: true, rows: r.results, docs: d.results });
+  }
+  if (route === "student-doc") {
+    await ensureStudents(env);
+    const d = await env.DB.prepare(`SELECT * FROM student_docs WHERE id = ?1`).bind(url.searchParams.get("id") || "").first();
+    if (!d || !env.RESUMES) return json({ ok: false, error: "Not found." }, 404);
+    const obj = await env.RESUMES.get(d.r2_key);
+    if (!obj) return json({ ok: false, error: "That file was removed." }, 404);
+    return new Response(obj.body, { headers: { "content-type": d.type || "application/octet-stream",
+      "content-disposition": `attachment; filename="${String(d.name).replace(/"/g, "")}"`, "cache-control": "no-store", "x-content-type-options": "nosniff" } });
   }
   if (route === "assessments") {
     const r = await env.DB.prepare(
@@ -167,6 +177,15 @@ export async function onRequestPost({ request, env, params }) {
     if (!status) return json({ ok: false, error: "Unknown status." }, 400);
     const r = await env.DB.prepare(`UPDATE student_profiles SET status = ?1, note = ?2, updated = ?3 WHERE id = ?4`).bind(status, str(b.note, 2000) || null, new Date().toISOString(), str(b.id, 64)).run();
     return r.meta && r.meta.changes ? json({ ok: true }) : json({ ok: false, error: "Profile not found." }, 404);
+  }
+  if (route === "student-docs-delete") { // the student withdrew permission: delete every stored document for this profile
+    await ensureStudents(env);
+    const pid = str(b.id, 64);
+    const d = await env.DB.prepare(`SELECT r2_key FROM student_docs WHERE profile_id = ?1`).bind(pid).all();
+    if (env.RESUMES) for (const x of d.results) await env.RESUMES.delete(x.r2_key);
+    await env.DB.prepare(`DELETE FROM student_docs WHERE profile_id = ?1`).bind(pid).run();
+    await env.DB.prepare(`UPDATE student_profiles SET docs_consent = NULL, upload_hash = NULL, upload_exp = NULL, updated = ?1 WHERE id = ?2`).bind(new Date().toISOString(), pid).run();
+    return json({ ok: true, deleted: d.results.length });
   }
   const t = await env.DB.prepare(`SELECT * FROM chat_threads WHERE id = ?1`).bind(str(b.id, 64)).first();
   if (!t) return json({ ok: false, error: "Chat not found." }, 404);

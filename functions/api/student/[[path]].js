@@ -1,20 +1,22 @@
-// Student Pool: a free study-options service for students.
+// Student Pool: a free study-options service for students. Documents are kept only with the student's permission.
 //   POST /api/student/read    → { kind, images[], text?, today }: reads ONE document (10th, 12th, diploma,
 //                                bachelor's, master's, English test, other) with Cloudflare Workers AI and returns
 //                                the facts. Nothing is stored: the page images live only in this request and are
 //                                gone when the response is sent. No file, image, file name or document text is
 //                                written to D1, R2, KV, logs or email.
-//   POST /api/student/submit  → the student's reviewed profile (typed facts only, never documents). Saved to D1 for
-//                                the education team, emails the student a confirmation (free, reply within 24 hours)
-//                                and alerts the admin.
+//   POST /api/student/submit  → the student's reviewed profile. Saved to D1 for the education team, emails the student
+//                                a confirmation (free, reply within 24 hours) and alerts the admin. When the student
+//                                allows us to keep their documents (docsConsent), it also returns a one-hour upload key.
+//   POST /api/student/doc     → (headers x-upload-key, x-file-name, x-doc-kind; body = the original file) stores one
+//                                document in R2, only for a profile whose student gave permission.
 // Admin views and updates profiles through /api/admin/students and /api/admin/student-status.
-import { str, isEmail, readJson, id, sendEmail } from "../../_lib.js";
-import { ensureTable } from "../../_students.js";
+import { str, isEmail, readJson, id, sendEmail, randomToken, sha256hex, fileName, fileCheck, FILE_MAX } from "../../_lib.js";
+import { ensureTable, DOC_KINDS } from "../../_students.js";
 
 const MODELS = ["@cf/meta/llama-4-scout-17b-16e-instruct", "@cf/mistralai/mistral-small-3.1-24b-instruct"];
 export const KINDS = { tenth: "10th (Secondary)", twelfth: "12th (Senior Secondary)", diploma: "Diploma", bachelors: "Bachelor's degree", masters: "Master's / Post-graduation", english: "English test", other: "Other education document" };
 const MAX_BODY = 9_000_000, MAX_IMAGES = 4;
-const READS_PER_HOUR = 40, READS_PER_DAY = 4000, SUBMITS_PER_HOUR = 6;
+const READS_PER_HOUR = 40, READS_PER_DAY = 4000, SUBMITS_PER_HOUR = 6, MAX_DOCS = 25;
 const NO_STORE = { "cache-control": "no-store", "x-stored": "none" };
 const reply = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", ...NO_STORE } });
 
@@ -24,6 +26,7 @@ export async function onRequest({ request, env, params }) {
   if (request.method !== "POST") return reply({ ok: false, error: "Not found" }, 404);
   if (action === "read") return read(request, env);
   if (action === "submit") return submit(request, env);
+  if (action === "doc") return saveDoc(request, env);
   return reply({ ok: false, error: "Not found" }, 404);
 }
 
@@ -178,15 +181,18 @@ async function submit(request, env) {
   const order = ["tenth", "twelfth", "diploma", "bachelors", "masters", "phd", "other"];
   const highest = [...edu].sort((a, b2) => order.indexOf(b2.level) - order.indexOf(a.level)).find((e) => e.level !== "other") || edu[0];
 
+  const keep = !!b.docsConsent && !!env.RESUMES, nDocs = Math.max(0, Math.min(MAX_DOCS, parseInt(b.docCount) || 0));
+  const upload = keep && nDocs ? randomToken() : null;
   await ensureTable(env);
   const now = new Date().toISOString(), pid = id(), ref = "SP-" + pid.replace(/-/g, "").slice(0, 6).toUpperCase();
   const englishLine = english.test === "none" || english.test === "planned" ? TEST_NAMES[english.test] + (english.planned ? ` (${english.planned})` : "")
     : `${TEST_NAMES[english.test]} ${english.overall || "?"}${[english.listening, english.reading, english.writing, english.speaking].some(Boolean) ? ` (L ${english.listening || "-"} · R ${english.reading || "-"} · W ${english.writing || "-"} · S ${english.speaking || "-"})` : ""}`;
   const cf = request.cf || {};
-  await env.DB.prepare(`INSERT INTO student_profiles (id, ref, created, updated, name, email, phone, whatsapp, highest, english, plans, profile, status, note, country_seen)
-    VALUES (?1, ?2, ?3, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'new', NULL, ?12)`)
+  await env.DB.prepare(`INSERT INTO student_profiles (id, ref, created, updated, name, email, phone, whatsapp, highest, english, plans, profile, status, note, country_seen, docs_consent, upload_hash, upload_exp)
+    VALUES (?1, ?2, ?3, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'new', NULL, ?12, ?13, ?14, ?15)`)
     .bind(pid, ref, now, name, email, phone, whatsapp || null, `${LEVEL_NAMES[highest.level]}${highest.credential ? " – " + highest.credential : ""}`, englishLine,
-      JSON.stringify(plans), JSON.stringify({ education: edu, english }), str(cf.country, 4) || null).run();
+      JSON.stringify(plans), JSON.stringify({ education: edu, english }), str(cf.country, 4) || null,
+      keep ? now : null, upload ? await sha256hex(upload) : null, upload ? new Date(Date.now() + 36e5).toISOString() : null).run();
 
   const site = env.SITE_URL || "https://workerpool.ca";
   const eduLines = edu.map((e) => `• ${LEVEL_NAMES[e.level]}: ${[e.credential, e.major, e.institution || e.board, e.completed && "completed " + e.completed, e.result].filter(Boolean).join(", ")}`).join("\n");
@@ -206,7 +212,7 @@ What we have on your profile
 ${eduLines}
 • English: ${englishLine}${plans.level || plans.field || plans.intake ? `\n• Looking for: ${[[plans.level, plans.field].filter(Boolean).join(" – "), plans.country && "in " + plans.country, plans.intake && "for " + plans.intake].filter(Boolean).join(" ")}` : ""}
 
-Your documents were read once to build this profile and then permanently deleted. We did not keep any copy of them. Only the details above are saved.
+${keep && nDocs ? `You allowed us to keep copies of your ${nDocs} document${nDocs > 1 ? "s" : ""} so our education team can check them. They are stored privately and only our team can see them. To have them deleted at any time, just reply to this email.` : `Your documents were read once to build this profile and then permanently deleted. We did not keep any copy of them. Only the details above are saved.`}
 
 If anything above is wrong, or you want to add something, just reply to this email.
 
@@ -225,11 +231,35 @@ ${eduLines}
 
 English: ${englishLine}
 
+Documents: ${keep && nDocs ? `${nDocs} kept with permission (download them in the admin dashboard)` : "not kept (the student didn't give permission)"}
+
 Plans
 ${Object.entries(plans).filter(([, v]) => v).map(([k, v]) => `• ${k.replace(/_/g, " ")}: ${v}`).join("\n") || "• none given"}
 
 Open the admin dashboard (Student Pool tab): ${site}/admin/`, email);
-  return reply({ ok: true, ref });
+  return reply({ ok: true, ref, ...(upload ? { upload, docs: nDocs } : {}) });
+}
+
+/* ---------------- keep one original document (only with the student's permission) ---------------- */
+async function saveDoc(request, env) {
+  if (!env.DB || !env.RESUMES) return reply({ ok: false, error: "Document storage isn't connected." }, 503);
+  const key = request.headers.get("x-upload-key") || "";
+  if (!/^[A-Za-z0-9_-]{20,100}$/.test(key)) return reply({ ok: false, error: "This upload link isn't valid." }, 401);
+  await ensureTable(env);
+  const p = await env.DB.prepare(`SELECT id, docs_consent, upload_exp FROM student_profiles WHERE upload_hash = ?1`).bind(await sha256hex(key)).first();
+  if (!p || !p.docs_consent || !p.upload_exp || p.upload_exp < new Date().toISOString()) return reply({ ok: false, error: "This upload link has expired." }, 401);
+  const have = await env.DB.prepare(`SELECT COUNT(*) AS n FROM student_docs WHERE profile_id = ?1`).bind(p.id).first();
+  if (have.n >= MAX_DOCS) return reply({ ok: false, error: `Up to ${MAX_DOCS} documents per profile.` }, 400);
+  if ((+request.headers.get("content-length") || 0) > FILE_MAX) return reply({ ok: false, error: "That file is over 10 MB." }, 413);
+  const name = fileName(request), buf = await request.arrayBuffer();
+  const k = fileCheck(name, buf);
+  if (k.error) return reply({ ok: false, error: k.error }, 400);
+  const kind = DOC_KINDS[request.headers.get("x-doc-kind")] ? request.headers.get("x-doc-kind") : "other";
+  const did = crypto.randomUUID(), r2 = `students/${p.id}/${did}.${k.ext}`;
+  await env.RESUMES.put(r2, buf, { httpMetadata: { contentType: k.type }, customMetadata: { name, profile: p.id, kind } });
+  await env.DB.prepare(`INSERT INTO student_docs (id, profile_id, kind, name, size, type, r2_key, created) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`)
+    .bind(did, p.id, kind, name, buf.byteLength, k.type, r2, new Date().toISOString()).run();
+  return reply({ ok: true });
 }
 
 /* ---------------- abuse guard (anonymous counters only) ---------------- */

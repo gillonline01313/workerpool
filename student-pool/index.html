@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Student Pool: Free Study Options in 24 Hours | WorkerPool</title>
-<meta name="description" content="Upload your 10th, 12th, diploma, degree and IELTS, PTE, TOEFL or Duolingo results. Get your student profile and study options from an education consultant within 24 hours. 100% free. Documents are destroyed after reading.">
+<meta name="description" content="Upload your 10th, 12th, diploma, degree and IELTS, PTE, TOEFL or Duolingo results. Get your student profile and study options from an education consultant within 24 hours. 100% free.">
 <meta name="theme-color" content="#3f7a72">
 <link rel="canonical" href="https://workerpool.ca/student-pool/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="WorkerPool">
 <meta property="og:locale" content="en_CA">
 <meta property="og:title" content="Student Pool: free study options in 24 hours">
-<meta property="og:description" content="Upload your marksheets and English test. An education consultant replies with your study options within 24 hours. Free. Documents destroyed after reading.">
+<meta property="og:description" content="Upload your marksheets and English test. An education consultant replies with your study options within 24 hours. Free.">
 <meta property="og:url" content="https://workerpool.ca/student-pool/">
 <meta property="og:image" content="https://workerpool.ca/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -150,6 +150,11 @@ textarea{min-height:84px;resize:vertical;line-height:1.5}
 .addq{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 18px}
 .sech{margin:26px 0 12px;font-size:1.15rem}
 .err{color:var(--bad);font-weight:600;font-size:.9rem}
+.keepbox{margin-top:22px;border-color:color-mix(in srgb,var(--accent) 50%,var(--line));background:var(--accent-soft)}
+.chk.keep{color:var(--fg);font-size:.9rem}.chk.keep span{color:var(--muted)}.chk.keep b{color:var(--fg)}
+.kfiles{margin:10px 0 0 25px;padding:0;font-size:.82rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px}
+.kfiles li{list-style:"· ";overflow-wrap:anywhere}
+.kno{margin:10px 0 0 25px;font-size:.8rem;color:var(--muted)}
 
 /* done */
 .done-top{display:flex;gap:14px;align-items:flex-start;margin-bottom:20px}
@@ -218,7 +223,7 @@ footer p{max-width:92ch}
       <div class="promise">
         <div><b>$0</b><span>Free service. Nothing to pay, now or later.</span></div>
         <div><b>24 hrs</b><span>A real education consultant replies within 24 hours.</span></div>
-        <div><b>Deleted</b><span>Documents are read once, then destroyed.</span></div>
+        <div><b>Private</b><span>Your documents are kept only if you allow it.</span></div>
       </div>
       <div class="hero-cta"><a class="btn lg" href="#start" data-track="Student Pool: start">Upload my documents</a><a class="btn ghost lg" href="#how">How it works</a></div>
     </div>
@@ -248,7 +253,7 @@ footer p{max-width:92ch}
         <button class="linkbtn" type="button" id="manual">No documents handy? Type your details instead</button>
       </div>
       <p class="safe"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
-        <span>Each document is read once to fill in your profile, then destroyed: it's never saved on our servers, never emailed and never shared. Only the details you confirm in the next step are kept.</span></p>
+        <span>Nothing is saved yet. Reading your documents only fills in your profile. On the next step you choose whether our education team may keep them; if you say no, they're not saved.</span></p>
     </div>
 
     <!-- reading -->
@@ -279,6 +284,7 @@ footer p{max-width:92ch}
         <label class="f">Status in Canada (if you're there)<select id="pInCa"><option value="">Not in Canada</option><option>Visitor</option><option>Work permit</option><option>Study permit</option><option>Other</option></select></label>
         <label class="f w3">Study gap or anything else we should know<textarea id="pNotes" maxlength="1500" placeholder="e.g. I worked as an accountant for 2 years after my B.Com. I had a study permit refusal in 2025."></textarea></label>
       </div></div>
+      <div id="keepBox" class="grp keepbox" hidden></div>
       <h3 class="sech">Where should we send your options?</h3>
       <div class="grp"><div class="grid">
         <label class="f">Full name<input type="text" id="cName" maxlength="100" autocomplete="name" required></label>
@@ -318,9 +324,9 @@ footer p{max-width:92ch}
 <section class="sec" id="privacy" data-sec="Student Pool privacy">
   <div class="in">
     <p class="eyebrow">Your documents</p>
-    <h2>Read once. Then destroyed.</h2>
+    <h2>Your documents, your choice.</h2>
     <div class="faq" style="margin-top:12px">
-      <p class="lede" style="font-size:1rem">Your phone or computer shrinks each file into a few page images. Our server reads them in memory to fill in your profile and throws them away as soon as the answer is sent back. No document, photo, file name or page text is written to a database, file storage, log or email. The page then clears the files from your browser as well. What we keep is only the profile you confirm: your marks, years, subjects, English scores, study plans and contact details.</p>
+      <p class="lede" style="font-size:1rem">To fill in your profile, your phone or computer shrinks each file into a few page images that our server reads in memory; reading stores nothing. Before you send your profile, you choose whether WorkerPool's education team may keep your documents. If you allow it, the original files are stored privately and used only by our education team to check your credentials and help with your study options. They're never sold or shared outside WorkerPool without asking you, and you can have them deleted at any time by replying to our email. If you don't allow it, your documents are never saved; only the profile you confirm is kept.</p>
     </div>
   </div>
 </section>
@@ -332,7 +338,7 @@ footer p{max-width:92ch}
     <details><summary>Is it really free?</summary><p>Yes. Student Pool is a free service. You don't pay to upload, to get your profile reviewed or to receive your study options.</p></details>
     <details><summary>When will I hear back?</summary><p>Within 24 hours of sending your profile, by email (and by phone or WhatsApp if we need anything). Check your spam folder if you don't see it.</p></details>
     <details><summary>Which documents should I upload?</summary><p>Your 10th and 12th marksheets, any diploma, bachelor's or master's marksheets, transcripts or degree certificates, and your English test result. If you haven't taken an English test yet, tick the box in the English section.</p></details>
-    <details><summary>Do you keep my documents?</summary><p>No. Each document is read once to build your profile and then permanently deleted. We never store copies. Only the details you confirm are kept, and you can ask us to delete your profile at any time by replying to our email.</p></details>
+    <details><summary>Do you keep my documents?</summary><p>Only if you say yes. Before sending your profile you can tick a box to let our education team keep your documents so they can check your marks and help with applications. If you don't tick it, your documents are never saved. Either way you can ask us to delete your profile or documents at any time by replying to our email.</p></details>
     <details><summary>Is this immigration advice?</summary><p>No. Our education consultants help you find suitable programs and colleges. WorkerPool is a data processing company and does not provide immigration advice or representation. For a study permit application, use a licensed immigration consultant (CICC) or a lawyer.</p></details>
   </div>
 </section>
@@ -344,7 +350,7 @@ footer p{max-width:92ch}
   </div>
 </footer>
 
-<script src="/student-pool/student.js?v=1" defer></script>
+<script src="/student-pool/student.js?v=2" defer></script>
 <script>window.WPA_PAGE="student-pool";</script>
 <script src="/assets/wpa.js" defer></script>
 <script src="/assets/ticker.js?v=3" defer></script>

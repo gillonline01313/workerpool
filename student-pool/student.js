@@ -1,11 +1,12 @@
 /* WorkerPool Student Pool (free).
    1. The student adds documents per level (10th, 12th, diploma, bachelor's, master's, English test, other).
    2. Each file is turned into a few small JPEG page images here in the browser and sent to /api/student/read,
-      one document per request. The server reads it in memory and returns facts; nothing is stored.
-      As soon as a file has been read, this page drops it too (the file list and inputs are emptied).
+      one document per request. The server reads it in memory and returns facts; reading stores nothing.
    3. The facts become an editable student profile. The student confirms it, adds study plans and contact
-      details, and sends it to /api/student/submit. Only those typed details are saved; the student gets an
-      email saying an education consultant will reply with study options within 24 hours (free service). */
+      details, and chooses whether WorkerPool may keep their documents. /api/student/submit saves the profile
+      and emails the student (an education consultant replies with study options within 24 hours, free).
+   4. Only with that permission are the original files uploaded (/api/student/doc) for the education team.
+      Without it, this page drops the files and nothing but the typed profile is kept. */
 (function () {
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -26,10 +27,10 @@ const LEVEL_NAME = Object.fromEntries(LEVELS);
 const ORDER = LEVELS.map((l) => l[0]);
 const TESTS = [["ielts_academic", "IELTS Academic"], ["ielts_general", "IELTS General"], ["pte_academic", "PTE Academic"], ["pte_core", "PTE Core"], ["toefl_ibt", "TOEFL iBT"], ["duolingo", "Duolingo English Test"], ["celpip", "CELPIP"], ["other", "Other test"], ["planned", "Booked / planning to take one"], ["none", "Not taken yet"]];
 const TEST_NAME = Object.fromEntries(TESTS);
-const MAX_PER_SLOT = 4, MAX_SIZE = 15 * 1024 * 1024;
+const MAX_PER_SLOT = 4, MAX_SIZE = 10 * 1024 * 1024;
 
 let FILES = Object.fromEntries(SLOTS.map((s) => [s.k, []]));
-let EDU = [], ENG = { test: "none" }, NO_TEST = false, REF = "";
+let EDU = [], ENG = { test: "none" }, NO_TEST = false, REF = "", KEEP = [], KEPT = 0;
 
 /* ---------------- upload ---------------- */
 function renderSlots() {
@@ -39,7 +40,7 @@ function renderSlots() {
       ${FILES[s.k].length ? `<ul class="files">${FILES[s.k].map((f, i) => `<li><span>${esc(f.name)}</span><button type="button" data-rm="${i}" aria-label="Remove ${esc(f.name)}">×</button></li>`).join("")}</ul>` : ""}
       ${FILES[s.k].length < MAX_PER_SLOT ? `<button class="add" type="button" data-add="${s.k}"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>${FILES[s.k].length ? "Add another page" : "Add file or photo"}</button>` : ""}
       ${s.k === "english" ? `<label class="chk"><input type="checkbox" id="noTest"${NO_TEST ? " checked" : ""}> <span>I haven't taken an English test yet</span></label>` : ""}
-      <input type="file" hidden accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp" multiple data-in="${s.k}">
+      <input type="file" hidden accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" multiple data-in="${s.k}">
     </div>`).join("");
   $("slots").querySelectorAll(".slot").forEach((el) => {
     const k = el.dataset.k, input = el.querySelector("input[type=file]");
@@ -58,8 +59,8 @@ function renderSlots() {
 function addFiles(k, list) {
   for (const f of [...(list || [])]) {
     if (FILES[k].length >= MAX_PER_SLOT) break;
-    if (!/pdf|jpe?g|png|webp/i.test(f.type + f.name)) { alert(`${f.name}: please use a PDF, JPG or PNG.`); continue; }
-    if (f.size > MAX_SIZE) { alert(`${f.name} is over 15 MB. Try a smaller photo.`); continue; }
+    if (!/\.(pdf|jpe?g|png)$/i.test(f.name)) { alert(`${f.name}: please use a PDF, JPG or PNG.`); continue; }
+    if (f.size > MAX_SIZE) { alert(`${f.name} is over 10 MB. Try a smaller photo or scan.`); continue; }
     FILES[k].push(f);
   }
   renderSlots();
@@ -114,7 +115,7 @@ async function runRead() {
   track("read started");
   const jobs = [];
   SLOTS.forEach((s) => FILES[s.k].forEach((f) => jobs.push({ kind: s.k, file: f, name: f.name, label: s.t })));
-  FILES = Object.fromEntries(SLOTS.map((s) => [s.k, []])); // the page no longer holds the uploads once reading starts
+  FILES = Object.fromEntries(SLOTS.map((s) => [s.k, []]));
   show("pr");
   $("rTitle").textContent = "Reading your documents…";
   $("rSub").textContent = "This takes about 10 to 20 seconds per document. Keep this page open.";
@@ -130,13 +131,13 @@ async function runRead() {
       body = null;
       r = await res.json().catch(() => ({}));
     } catch (e) { r = { ok: false }; }
-    j.file = null; // destroyed: no copy of the document is kept on this page
-    if (r && r.ok && r.result) { results.push({ ...r.result, kind: j.kind, from: j.name }); st.className = "st ok"; st.textContent = "Read · deleted"; }
-    else { results.push({ kind: j.kind, from: j.name, failed: true }); st.className = "st bad"; st.textContent = "Type it in · deleted"; }
+    KEEP.push({ kind: j.kind, file: j.file, name: j.name }); // held in this tab only until the student decides
+    if (r && r.ok && r.result) { results.push({ ...r.result, kind: j.kind, from: j.name }); st.className = "st ok"; st.textContent = "Read"; }
+    else { results.push({ kind: j.kind, from: j.name, failed: true }); st.className = "st bad"; st.textContent = "Type it in"; }
     $("rBar").style.width = Math.round(((i + 1) / jobs.length) * 100) + "%";
   }
-  $("rTitle").textContent = "Done. All documents destroyed.";
-  $("rSub").textContent = `${jobs.length} document${jobs.length > 1 ? "s were" : " was"} read and permanently deleted. Nothing was saved.`;
+  $("rTitle").textContent = "Done. Your profile is ready to check.";
+  $("rSub").textContent = `${jobs.length} document${jobs.length > 1 ? "s" : ""} read. Nothing has been saved yet: on the next step you choose whether we may keep them.`;
   jobs.length = 0;
   buildProfile(results);
   setTimeout(() => { show("p2"); track("profile review"); }, 900);
@@ -201,6 +202,17 @@ function renderReview() {
     EDU.sort((a, c) => ORDER.indexOf(a.level) - ORDER.indexOf(c.level)); renderReview();
   });
   renderEnglish();
+  renderKeep();
+}
+function renderKeep() {
+  const box = $("keepBox"), n = KEEP.length;
+  box.hidden = !n;
+  if (!n) return;
+  const was = $("keepDocs") ? $("keepDocs").checked : false;
+  box.innerHTML = `<label class="chk keep"><input type="checkbox" id="keepDocs"${was ? " checked" : ""}> <span><b>Let our education team use my ${n} document${n > 1 ? "s" : ""}</b> (recommended)<br>
+    Our consultants check your marksheets and test result directly, so the study options are accurate and they can help with your college application. Your documents are stored privately and seen only by WorkerPool's education team. You can ask us to delete them at any time.</span></label>
+    <ul class="kfiles">${KEEP.map((k) => `<li>${esc(k.name)}</li>`).join("")}</ul>
+    <p class="kno">If you leave this unticked, your documents are not saved and only the details above are kept.</p>`;
 }
 function renderEnglish() {
   const off = ENG.test === "none" || ENG.test === "planned";
@@ -247,10 +259,21 @@ async function submit() {
   const english = { test: ENG.test, overall: ENG.overall || "", listening: ENG.listening || "", reading: ENG.reading || "", writing: ENG.writing || "", speaking: ENG.speaking || "", date: ENG.date || "", planned: ENG.planned || "" };
   const b = $("submit"); b.disabled = true; b.textContent = "Sending…";
   try {
-    const r = await fetch("/api/student/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contact, education: edu, english, plans, consent: true, website: $("website").value }) });
+    const keep = !!($("keepDocs") && $("keepDocs").checked && KEEP.length);
+    const r = await fetch("/api/student/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contact, education: edu, english, plans, consent: true, docsConsent: keep, docCount: keep ? KEEP.length : 0, website: $("website").value }) });
     const j = await r.json().catch(() => ({}));
     if (!j.ok) throw new Error(j.error || "Something went wrong. Please try again.");
-    REF = j.ref || "";
+    REF = j.ref || ""; KEPT = 0;
+    if (keep && j.upload) {
+      for (let i = 0; i < KEEP.length; i++) {
+        b.textContent = `Uploading documents ${i + 1} of ${KEEP.length}…`;
+        try {
+          const u = await fetch("/api/student/doc", { method: "POST", headers: { "x-upload-key": j.upload, "x-doc-kind": KEEP[i].kind, "x-file-name": encodeURIComponent(KEEP[i].name) }, body: KEEP[i].file });
+          if ((await u.json().catch(() => ({}))).ok) KEPT++;
+        } catch (x) {}
+      }
+    }
+    KEEP = []; // done with the files either way
     track("submitted");
     renderDone(contact, edu, english, plans);
     show("p3");
@@ -283,7 +306,7 @@ function renderDone(c, edu, eng, plans) {
       <li><span class="lv">English</span><span class="dt"><b>${esc(engLine(eng))}</b>${esc(eng.date ? "Taken " + eng.date : "")}</span></li>
       ${plans.level || plans.field || plans.intake ? `<li><span class="lv">Looking for</span><span class="dt"><b>${esc([plans.level, plans.field].filter(Boolean).join(" · ") || "Study options")}</b>${esc([plans.country, plans.intake, plans.budget].filter(Boolean).join(" · "))}</span></li>` : ""}
     </ul>
-    <div class="pc-foot">An education consultant is working on your credentials. Your documents were read once and permanently deleted; only this profile is kept.</div>
+    <div class="pc-foot">An education consultant is working on your credentials. ${KEPT ? `${KEPT} document${KEPT > 1 ? "s were" : " was"} shared privately with our education team, as you allowed.` : "Your documents were not saved; only this profile is kept."}</div>
   </div>`;
 }
 
