@@ -244,23 +244,55 @@ function gapYears() {
   return y < 0 ? 0 : Math.floor(y);
 }
 
-/* ---------------- submit ---------------- */
-async function submit() {
-  const err = $("sErr"); err.textContent = "";
-  const contact = { name: $("cName").value.trim(), email: $("cEmail").value.trim(), phone: $("cPhone").value.trim(), whatsapp: $("cWa").value.trim() };
+/* ---------------- see matching programs (nothing saved) ---------------- */
+function gather() {
   const edu = EDU.map(({ level, credential, board, institution, country, major, start, completed, result, english, maths, backlogs, medium }) => ({ level, credential, board, institution, country, major, start, completed, result, english, maths, backlogs, medium }))
     .filter((e) => e.credential || e.institution || e.board || e.result || e.completed);
-  if (!edu.length) { err.textContent = "Add at least one qualification (for example your 12th)."; return; }
-  if (!contact.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email) || contact.phone.replace(/\D/g, "").length < 7) { err.textContent = "Add your full name, a working email and a phone number with country code."; $("cName").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
-  if (!$("consent").checked) { err.textContent = "Please tick the box to agree to share your profile with our education team."; return; }
   const g = gapYears();
   const plans = { country: $("pCountry").value, level: $("pLevel").value, field: $("pField").value.trim(), intake: $("pIntake").value, budget: $("pBudget").value,
     living_in: $("pLiving").value.trim(), city: $("pCity").value.trim(), in_canada: $("pInCa").value, gap: g == null ? "" : `${g} year${g === 1 ? "" : "s"} since last qualification`, notes: $("pNotes").value.trim() };
   const english = { test: ENG.test, overall: ENG.overall || "", listening: ENG.listening || "", reading: ENG.reading || "", writing: ENG.writing || "", speaking: ENG.speaking || "", date: ENG.date || "", planned: ENG.planned || "" };
+  return { edu, plans, english };
+}
+let OPTIONS = [];
+const picked = () => [...document.querySelectorAll("#matchBox [data-sl]:checked")].map((x) => x.dataset.sl).filter(Boolean);
+function syncSend() {
+  const n = picked().length, b = $("submit");
+  b.textContent = n ? `Send my shortlist (${n}) · Free` : "Send my profile · Free";
+}
+async function seeMatches() {
+  const err = $("mErr"); err.textContent = "";
+  const { edu, plans, english } = gather();
+  if (!edu.length) { err.textContent = "Add at least one qualification (for example your 12th)."; return; }
+  const b = $("seeMatches"); b.disabled = true; b.textContent = "Finding programs…";
+  try {
+    const r = await fetch("/api/student/match", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ education: edu, english, plans }) });
+    const j = await r.json().catch(() => ({}));
+    if (!j.ok) throw new Error(j.error || "Couldn't load programs. Please try again.");
+    OPTIONS = j.options || [];
+    track("matches");
+    $("matchBox").innerHTML = optionsHtml(OPTIONS, true);
+    $("matchBox").hidden = false; $("sendBox").hidden = false;
+    $("matchBox").querySelectorAll("[data-sl]").forEach((cb) => cb.onchange = syncSend);
+    syncSend();
+    b.textContent = "Update my matches";
+    $("matchBox").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) { err.textContent = e.message; b.textContent = "See my matching programs"; }
+  b.disabled = false;
+}
+
+/* ---------------- submit ---------------- */
+async function submit() {
+  const err = $("sErr"); err.textContent = "";
+  const contact = { name: $("cName").value.trim(), email: $("cEmail").value.trim(), phone: $("cPhone").value.trim(), whatsapp: $("cWa").value.trim() };
+  const { edu, plans, english } = gather();
+  if (!edu.length) { err.textContent = "Add at least one qualification (for example your 12th)."; return; }
+  if (!contact.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email) || contact.phone.replace(/\D/g, "").length < 7) { err.textContent = "Add your full name, a working email and a phone number with country code."; $("cName").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  if (!$("consent").checked) { err.textContent = "Please tick the box to agree to share your profile with our education team."; return; }
   const b = $("submit"); b.disabled = true; b.textContent = "Sending…";
   try {
     const keep = !!($("keepDocs") && $("keepDocs").checked && KEEP.length);
-    const r = await fetch("/api/student/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contact, education: edu, english, plans, consent: true, docsConsent: keep, docCount: keep ? KEEP.length : 0, website: $("website").value }) });
+    const r = await fetch("/api/student/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contact, education: edu, english, plans, consent: true, shortlist: picked(), shortlistNote: ($("slNote") ? $("slNote").value.trim() : ""), docsConsent: keep, docCount: keep ? KEEP.length : 0, website: $("website").value }) });
     const j = await r.json().catch(() => ({}));
     if (!j.ok) throw new Error(j.error || "Something went wrong. Please try again.");
     REF = j.ref || ""; KEPT = 0; SLKEY = j.shortlistKey || "";
@@ -275,10 +307,10 @@ async function submit() {
     }
     KEEP = []; // done with the files either way
     track("submitted");
-    renderDone(contact, edu, english, plans, j.options || []);
+    renderDone(contact, edu, english, plans, j.shortlisted || []);
     show("p3");
   } catch (e) { err.textContent = e.message; }
-  b.disabled = false; b.textContent = "Send my profile · Free";
+  b.disabled = false; syncSend();
 }
 function engLine(e) {
   if (e.test === "none") return "Not taken yet";
@@ -290,10 +322,10 @@ function renderDone(c, edu, eng, plans, options) {
   const sorted = [...edu].sort((a, b) => ORDER.indexOf(a.level) - ORDER.indexOf(b.level));
   const top = [...sorted].reverse().find((e) => e.level !== "other") || sorted[sorted.length - 1];
   const g = gapYears();
-  $("doneSub").innerHTML = options && options.length ? `Below are the programs that fit your profile. Tick the ones you like and send us your shortlist; one of our education consultants will get in touch to finalize them with you. We've also emailed them to <b>${esc(c.email)}</b>.` : `We've emailed <b>${esc(c.email)}</b>. One of our education consultants is now working on your credentials and will get back to you with the study options available to you within 24 hours. It's free.`;
+  $("doneSub").innerHTML = options && options.length ? `Your shortlist of ${options.length} program${options.length > 1 ? "s" : ""} is with our education team. One of our consultants will get in touch to finalize your options. We've emailed a copy to <b>${esc(c.email)}</b>.` : `We've emailed <b>${esc(c.email)}</b>. One of our education consultants will get in touch with study options that fit your profile. It's free.`;
   $("pcard").innerHTML = `<div class="pcard">
     <div class="pc-h"><div><small>Student profile${REF ? " · " + esc(REF) : ""}</small><b>${esc(c.name)}</b></div>
-      <div class="pc-free"><span>Free service</span><span class="t">${options && options.length ? options.length + " matching programs" : "Profile saved"}</span></div></div>
+      <div class="pc-free"><span>Free service</span><span class="t">${options && options.length ? options.length + " shortlisted" : "Profile saved"}</span></div></div>
     <div class="pc-stats">
       <div><small>Highest</small><b>${esc(LEVEL_NAME[top.level])}${top.credential ? `<br><span style="font-size:.85rem;font-weight:600">${esc(top.credential)}</span>` : ""}</b></div>
       <div><small>Result</small><b>${esc(top.result || "–")}</b></div>
@@ -305,41 +337,27 @@ function renderDone(c, edu, eng, plans, options) {
       <li><span class="lv">English</span><span class="dt"><b>${esc(engLine(eng))}</b>${esc(eng.date ? "Taken " + eng.date : "")}</span></li>
       ${plans.level || plans.field || plans.intake ? `<li><span class="lv">Looking for</span><span class="dt"><b>${esc([plans.level, plans.field].filter(Boolean).join(" · ") || "Study options")}</b>${esc([plans.country, plans.intake, plans.budget].filter(Boolean).join(" · "))}</span></li>` : ""}
     </ul>
-    ${optionsHtml(options || [])}
+    ${shortlistHtml(options || [])}
     <div class="pc-foot">An education consultant is working on your credentials. ${KEPT ? `${KEPT} document${KEPT > 1 ? "s were" : " was"} shared privately with our education team, as you allowed.` : "Your documents were not saved; only this profile is kept."}</div>
   </div>`;
-  wireShortlist();
 }
 
 // Programs that fit the profile, shown right away; the consultant confirms requirements, fees and intakes
-function optionsHtml(list) {
-  if (!list.length) return `<div class="pc-opts"><h4>Your study options</h4><p class="pc-note">One of our education consultants will get in touch with study options that fit your profile.</p></div>`;
-  return `<div class="pc-opts" id="slBox"><h4>Programs that fit your profile</h4>
-    <p class="pc-note">Based on your education, English score and plans. Tick the ones you like, then send us your shortlist.</p>
-    <ol class="pc-optlist">${list.map((o) => `<li><label class="pc-pick"><input type="checkbox" data-sl="${esc(o.id || "")}"> Shortlist</label><b>${esc(o.name)}</b>
+function optionsHtml(list, pick) {
+  if (!list.length) return `<div class="pc-opts"><h4>Your study options</h4><p class="pc-note">We couldn't find a close match in our list yet. Send your profile and one of our education consultants will get in touch with options that fit you.</p></div>`;
+  return `<div class="pc-opts" id="slBox"><h4>${list.length} programs that fit your profile</h4>
+    <p class="pc-note">Based on your education, English score and plans. Tick <b>Shortlist</b> on the ones you like, then send your shortlist below.</p>
+    <ol class="pc-optlist">${list.map((o) => `<li>${pick ? `<label class="pc-pick"><input type="checkbox" data-sl="${esc(o.id || "")}"> Shortlist</label>` : ""}<b>${esc(o.name)}</b>
       <span>${esc([o.school, [o.city, o.province].filter(Boolean).join(", ")].filter(Boolean).join(" · "))}</span>
       <span class="pc-tags"><em>${esc(o.level)}</em>${o.pgwp ? "<em>PGWP-eligible</em>" : ""}${o.intakes ? `<em>${esc(o.intakes)}</em>` : ""}${o.tuition ? `<em>~$${Number(o.tuition).toLocaleString("en-CA")}/yr</em>` : ""}${o.fit === "good" ? '<em class="ok">Good fit</em>' : ""}</span>
       ${o.todo && o.todo.length ? `<small>To check: ${esc(o.todo.join("; "))}</small>` : ""}
       ${o.link ? `<a href="${esc(o.link)}" target="_blank" rel="noopener">College page ↗</a>` : ""}</li>`).join("")}</ol>
-    ${SLKEY ? `<label class="pc-slnote">Anything our consultant should know? (optional)<textarea id="slNote" rows="2" maxlength="1000" placeholder="e.g. I prefer Ontario, or I want a co-op program"></textarea></label>
-    <div class="pc-slbar"><button class="btn" type="button" id="slSend" disabled>Send my shortlist</button><span id="slMsg" class="pc-note"></span></div>` : ""}</div>`;
+    ${pick ? `<label class="pc-slnote">Anything our consultant should know? (optional)<textarea id="slNote" rows="2" maxlength="1000" placeholder="e.g. I prefer Ontario, or I want a co-op program"></textarea></label>` : ""}</div>`;
 }
-function wireShortlist() {
-  const box = $("slBox"); if (!box || !SLKEY) return;
-  const send = $("slSend"), msg = $("slMsg");
-  const picked = () => [...box.querySelectorAll("[data-sl]:checked")].map((x) => x.dataset.sl).filter(Boolean);
-  box.querySelectorAll("[data-sl]").forEach((cb) => cb.onchange = () => { const n = picked().length; send.disabled = !n; send.textContent = n ? `Send my shortlist (${n})` : "Send my shortlist"; msg.textContent = ""; });
-  send.onclick = async () => {
-    send.disabled = true; send.textContent = "Sending…";
-    try {
-      const r = await fetch("/api/student/shortlist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ref: REF, key: SLKEY, ids: picked(), note: $("slNote").value.trim() }) });
-      const j = await r.json().catch(() => ({}));
-      if (!j.ok) throw new Error(j.error || "Couldn't send. Please try again.");
-      track("shortlist");
-      box.querySelector(".pc-slbar").innerHTML = `<p class="pc-sent">✓ Shortlist sent (${j.count} program${j.count > 1 ? "s" : ""}). One of our education consultants will get in touch to finalize your options. You can change it and send again any time.</p><button class="btn ghost" type="button" id="slAgain">Change my shortlist</button>`;
-      $("slAgain").onclick = () => { box.querySelector(".pc-slbar").innerHTML = `<button class="btn" type="button" id="slSend">Send my shortlist</button><span id="slMsg" class="pc-note"></span>`; wireShortlist(); box.querySelector("[data-sl]").dispatchEvent(new Event("change")); };
-    } catch (e) { msg.textContent = e.message; send.disabled = false; send.textContent = "Send my shortlist"; }
-  };
+function shortlistHtml(list) {
+  if (!list.length) return "";
+  return `<div class="pc-opts"><h4>Your shortlist</h4><p class="pc-note">Sent to our education team. A consultant will get in touch to finalize these with you.</p>
+    <ol class="pc-optlist">${list.map((o) => `<li><b>${esc(o.name)}</b><span>${esc([o.school, [o.city, o.province].filter(Boolean).join(", ")].filter(Boolean).join(" · "))}</span>${o.link ? `<a href="${esc(o.link)}" target="_blank" rel="noopener">College page ↗</a>` : ""}</li>`).join("")}</ol></div>`;
 }
 
 /* ---------------- steps ---------------- */
@@ -353,6 +371,7 @@ $("readBtn").onclick = runRead;
 $("manual").onclick = () => { track("manual"); buildProfile([]); if (NO_TEST) ENG = { test: "none" }; show("p2"); };
 $("back").onclick = () => { renderSlots(); show("p1"); };
 $("submit").onclick = submit;
+$("seeMatches").onclick = seeMatches;
 $("print").onclick = () => window.print();
 intakes();
 renderSlots();

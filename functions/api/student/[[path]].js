@@ -31,6 +31,7 @@ export async function onRequest({ request, env, params }) {
   if (action === "submit") return submit(request, env);
   if (action === "doc") return saveDoc(request, env);
   if (action === "shortlist") return shortlist(request, env);
+  if (action === "match") return match(request, env);
   return reply({ ok: false, error: "Not found" }, 404);
 }
 
@@ -198,26 +199,19 @@ async function submit(request, env) {
       JSON.stringify(plans), JSON.stringify({ education: edu, english }), str(cf.country, 4) || null,
       keep ? now : null, upload ? await sha256hex(upload) : null, upload ? new Date(Date.now() + 36e5).toISOString() : null).run();
 
-  // Study options for this profile, from the Study options catalog (only schools ticked "On ApplyBoard")
-  let options = [];
-  try {
-    await ensureStudyTables(env, request);
-    const sc = (await env.DB.prepare(`SELECT * FROM study_schools WHERE applyboard = 1`).all()).results;
-    const pr = (await env.DB.prepare(`SELECT * FROM study_programs WHERE active = 1`).all()).results;
-    const all = matchAll({ plans: JSON.stringify(plans), profile: JSON.stringify({ education: edu, english }) }, pr, sc).matches.filter((m) => m.grade !== "no");
-    const pool = all.some((m) => m.fieldFit) ? all.filter((m) => m.fieldFit) : all;
-    const perSchool = {};
-    for (const m of pool) {
-      if ((perSchool[m.school.id] = (perSchool[m.school.id] || 0) + 1) > 2) continue; // a spread of schools
-      const p = m.program;
-      options.push({ id: p.id, name: p.name, school: m.school.name, city: m.school.city || "", province: m.school.province || "", level: STUDY_LEVELS[p.level] || p.level,
-        intakes: p.intakes || "", tuition: p.tuition || null, pgwp: p.pgwp === "yes", link: p.link || "", fit: m.grade,
-        todo: m.checks.filter((c) => c.state === "soft").map((c) => c.text).slice(0, 3) });
-      if (options.length >= 10) break;
-    }
-  } catch {}
+  const options = await matchOptions(env, request, edu, english, plans);
+  // Shortlist picked on the page before sending: saved with the profile
+  const picks = [...new Set((Array.isArray(b.shortlist) ? b.shortlist : []).map((x) => str(String(x), 40)).filter(Boolean))].slice(0, 10);
+  let shortlisted = [];
+  if (picks.length) {
+    shortlisted = (await env.DB.prepare(`SELECT p.id, p.name, p.level, p.link, s.name AS school, s.city, s.province FROM study_programs p JOIN study_schools s ON s.id = p.school_id
+      WHERE p.id IN (${picks.map((_, i) => "?" + (i + 1)).join(",")})`).bind(...picks).all()).results;
+    if (shortlisted.length) await env.DB.prepare(`UPDATE student_profiles SET shortlist = ?1, shortlist_at = ?2, status = 'shortlisted' WHERE id = ?3`)
+      .bind(JSON.stringify({ programs: shortlisted, note: str(b.shortlistNote, 1000) }), now, pid).run();
+  }
 
   const site = env.SITE_URL || "https://workerpool.ca";
+  const slLines = shortlisted.map((r, i) => `${i + 1}. ${r.name} – ${r.school}${r.city ? ", " + r.city : ""}`).join("\n");
   const optLines = options.slice(0, 5).map((o, i) => `${i + 1}. ${o.name} – ${o.school}${o.city ? ", " + o.city : ""} (${o.level})${o.pgwp ? ", listed by the college as PGWP-eligible" : ""}`).join("\n");
   const eduLines = edu.map((e) => `• ${LEVEL_NAMES[e.level]}: ${[e.credential, e.major, e.institution || e.board, e.completed && "completed " + e.completed, e.result].filter(Boolean).join(", ")}`).join("\n");
   const first = name.split(/\s+/)[0];
@@ -227,7 +221,7 @@ async function submit(request, env) {
 Thank you for joining the WorkerPool Student Pool.
 
 Your profile is saved with our education team.
-${optLines ? `\nPrograms that fit your profile:\n${optLines}\n\nOn the Student Pool page you can shortlist the ones you like and send them to us. One of our education consultants will then get in touch to finalize your options and confirm entry requirements, fees and intakes.\n` : `\nOne of our education consultants will get in touch with study options that fit your profile.\n`}
+${slLines ? `\nYour shortlist:\n${slLines}\n\nOne of our education consultants will get in touch with you to finalize your options and confirm entry requirements, fees and intakes.\n` : optLines ? `\nPrograms that fit your profile:\n${optLines}\n\nOne of our education consultants will get in touch with you to finalize your options.\n` : `\nOne of our education consultants will get in touch with study options that fit your profile.\n`}
 This is a completely free service. There is nothing to pay, now or later.
 
 Your reference: ${ref}
@@ -245,7 +239,7 @@ ${site}/student-pool/
 
 WorkerPool is an Alberta-based data processing company. We help students find study options; we do not provide immigration advice or representation.`);
   if (env.ADMIN_EMAIL) await sendEmail(env, env.ADMIN_EMAIL, `Student Pool ${ref}: ${name}`,
-`New Student Pool profile (${ref}). The student saw ${options.length} matching programs and can send a shortlist.
+`New Student Pool profile (${ref}). ${slLines ? `Shortlist (get in touch to finalize):\n${slLines}${str(b.shortlistNote, 1000) ? `\nNote: ${str(b.shortlistNote, 1000)}` : ""}` : `The student saw ${options.length} matching programs but didn't shortlist any.`}
 
 ${name}
 ${email} · ${phone}${whatsapp ? " · WhatsApp " + whatsapp : ""}
@@ -264,7 +258,7 @@ Open the admin dashboard (Student Pool tab): ${site}/admin/`, email);
   if (options.length) await env.DB.prepare(`UPDATE student_profiles SET note = ?1 WHERE id = ?2`).bind(("Shown to student on submit: " + options.map((o) => `${o.name} – ${o.school}`).join("; ")).slice(0, 1990), pid).run().catch(() => {});
   const slKey = options.length ? randomToken() : null;
   if (slKey) await env.DB.prepare(`UPDATE student_profiles SET shortlist_hash = ?1 WHERE id = ?2`).bind(await sha256hex(slKey), pid).run().catch(() => {});
-  return reply({ ok: true, ref, options, ...(slKey ? { shortlistKey: slKey } : {}), ...(upload ? { upload, docs: nDocs } : {}) });
+  return reply({ ok: true, ref, options, shortlisted, ...(slKey ? { shortlistKey: slKey } : {}), ...(upload ? { upload, docs: nDocs } : {}) });
 }
 
 /* ---------------- keep one original document (only with the student's permission) ---------------- */
@@ -345,4 +339,44 @@ ${list}
 ${note ? `\nNote from the student: ${note}\n` : ""}
 Admin dashboard (Student Pool tab): ${site}/admin/`, p.email);
   return reply({ ok: true, count: rows.length });
+}
+
+/* ---------------- matching programs (Study options catalog, ApplyBoard schools only) ---------------- */
+async function matchOptions(env, request, edu, english, plans) {
+  const options = [];
+  try {
+    await ensureStudyTables(env, request);
+    const sc = (await env.DB.prepare(`SELECT * FROM study_schools WHERE applyboard = 1`).all()).results;
+    const pr = (await env.DB.prepare(`SELECT * FROM study_programs WHERE active = 1`).all()).results;
+    const all = matchAll({ plans: JSON.stringify(plans), profile: JSON.stringify({ education: edu, english }) }, pr, sc).matches.filter((m) => m.grade !== "no");
+    const pool = all.some((m) => m.fieldFit) ? all.filter((m) => m.fieldFit) : all;
+    const perSchool = {};
+    for (const m of pool) {
+      if ((perSchool[m.school.id] = (perSchool[m.school.id] || 0) + 1) > 2) continue; // a spread of schools
+      const p = m.program;
+      options.push({ id: p.id, name: p.name, school: m.school.name, city: m.school.city || "", province: m.school.province || "", level: STUDY_LEVELS[p.level] || p.level,
+        intakes: p.intakes || "", tuition: p.tuition || null, pgwp: p.pgwp === "yes", link: p.link || "", fit: m.grade,
+        todo: m.checks.filter((c) => c.state === "soft").map((c) => c.text).slice(0, 3) });
+      if (options.length >= 12) break;
+    }
+  } catch {}
+  return options;
+}
+// The same cleaning submit() uses, for the match-only request (nothing is saved)
+function cleanForMatch(b) {
+  const edu = (Array.isArray(b.education) ? b.education : []).slice(0, 12).map((e) => ({ level: LEVEL_NAMES[e.level] ? e.level : "other", credential: str(e.credential, 120), major: str(e.major, 120),
+    completed: str(e.completed, 20), result: str(e.result, 40), backlogs: str(e.backlogs, 4) })).filter((e) => e.credential || e.result || e.completed);
+  const l = b.english || {};
+  const english = { test: TEST_NAMES[l.test] ? l.test : "none", overall: str(String(l.overall ?? ""), 8), listening: str(String(l.listening ?? ""), 8), reading: str(String(l.reading ?? ""), 8),
+    writing: str(String(l.writing ?? ""), 8), speaking: str(String(l.speaking ?? ""), 8) };
+  const p = b.plans || {};
+  const plans = { country: str(p.country, 60), level: str(p.level, 60), field: str(p.field, 120), intake: str(p.intake, 40), budget: str(p.budget, 60), gap: str(p.gap, 400), notes: str(p.notes, 1500) };
+  return { edu, english, plans };
+}
+async function match(request, env) {
+  const b = await readJson(request, 40000);
+  if (!b) return reply({ ok: false, error: "Invalid request." }, 400);
+  const { edu, english, plans } = cleanForMatch(b);
+  if (!edu.length) return reply({ ok: false, error: "Add at least one qualification (for example your 12th)." }, 400);
+  return reply({ ok: true, options: await matchOptions(env, request, edu, english, plans) });
 }

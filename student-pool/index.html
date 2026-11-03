@@ -302,8 +302,13 @@ footer p{max-width:92ch}
         <label class="f">Status in Canada (if you're there)<select id="pInCa"><option value="">Not in Canada</option><option>Visitor</option><option>Work permit</option><option>Study permit</option><option>Other</option></select></label>
         <label class="f w3">Study gap or anything else we should know<textarea id="pNotes" maxlength="1500" placeholder="e.g. I worked as an accountant for 2 years after my B.Com. I had a study permit refusal in 2025."></textarea></label>
       </div></div>
+      <div class="go"><button class="btn lg" type="button" id="seeMatches">See my matching programs</button></div>
+      <p class="err" id="mErr" role="alert"></p>
+      <div id="matchBox" hidden></div>
+      <div id="sendBox" hidden>
       <div id="keepBox" class="grp keepbox" hidden></div>
-      <h3 class="sech">Where should we send your options?</h3>
+      <h3 class="sech">Send your shortlist to a consultant</h3>
+      <p class="pc-note" style="margin:-4px 0 10px">One of our education consultants will get in touch to finalize your options with you. Free.</p>
       <div class="grp"><div class="grid">
         <label class="f">Full name<input type="text" id="cName" maxlength="100" autocomplete="name" required></label>
         <label class="f">Email<input type="email" id="cEmail" maxlength="120" autocomplete="email" required></label>
@@ -311,10 +316,12 @@ footer p{max-width:92ch}
         <label class="f">WhatsApp (if different)<input type="tel" id="cWa" maxlength="40" placeholder="Optional"></label>
         <input type="text" id="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
       </div>
-      <label class="chk" style="margin-top:14px"><input type="checkbox" id="consent"> <span>I agree that WorkerPool keeps the profile details above (not my documents) and shares them with its education consultants so they can suggest study options. I can ask for my profile to be deleted at any time.</span></label>
+      <label class="chk" style="margin-top:14px"><input type="checkbox" id="consent"> <span>I agree that WorkerPool keeps the profile details above and my shortlist, and shares them with its education consultants so they can finalize my study options. I can ask for my profile to be deleted at any time.</span></label>
       </div>
-      <div class="go"><button class="btn lg" type="button" id="submit">Send my profile · Free</button><button class="linkbtn" type="button" id="back">Upload more documents</button></div>
+      <div class="go"><button class="btn lg" type="button" id="submit">Send my profile · Free</button></div>
       <p class="err" id="sErr" role="alert"></p>
+      </div>
+      <div class="go"><button class="linkbtn" type="button" id="back">Upload more documents</button></div>
     </div>
 
     <!-- 3. done -->
