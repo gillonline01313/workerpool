@@ -3,7 +3,8 @@ import { json, readJson, str, sendEmail, ensureSignupLog, chatOpen, CHAT_MSG_SQL
 import { NEWS_SEED } from "../../_news.js";
 import { ensureTable as ensureStudents, STATUSES as STUDENT_STATUSES } from "../../_students.js";
 import { autoDraws, edits as drawEdits, merge as mergeDraws, FIELDS as DRAW_FIELDS } from "../../_draws.js";
-import { audience, GROUPS, FROM, MAX_RECIPIENTS, ensureMailTables, buildMessage, sendBatch } from "../../_mail.js";
+import { audience, GROUPS, FROM, MAX_RECIPIENTS, ensureMailTables, buildMessage, sendBatch, cleanSender } from "../../_mail.js";
+import { TEMPLATES, CARE_TEAM } from "../../_templates.js";
 function same(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
   let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0;
@@ -45,7 +46,9 @@ export async function onRequestGet({ request, env, params }) {
   if (route === "mail") { // Email tab: everyone who can be emailed, their groups, unsubscribes and past sends
     const { people, unsubs } = await audience(env);
     const sends = (await env.DB.prepare(`SELECT id, created, subject, audience, total, sent, failed, skipped, error FROM email_campaigns ORDER BY created DESC LIMIT 50`).all()).results;
+    const mine = (await env.DB.prepare(`SELECT id, label, subject, body FROM email_templates ORDER BY label`).all()).results.map((t) => ({ ...t, group: "My templates", custom: 1 }));
     return json({ ok: true, ready: !!env.RESEND_API_KEY, from: FROM(env), groups: GROUPS.map(([k, l]) => [k, l]), max: MAX_RECIPIENTS,
+      templates: mine.concat(TEMPLATES), team: (env.CARE_TEAM ? env.CARE_TEAM.split(",").map(cleanSender).filter(Boolean) : CARE_TEAM),
       people: people.map((p) => ({ ...p, unsub: unsubs.has(p.email) ? 1 : 0 })), sends });
   }
   if (route === "mail-campaign") {
@@ -223,6 +226,16 @@ export async function onRequestPost({ request, env, params }) {
 async function mailAction(env, route, b) {
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
   await ensureMailTables(env);
+  if (route === "mail-template") { // save, update or delete one of "My templates"
+    const tid = str(b.id, 64);
+    if (b.delete) { await env.DB.prepare(`DELETE FROM email_templates WHERE id = ?1`).bind(tid).run(); return json({ ok: true }); }
+    const label = str(b.label, 100), subject = str(b.subject, 200), body = str(b.body, 20000);
+    if (!label || !body) return json({ ok: false, error: "Give the template a name and a message." }, 400);
+    const nid = tid || crypto.randomUUID();
+    await env.DB.prepare(`INSERT INTO email_templates (id, label, subject, body, updated) VALUES (?1, ?2, ?3, ?4, ?5)
+      ON CONFLICT(id) DO UPDATE SET label = excluded.label, subject = excluded.subject, body = excluded.body, updated = excluded.updated`).bind(nid, label, subject, body, new Date().toISOString()).run();
+    return json({ ok: true, id: nid });
+  }
   if (route === "mail-unsub") {
     const email = str(b.email, 200).toLowerCase();
     if (!email) return json({ ok: false, error: "Missing email." }, 400);
@@ -238,7 +251,8 @@ async function mailAction(env, route, b) {
   if (route === "mail-test") {
     const to = (str(b.to, 200) || env.ADMIN_EMAIL || "").toLowerCase();
     if (!isEmailAddr(to)) return json({ ok: false, error: "Enter an address for the test." }, 400);
-    const r = await sendBatch(env, [await buildMessage(env, { email: to, name: str(b.name, 80) || "Test" }, "[Test] " + subject, body)]);
+    const opts = { style: b.style, sender: b.sender };
+    const r = await sendBatch(env, [await buildMessage(env, { email: to, name: str(b.name, 80) || "Test" }, "[Test] " + subject, body, opts)]);
     return r.sent ? json({ ok: true, to }) : json({ ok: false, error: "Resend refused the test: " + r.error }, 502);
   }
   if (route === "mail-send") {
@@ -251,7 +265,9 @@ async function mailAction(env, route, b) {
     const to = want.filter((e) => !unsubs.has(e)).map((e) => known.get(e) || { email: e, name: "" });
     const skipped = want.length - to.length, cid = crypto.randomUUID();
     if (!to.length) return json({ ok: false, error: "Everyone you picked has unsubscribed." }, 400);
-    const messages = []; for (const p of to) messages.push(await buildMessage(env, p, subject, body));
+    const opts = { style: b.style, sender: b.sender };
+    if (opts.style === "personal" && !cleanSender(opts.sender)) return json({ ok: false, error: "Choose who the email is signed by." }, 400);
+    const messages = []; for (const p of to) messages.push(await buildMessage(env, p, subject, body, opts));
     const r = await sendBatch(env, messages);
     await env.DB.prepare(`INSERT INTO email_campaigns (id, created, subject, body, audience, total, sent, failed, skipped, error) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`)
       .bind(cid, new Date().toISOString(), subject, body, str(b.label, 300) || "Selected people", want.length, r.sent, r.failed, skipped, r.error || null).run();

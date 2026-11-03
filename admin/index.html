@@ -183,6 +183,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
 .ml-p small{color:var(--muted);font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ml-p.off{opacity:.6;cursor:default}
 .ml-p .dl{flex:none;font-size:.72rem;padding:4px 9px}
+.ml-row{display:flex;flex-wrap:wrap;gap:8px}
+.ml-sign{display:flex;gap:8px;flex-wrap:wrap}.ml-sign select{flex:1;min-width:160px}.ml-sign input{flex:1;min-width:160px}
 .ml-prev summary{cursor:pointer;color:var(--accent);font-size:.85rem;font-weight:600}
 .ml-prev div{margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
 .ml-prev pre{white-space:pre-wrap;font:inherit;font-size:.88rem;margin:8px 0 0}
@@ -1011,9 +1013,10 @@ function renderPasses(body){
 }
 
 /* ---------- Email to people who signed up (sent from info@workerpool.ca) ---------- */
-const ml={sel:new Set(),q:"",shown:150,subject:"",body:"",test:"",busy:false,reload:false,init:false,msg:"",view:null};
-function mailInit(){ if(ml.init) return; ml.init=true; try{ const d=JSON.parse(localStorage.getItem("wp_mail_draft")||"{}"); ml.subject=d.subject||""; ml.body=d.body||""; }catch(e){} }
-function mailSave(){ try{ localStorage.setItem("wp_mail_draft",JSON.stringify({subject:ml.subject,body:ml.body})); }catch(e){} }
+const ml={sel:new Set(),q:"",shown:150,subject:"",body:"",test:"",busy:false,reload:false,init:false,msg:"",view:null,tpl:"",style:"personal",sender:""};
+function mailInit(){ if(ml.init) return; ml.init=true; try{ const d=JSON.parse(localStorage.getItem("wp_mail_draft")||"{}"); ml.subject=d.subject||""; ml.body=d.body||""; ml.tpl=d.tpl||""; ml.style=d.style||"personal"; ml.sender=d.sender||""; }catch(e){}
+  const T=(data.mail&&data.mail.team)||[]; if(!ml.sender&&T.length){ ml.sender=T[Math.floor(Math.random()*T.length)]; mailSave(); } }
+function mailSave(){ try{ localStorage.setItem("wp_mail_draft",JSON.stringify({subject:ml.subject,body:ml.body,tpl:ml.tpl,style:ml.style,sender:ml.sender})); }catch(e){} }
 function renderMail(body){
   const D=data.mail; if(!D){ body.innerHTML=`<div class="wpa-empty">Loading…</div>`; return; }
   const P=D.people, GL=Object.fromEntries(D.groups), can=P.filter(p=>!p.unsub);
@@ -1028,7 +1031,11 @@ function renderMail(body){
     <span><b>${esc(p.name||p.email)}</b><small>${p.name?esc(p.email)+" · ":""}${p.groups.map(g=>esc(GL[g]||g)).join(", ")}</small></span>
     ${p.unsub?`<button type="button" class="dl" data-resub="${esc(p.email)}">Unsubscribed · resubscribe</button>`:""}</label>`;
   const prevP=P.find(p=>ml.sel.has(p.email))||{name:"Priya Sharma"};
-  const fill=s=>String(s).replace(/\{\s*(first_?name|name)\s*\}/gi,(String(prevP.name||"").trim().split(/\s+/)[0]||"there"));
+  const pers=ml.style==="personal", sFirst=ml.sender.trim().split(/\s+/)[0]||"the WorkerPool team";
+  const fill=s=>String(s).replace(/\{\s*(first_?name|name)\s*\}/gi,(String(prevP.name||"").trim().split(/\s+/)[0]||"there")).replace(/\{\s*sender\s*\}/gi,sFirst);
+  const sigTxt=()=>pers?`\n${ml.sender.trim()}\nCare Team, WorkerPool\nworkerpool.ca | ${(D.from.match(/<([^>]+)>/)||[])[1]||D.from}`:"\n\n--\nYou're getting this because you signed up at workerpool.ca. · Unsubscribe";
+  const fromTxt=()=>pers&&ml.sender.trim()?`${ml.sender.trim()} from WorkerPool <${(D.from.match(/<([^>]+)>/)||[])[1]||D.from}>`:D.from;
+  const TP=D.templates||[], tGroups=[...new Set(TP.map(t=>t.group))], curT=TP.find(t=>t.id===ml.tpl), team=D.team||[];
   body.innerHTML=`${D.ready?"":`<div class="wpa-empty" style="border-color:#b4552d;color:#b4552d;margin-bottom:12px">RESEND_API_KEY isn't set in Cloudflare, so nothing can be sent yet.</div>`}
   <div class="ml-grid">
   <div class="wpa-card"><h3>1. Who gets it <span class="pill">${n} picked</span></h3>
@@ -1039,11 +1046,15 @@ function renderMail(body){
       ${F.length>ml.shown?`<button class="dl" type="button" id="mlMore">Show more (${F.length-ml.shown} left)</button>`:""}</div>
   </div>
   <div class="wpa-card"><h3>2. Message</h3>
-    <p class="ml-hint">Sends from <b>${esc(D.from)}</b>. Replies come back to that inbox. Write <code>{name}</code> to use each person's first name. An unsubscribe link and your business footer are added automatically.</p>
     <form class="nw-form" id="mlForm" style="grid-template-columns:1fr">
+      <label>Template<select id="mlTpl"><option value="">Blank message</option>${tGroups.map(g=>`<optgroup label="${esc(g)}">${TP.filter(t=>t.group===g).map(t=>`<option value="${esc(t.id)}"${t.id===ml.tpl?" selected":""}>${esc(t.label)}</option>`).join("")}</optgroup>`).join("")}</select></label>
+      <div class="ml-row">${seg("mls",[["personal","Personal (signed by a person)"],["newsletter","Newsletter (branded)"]],ml.style)}</div>
+      ${pers?`<label>Signed by (WorkerPool care team)<span class="ml-sign"><select id="mlWho">${team.map(n=>`<option${n===ml.sender?" selected":""}>${esc(n)}</option>`).join("")}<option value="__other"${ml.sender&&!team.includes(ml.sender)?" selected":""}>Other name…</option></select>${ml.sender&&!team.includes(ml.sender)||ml.other?`<input id="mlWhoX" maxlength="40" placeholder="First and last name" value="${esc(team.includes(ml.sender)?"":ml.sender)}">`:""}</span></label>`:""}
+      <p class="ml-hint">From: <b id="mlFrom">${esc(fromTxt())}</b>. Replies come back to that inbox. <code>{name}</code> = their first name${pers?", <code>{sender}</code> = the signer's first name. The signature is added under the message, with no banner or bulk footer, so it reads like a normal email":". A branded header, footer and unsubscribe link are added"}.</p>
       <label>Subject<input id="mlS" maxlength="200" value="${esc(ml.subject)}" placeholder="e.g. New Express Entry draw: what it means for you"></label>
       <label>Message<textarea id="mlB" rows="12" placeholder="Hi {name},&#10;&#10;…">${esc(ml.body)}</textarea></label>
-      <details class="ml-prev"><summary>Preview (as ${esc(prevP.name||"first person")})</summary><div><b id="mlPS">${esc(fill(ml.subject)||"(no subject)")}</b><pre id="mlPB">${esc(fill(ml.body))}</pre></div></details>
+      <div class="nw-acts"><button class="dl" type="button" id="mlSaveT">${curT&&curT.custom?"Update my template":"Save as my template"}</button>${curT&&curT.custom?`<button class="dl" type="button" id="mlDelT">Delete template</button>`:""}</div>
+      <details class="ml-prev"${ml.body?" open":""}><summary>Preview (as ${esc(prevP.name||"first person")})</summary><div><b id="mlPS">${esc(fill(ml.subject)||"(no subject)")}</b><pre id="mlPB">${esc(fill(ml.body)+sigTxt())}</pre></div></details>
       <div class="nw-acts"><input id="mlT" type="email" placeholder="Test address (blank = ADMIN_EMAIL)" value="${esc(ml.test)}" style="flex:1;min-width:180px"><button class="dl" type="button" id="mlTest">Send me a test</button></div>
       <div class="err" id="mlErr"></div><div id="mlOk" style="color:#1f7a4d;font-size:.88rem">${esc(ml.msg)}</div>
       <div class="nw-acts"><button class="dl" type="submit" id="mlGo" style="background:var(--accent);color:var(--surface);border-color:var(--accent)"${n&&D.ready?"":" disabled"}>Send to ${n} ${n===1?"person":"people"}</button></div>
@@ -1053,6 +1064,7 @@ function renderMail(body){
     <small>${when(c.created)} · ${esc(c.audience)} · ${c.sent} sent${c.failed?` · <span style="color:#b4552d">${c.failed} failed</span>`:""}${c.skipped?` · ${c.skipped} unsubscribed, skipped`:""}${c.error?` · ${esc(c.error)}`:""}</small></div>
     <div class="nw-btns"><button class="dl" data-reuse="${esc(c.id)}">Use again</button></div></div>`).join("")}</div>`:`<div class="wpa-empty">Nothing sent yet.</div>`}</div>`;
   const keep=()=>{ const y=window.scrollY; renderMail(body); window.scrollTo(0,y); };
+  const fail=x=>{ if(x.message==="auth") return lock("That admin key isn't right."); $("#mlErr").textContent=x.message; };
   body.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ const g=inG(b.dataset.g), all=g.every(p=>ml.sel.has(p.email)); g.forEach(p=>all?ml.sel.delete(p.email):ml.sel.add(p.email)); ml.msg=""; keep(); });
   body.querySelectorAll("[data-e]").forEach(c=>c.onchange=()=>{ c.checked?ml.sel.add(c.dataset.e):ml.sel.delete(c.dataset.e); ml.msg=""; keep(); });
   body.querySelectorAll("[data-resub]").forEach(b=>b.onclick=async e=>{ e.preventDefault(); if(!confirm(`Resubscribe ${b.dataset.resub}? Only do this if they asked to get emails again.`)) return;
@@ -1061,21 +1073,33 @@ function renderMail(body){
   $("#mlAll").onclick=()=>{ F.filter(p=>!p.unsub).forEach(p=>ml.sel.add(p.email)); keep(); };
   $("#mlNone").onclick=()=>{ ml.sel.clear(); keep(); };
   if($("#mlMore")) $("#mlMore").onclick=()=>{ ml.shown+=300; keep(); };
-  const upd=()=>{ ml.subject=$("#mlS").value; ml.body=$("#mlB").value; ml.test=$("#mlT").value; mailSave(); $("#mlPS").textContent=fill(ml.subject)||"(no subject)"; $("#mlPB").textContent=fill(ml.body); };
+  const upd=()=>{ ml.subject=$("#mlS").value; ml.body=$("#mlB").value; ml.test=$("#mlT").value; if($("#mlWhoX")) ml.sender=$("#mlWhoX").value; mailSave(); $("#mlPS").textContent=fill(ml.subject)||"(no subject)"; $("#mlPB").textContent=fill(ml.body)+sigTxt(); $("#mlFrom").textContent=fromTxt(); };
+  if($("#mlWhoX")) $("#mlWhoX").oninput=upd;
+  $("#mlTpl").onchange=e=>{ const t=TP.find(x=>x.id===e.target.value);
+    if(ml.body.trim()&&!confirm("Replace the message you've written with this template?")){ e.target.value=ml.tpl; return; }
+    ml.tpl=e.target.value; ml.subject=t?t.subject||"":""; ml.body=t?t.body||"":""; mailSave(); keep(); $("#mlB").focus(); };
+  body.querySelectorAll('[data-seg="mls"] button').forEach(b=>b.onclick=()=>{ upd(); ml.style=b.dataset.v; mailSave(); keep(); });
+  if($("#mlWho")) $("#mlWho").onchange=e=>{ upd(); if(e.target.value==="__other"){ ml.other=true; ml.sender=""; } else { ml.other=false; ml.sender=e.target.value; } mailSave(); keep(); if($("#mlWhoX")) $("#mlWhoX").focus(); };
+  $("#mlSaveT").onclick=async()=>{ upd(); if(!ml.body.trim()){ $("#mlErr").textContent="Write the message first."; return; }
+    const label=prompt("Name for this template:", curT&&curT.custom?curT.label:(curT?curT.label+" (my version)":"")); if(!label) return;
+    try{ const j=await chatFetch("mail-template",{method:"POST",body:JSON.stringify({id:curT&&curT.custom?curT.id:"",label,subject:ml.subject,body:ml.body})}); ml.tpl=j.id; mailSave(); ml.msg="Template saved."; ml.reload=true; load(); }catch(x){ fail(x); } };
+  if($("#mlDelT")) $("#mlDelT").onclick=async()=>{ if(!confirm(`Delete the template "${curT.label}"?`)) return;
+    try{ await chatFetch("mail-template",{method:"POST",body:JSON.stringify({id:curT.id,delete:true})}); ml.tpl=""; mailSave(); ml.reload=true; load(); }catch(x){ fail(x); } };
   ["#mlS","#mlB","#mlT"].forEach(id=>$(id).oninput=upd);
   body.querySelectorAll("[data-reuse]").forEach(b=>b.onclick=async()=>{ try{ const j=await chatFetch("mail-campaign?id="+encodeURIComponent(b.dataset.reuse)); ml.subject=j.row.subject||""; ml.body=j.row.body||""; mailSave(); keep(); $("#mlS").focus(); }catch(x){ alert(x.message); } });
-  const fail=x=>{ if(x.message==="auth") return lock("That admin key isn't right."); $("#mlErr").textContent=x.message; };
+
   $("#mlTest").onclick=async e=>{ upd(); $("#mlErr").textContent=""; e.target.disabled=true;
-    try{ const j=await chatFetch("mail-test",{method:"POST",body:JSON.stringify({subject:ml.subject,body:ml.body,to:ml.test.trim(),name:prevP.name||""})}); $("#mlOk").textContent="Test sent to "+j.to+". Check that it landed in the inbox, not spam."; }catch(x){ fail(x); } e.target.disabled=false; };
+    try{ const j=await chatFetch("mail-test",{method:"POST",body:JSON.stringify({subject:ml.subject,body:ml.body,to:ml.test.trim(),name:prevP.name||"",style:ml.style,sender:ml.sender})}); $("#mlOk").textContent="Test sent to "+j.to+". Check that it landed in the inbox, not spam."; }catch(x){ fail(x); } e.target.disabled=false; };
   $("#mlForm").onsubmit=async e=>{ e.preventDefault(); upd(); $("#mlErr").textContent="";
     const emails=[...ml.sel]; if(!emails.length) return;
     if(!ml.subject.trim()||!ml.body.trim()){ $("#mlErr").textContent="Add a subject and a message."; return; }
-    if(!confirm(`Send "${ml.subject}" to ${emails.length} ${emails.length===1?"person":"people"} from ${D.from}?\n\nThis can't be undone.`)) return;
+    if(pers&&!ml.sender.trim()){ $("#mlErr").textContent="Choose who the email is signed by."; return; }
+    if(!confirm(`Send "${fill(ml.subject)}" to ${emails.length===1?emails[0]:emails.length+" people"} from ${fromTxt()}?\n\nThis can't be undone.`)) return;
     const picked=D.groups.filter(([k])=>{ const g=inG(k); return g.length&&g.every(p=>ml.sel.has(p.email)); }).map(([,l])=>l);
     const go=$("#mlGo"); go.disabled=true; go.textContent=`Sending to ${emails.length}…`;
-    try{ const j=await chatFetch("mail-send",{method:"POST",body:JSON.stringify({subject:ml.subject,body:ml.body,emails,label:(picked.join(", ")||"Hand-picked")+` (${emails.length})`})});
+    try{ const j=await chatFetch("mail-send",{method:"POST",body:JSON.stringify({subject:ml.subject,body:ml.body,emails,style:ml.style,sender:ml.sender,label:(emails.length===1?emails[0]:(picked.join(", ")||"Hand-picked")+` (${emails.length})`)+(pers?` · signed ${ml.sender}`:"")})});
       ml.msg=`Sent to ${j.sent} ${j.sent===1?"person":"people"}${j.skipped?`, ${j.skipped} unsubscribed skipped`:""}${j.failed?`. ${j.failed} failed: ${j.error}`:""}.`;
-      ml.sel.clear(); ml.subject=""; ml.body=""; mailSave(); ml.reload=true; load();
+      ml.sel.clear(); ml.subject=""; ml.body=""; ml.tpl=""; mailSave(); ml.reload=true; load();
     }catch(x){ fail(x); go.disabled=false; go.textContent=`Send to ${emails.length} people`; } };
 }
 /* ---------- Hot & New ticker ---------- */

@@ -12,6 +12,7 @@ export async function ensureMailTables(env) {
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS email_unsubs (email TEXT PRIMARY KEY, t TEXT NOT NULL)`).run();
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS email_campaigns (id TEXT PRIMARY KEY, created TEXT NOT NULL, subject TEXT, body TEXT,
     audience TEXT, total INTEGER DEFAULT 0, sent INTEGER DEFAULT 0, failed INTEGER DEFAULT 0, skipped INTEGER DEFAULT 0, error TEXT)`).run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS email_templates (id TEXT PRIMARY KEY, label TEXT NOT NULL, subject TEXT, body TEXT, updated TEXT)`).run();
 }
 
 // Who can be emailed, by group. Each query is optional: a missing table just gives an empty group.
@@ -58,7 +59,22 @@ export async function unsubUrl(env, email) {
 /* ---------- message body ---------- */
 const escH = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 export const firstName = (n) => String(n || "").trim().split(/\s+/)[0] || "there";
-export const personalize = (s, p) => String(s).replace(/\{\s*(first_?name|name)\s*\}/gi, firstName(p.name));
+export const cleanSender = (n) => String(n || "").replace(/[^\p{L} .'-]/gu, "").replace(/\s+/g, " ").trim().slice(0, 40);
+export const personalize = (s, p, sender = "") => String(s).replace(/\{\s*(first_?name|name)\s*\}/gi, firstName(p.name))
+  .replace(/\{\s*sender\s*\}/gi, cleanSender(sender).split(" ")[0] || "the WorkerPool team");
+
+// One-to-one style: looks like an ordinary email typed by a person. No banner, no card, no bulk footer;
+// signed by the care team member. Unsubscribe still works through the List-Unsubscribe headers.
+export function renderPersonal(env, body, p, sender) {
+  const name = cleanSender(sender), site = (env.SITE_URL || "https://workerpool.ca").replace(/^https:\/\//, "");
+  const sig = [name, "Care Team, WorkerPool", `${site} | ${addr(FROM(env))}`].filter(Boolean);
+  const text = `${personalize(body, p, name)}\n${sig.join("\n")}`;
+  const paras = escH(personalize(body, p, name)).split(/\n{2,}/).map((para) =>
+    `<p style="margin:0 0 12px">${para.replace(/\n/g, "<br>").replace(/(https:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')}</p>`).join("");
+  const html = `<!doctype html><html><body><div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222">${paras}` +
+    `<p style="margin:0">${sig.map((l, i) => (i === 0 ? `<b>${escH(l)}</b>` : `<span style="color:#666">${escH(l)}</span>`)).join("<br>")}</p></div></body></html>`;
+  return { text, html };
+}
 
 export function renderMessage(env, body, p, unsub) {
   const text = personalize(body, p);
@@ -96,11 +112,14 @@ export async function sendBatch(env, messages) {
   return { sent, failed, error };
 }
 
-export async function buildMessage(env, p, subject, body) {
-  const from = FROM(env), unsub = await unsubUrl(env, p.email);
-  const { text, html } = renderMessage(env, body, p, unsub);
+// opts.style: "personal" (signed by opts.sender, plain look) or "newsletter" (branded, with footer).
+export async function buildMessage(env, p, subject, body, opts = {}) {
+  const sender = opts.style === "personal" ? cleanSender(opts.sender) : "";
+  const base = FROM(env), unsub = await unsubUrl(env, p.email);
+  const from = sender ? `${sender} from WorkerPool <${addr(base)}>` : base;
+  const { text, html } = sender ? renderPersonal(env, body, p, sender) : renderMessage(env, body, p, unsub);
   return {
-    from, to: [p.email], reply_to: env.BULK_REPLY_TO || addr(from), subject: personalize(subject, p), text, html,
+    from, to: [p.email], reply_to: env.BULK_REPLY_TO || addr(base), subject: personalize(subject, p, sender), text, html,
     headers: { "List-Unsubscribe": `<${unsub}>, <mailto:${addr(from)}?subject=unsubscribe>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
   };
 }
