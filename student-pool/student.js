@@ -263,7 +263,7 @@ function syncSend() {
 async function seeMatches() {
   const err = $("mErr"); err.textContent = "";
   const { edu, plans, english } = gather();
-  if (!edu.length) { err.textContent = "Add at least one qualification (for example your 12th)."; return; }
+  if (!edu.length) { err.textContent = "Add at least one qualification (for example your 12th)."; alert(err.textContent); return; }
   const b = $("seeMatches"); b.disabled = true; b.textContent = "Finding programs…";
   try {
     const r = await fetch("/api/student/match", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ education: edu, english, plans }) });
@@ -277,7 +277,11 @@ async function seeMatches() {
     syncSend();
     b.textContent = "Update my matches";
     $("matchBox").scrollIntoView({ behavior: "smooth", block: "start" });
-  } catch (e) { err.textContent = e.message; b.textContent = "See my matching programs"; }
+  } catch (e) {
+    const msg = e && e.name === "TypeError" ? "Couldn't reach WorkerPool. Check your internet connection and try again." : e.message;
+    err.textContent = msg; b.textContent = "See my matching programs";
+    err.scrollIntoView({ behavior: "smooth", block: "center" }); alert(msg);
+  }
   b.disabled = false;
 }
 

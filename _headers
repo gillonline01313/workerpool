@@ -6,6 +6,8 @@
 /admin/*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
+/student-pool/*
+  Cache-Control: no-cache
 /assets/chat.js
   Cache-Control: no-cache
 /sw.js
