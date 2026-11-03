@@ -914,8 +914,9 @@ function renderStudy(body){
       <td>${esc(x.city||"")}${x.province?", "+esc(x.province):""}</td><td>${cnt[x.id]||0}</td>
       <td style="white-space:nowrap"><button class="dl" type="button" data-se="${esc(x.id)}">Edit</button> <button class="dl" type="button" data-sp="${esc(x.id)}">+ Program</button></td></tr>`).join("")||`<tr><td colspan="5" class="sub">Nothing here.</td></tr>`}</tbody></table></div>`;
   } else if(soF==="programs"){
-    const R=P.filter(p=>(!soAb||ab.has(p.school_id))&&(!q||[p.name,(byS.get(p.school_id)||{}).name,(byS.get(p.school_id)||{}).city,p.campus].join(" ").toLowerCase().includes(q)));
-    html=R.length?`<div class="wpa-tbl"><table><thead><tr><th>Program</th><th>School</th><th>Level · field</th><th>Intakes</th><th>Tuition/yr</th><th>Entry</th><th></th></tr></thead><tbody>${R.map(p=>{ const sc=byS.get(p.school_id)||{}; return `<tr${p.active?"":' style="opacity:.55"'}>
+    let R=P.filter(p=>(!soAb||ab.has(p.school_id))&&(!q||[p.name,(byS.get(p.school_id)||{}).name,(byS.get(p.school_id)||{}).city,p.campus].join(" ").toLowerCase().includes(q)));
+    const RR=R; R.length>300&&(R=R.slice(0,300));
+    html=R.length?`${RR.length>300?`<p class="sub">Showing 300 of ${RR.length}. Search to narrow the list.</p>`:""}<div class="wpa-tbl"><table><thead><tr><th>Program</th><th>School</th><th>Level · field</th><th>Intakes</th><th>Tuition/yr</th><th>Entry</th><th></th></tr></thead><tbody>${R.map(p=>{ const sc=byS.get(p.school_id)||{}; return `<tr${p.active?"":' style="opacity:.55"'}>
       <td><b>${esc(p.name)}</b>${p.link?`<br><a class="sub" href="${esc(p.link)}" target="_blank" rel="noopener">program page</a>`:""}${p.active?"":` <span class="pill">paused</span>`}</td>
       <td>${esc(sc.name||p.school_id)}${ab.has(p.school_id)?"":` <span class="pill" title="Not ticked On ApplyBoard: never suggested">not on ApplyBoard</span>`}<br><span class="sub">${esc(p.campus||sc.city||"")}</span></td>
       <td>${esc((D.levels||{})[p.level]||p.level)}<br><span class="sub">${esc((D.fields||{})[p.field]||"")}</span></td><td>${esc(p.intakes||"–")}</td><td>${p.tuition?"$"+Number(p.tuition).toLocaleString("en-CA"):"–"}</td>

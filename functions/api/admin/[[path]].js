@@ -109,13 +109,13 @@ export async function onRequestGet({ request, env, params }) {
   }
   if (route === "draws-refresh") return drawsRefreshStatus(env);
   if (route === "study") { // Study options catalog: schools (with the ApplyBoard tick) and programs
-    await ensureStudyTables(env);
+    await ensureStudyTables(env, request);
     const sc = await env.DB.prepare(`SELECT * FROM study_schools ORDER BY province, name`).all();
     const pr = await env.DB.prepare(`SELECT * FROM study_programs ORDER BY school_id, name`).all();
     return json({ ok: true, schools: sc.results, programs: pr.results, levels: STUDY_LEVELS, fields: STUDY_FIELDS });
   }
   if (route === "study-match") { // ranked options for one Student Pool profile, ApplyBoard schools only
-    await ensureStudyTables(env); await ensureStudents(env);
+    await ensureStudyTables(env, request); await ensureStudents(env);
     const row = await env.DB.prepare(`SELECT * FROM student_profiles WHERE id = ?1`).bind(str(url.searchParams.get("id"), 64)).first();
     if (!row) return json({ ok: false, error: "Profile not found." }, 404);
     const sc = await env.DB.prepare(`SELECT * FROM study_schools WHERE applyboard = 1`).all();
@@ -496,6 +496,7 @@ async function studyAction(env, route, b) {
     const o = cleanProgram(b.program);
     if (!o) return json({ ok: false, error: "School, program name and level are needed." }, 400);
     const id = str(b.program.id, 40) || "p-" + crypto.randomUUID().slice(0, 10);
+    o.origin = "admin"; // never overwritten by catalog updates
     const cols = Object.keys(o);
     await env.DB.prepare(`INSERT INTO study_programs (id, ${cols.join(", ")}, updated) VALUES (?1, ${cols.map((_, i) => "?" + (i + 2)).join(", ")}, ?${cols.length + 2})
       ON CONFLICT(id) DO UPDATE SET ${cols.map((c) => `${c} = excluded.${c}`).join(", ")}, updated = excluded.updated`).bind(id, ...cols.map((c) => o[c]), now).run();
@@ -521,6 +522,7 @@ async function studyAction(env, route, b) {
       const fd = Object.entries(STUDY_FIELDS).find(([k, l]) => k === String(r.field).toLowerCase() || l.toLowerCase().startsWith(String(r.field).toLowerCase()));
       const o = cleanProgram({ ...r, school_id: s && s.id, level: lv && lv[0], field: fd ? fd[0] : "other" });
       if (!o) { bad.push(i + 2); return; }
+      o.origin = "admin";
       const cols = Object.keys(o), id = "p-" + crypto.randomUUID().slice(0, 10);
       stmts.push(env.DB.prepare(`INSERT INTO study_programs (id, ${cols.join(", ")}, updated) VALUES (?1, ${cols.map((_, j) => "?" + (j + 2)).join(", ")}, ?${cols.length + 2})`).bind(id, ...cols.map((c) => o[c]), now));
       added++;
