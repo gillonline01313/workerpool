@@ -33,7 +33,7 @@ const FIELD_WORDS = {
   law: "law legal paralegal justice police public safety policing security",
 };
 
-export async function ensureStudyTables(env) {
+export async function ensureStudyTables(env, request) {
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS study_schools (id TEXT PRIMARY KEY, name TEXT NOT NULL, kind TEXT, province TEXT, city TEXT, dli TEXT,
     applyboard INTEGER NOT NULL DEFAULT 0, website TEXT, note TEXT, updated TEXT NOT NULL)`).run();
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS study_programs (id TEXT PRIMARY KEY, school_id TEXT NOT NULL, name TEXT NOT NULL, level TEXT NOT NULL, field TEXT,
@@ -44,6 +44,38 @@ export async function ensureStudyTables(env) {
   const n = await env.DB.prepare(`SELECT COUNT(*) AS n FROM study_schools`).first();
   if (!n || !n.n) await seedSchools(env);
   await applyEvidence(env);
+  for (const c of ["origin TEXT", "source TEXT"]) { try { await env.DB.prepare(`ALTER TABLE study_programs ADD COLUMN ${c}`).run(); } catch {} }
+  if (request && env.ASSETS) await loadCatalog(env, request);
+}
+
+// PGWP-eligible programs collected from each college's official page (data/study-programs.json, built by
+// scripts/programs/build.mjs). Loaded into D1 whenever the file's version changes. Rows the admin edited (origin
+// 'admin') are never overwritten; catalog programs that drop off a college's list are paused, not deleted.
+async function loadCatalog(env, request) {
+  let cat;
+  try { const r = await env.ASSETS.fetch(new URL("/data/study-programs.json", request.url)); if (!r.ok) return; cat = await r.json(); } catch { return; }
+  if (!cat || !cat.version || !Array.isArray(cat.programs)) return;
+  const done = await env.DB.prepare(`SELECT v FROM study_meta WHERE k = 'catalog-version'`).first();
+  if (done && done.v === cat.version) return;
+  const now = new Date().toISOString(), stmts = [];
+  for (const sc of cat.schools || []) stmts.push(env.DB.prepare(`INSERT OR IGNORE INTO study_schools (id, name, kind, province, city, applyboard, updated) VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6)`)
+    .bind(sc.id, sc.name, sc.kind || "college", sc.province || null, sc.city || null, now));
+  const ids = [];
+  for (const p of cat.programs) {
+    ids.push(p.id);
+    stmts.push(env.DB.prepare(`INSERT INTO study_programs (id, school_id, name, level, field, campus, intakes, pgwp, link, note, active, origin, source, updated)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 1, 'catalog', ?11, ?12)
+      ON CONFLICT(id) DO UPDATE SET name = excluded.name, level = excluded.level, field = excluded.field, campus = excluded.campus, intakes = COALESCE(excluded.intakes, study_programs.intakes),
+        pgwp = excluded.pgwp, link = excluded.link, source = excluded.source, active = 1, updated = excluded.updated WHERE study_programs.origin = 'catalog'`)
+      .bind(p.id, p.school, p.name, p.level, p.field || "other", p.campus || null, p.intakes || null, p.pgwp || "yes", p.link || null, p.note || null, p.source || null, now));
+  }
+  for (let i = 0; i < stmts.length; i += 90) await env.DB.batch(stmts.slice(i, i + 90));
+  // programs no longer on a college's list: pause them (only catalog rows from schools this file covers)
+  const covered = [...new Set(cat.programs.map((p) => p.school))];
+  const old = (await env.DB.prepare(`SELECT id, school_id FROM study_programs WHERE origin = 'catalog' AND active = 1`).all()).results;
+  const keep = new Set(ids), gone = old.filter((r) => covered.includes(r.school_id) && !keep.has(r.id));
+  for (let i = 0; i < gone.length; i += 90) await env.DB.batch(gone.slice(i, i + 90).map((r) => env.DB.prepare(`UPDATE study_programs SET active = 0, updated = ?1 WHERE id = ?2`).bind(now, r.id)));
+  await env.DB.prepare(`INSERT OR REPLACE INTO study_meta (k, v) VALUES ('catalog-version', ?1)`).bind(cat.version).run();
 }
 // Schools with public evidence of being on ApplyBoard (its own public school page, help-centre article or blog), checked
 // November 3, 2026. Applied once as the starting ticks; the admin can untick or tick anything afterwards. Schools without
