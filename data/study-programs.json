@@ -1,5 +1,5 @@
 {
-"version": "2026-11-03-6b44112a",
+"version": "2026-11-03-c3847d9f",
 "checked": "2026-11-03",
 "programs": [
 {
@@ -10146,10 +10146,34 @@
 "level": "bachelors",
 "field": "arts",
 "pgwp": "yes",
-"intakes": "",
-"link": "https://www.unbc.ca/sites/default/files/sections/registrar/pathwaycnc-associateofartsdegreesociology.pdf",
-"source": "https://www.unbc.ca/sites/default/files/sections/registrar/pathwaycnc-associateofartsdegreesociology.pdf",
-"note": "UNBC publishes transfer pathways from CNC Associate of Arts degrees into this BA. Check UNBC intakes."
+"intakes": "Sep, Jan, May",
+"link": "https://www.unbc.ca/programs-and-admissions/undergraduate/undergraduate-application-deadlines",
+"source": "https://www.unbc.ca/programs-and-admissions/undergraduate/undergraduate-application-deadlines",
+"note": "International deadlines: January Nov 8, May Mar 9, September Jul 11 (seats permitting). CNC Associate of Arts transfer pathways published by UNBC."
+},
+{
+"id": "c-bfd351b613f6",
+"school": "university-of-northern-british-columbia",
+"name": "Bachelor of Arts, Major in English",
+"level": "bachelors",
+"field": "arts",
+"pgwp": "yes",
+"intakes": "Sep, Jan, May",
+"link": "https://www.unbc.ca/programs-and-admissions/undergraduate/undergraduate-application-deadlines",
+"source": "https://www.unbc.ca/programs-and-admissions/undergraduate/undergraduate-application-deadlines",
+"note": "International deadlines: January Nov 8, May Mar 9, September Jul 11 (seats permitting). CNC Associate of Arts transfer pathways published by UNBC."
+},
+{
+"id": "c-e859a6701160",
+"school": "university-of-northern-british-columbia",
+"name": "Bachelor of Arts, Joint Major in Global and International Studies & Political Science",
+"level": "bachelors",
+"field": "arts",
+"pgwp": "yes",
+"intakes": "Sep, Jan, May",
+"link": "https://www.unbc.ca/programs-and-admissions/undergraduate/undergraduate-application-deadlines",
+"source": "https://www.unbc.ca/programs-and-admissions/undergraduate/undergraduate-application-deadlines",
+"note": "International deadlines: January Nov 8, May Mar 9, September Jul 11 (seats permitting). CNC Associate of Arts transfer pathways published by UNBC."
 },
 {
 "id": "c-5cb1843dd959",
