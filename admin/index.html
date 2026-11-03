@@ -353,7 +353,7 @@ function controls(){
     $("#soAddP").onclick=()=>{ soEdit={type:"program",row:{level:"pg-cert",field:"business",pgwp:"check",active:1,intakes:"Jan, May, Sep"}}; render(); };
     $("#soAddS").onclick=()=>{ soEdit={type:"school",row:{kind:"college",province:"BC",applyboard:1}}; render(); };
   } else if(tab==="students"){
-    c.innerHTML=seg("stf",[["open","To do"],["new","New"],["working","Working"],["options-sent","Options sent"],["closed","Closed"],["all","All"]],stF)+`<input id="stQ" type="search" placeholder="Search name, email, course…" value="${esc(stQ)}" style="font:inherit;font-size:.85rem;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);min-width:200px"><a class="dl" href="/student-pool/" target="_blank" rel="noopener" style="text-decoration:none">Open Student Pool ↗</a>`;
+    c.innerHTML=seg("stf",[["open","To do"],["shortlisted","Shortlisted"],["new","New"],["working","Working"],["options-sent","Options sent"],["closed","Closed"],["all","All"]],stF)+`<input id="stQ" type="search" placeholder="Search name, email, course…" value="${esc(stQ)}" style="font:inherit;font-size:.85rem;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);min-width:200px"><a class="dl" href="/student-pool/" target="_blank" rel="noopener" style="text-decoration:none">Open Student Pool ↗</a>`;
     c.querySelectorAll('[data-seg="stf"] button').forEach(b=>b.onclick=()=>{ stF=b.dataset.v; controls(); render(); });
     $("#stQ").oninput=e=>{ stQ=e.target.value; render(); };
   } else if(tab==="scanner"){
@@ -769,20 +769,20 @@ function renderAssess(body){
     const det=`Programs: CEC ${yn(s.cec)} · FSW ${yn(s.fswOk)} (grid ${s.fsw}) · FST ${yn(s.fst)}\nCategories: ${(s.categories||[]).join(", ")||"none"}\nCRS rules: ${s.rules==="old"?"until Nov 2, 2026":"from Nov 3, 2026"}\n\nAge ${i.age} · ${i.withSpouse?"with spouse":"single"} · education ${i.edu}\nEnglish lowest CLB ${i.en?i.en.min:"-"} · French lowest NCLC ${i.fr?i.fr.min:"-"}\nCanadian work ${i.cdnYears} yrs · foreign ${i.forYears} yrs · TEER ${i.teer} · ${i.occ}\nJob offer: ${i.bcOffer?`yes, $${i.wage}/hr, TEER ${i.offerTeer}`:"no"}\nRCIP community: ${i.rcip||"none"}`;
     return `<tr><td>${when(r.updated)}</td><td><span class="pill">${esc(r.province)}</span></td><td>${esc(r.name)}</td><td>${esc(r.acct_name)}<br>${esc(r.acct_email)}<br>${esc(r.acct_phone)}</td><td>${s.crs??"–"}</td><td>${s.pnp??"–"}<br><span class="sub">${esc(s.pnpLabel||"")}</span></td><td>${s.rcip?esc(s.rcip)+"<br>"+(s.rcipPoints!=null?s.rcipPoints+" pts":"first come, first served"):"–"}</td><td><details><summary>View</summary><pre>${esc(det)}</pre></details></td></tr>`;}).join("")}</tbody></table></div></div>`;
 }
-/* ---------- Student Pool (free study options; reply promised within 24 hours) ---------- */
-const ST_NAME={"new":"New","working":"Working on it","options-sent":"Options sent","closed":"Closed"};
+/* ---------- Student Pool (instant study options; students send a shortlist, a consultant finalizes) ---------- */
+const ST_NAME={"new":"New","shortlisted":"Shortlist received","working":"Working on it","options-sent":"Options finalized","closed":"Closed"};
 const LV={tenth:"10th",twelfth:"12th",diploma:"Diploma",bachelors:"Bachelor's",masters:"Master's / PG",phd:"PhD",other:"Other"};
 function renderStudents(body){
   const R=data.students||[];
-  const open=R.filter(r=>r.status==="new"||r.status==="working");
-  const late=open.filter(r=>Date.now()-Date.parse(r.created)>864e5).length;
+  const open=R.filter(r=>r.status==="new"||r.status==="working"||r.status==="shortlisted");
+  const late=R.filter(r=>r.status==="shortlisted").length;
   const t=document.getElementById("stuTab"); if(t) t.textContent=open.length?`Student Pool (${open.length})`:"Student Pool";
   const q=stQ.trim().toLowerCase();
-  const rows=R.filter(r=>stF==="all"||(stF==="open"?(r.status==="new"||r.status==="working"):r.status===stF))
+  const rows=R.filter(r=>stF==="all"||(stF==="open"?(r.status==="new"||r.status==="working"||r.status==="shortlisted"):r.status===stF))
     .filter(r=>!q||[r.name,r.email,r.phone,r.ref,r.highest,r.english,r.plans].join(" ").toLowerCase().includes(q));
   if(!R.length){ body.innerHTML=`<div class="wpa-empty">No Student Pool profiles yet. They appear here when students send their profile from workerpool.ca/student-pool/.</div>`; return; }
-  const due=r=>{ const h=(Date.parse(r.created)+864e5-Date.now())/36e5; if(r.status==="options-sent"||r.status==="closed") return ""; return h<0?`<span class="pill" style="background:#fbe3de;color:#b4321f">${Math.ceil(-h)}h overdue</span>`:`<span class="pill">${Math.floor(h)}h left</span>`; };
-  body.innerHTML=`<div class="wpa-card wide"><h3>${open.length} to do${late?` · <span style="color:#b4321f">${late} past 24 hours</span>`:""} · ${R.length} total</h3><p class="sub">Students were promised a free reply with study options within 24 hours. Documents are kept only for students who gave permission; delete them if a student asks.</p>
+  const due=r=>{ let sl=null; try{ sl=JSON.parse(r.shortlist||"null"); }catch(e){} return sl&&sl.programs&&sl.programs.length?`<span class="pill" style="background:#e3f3ea;color:#1f7a4d">Shortlist · ${sl.programs.length}</span>`:""; };
+  body.innerHTML=`<div class="wpa-card wide"><h3>${open.length} to do${late?` · <span style="color:#1f7a4d">${late} shortlist${late>1?"s":""} to finalize</span>`:""} · ${R.length} total</h3><p class="sub">Students see matching programs as soon as they send their profile, then send a shortlist. Get in touch with shortlisted students to finalize. Documents are kept only for students who gave permission; delete them if a student asks.</p>
   <div class="wpa-tbl"><table><thead><tr><th>Received</th><th>Student</th><th>Highest</th><th>English</th><th>Looking for</th><th>Status</th></tr></thead><tbody>
   ${rows.map(r=>{ let p={},pr={}; try{p=JSON.parse(r.plans||"{}")}catch(e){} try{pr=JSON.parse(r.profile||"{}")}catch(e){}
     const wa=(r.whatsapp||r.phone||"").replace(/\D/g,"");
@@ -796,7 +796,7 @@ function renderStudents(body){
       <td><b>${esc(r.name)}</b><br><a href="mailto:${esc(r.email)}?subject=${encodeURIComponent("Your study options – WorkerPool Student Pool "+(r.ref||""))}">${esc(r.email)}</a><br><a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>${wa?` · <a href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>`:""}</td>
       <td>${esc(r.highest||"–")}</td><td>${esc(r.english||"–")}</td>
       <td>${esc([p.level,p.field].filter(Boolean).join(" · ")||"–")}<br><span class="sub">${esc([p.country,p.intake,p.budget].filter(Boolean).join(" · "))}</span>
-        <details${stOpen===r.id?" open":""} data-sd="${esc(r.id)}"><summary>Full profile${sd.length?` · ${sd.length} doc${sd.length>1?"s":""}`:""}</summary><pre>${esc(det)}</pre>${docs}</details></td>
+        ${(()=>{ let sl=null; try{ sl=JSON.parse(r.shortlist||"null"); }catch(e){} return sl&&sl.programs&&sl.programs.length?`<div style="margin:6px 0;padding:8px 10px;border-radius:10px;background:#eef7f1"><b style="font-size:.82rem">Shortlist${r.shortlist_at?" · "+esc(when(r.shortlist_at)):""}</b><ol style="margin:4px 0 0;padding-left:18px;font-size:.84rem">${sl.programs.map(p=>`<li>${p.link?`<a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.name)}</a>`:esc(p.name)} <span class="sub">${esc(p.school)}${p.city?", "+esc(p.city):""}</span></li>`).join("")}</ol>${sl.note?`<div class="sub" style="margin-top:4px">“${esc(sl.note)}”</div>`:""}</div>`:""; })()}<details${stOpen===r.id?" open":""} data-sd="${esc(r.id)}"><summary>Full profile${sd.length?` · ${sd.length} doc${sd.length>1?"s":""}`:""}</summary><pre>${esc(det)}</pre>${docs}</details></td>
       <td style="min-width:190px"><select data-st="${esc(r.id)}" style="font:inherit;font-size:.82rem;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);width:100%">${Object.entries(ST_NAME).map(([k,l])=>`<option value="${k}"${k===r.status?" selected":""}>${l}</option>`).join("")}</select>
         <textarea data-sn="${esc(r.id)}" rows="2" placeholder="Notes (colleges suggested, follow-up…)" style="font:inherit;font-size:.8rem;margin-top:6px;width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)">${esc(r.note||"")}</textarea>
         <button class="dl" type="button" data-ss="${esc(r.id)}" style="margin-top:4px">Save</button> <button class="dl" type="button" data-sm="${esc(r.id)}" style="margin-top:4px">🎓 Find options</button></td></tr>`;}).join("")||`<tr><td colspan="6" class="sub">Nothing here.</td></tr>`}

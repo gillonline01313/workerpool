@@ -144,7 +144,7 @@ export async function onRequestGet({ request, env, params }) {
   }
   if (route === "students") { // Student Pool profiles (typed facts only; documents are never kept)
     await ensureStudents(env);
-    const r = await env.DB.prepare(`SELECT id, ref, created, updated, name, email, phone, whatsapp, highest, english, plans, profile, status, note, country_seen, docs_consent FROM student_profiles ORDER BY created DESC LIMIT 3000`).all();
+    const r = await env.DB.prepare(`SELECT id, ref, created, updated, name, email, phone, whatsapp, highest, english, plans, profile, status, note, country_seen, docs_consent, shortlist, shortlist_at FROM student_profiles ORDER BY (shortlist_at IS NOT NULL AND status = 'shortlisted') DESC, created DESC LIMIT 3000`).all();
     const d = await env.DB.prepare(`SELECT id, profile_id, kind, name, size, created FROM student_docs ORDER BY created`).all();
     return json({ ok: true, rows: r.results, docs: d.results });
   }

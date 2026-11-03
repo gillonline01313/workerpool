@@ -4,7 +4,7 @@
       one document per request. The server reads it in memory and returns facts; reading stores nothing.
    3. The facts become an editable student profile. The student confirms it, adds study plans and contact
       details, and chooses whether WorkerPool may keep their documents. /api/student/submit saves the profile
-      and emails the student (an education consultant replies with study options within 24 hours, free).
+      and emails the student. Matching programs show right away; the student shortlists some and a consultant follows up.
    4. Only with that permission are the original files uploaded (/api/student/doc) for the education team.
       Without it, this page drops the files and nothing but the typed profile is kept. */
 (function () {
@@ -30,7 +30,7 @@ const TEST_NAME = Object.fromEntries(TESTS);
 const MAX_PER_SLOT = 4, MAX_SIZE = 10 * 1024 * 1024;
 
 let FILES = Object.fromEntries(SLOTS.map((s) => [s.k, []]));
-let EDU = [], ENG = { test: "none" }, NO_TEST = false, REF = "", KEEP = [], KEPT = 0;
+let EDU = [], ENG = { test: "none" }, NO_TEST = false, REF = "", KEEP = [], KEPT = 0, SLKEY = "";
 
 /* ---------------- upload ---------------- */
 function renderSlots() {
@@ -263,7 +263,7 @@ async function submit() {
     const r = await fetch("/api/student/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contact, education: edu, english, plans, consent: true, docsConsent: keep, docCount: keep ? KEEP.length : 0, website: $("website").value }) });
     const j = await r.json().catch(() => ({}));
     if (!j.ok) throw new Error(j.error || "Something went wrong. Please try again.");
-    REF = j.ref || ""; KEPT = 0;
+    REF = j.ref || ""; KEPT = 0; SLKEY = j.shortlistKey || "";
     if (keep && j.upload) {
       for (let i = 0; i < KEEP.length; i++) {
         b.textContent = `Uploading documents ${i + 1} of ${KEEP.length}…`;
@@ -289,12 +289,11 @@ function engLine(e) {
 function renderDone(c, edu, eng, plans, options) {
   const sorted = [...edu].sort((a, b) => ORDER.indexOf(a.level) - ORDER.indexOf(b.level));
   const top = [...sorted].reverse().find((e) => e.level !== "other") || sorted[sorted.length - 1];
-  const due = new Date(Date.now() + 864e5).toLocaleString("en-CA", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const g = gapYears();
-  $("doneSub").innerHTML = (options && options.length ? `Below are programs that already fit your profile. ` : "") + `We've emailed <b>${esc(c.email)}</b>. One of our education consultants is now working on your credentials and will get back to you with the study options available to you within 24 hours. It's free.`;
+  $("doneSub").innerHTML = options && options.length ? `Below are the programs that fit your profile. Tick the ones you like and send us your shortlist; one of our education consultants will get in touch to finalize them with you. We've also emailed them to <b>${esc(c.email)}</b>.` : `We've emailed <b>${esc(c.email)}</b>. One of our education consultants is now working on your credentials and will get back to you with the study options available to you within 24 hours. It's free.`;
   $("pcard").innerHTML = `<div class="pcard">
     <div class="pc-h"><div><small>Student profile${REF ? " · " + esc(REF) : ""}</small><b>${esc(c.name)}</b></div>
-      <div class="pc-free"><span>Free service</span><span class="t">Reply by ${esc(due)}</span></div></div>
+      <div class="pc-free"><span>Free service</span><span class="t">${options && options.length ? options.length + " matching programs" : "Profile saved"}</span></div></div>
     <div class="pc-stats">
       <div><small>Highest</small><b>${esc(LEVEL_NAME[top.level])}${top.credential ? `<br><span style="font-size:.85rem;font-weight:600">${esc(top.credential)}</span>` : ""}</b></div>
       <div><small>Result</small><b>${esc(top.result || "–")}</b></div>
@@ -309,18 +308,38 @@ function renderDone(c, edu, eng, plans, options) {
     ${optionsHtml(options || [])}
     <div class="pc-foot">An education consultant is working on your credentials. ${KEPT ? `${KEPT} document${KEPT > 1 ? "s were" : " was"} shared privately with our education team, as you allowed.` : "Your documents were not saved; only this profile is kept."}</div>
   </div>`;
+  wireShortlist();
 }
 
 // Programs that fit the profile, shown right away; the consultant confirms requirements, fees and intakes
 function optionsHtml(list) {
-  if (!list.length) return `<div class="pc-opts"><h4>Your study options</h4><p class="pc-note">Our education consultant is matching your profile with colleges and universities and will send your options within 24 hours.</p></div>`;
-  return `<div class="pc-opts"><h4>Programs that fit your profile</h4>
-    <p class="pc-note">Based on your education, English score and plans. Our consultant will confirm entry requirements, fees and intakes with you before you apply.</p>
-    <ol class="pc-optlist">${list.map((o) => `<li><b>${esc(o.name)}</b>
+  if (!list.length) return `<div class="pc-opts"><h4>Your study options</h4><p class="pc-note">One of our education consultants will get in touch with study options that fit your profile.</p></div>`;
+  return `<div class="pc-opts" id="slBox"><h4>Programs that fit your profile</h4>
+    <p class="pc-note">Based on your education, English score and plans. Tick the ones you like, then send us your shortlist.</p>
+    <ol class="pc-optlist">${list.map((o) => `<li><label class="pc-pick"><input type="checkbox" data-sl="${esc(o.id || "")}"> Shortlist</label><b>${esc(o.name)}</b>
       <span>${esc([o.school, [o.city, o.province].filter(Boolean).join(", ")].filter(Boolean).join(" · "))}</span>
       <span class="pc-tags"><em>${esc(o.level)}</em>${o.pgwp ? "<em>PGWP-eligible</em>" : ""}${o.intakes ? `<em>${esc(o.intakes)}</em>` : ""}${o.tuition ? `<em>~$${Number(o.tuition).toLocaleString("en-CA")}/yr</em>` : ""}${o.fit === "good" ? '<em class="ok">Good fit</em>' : ""}</span>
       ${o.todo && o.todo.length ? `<small>To check: ${esc(o.todo.join("; "))}</small>` : ""}
-      ${o.link ? `<a href="${esc(o.link)}" target="_blank" rel="noopener">College page ↗</a>` : ""}</li>`).join("")}</ol></div>`;
+      ${o.link ? `<a href="${esc(o.link)}" target="_blank" rel="noopener">College page ↗</a>` : ""}</li>`).join("")}</ol>
+    ${SLKEY ? `<label class="pc-slnote">Anything our consultant should know? (optional)<textarea id="slNote" rows="2" maxlength="1000" placeholder="e.g. I prefer Ontario, or I want a co-op program"></textarea></label>
+    <div class="pc-slbar"><button class="btn" type="button" id="slSend" disabled>Send my shortlist</button><span id="slMsg" class="pc-note"></span></div>` : ""}</div>`;
+}
+function wireShortlist() {
+  const box = $("slBox"); if (!box || !SLKEY) return;
+  const send = $("slSend"), msg = $("slMsg");
+  const picked = () => [...box.querySelectorAll("[data-sl]:checked")].map((x) => x.dataset.sl).filter(Boolean);
+  box.querySelectorAll("[data-sl]").forEach((cb) => cb.onchange = () => { const n = picked().length; send.disabled = !n; send.textContent = n ? `Send my shortlist (${n})` : "Send my shortlist"; msg.textContent = ""; });
+  send.onclick = async () => {
+    send.disabled = true; send.textContent = "Sending…";
+    try {
+      const r = await fetch("/api/student/shortlist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ref: REF, key: SLKEY, ids: picked(), note: $("slNote").value.trim() }) });
+      const j = await r.json().catch(() => ({}));
+      if (!j.ok) throw new Error(j.error || "Couldn't send. Please try again.");
+      track("shortlist");
+      box.querySelector(".pc-slbar").innerHTML = `<p class="pc-sent">✓ Shortlist sent (${j.count} program${j.count > 1 ? "s" : ""}). One of our education consultants will get in touch to finalize your options. You can change it and send again any time.</p><button class="btn ghost" type="button" id="slAgain">Change my shortlist</button>`;
+      $("slAgain").onclick = () => { box.querySelector(".pc-slbar").innerHTML = `<button class="btn" type="button" id="slSend">Send my shortlist</button><span id="slMsg" class="pc-note"></span>`; wireShortlist(); box.querySelector("[data-sl]").dispatchEvent(new Event("change")); };
+    } catch (e) { msg.textContent = e.message; send.disabled = false; send.textContent = "Send my shortlist"; }
+  };
 }
 
 /* ---------------- steps ---------------- */

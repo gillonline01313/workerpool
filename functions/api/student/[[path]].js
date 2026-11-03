@@ -5,7 +5,9 @@
 //                                gone when the response is sent. No file, image, file name or document text is
 //                                written to D1, R2, KV, logs or email.
 //   POST /api/student/submit  → the student's reviewed profile. Saved to D1 for the education team, emails the student
-//                                a confirmation (free, reply within 24 hours) and alerts the admin. When the student
+//                                a confirmation and alerts the admin. Returns matching programs (ApplyBoard schools only)
+//                                and a shortlist key.
+//   POST /api/student/shortlist → { ref, key, ids[], note }: the programs the student picked, for a consultant to finalize. When the student
 //                                allows us to keep their documents (docsConsent), it also returns a one-hour upload key.
 //   POST /api/student/doc     → (headers x-upload-key, x-file-name, x-doc-kind; body = the original file) stores one
 //                                document in R2, only for a profile whose student gave permission.
@@ -28,6 +30,7 @@ export async function onRequest({ request, env, params }) {
   if (action === "read") return read(request, env);
   if (action === "submit") return submit(request, env);
   if (action === "doc") return saveDoc(request, env);
+  if (action === "shortlist") return shortlist(request, env);
   return reply({ ok: false, error: "Not found" }, 404);
 }
 
@@ -207,7 +210,7 @@ async function submit(request, env) {
     for (const m of pool) {
       if ((perSchool[m.school.id] = (perSchool[m.school.id] || 0) + 1) > 2) continue; // a spread of schools
       const p = m.program;
-      options.push({ name: p.name, school: m.school.name, city: m.school.city || "", province: m.school.province || "", level: STUDY_LEVELS[p.level] || p.level,
+      options.push({ id: p.id, name: p.name, school: m.school.name, city: m.school.city || "", province: m.school.province || "", level: STUDY_LEVELS[p.level] || p.level,
         intakes: p.intakes || "", tuition: p.tuition || null, pgwp: p.pgwp === "yes", link: p.link || "", fit: m.grade,
         todo: m.checks.filter((c) => c.state === "soft").map((c) => c.text).slice(0, 3) });
       if (options.length >= 10) break;
@@ -218,13 +221,13 @@ async function submit(request, env) {
   const optLines = options.slice(0, 5).map((o, i) => `${i + 1}. ${o.name} – ${o.school}${o.city ? ", " + o.city : ""} (${o.level})${o.pgwp ? ", listed by the college as PGWP-eligible" : ""}`).join("\n");
   const eduLines = edu.map((e) => `• ${LEVEL_NAMES[e.level]}: ${[e.credential, e.major, e.institution || e.board, e.completed && "completed " + e.completed, e.result].filter(Boolean).join(", ")}`).join("\n");
   const first = name.split(/\s+/)[0];
-  await sendEmail(env, email, "Your Student Pool profile is with our education team – free, reply within 24 hours",
+  await sendEmail(env, email, "Your Student Pool profile and study options – WorkerPool",
 `Hi ${first},
 
 Thank you for joining the WorkerPool Student Pool.
 
-One of our education consultants is now working on your credentials and will get back to you with the study options available to you within 24 hours.
-${optLines ? `\nPrograms that already look like a good fit for your profile:\n${optLines}\n\nOur consultant will confirm entry requirements, fees and intakes with you before you apply.\n` : ""}
+Your profile is saved with our education team.
+${optLines ? `\nPrograms that fit your profile:\n${optLines}\n\nOn the Student Pool page you can shortlist the ones you like and send them to us. One of our education consultants will then get in touch to finalize your options and confirm entry requirements, fees and intakes.\n` : `\nOne of our education consultants will get in touch with study options that fit your profile.\n`}
 This is a completely free service. There is nothing to pay, now or later.
 
 Your reference: ${ref}
@@ -241,8 +244,8 @@ WorkerPool Student Pool
 ${site}/student-pool/
 
 WorkerPool is an Alberta-based data processing company. We help students find study options; we do not provide immigration advice or representation.`);
-  if (env.ADMIN_EMAIL) await sendEmail(env, env.ADMIN_EMAIL, `Student Pool ${ref}: ${name} – reply within 24 hours`,
-`New Student Pool profile (${ref}). The student was promised a reply within 24 hours.
+  if (env.ADMIN_EMAIL) await sendEmail(env, env.ADMIN_EMAIL, `Student Pool ${ref}: ${name}`,
+`New Student Pool profile (${ref}). The student saw ${options.length} matching programs and can send a shortlist.
 
 ${name}
 ${email} · ${phone}${whatsapp ? " · WhatsApp " + whatsapp : ""}
@@ -259,7 +262,9 @@ ${Object.entries(plans).filter(([, v]) => v).map(([k, v]) => `• ${k.replace(/_
 
 Open the admin dashboard (Student Pool tab): ${site}/admin/`, email);
   if (options.length) await env.DB.prepare(`UPDATE student_profiles SET note = ?1 WHERE id = ?2`).bind(("Shown to student on submit: " + options.map((o) => `${o.name} – ${o.school}`).join("; ")).slice(0, 1990), pid).run().catch(() => {});
-  return reply({ ok: true, ref, options, ...(upload ? { upload, docs: nDocs } : {}) });
+  const slKey = options.length ? randomToken() : null;
+  if (slKey) await env.DB.prepare(`UPDATE student_profiles SET shortlist_hash = ?1 WHERE id = ?2`).bind(await sha256hex(slKey), pid).run().catch(() => {});
+  return reply({ ok: true, ref, options, ...(slKey ? { shortlistKey: slKey } : {}), ...(upload ? { upload, docs: nDocs } : {}) });
 }
 
 /* ---------------- keep one original document (only with the student's permission) ---------------- */
@@ -301,4 +306,43 @@ async function rateLimit(request, env, what, perHour, perDay) {
 async function hash(s) {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+/* ---------------- shortlist: the programs the student wants a consultant to finalize ---------------- */
+async function shortlist(request, env) {
+  const b = await readJson(request, 8000);
+  if (!b) return reply({ ok: false, error: "Invalid request." }, 400);
+  await ensureTable(env);
+  const p = await env.DB.prepare(`SELECT id, ref, name, email, phone, whatsapp, shortlist_hash FROM student_profiles WHERE ref = ?1`).bind(str(b.ref, 20)).first();
+  if (!p || !p.shortlist_hash || !b.key || (await sha256hex(String(b.key))) !== p.shortlist_hash) return reply({ ok: false, error: "This page has expired. Please send your profile again." }, 403);
+  const ids = [...new Set((Array.isArray(b.ids) ? b.ids : []).map((x) => str(String(x), 40)).filter(Boolean))].slice(0, 10);
+  if (!ids.length) return reply({ ok: false, error: "Pick at least one program for your shortlist." }, 400);
+  const rows = (await env.DB.prepare(`SELECT p.id, p.name, p.level, p.link, s.name AS school, s.city, s.province FROM study_programs p JOIN study_schools s ON s.id = p.school_id
+    WHERE p.id IN (${ids.map((_, i) => "?" + (i + 1)).join(",")})`).bind(...ids).all()).results;
+  if (!rows.length) return reply({ ok: false, error: "Those programs are no longer available. Please refresh your options." }, 400);
+  const note = str(b.note, 1000), now = new Date().toISOString();
+  await env.DB.prepare(`UPDATE student_profiles SET shortlist = ?1, shortlist_at = ?2, status = CASE WHEN status = 'new' THEN 'shortlisted' ELSE status END, updated = ?2 WHERE id = ?3`)
+    .bind(JSON.stringify({ programs: rows, note }), now, p.id).run();
+  const list = rows.map((r, i) => `${i + 1}. ${r.name} – ${r.school}${r.city ? ", " + r.city : ""}`).join("\n");
+  const site = env.SITE_URL || "https://workerpool.ca", first = String(p.name || "").split(/\s+/)[0] || "there";
+  await sendEmail(env, p.email, "We have your shortlist – WorkerPool Student Pool",
+`Hi ${first},
+
+Thank you. We have your shortlist (reference ${p.ref}):
+
+${list}
+${note ? `\nYour note: ${note}\n` : ""}
+One of our education consultants will get in touch with you by email, phone or WhatsApp to finalize your options and confirm entry requirements, fees and intakes. This service is free.
+
+WorkerPool Student Pool
+${site}/student-pool/`);
+  if (env.ADMIN_EMAIL) await sendEmail(env, env.ADMIN_EMAIL, `Student Pool ${p.ref}: shortlist from ${p.name}`,
+`${p.name} sent a shortlist (${p.ref}). Get in touch to finalize.
+
+${p.email} · ${p.phone}${p.whatsapp ? " · WhatsApp " + p.whatsapp : ""}
+
+${list}
+${note ? `\nNote from the student: ${note}\n` : ""}
+Admin dashboard (Student Pool tab): ${site}/admin/`, p.email);
+  return reply({ ok: true, count: rows.length });
 }
