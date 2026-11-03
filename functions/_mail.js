@@ -2,7 +2,7 @@
 // Inbox delivery: the workerpool.ca domain must be verified in Resend (SPF + DKIM, same as noreply@),
 // every message has a plain-text and HTML part, a working unsubscribe link and one-click
 // List-Unsubscribe headers (Gmail / Yahoo bulk-sender rules), and replies go to info@workerpool.ca.
-import { isEmail, sha256hex } from "./_lib.js";
+import { isEmail, sha256hex, randomToken } from "./_lib.js";
 
 export const FROM = (env) => env.BULK_FROM || "WorkerPool <info@workerpool.ca>";
 const addr = (from) => ((from.match(/<([^>]+)>/) || [])[1] || from).trim();
@@ -12,6 +12,19 @@ export async function ensureMailTables(env) {
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS email_unsubs (email TEXT PRIMARY KEY, t TEXT NOT NULL)`).run();
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS email_campaigns (id TEXT PRIMARY KEY, created TEXT NOT NULL, subject TEXT, body TEXT,
     audience TEXT, total INTEGER DEFAULT 0, sent INTEGER DEFAULT 0, failed INTEGER DEFAULT 0, skipped INTEGER DEFAULT 0, error TEXT)`).run();
+  for (const c of ["style TEXT", "sender TEXT", "from_addr TEXT", "test INTEGER DEFAULT 0"]) { try { await env.DB.prepare(`ALTER TABLE email_campaigns ADD COLUMN ${c}`).run(); } catch {} }
+  // A full copy of every email sent (exactly what the person received), so it can be opened in the admin.
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS email_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, campaign_id TEXT NOT NULL, created TEXT NOT NULL,
+    to_email TEXT, to_name TEXT, from_addr TEXT, reply_to TEXT, subject TEXT, text TEXT, html TEXT, status TEXT, resend_id TEXT, error TEXT)`).run();
+  // Receipts: delivered / bounced / delayed / spam complaint come from Resend's webhook; reads from the open pixel.
+  for (const c of ["track TEXT", "delivered_at TEXT", "delayed_at TEXT", "bounced_at TEXT", "bounce_detail TEXT", "complained_at TEXT",
+    "opened_at TEXT", "last_open TEXT", "opens INTEGER DEFAULT 0", "clicked_at TEXT"]) { try { await env.DB.prepare(`ALTER TABLE email_sent ADD COLUMN ${c}`).run(); } catch {} }
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS email_events (id INTEGER PRIMARY KEY AUTOINCREMENT, sent_id INTEGER NOT NULL, t TEXT NOT NULL, type TEXT NOT NULL, detail TEXT)`).run();
+  await env.DB.prepare(`CREATE INDEX IF NOT EXISTS email_events_sent ON email_events (sent_id)`).run();
+  await env.DB.prepare(`CREATE INDEX IF NOT EXISTS email_sent_resend ON email_sent (resend_id)`).run();
+  await env.DB.prepare(`CREATE INDEX IF NOT EXISTS email_sent_track ON email_sent (track)`).run();
+  await env.DB.prepare(`CREATE INDEX IF NOT EXISTS email_sent_campaign ON email_sent (campaign_id)`).run();
+  await env.DB.prepare(`CREATE INDEX IF NOT EXISTS email_sent_to ON email_sent (to_email)`).run();
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS email_templates (id TEXT PRIMARY KEY, label TEXT NOT NULL, subject TEXT, body TEXT, updated TEXT)`).run();
 }
 
@@ -65,18 +78,22 @@ export const personalize = (s, p, sender = "") => String(s).replace(/\{\s*(first
 
 // One-to-one style: looks like an ordinary email typed by a person. No banner, no card, no bulk footer;
 // signed by the care team member. Unsubscribe still works through the List-Unsubscribe headers.
-export function renderPersonal(env, body, p, sender) {
+// Read receipt: a 1x1 invisible image unique to this one email. Loaded when the person opens it with images on.
+export const PIXEL_MARK = "data-wp-open";
+const pixel = (env, track) => track ? `<img src="${env.SITE_URL || "https://workerpool.ca"}/api/mail-open?k=${track}" width="1" height="1" alt="" ${PIXEL_MARK} style="display:block;width:1px;height:1px;border:0;opacity:0">` : "";
+export const stripPixel = (html) => String(html || "").replace(new RegExp(`<img[^>]*${PIXEL_MARK}[^>]*>`, "g"), "");
+export function renderPersonal(env, body, p, sender, track) {
   const name = cleanSender(sender), site = (env.SITE_URL || "https://workerpool.ca").replace(/^https:\/\//, "");
   const sig = [name, "Care Team, WorkerPool", `${site} | ${addr(FROM(env))}`].filter(Boolean);
   const text = `${personalize(body, p, name)}\n${sig.join("\n")}`;
   const paras = escH(personalize(body, p, name)).split(/\n{2,}/).map((para) =>
     `<p style="margin:0 0 12px">${para.replace(/\n/g, "<br>").replace(/(https:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')}</p>`).join("");
   const html = `<!doctype html><html><body><div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222">${paras}` +
-    `<p style="margin:0">${sig.map((l, i) => (i === 0 ? `<b>${escH(l)}</b>` : `<span style="color:#666">${escH(l)}</span>`)).join("<br>")}</p></div></body></html>`;
+    `<p style="margin:0">${sig.map((l, i) => (i === 0 ? `<b>${escH(l)}</b>` : `<span style="color:#666">${escH(l)}</span>`)).join("<br>")}</p>${pixel(env, track)}</div></body></html>`;
   return { text, html };
 }
 
-export function renderMessage(env, body, p, unsub) {
+export function renderMessage(env, body, p, unsub, track) {
   const text = personalize(body, p);
   const footer = `You're getting this because you signed up at workerpool.ca.` +
     (env.MAIL_ADDRESS ? ` WorkerPool, ${env.MAIL_ADDRESS}.` : ` WorkerPool, Alberta, Canada.`);
@@ -88,14 +105,16 @@ export function renderMessage(env, body, p, unsub) {
 <div style="background:#ffffff;border:1px solid #d3dcda;border-radius:12px;padding:24px">
 <div style="font-weight:700;font-size:18px;color:#3f7a72;margin-bottom:16px">WorkerPool</div>${paras}</div>
 <p style="font-size:12px;color:#5a696b;margin:16px 4px 0">${escH(footer)} Reply to this email to reach us.<br>
-<a href="${escH(unsub)}" style="color:#5a696b">Unsubscribe</a></p></div></body></html>`;
+<a href="${escH(unsub)}" style="color:#5a696b">Unsubscribe</a></p>${pixel(env, track)}</div></body></html>`;
   return { text: plain, html };
 }
 
 /* ---------- sending ---------- */
 // Resend batch API: up to 100 emails per call. Paced under Resend's default 2 requests/second.
+// results[i] = { ok, id, error } for messages[i].
 export async function sendBatch(env, messages) {
   let sent = 0, failed = 0, error = "";
+  const results = [];
   for (let i = 0; i < messages.length; i += 100) {
     const chunk = messages.slice(i, i + 100);
     try {
@@ -104,12 +123,33 @@ export async function sendBatch(env, messages) {
         headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify(chunk),
       });
-      if (r.ok) sent += chunk.length;
-      else { failed += chunk.length; error = error || (await r.text()).slice(0, 300); }
-    } catch (e) { failed += chunk.length; error = error || String(e).slice(0, 300); }
+      if (r.ok) {
+        const j = await r.json().catch(() => ({}));
+        const ids = (j && Array.isArray(j.data) ? j.data : []).map((d) => d && d.id);
+        sent += chunk.length; chunk.forEach((_, k) => results.push({ ok: true, id: ids[k] || null }));
+      } else {
+        const e = (await r.text()).slice(0, 300);
+        failed += chunk.length; error = error || e; chunk.forEach(() => results.push({ ok: false, error: e }));
+      }
+    } catch (e) { failed += chunk.length; error = error || String(e).slice(0, 300); chunk.forEach(() => results.push({ ok: false, error: String(e).slice(0, 300) })); }
     if (i + 100 < messages.length) await new Promise((res) => setTimeout(res, 700));
   }
-  return { sent, failed, error };
+  return { sent, failed, error, results };
+}
+
+// Log a send: the campaign row plus a full copy of each email (never throws; logging must not undo a send).
+export async function logSend(env, c, messages, people, results) {
+  const now = new Date().toISOString();
+  try {
+    await env.DB.prepare(`INSERT INTO email_campaigns (id, created, subject, body, audience, total, sent, failed, skipped, error, style, sender, from_addr, test)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)`)
+      .bind(c.id, now, c.subject, c.body, c.audience, c.total, c.sent, c.failed, c.skipped, c.error || null, c.style || null, c.sender || null, c.from || null, c.test ? 1 : 0).run();
+    const stmts = messages.map((m, i) => env.DB.prepare(`INSERT INTO email_sent (campaign_id, created, to_email, to_name, from_addr, reply_to, subject, text, html, status, resend_id, error, track)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)`)
+      .bind(c.id, now, m.to[0], (people[i] && people[i].name) || null, m.from, m.reply_to || null, m.subject, m.text, m.html,
+        results[i] && results[i].ok ? "sent" : "failed", (results[i] && results[i].id) || null, (results[i] && results[i].error) || null, m._track || null));
+    for (let i = 0; i < stmts.length; i += 50) await env.DB.batch(stmts.slice(i, i + 50));
+  } catch {}
 }
 
 // opts.style: "personal" (signed by opts.sender, plain look) or "newsletter" (branded, with footer).
@@ -117,9 +157,12 @@ export async function buildMessage(env, p, subject, body, opts = {}) {
   const sender = opts.style === "personal" ? cleanSender(opts.sender) : "";
   const base = FROM(env), unsub = await unsubUrl(env, p.email);
   const from = sender ? `${sender} from WorkerPool <${addr(base)}>` : base;
-  const { text, html } = sender ? renderPersonal(env, body, p, sender) : renderMessage(env, body, p, unsub);
-  return {
+  const track = randomToken();
+  const { text, html } = sender ? renderPersonal(env, body, p, sender, track) : renderMessage(env, body, p, unsub, track);
+  const msg = {
     from, to: [p.email], reply_to: env.BULK_REPLY_TO || addr(base), subject: personalize(subject, p, sender), text, html,
     headers: { "List-Unsubscribe": `<${unsub}>, <mailto:${addr(from)}?subject=unsubscribe>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
   };
+  Object.defineProperty(msg, "_track", { value: track, enumerable: false }); // kept out of the Resend request
+  return msg;
 }

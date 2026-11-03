@@ -3,7 +3,7 @@ import { json, readJson, str, sendEmail, ensureSignupLog, chatOpen, CHAT_MSG_SQL
 import { NEWS_SEED } from "../../_news.js";
 import { ensureTable as ensureStudents, STATUSES as STUDENT_STATUSES } from "../../_students.js";
 import { autoDraws, edits as drawEdits, merge as mergeDraws, FIELDS as DRAW_FIELDS } from "../../_draws.js";
-import { audience, GROUPS, FROM, MAX_RECIPIENTS, ensureMailTables, buildMessage, sendBatch, cleanSender } from "../../_mail.js";
+import { audience, GROUPS, FROM, MAX_RECIPIENTS, ensureMailTables, buildMessage, sendBatch, cleanSender, logSend, stripPixel } from "../../_mail.js";
 import { TEMPLATES, CARE_TEAM } from "../../_templates.js";
 function same(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
@@ -45,16 +45,36 @@ export async function onRequestGet({ request, env, params }) {
   }
   if (route === "mail") { // Email tab: everyone who can be emailed, their groups, unsubscribes and past sends
     const { people, unsubs } = await audience(env);
-    const sends = (await env.DB.prepare(`SELECT id, created, subject, audience, total, sent, failed, skipped, error FROM email_campaigns ORDER BY created DESC LIMIT 50`).all()).results;
+    const sends = (await env.DB.prepare(`${SENT_SQL} ORDER BY c.created DESC LIMIT 100`).all()).results;
     const mine = (await env.DB.prepare(`SELECT id, label, subject, body FROM email_templates ORDER BY label`).all()).results.map((t) => ({ ...t, group: "My templates", custom: 1 }));
-    return json({ ok: true, ready: !!env.RESEND_API_KEY, from: FROM(env), groups: GROUPS.map(([k, l]) => [k, l]), max: MAX_RECIPIENTS,
+    return json({ ok: true, ready: !!env.RESEND_API_KEY, receipts: !!env.RESEND_WEBHOOK_SECRET, from: FROM(env), groups: GROUPS.map(([k, l]) => [k, l]), max: MAX_RECIPIENTS,
       templates: mine.concat(TEMPLATES), team: (env.CARE_TEAM ? env.CARE_TEAM.split(",").map(cleanSender).filter(Boolean) : CARE_TEAM),
       people: people.map((p) => ({ ...p, unsub: unsubs.has(p.email) ? 1 : 0 })), sends });
   }
-  if (route === "mail-campaign") {
+  if (route === "mail-campaign") { // one send: its details and everyone it went to
     await ensureMailTables(env);
-    const c = await env.DB.prepare(`SELECT * FROM email_campaigns WHERE id = ?1`).bind(url.searchParams.get("id") || "").first();
-    return c ? json({ ok: true, row: c }) : json({ ok: false, error: "Not found." }, 404);
+    const cid = url.searchParams.get("id") || "";
+    const c = await env.DB.prepare(`SELECT * FROM email_campaigns WHERE id = ?1`).bind(cid).first();
+    if (!c) return json({ ok: false, error: "Not found." }, 404);
+    const to = (await env.DB.prepare(`SELECT id, to_email, to_name, subject, status, error, created, delivered_at, delayed_at, bounced_at, bounce_detail, complained_at, opened_at, last_open, opens, clicked_at
+      FROM email_sent WHERE campaign_id = ?1 ORDER BY id LIMIT 5000`).bind(cid).all()).results;
+    return json({ ok: true, row: c, to, receipts: !!env.RESEND_WEBHOOK_SECRET });
+  }
+  if (route === "mail-message") { // the exact email one person received
+    await ensureMailTables(env);
+    const m = await env.DB.prepare(`SELECT * FROM email_sent WHERE id = ?1`).bind(parseInt(url.searchParams.get("id")) || 0).first();
+    if (!m) return json({ ok: false, error: "Not found." }, 404);
+    const events = (await env.DB.prepare(`SELECT t, type, detail FROM email_events WHERE sent_id = ?1 ORDER BY t, id LIMIT 500`).bind(m.id).all()).results;
+    delete m.track; m.html = stripPixel(m.html); // viewing it here must not count as the person reading it
+    return json({ ok: true, row: m, events, receipts: !!env.RESEND_WEBHOOK_SECRET });
+  }
+  if (route === "mail-sent") { // search past sends by subject, group, signer or recipient
+    await ensureMailTables(env);
+    const q = "%" + str(url.searchParams.get("q"), 100).toLowerCase() + "%";
+    const r = await env.DB.prepare(`${SENT_SQL} WHERE lower(c.subject) LIKE ?1 OR lower(c.audience) LIKE ?1 OR lower(COALESCE(c.sender, '')) LIKE ?1
+      OR EXISTS (SELECT 1 FROM email_sent e WHERE e.campaign_id = c.id AND (lower(e.to_email) LIKE ?1 OR lower(COALESCE(e.to_name, '')) LIKE ?1))
+      ORDER BY c.created DESC LIMIT 300`).bind(q).all();
+    return json({ ok: true, rows: r.results });
   }
   if (route === "scanner-passes") {
     await env.DB.prepare(`CREATE TABLE IF NOT EXISTS scan_passes (id TEXT PRIMARY KEY, kind TEXT NOT NULL, created TEXT NOT NULL, expires TEXT NOT NULL, docs_used INTEGER NOT NULL DEFAULT 0, docs_max INTEGER NOT NULL, amount INTEGER, note TEXT)`).run();
@@ -222,6 +242,12 @@ export async function onRequestPost({ request, env, params }) {
   return json({ ok: false, error: "Not found." }, 404);
 }
 
+const SENT_SQL = `SELECT c.id, c.created, c.subject, c.audience, c.total, c.sent, c.failed, c.skipped, c.error, c.style, c.sender, c.test,
+  (SELECT COUNT(*) FROM email_sent e WHERE e.campaign_id = c.id) AS kept,
+  (SELECT COUNT(*) FROM email_sent e WHERE e.campaign_id = c.id AND e.delivered_at IS NOT NULL) AS delivered,
+  (SELECT COUNT(*) FROM email_sent e WHERE e.campaign_id = c.id AND e.opened_at IS NOT NULL) AS opened,
+  (SELECT COUNT(*) FROM email_sent e WHERE e.campaign_id = c.id AND (e.bounced_at IS NOT NULL OR e.complained_at IS NOT NULL)) AS bounced,
+  (SELECT e.to_email FROM email_sent e WHERE e.campaign_id = c.id ORDER BY e.id LIMIT 1) AS first_to FROM email_campaigns c`;
 // Email tab: send a test, send to the chosen people, or unsubscribe / resubscribe someone by hand.
 async function mailAction(env, route, b) {
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
@@ -251,8 +277,11 @@ async function mailAction(env, route, b) {
   if (route === "mail-test") {
     const to = (str(b.to, 200) || env.ADMIN_EMAIL || "").toLowerCase();
     if (!isEmailAddr(to)) return json({ ok: false, error: "Enter an address for the test." }, 400);
-    const opts = { style: b.style, sender: b.sender };
-    const r = await sendBatch(env, [await buildMessage(env, { email: to, name: str(b.name, 80) || "Test" }, "[Test] " + subject, body, opts)]);
+    const opts = { style: b.style, sender: b.sender }, who = { email: to, name: str(b.name, 80) || "Test" };
+    const msg = await buildMessage(env, who, "[Test] " + subject, body, opts);
+    const r = await sendBatch(env, [msg]);
+    await logSend(env, { id: crypto.randomUUID(), subject: "[Test] " + subject, body, audience: "Test to " + to, total: 1, sent: r.sent, failed: r.failed, skipped: 0, error: r.error,
+      style: opts.style, sender: opts.style === "personal" ? cleanSender(opts.sender) : null, from: msg.from, test: 1 }, [msg], [who], r.results);
     return r.sent ? json({ ok: true, to }) : json({ ok: false, error: "Resend refused the test: " + r.error }, 502);
   }
   if (route === "mail-send") {
@@ -269,8 +298,8 @@ async function mailAction(env, route, b) {
     if (opts.style === "personal" && !cleanSender(opts.sender)) return json({ ok: false, error: "Choose who the email is signed by." }, 400);
     const messages = []; for (const p of to) messages.push(await buildMessage(env, p, subject, body, opts));
     const r = await sendBatch(env, messages);
-    await env.DB.prepare(`INSERT INTO email_campaigns (id, created, subject, body, audience, total, sent, failed, skipped, error) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`)
-      .bind(cid, new Date().toISOString(), subject, body, str(b.label, 300) || "Selected people", want.length, r.sent, r.failed, skipped, r.error || null).run();
+    await logSend(env, { id: cid, subject, body, audience: str(b.label, 300) || "Selected people", total: want.length, sent: r.sent, failed: r.failed, skipped, error: r.error,
+      style: opts.style === "personal" ? "personal" : "newsletter", sender: opts.style === "personal" ? cleanSender(opts.sender) : null, from: messages[0] && messages[0].from }, messages, to, r.results);
     return json({ ok: r.sent > 0, id: cid, sent: r.sent, failed: r.failed, skipped, error: r.error ? "Resend said: " + r.error : "" });
   }
   return json({ ok: false, error: "Not found." }, 404);

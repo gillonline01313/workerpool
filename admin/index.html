@@ -183,6 +183,30 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
 .ml-p small{color:var(--muted);font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ml-p.off{opacity:.6;cursor:default}
 .ml-p .dl{flex:none;font-size:.72rem;padding:4px 9px}
+.ml-sh{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.ml-sh h3{margin-right:auto}
+.ml-sh input,.mv-list input{font:inherit;font-size:.85rem;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);min-width:220px}
+.ml-si{cursor:pointer}.ml-si:hover{border-color:var(--accent)}.ml-si small{display:block}.ml-cnt{margin-top:2px}
+.rc{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.rc.read{background:#dcefe4;color:#17663f}.rc.ok{background:var(--accent-soft);color:var(--fg)}.rc.wait{background:var(--line);color:var(--muted)}.rc.bad,.rc.spam{background:#fde4e1;color:#b42318}
+.mv-grid{display:grid;grid-template-columns:260px minmax(0,1fr);gap:14px;align-items:start}.mv-grid.one{grid-template-columns:1fr}
+@media (max-width:760px){.mv-grid{grid-template-columns:1fr}}
+.mv-list{display:flex;flex-direction:column;gap:5px;max-height:70vh;overflow-y:auto}.mv-list input{min-width:0;margin-bottom:4px}
+.mv-p{font:inherit;text-align:left;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;align-items:flex-start}
+.mv-p[aria-current="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.mv-p b{font-size:.86rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mv-p small{color:var(--muted);font-size:.74rem;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.mv-rc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+.mv-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mv-st{display:flex;flex-direction:column;gap:2px;font-size:.84rem}.mv-st i{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:.75rem;font-weight:800}
+.mv-st.on i{background:#1f9d63;border-color:#1f9d63;color:#fff}.mv-st small{color:var(--muted);font-size:.74rem}
+.mv-warn{margin:0;color:#b42318;font-size:.85rem;font-weight:600}
+.mv-rc summary{cursor:pointer;color:var(--accent);font-size:.84rem;font-weight:600}
+.mv-tl{margin:8px 0 0;padding-left:18px;font-size:.82rem;display:flex;flex-direction:column;gap:4px}.mv-tl small{color:var(--muted)}
+.mv-hdr{background:var(--surface);border:1px solid var(--line);border-radius:12px 12px 0 0;padding:10px 14px;font-size:.84rem;display:flex;flex-direction:column;gap:3px;word-break:break-word}
+.mv-hdr span{display:inline-block;width:70px;color:var(--muted)}
+.mv-tabs{background:var(--surface);border:1px solid var(--line);border-top:0;padding:8px 14px}
+.mv-frame{display:block;width:100%;min-height:260px;border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;background:#fff}
+.mv-txt{white-space:pre-wrap;font:inherit;font-size:.88rem;margin:0;background:var(--surface);border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;padding:14px}
+.mv-old .mv-hdr{border-radius:12px 12px 0 0;margin-top:10px}
 .ml-row{display:flex;flex-wrap:wrap;gap:8px}
 .ml-sign{display:flex;gap:8px;flex-wrap:wrap}.ml-sign select{flex:1;min-width:160px}.ml-sign input{flex:1;min-width:160px}
 .ml-prev summary{cursor:pointer;color:var(--accent);font-size:.85rem;font-weight:600}
@@ -1060,9 +1084,7 @@ function renderMail(body){
       <div class="nw-acts"><button class="dl" type="submit" id="mlGo" style="background:var(--accent);color:var(--surface);border-color:var(--accent)"${n&&D.ready?"":" disabled"}>Send to ${n} ${n===1?"person":"people"}</button></div>
     </form>
   </div></div>
-  <div class="wpa-card wide" style="margin-top:14px"><h3>Sent emails</h3>${D.sends.length?`<div class="nw-list">${D.sends.map(c=>`<div class="nw-item"><div><b>${esc(c.subject)}</b>
-    <small>${when(c.created)} · ${esc(c.audience)} · ${c.sent} sent${c.failed?` · <span style="color:#b4552d">${c.failed} failed</span>`:""}${c.skipped?` · ${c.skipped} unsubscribed, skipped`:""}${c.error?` · ${esc(c.error)}`:""}</small></div>
-    <div class="nw-btns"><button class="dl" data-reuse="${esc(c.id)}">Use again</button></div></div>`).join("")}</div>`:`<div class="wpa-empty">Nothing sent yet.</div>`}</div>`;
+  <div class="wpa-card wide" style="margin-top:14px" id="mlSent"></div>`;
   const keep=()=>{ const y=window.scrollY; renderMail(body); window.scrollTo(0,y); };
   const fail=x=>{ if(x.message==="auth") return lock("That admin key isn't right."); $("#mlErr").textContent=x.message; };
   body.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ const g=inG(b.dataset.g), all=g.every(p=>ml.sel.has(p.email)); g.forEach(p=>all?ml.sel.delete(p.email):ml.sel.add(p.email)); ml.msg=""; keep(); });
@@ -1086,7 +1108,7 @@ function renderMail(body){
   if($("#mlDelT")) $("#mlDelT").onclick=async()=>{ if(!confirm(`Delete the template "${curT.label}"?`)) return;
     try{ await chatFetch("mail-template",{method:"POST",body:JSON.stringify({id:curT.id,delete:true})}); ml.tpl=""; mailSave(); ml.reload=true; load(); }catch(x){ fail(x); } };
   ["#mlS","#mlB","#mlT"].forEach(id=>$(id).oninput=upd);
-  body.querySelectorAll("[data-reuse]").forEach(b=>b.onclick=async()=>{ try{ const j=await chatFetch("mail-campaign?id="+encodeURIComponent(b.dataset.reuse)); ml.subject=j.row.subject||""; ml.body=j.row.body||""; mailSave(); keep(); $("#mlS").focus(); }catch(x){ alert(x.message); } });
+  mlSentDraw(D.receipts, (sub,bod)=>{ ml.subject=sub; ml.body=bod; ml.tpl=""; mailSave(); keep(); $("#mlS").focus(); window.scrollTo({top:$("#mlForm").getBoundingClientRect().top+window.scrollY-80,behavior:"smooth"}); });
 
   $("#mlTest").onclick=async e=>{ upd(); $("#mlErr").textContent=""; e.target.disabled=true;
     try{ const j=await chatFetch("mail-test",{method:"POST",body:JSON.stringify({subject:ml.subject,body:ml.body,to:ml.test.trim(),name:prevP.name||"",style:ml.style,sender:ml.sender})}); $("#mlOk").textContent="Test sent to "+j.to+". Check that it landed in the inbox, not spam."; }catch(x){ fail(x); } e.target.disabled=false; };
@@ -1101,6 +1123,70 @@ function renderMail(body){
       ml.msg=`Sent to ${j.sent} ${j.sent===1?"person":"people"}${j.skipped?`, ${j.skipped} unsubscribed skipped`:""}${j.failed?`. ${j.failed} failed: ${j.error}`:""}.`;
       ml.sel.clear(); ml.subject=""; ml.body=""; ml.tpl=""; mailSave(); ml.reload=true; load();
     }catch(x){ fail(x); go.disabled=false; go.textContent=`Send to ${emails.length} people`; } };
+}
+/* ---------- Sent emails: list, receipts and the full email as received ---------- */
+const mls={q:"",rows:null,t:null};
+const rcpt=m=>m.complained_at?["spam","Marked as spam"]:m.bounced_at||m.status==="bounced"?["bad","Bounced"]:m.status==="failed"?["bad","Not sent"]:m.opened_at?["read","Read"]:m.delivered_at?["ok","Delivered"]:m.delayed_at?["wait","Delayed"]:["wait","Sent"];
+const tick=m=>{ const [k,l]=rcpt(m); return `<span class="rc ${k}">${k==="read"?"✓✓":k==="ok"?"✓":k==="bad"||k==="spam"?"!":"•"} ${l}</span>`; };
+function mlSentDraw(receipts,reuse){
+  const el=$("#mlSent"); if(!el) return; mlSentDraw.reuse=reuse;
+  const R=mls.rows||data.mail.sends||[];
+  el.innerHTML=`<div class="ml-sh"><h3>Sent emails</h3><input id="mlsQ" type="search" placeholder="Search subject, person, email, signer…" value="${esc(mls.q)}"></div>
+    ${receipts?"":`<p class="ml-hint" style="color:#b4552d">Delivery receipts aren't switched on yet: add the Resend webhook and RESEND_WEBHOOK_SECRET (see README). Read receipts already work.</p>`}
+    ${R.length?`<div class="nw-list">${R.map(c=>{ const n=c.kept||0;
+      return `<div class="nw-item ml-si" data-view="${esc(c.id)}" tabindex="0" role="button"><div><b>${c.test?`<span class="pill">Test</span> `:""}${esc(c.subject)}</b>
+      <small>${esc(when(c.created))} · ${c.total===1&&c.first_to?esc(c.first_to):esc(c.audience)}${c.sender?` · signed ${esc(c.sender)}`:""}</small>
+      <small class="ml-cnt">${c.sent} sent${n?` · ${c.delivered||0} delivered · ${c.opened||0} read`:""}${c.bounced?` · <span style="color:#b4552d">${c.bounced} bounced/spam</span>`:""}${c.failed?` · <span style="color:#b4552d">${c.failed} failed</span>`:""}${c.skipped?` · ${c.skipped} unsubscribed, skipped`:""}</small></div>
+      <div class="nw-btns"><button class="dl" type="button" data-view="${esc(c.id)}">View</button><button class="dl" type="button" data-reuse="${esc(c.id)}">Use again</button></div></div>`; }).join("")}</div>`
+    :`<div class="wpa-empty">${mls.q?"Nothing matches.":"Nothing sent yet."}</div>`}`;
+  $("#mlsQ").oninput=e=>{ mls.q=e.target.value; clearTimeout(mls.t); mls.t=setTimeout(async()=>{ const pos=e.target.selectionStart;
+    try{ mls.rows=mls.q.trim()?(await chatFetch("mail-sent?q="+encodeURIComponent(mls.q.trim()))).rows:null; }catch(x){} mlSentDraw(receipts,reuse); const i=$("#mlsQ"); i.focus(); i.setSelectionRange(pos,pos); },300); };
+  el.querySelectorAll("[data-view]").forEach(b=>{ const go=e=>{ if(e.target.closest("[data-reuse]")) return; e.stopPropagation(); mlOpen(b.dataset.view); }; b.onclick=go; b.onkeydown=e=>{ if(e.key==="Enter") go(e); }; });
+  el.querySelectorAll("[data-reuse]").forEach(b=>b.onclick=async e=>{ e.stopPropagation(); try{ const j=await chatFetch("mail-campaign?id="+encodeURIComponent(b.dataset.reuse)); reuse((j.row.subject||"").replace(/^\[Test\] /,""),j.row.body||""); }catch(x){ alert(x.message); } });
+}
+let mlv=null;
+async function mlOpen(cid){
+  closeDrill();
+  const ov=document.createElement("div"); ov.id="drOv"; ov.className="dr-ov"; ov.onclick=closeDrill; document.body.appendChild(ov);
+  const pn=document.createElement("aside"); pn.id="drPn"; pn.className="dr-pn"; pn.setAttribute("role","dialog"); pn.setAttribute("aria-modal","true"); document.body.appendChild(pn); document.body.style.overflow="hidden";
+  pn.innerHTML=`<div class="dr-hd"><div><h3>Loading…</h3></div><button class="dl" type="button" id="drX">Close ✕</button></div>`; $("#drX").onclick=closeDrill;
+  try{ const j=await chatFetch("mail-campaign?id="+encodeURIComponent(cid)); mlv={c:j.row,to:j.to,receipts:j.receipts,q:"",cur:j.to.length?j.to[0].id:null,mode:"html"}; mlDraw(); if(mlv.cur) mlMsg(mlv.cur); }
+  catch(x){ pn.querySelector("h3").textContent="Couldn't open: "+x.message; }
+}
+function mlDraw(){
+  const pn=$("#drPn"); if(!pn||!mlv) return; const {c,to}=mlv, q=mlv.q.trim().toLowerCase();
+  const cnt=k=>to.filter(m=>rcpt(m)[0]===k).length;
+  const T=to.filter(m=>!q||(m.to_email+" "+(m.to_name||"")+" "+rcpt(m)[1]).toLowerCase().includes(q));
+  pn.innerHTML=`<div class="dr-hd"><div><h3>${esc(c.subject)}</h3><p>${esc(fullWhen(Date.parse(c.created)))} · ${esc(c.audience)}${c.sender?` · signed ${esc(c.sender)}`:""} · ${c.style==="personal"?"Personal":"Newsletter"} style</p></div><button class="dl" type="button" id="drX">Close ✕</button></div>
+  ${to.length?`<div class="dr-chips"><span class="dr-chip"><b>${to.length}</b> sent</span><span class="dr-chip"><b>${to.filter(m=>m.delivered_at).length}</b> delivered</span><span class="dr-chip"><b>${cnt("read")}</b> read</span>${cnt("bad")?`<span class="dr-chip"><b>${cnt("bad")}</b> bounced / not sent</span>`:""}${cnt("spam")?`<span class="dr-chip"><b>${cnt("spam")}</b> marked as spam</span>`:""}${c.skipped?`<span class="dr-chip"><b>${c.skipped}</b> unsubscribed, skipped</span>`:""}</div>`:""}
+  <div class="dr-body"><div class="mv-grid${to.length>1?"":" one"}">
+    ${to.length>1?`<div class="mv-list"><input id="mvQ" type="search" placeholder="Search ${to.length} people" value="${esc(mlv.q)}">${T.map(m=>`<button type="button" class="mv-p" data-m="${m.id}" aria-current="${m.id===mlv.cur}"><b>${esc(m.to_name||m.to_email)}</b><small>${m.to_name?esc(m.to_email):""}</small>${tick(m)}</button>`).join("")||`<p class="ml-hint">No one matches.</p>`}</div>`:""}
+    <div id="mvMsg">${to.length?`<div class="wpa-empty">Loading…</div>`:`<div class="mv-old"><p class="ml-hint">This was sent before full copies were kept, so here is the message as it was written (before names were filled in).</p><div class="mv-hdr"><div><span>Subject</span>${esc(c.subject)}</div></div><pre class="mv-txt">${esc(c.body||"")}</pre></div>`}</div>
+  </div></div>`;
+  $("#drX").onclick=closeDrill;
+  if($("#mvQ")) $("#mvQ").oninput=e=>{ mlv.q=e.target.value; const v=mlv.q.trim().toLowerCase();
+    pn.querySelectorAll("[data-m]").forEach(b=>{ b.hidden=!!v&&!b.textContent.toLowerCase().includes(v); }); };
+  pn.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{ mlv.cur=+b.dataset.m; pn.querySelectorAll("[data-m]").forEach(x=>x.setAttribute("aria-current",x===b)); mlMsg(mlv.cur); });
+}
+const fw=t=>t?fullWhen(Date.parse(t)):"";
+const EVL={sent:"Accepted by the mail server",delivered:"Delivered to their inbox server",delivery_delayed:"Delivery delayed (still trying)",bounced:"Bounced",complained:"Marked as spam (now unsubscribed)",opened:"Opened",clicked:"Clicked a link"};
+async function mlMsg(id){
+  const box=$("#mvMsg"); if(!box) return; box.innerHTML=`<div class="wpa-empty">Loading…</div>`;
+  try{ const j=await chatFetch("mail-message?id="+id); if(mlv.cur!==id) return; mlv.msg=j; mlRender(); }catch(x){ box.innerHTML=`<div class="wpa-empty">Couldn't load: ${esc(x.message)}</div>`; }
+}
+function mlRender(){
+  const box=$("#mvMsg"), j=mlv.msg; if(!box||!j) return; const m=j.row, [k,l]=rcpt(m);
+  const steps=[["Sent",m.status!=="failed"?m.created:null],["Delivered",m.delivered_at],["Read",m.opened_at]];
+  const timeline=[{t:m.created,type:m.status==="failed"?"failed":"sent0",detail:m.error}].concat(j.events||[]);
+  box.innerHTML=`<div class="mv-rc"><div class="mv-steps">${steps.map(([n,t])=>`<div class="mv-st${t?" on":""}"><i>${t?"✓":""}</i><b>${n}</b><small>${t?esc(fw(t)):n==="Delivered"&&!j.receipts?"needs webhook":"not yet"}</small></div>`).join("")}</div>
+      ${m.bounced_at?`<p class="mv-warn">Bounced ${esc(fw(m.bounced_at))}${m.bounce_detail?": "+esc(m.bounce_detail):""}</p>`:""}${m.complained_at?`<p class="mv-warn">Marked as spam ${esc(fw(m.complained_at))}. They've been unsubscribed.</p>`:""}${m.status==="failed"?`<p class="mv-warn">Not sent: ${esc(m.error||"")}</p>`:""}
+      ${m.opens>1?`<p class="ml-hint">Opened ${m.opens} times · last opened ${esc(fw(m.last_open))}</p>`:""}
+      <details><summary>Full history (${timeline.length})</summary><ul class="mv-tl">${timeline.map(e=>`<li><b>${esc(e.type==="sent0"?"Handed to Resend for sending":e.type==="failed"?"Resend refused it":EVL[e.type]||e.type)}</b> ${esc(fw(e.t))}${e.detail?` <small>${esc(e.detail)}</small>`:""}</li>`).join("")}</ul></details></div>
+    <div class="mv-hdr"><div><span>From</span>${esc(m.from_addr)}</div><div><span>To</span>${esc(m.to_name?m.to_name+" <"+m.to_email+">":m.to_email)}</div><div><span>Reply-to</span>${esc(m.reply_to||"")}</div><div><span>Date</span>${esc(fw(m.created))}</div><div><span>Subject</span><b>${esc(m.subject)}</b></div></div>
+    <div class="mv-tabs">${seg("mvm",[["html","As they see it"],["text","Plain text version"]],mlv.mode)}</div>
+    ${mlv.mode==="html"?`<iframe class="mv-frame" sandbox="allow-same-origin" title="Email as received"></iframe>`:`<pre class="mv-txt">${esc(m.text||"")}</pre>`}`;
+  const f=box.querySelector("iframe"); if(f){ f.srcdoc=m.html||""; f.onload=()=>{ try{ f.style.height=Math.max(260,f.contentDocument.documentElement.scrollHeight+20)+"px"; }catch(e){} }; }
+  box.querySelectorAll('[data-seg="mvm"] button').forEach(b=>b.onclick=()=>{ mlv.mode=b.dataset.v; mlRender(); });
 }
 /* ---------- Hot & New ticker ---------- */
 const NTAG={hot:"Hot",new:"New",trending:"Trending",update:"Update"};
