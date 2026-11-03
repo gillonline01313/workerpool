@@ -1135,7 +1135,7 @@ function mlSentDraw(receipts,reuse){
     ${receipts?"":`<p class="ml-hint" style="color:#b4552d">Delivery receipts aren't switched on yet: add the Resend webhook and RESEND_WEBHOOK_SECRET (see README). Read receipts already work.</p>`}
     ${R.length?`<div class="nw-list">${R.map(c=>{ const n=c.kept||0;
       return `<div class="nw-item ml-si" data-view="${esc(c.id)}" tabindex="0" role="button"><div><b>${c.test?`<span class="pill">Test</span> `:""}${esc(c.subject)}</b>
-      <small>${esc(when(c.created))} · ${c.total===1&&c.first_to?esc(c.first_to):esc(c.audience)}${c.sender?` · signed ${esc(c.sender)}`:""}</small>
+      <small>${esc(when(c.created))} · ${c.total===1&&c.first_to?esc(c.first_to):esc(String(c.audience||"").replace(/ · signed .*$/,""))}${c.sender?` · signed ${esc(c.sender)}`:""}</small>
       <small class="ml-cnt">${c.sent} sent${n?` · ${c.delivered||0} delivered · ${c.opened||0} read`:""}${c.bounced?` · <span style="color:#b4552d">${c.bounced} bounced/spam</span>`:""}${c.failed?` · <span style="color:#b4552d">${c.failed} failed</span>`:""}${c.skipped?` · ${c.skipped} unsubscribed, skipped`:""}</small></div>
       <div class="nw-btns"><button class="dl" type="button" data-view="${esc(c.id)}">View</button><button class="dl" type="button" data-reuse="${esc(c.id)}">Use again</button></div></div>`; }).join("")}</div>`
     :`<div class="wpa-empty">${mls.q?"Nothing matches.":"Nothing sent yet."}</div>`}`;
@@ -1157,8 +1157,8 @@ function mlDraw(){
   const pn=$("#drPn"); if(!pn||!mlv) return; const {c,to}=mlv, q=mlv.q.trim().toLowerCase();
   const cnt=k=>to.filter(m=>rcpt(m)[0]===k).length;
   const T=to.filter(m=>!q||(m.to_email+" "+(m.to_name||"")+" "+rcpt(m)[1]).toLowerCase().includes(q));
-  pn.innerHTML=`<div class="dr-hd"><div><h3>${esc(c.subject)}</h3><p>${esc(fullWhen(Date.parse(c.created)))} · ${esc(c.audience)}${c.sender?` · signed ${esc(c.sender)}`:""} · ${c.style==="personal"?"Personal":"Newsletter"} style</p></div><button class="dl" type="button" id="drX">Close ✕</button></div>
-  ${to.length?`<div class="dr-chips"><span class="dr-chip"><b>${to.length}</b> sent</span><span class="dr-chip"><b>${to.filter(m=>m.delivered_at).length}</b> delivered</span><span class="dr-chip"><b>${cnt("read")}</b> read</span>${cnt("bad")?`<span class="dr-chip"><b>${cnt("bad")}</b> bounced / not sent</span>`:""}${cnt("spam")?`<span class="dr-chip"><b>${cnt("spam")}</b> marked as spam</span>`:""}${c.skipped?`<span class="dr-chip"><b>${c.skipped}</b> unsubscribed, skipped</span>`:""}</div>`:""}
+  pn.innerHTML=`<div class="dr-hd"><div><h3>${esc(c.subject)}</h3><p>${esc(fullWhen(Date.parse(c.created)))} · ${esc(c.audience)}${c.sender&&!/signed /.test(c.audience||"")?` · signed ${esc(c.sender)}`:""} · ${c.style==="personal"?"Personal":"Newsletter"} style</p></div><button class="dl" type="button" id="drX">Close ✕</button></div>
+  ${to.length?`<div class="dr-chips"><span class="dr-chip"><b>${to.length}</b> sent</span><span class="dr-chip"><b>${to.filter(m=>m.delivered_at||m.opened_at).length}</b> delivered</span><span class="dr-chip"><b>${cnt("read")}</b> read</span>${cnt("bad")?`<span class="dr-chip"><b>${cnt("bad")}</b> bounced / not sent</span>`:""}${cnt("spam")?`<span class="dr-chip"><b>${cnt("spam")}</b> marked as spam</span>`:""}${c.skipped?`<span class="dr-chip"><b>${c.skipped}</b> unsubscribed, skipped</span>`:""}</div>`:""}
   <div class="dr-body"><div class="mv-grid${to.length>1?"":" one"}">
     ${to.length>1?`<div class="mv-list"><input id="mvQ" type="search" placeholder="Search ${to.length} people" value="${esc(mlv.q)}">${T.map(m=>`<button type="button" class="mv-p" data-m="${m.id}" aria-current="${m.id===mlv.cur}"><b>${esc(m.to_name||m.to_email)}</b><small>${m.to_name?esc(m.to_email):""}</small>${tick(m)}</button>`).join("")||`<p class="ml-hint">No one matches.</p>`}</div>`:""}
     <div id="mvMsg">${to.length?`<div class="wpa-empty">Loading…</div>`:`<div class="mv-old"><p class="ml-hint">This was sent before full copies were kept, so here is the message as it was written (before names were filled in).</p><div class="mv-hdr"><div><span>Subject</span>${esc(c.subject)}</div></div><pre class="mv-txt">${esc(c.body||"")}</pre></div>`}</div>
@@ -1176,9 +1176,9 @@ async function mlMsg(id){
 }
 function mlRender(){
   const box=$("#mvMsg"), j=mlv.msg; if(!box||!j) return; const m=j.row, [k,l]=rcpt(m);
-  const steps=[["Sent",m.status!=="failed"?m.created:null],["Delivered",m.delivered_at],["Read",m.opened_at]];
+  const steps=[["Sent",m.status!=="failed"?m.created:null],["Delivered",m.delivered_at||m.opened_at],["Read",m.opened_at]];
   const timeline=[{t:m.created,type:m.status==="failed"?"failed":"sent0",detail:m.error}].concat(j.events||[]);
-  box.innerHTML=`<div class="mv-rc"><div class="mv-steps">${steps.map(([n,t])=>`<div class="mv-st${t?" on":""}"><i>${t?"✓":""}</i><b>${n}</b><small>${t?esc(fw(t)):n==="Delivered"&&!j.receipts?"needs webhook":"not yet"}</small></div>`).join("")}</div>
+  box.innerHTML=`<div class="mv-rc"><div class="mv-steps">${steps.map(([n,t])=>`<div class="mv-st${t?" on":""}"><i>${t?"✓":""}</i><b>${n}</b><small>${n==="Delivered"&&t&&!m.delivered_at?"Confirmed by the read":t?esc(fw(t)):n==="Delivered"&&!j.receipts?"needs webhook":"not yet"}</small></div>`).join("")}</div>
       ${m.bounced_at?`<p class="mv-warn">Bounced ${esc(fw(m.bounced_at))}${m.bounce_detail?": "+esc(m.bounce_detail):""}</p>`:""}${m.complained_at?`<p class="mv-warn">Marked as spam ${esc(fw(m.complained_at))}. They've been unsubscribed.</p>`:""}${m.status==="failed"?`<p class="mv-warn">Not sent: ${esc(m.error||"")}</p>`:""}
       ${m.opens>1?`<p class="ml-hint">Opened ${m.opens} times · last opened ${esc(fw(m.last_open))}</p>`:""}
       <details><summary>Full history (${timeline.length})</summary><ul class="mv-tl">${timeline.map(e=>`<li><b>${esc(e.type==="sent0"?"Handed to Resend for sending":e.type==="failed"?"Resend refused it":EVL[e.type]||e.type)}</b> ${esc(fw(e.t))}${e.detail?` <small>${esc(e.detail)}</small>`:""}</li>`).join("")}</ul></details></div>

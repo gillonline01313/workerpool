@@ -244,7 +244,7 @@ export async function onRequestPost({ request, env, params }) {
 
 const SENT_SQL = `SELECT c.id, c.created, c.subject, c.audience, c.total, c.sent, c.failed, c.skipped, c.error, c.style, c.sender, c.test,
   (SELECT COUNT(*) FROM email_sent e WHERE e.campaign_id = c.id) AS kept,
-  (SELECT COUNT(*) FROM email_sent e WHERE e.campaign_id = c.id AND e.delivered_at IS NOT NULL) AS delivered,
+  (SELECT COUNT(*) FROM email_sent e WHERE e.campaign_id = c.id AND (e.delivered_at IS NOT NULL OR e.opened_at IS NOT NULL)) AS delivered,
   (SELECT COUNT(*) FROM email_sent e WHERE e.campaign_id = c.id AND e.opened_at IS NOT NULL) AS opened,
   (SELECT COUNT(*) FROM email_sent e WHERE e.campaign_id = c.id AND (e.bounced_at IS NOT NULL OR e.complained_at IS NOT NULL)) AS bounced,
   (SELECT e.to_email FROM email_sent e WHERE e.campaign_id = c.id ORDER BY e.id LIMIT 1) AS first_to FROM email_campaigns c`;
