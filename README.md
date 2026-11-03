@@ -134,6 +134,7 @@ Setup (Cloudflare → Pages → Settings → Variables and secrets):
 | `BULK_REPLY_TO` | Text | Optional. Where replies to those emails go (default: the `BULK_FROM` address) |
 | `CARE_TEAM` | Text | Optional. Comma-separated names for **Signed by** in the Email tab (default list is in `functions/_templates.js`) |
 | `RESEND_WEBHOOK_SECRET` | Secret | Signing secret (`whsec_…`) of the Resend webhook, for delivery receipts on emails from the Email tab |
+| `GITHUB_TOKEN` | Secret | Lets **Latest draws → ↻ Refresh now** re-run the draw reader on demand. A fine-grained GitHub token (GitHub → Settings → Developer settings → Fine-grained tokens) for the `workerpool` repository only, with **Actions: Read and write**. Without it, use “Run on GitHub ↗” |
 | `MAIL_ADDRESS` | Text | Optional but recommended. Business mailing address shown in the email footer (Canada's anti-spam law, CASL) |
 | `SITE_URL` | Text | `https://workerpool.ca` |
 
@@ -156,3 +157,13 @@ Emails go through Resend (`RESEND_API_KEY`) from `info@workerpool.ca`, and repli
 
 - **Read receipts** work with no setup: each email has an invisible 1×1 image unique to it (`/api/mail-open`). The first open, the latest open and the number of opens are recorded. Reads are an estimate: people who block images aren't counted, and Apple Mail's privacy setting can show a read when the email was only downloaded.
 - **Delivery receipts** come from Resend. In Resend → **Webhooks**, add `https://workerpool.ca/api/mail-events` with the events `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.bounced`, `email.complained` (and optionally `email.opened`, `email.clicked`), then put its signing secret in Cloudflare as `RESEND_WEBHOOK_SECRET` (`functions/api/mail-events.js`, signature-checked). Bounces show the reason, and anyone who marks an email as spam is unsubscribed automatically. The full history of each email is in `email_events`.
+
+## Latest draws: refreshing by hand
+
+The reader (`scripts/draws/fetch.mjs`, run by `.github/workflows/draws.yml`) checks official pages at 8 am, 2 pm and 8 pm Mountain time. When a source fails (for example a government server timing out), the admin **Latest draws** tab shows it in red with its error:
+
+- **↻ Refresh now** re-reads every source. **↻ Retry failed sources** (or *retry* next to one source, or **↻ Refresh** on the Sources view) re-reads only those; every other source keeps its last result. The tab shows progress and reloads by itself when the site has published the new scores, usually 2–4 minutes later.
+- Pages that block automated readers (PEI, NL, Yukon, North Bay, Brandon) can't be refreshed automatically. Their **+ add** / **+ Add draw** buttons open the draw form already filled in with the province, program and official link, so you only type the date, stream, invitations and score.
+- From GitHub you can do the same: Actions → Latest draws → Run workflow, with source ids such as `sk,ee` (empty = all).
+
+Needs the `GITHUB_TOKEN` secret above.

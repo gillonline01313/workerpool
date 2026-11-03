@@ -1,12 +1,19 @@
 # Latest draws: reads official IRCC, provincial and RCIP community pages and updates data/draws.json,
 # which the home page shows. Runs at 8 am, 2 pm and 8 pm Edmonton time. Cloudflare redeploys the site on each update.
-# Run it by hand any time: GitHub → Actions → Latest draws → Run workflow.
+# Run it by hand any time: admin dashboard → Latest draws → Refresh now (or GitHub → Actions → Latest draws → Run workflow).
+# The "sources" input re-reads only those sources (comma-separated ids, e.g. "sk,ee"); empty = all of them.
 name: Latest draws
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Latest draws – refresh {0}', github.event.inputs.sources || 'all') || 'Latest draws' }}
 on:
   schedule:
     - cron: "2 14,20,2 * * *" # 8 am, 2 pm, 8 pm Edmonton while on daylight time (UTC-6)
     - cron: "2 15,21,3 * * *" # the same times while on standard time (UTC-7)
   workflow_dispatch:
+    inputs:
+      sources:
+        description: "Only these source ids, comma-separated (e.g. sk,ee). Leave empty for all."
+        required: false
+        default: ""
   push: # also runs once whenever the reader itself changes
     branches: [main]
     paths: ["scripts/draws/**", ".github/workflows/draws.yml"]
@@ -45,8 +52,12 @@ jobs:
       - name: Read official draw pages
         if: steps.gate.outputs.run == 'yes'
         run: node scripts/draws/fetch.mjs
+        env:
+          DRAWS_ONLY: ${{ github.event.inputs.sources || '' }}
       - name: Publish
         if: steps.gate.outputs.run == 'yes'
+        env:
+          DRAWS_ONLY: ${{ github.event.inputs.sources || '' }}
         run: |
           git config user.name "WorkerPool draws"
           git config user.email "draws-bot@users.noreply.github.com"
@@ -58,7 +69,7 @@ jobs:
             cp "$RUNNER_TEMP/draws.json" data/draws.json
             git add data/draws.json
             git diff --cached --quiet && { echo "No change"; exit 0; }
-            git commit -q -m "Latest draws: update $(TZ=America/Edmonton date '+%Y-%m-%d %H:%M %Z')"
+            git commit -q -m "Latest draws: ${DRAWS_ONLY:+refresh $DRAWS_ONLY, }update $(TZ=America/Edmonton date '+%Y-%m-%d %H:%M %Z')"
             git push -q origin HEAD:main && exit 0
             sleep $((i * 5))
           done

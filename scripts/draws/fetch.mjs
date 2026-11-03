@@ -308,10 +308,14 @@ const now = new Date().toISOString();
 const cutoff = new Date(Date.now() - KEEP_DAYS * 864e5).toISOString().slice(0, 10);
 const sources = [];
 let added = 0, changed = 0;
+// Admin "Refresh now" can re-read only some sources (DRAWS_ONLY=sk,ee). The others keep their last result untouched.
+const ONLY = (process.env.DRAWS_ONLY || "").split(/[\s,]+/).map((x) => x.trim().toLowerCase()).filter(Boolean);
+if (ONLY.length) console.log("Refreshing only: " + ONLY.join(", "));
 
 for (const s of SOURCES) {
   const url = typeof s.url === "function" ? s.url() : s.url;
   const prev = (old.sources || []).find((x) => x.id === s.id) || {};
+  if (ONLY.length && !ONLY.includes(s.id) && prev.id) { sources.push(prev); continue; }
   const st = { id: s.id, jur: s.jur, program: s.program, name: s.name, url: s.page || url, checked: now, ok: false, found: 0, manual: !!s.manual, watch: !!s.watch,
     ...(s.prov ? { prov: s.prov, pilot: s.pilot } : {}), ...(s.status ? { status: s.status, statusChecked: s.checkedStatus } : {}) };
   const addRow = (r) => { // one draw from a parser or a seed
@@ -351,7 +355,9 @@ for (const s of SOURCES) {
       if (!rows.length) st.error = "Page loaded but no draws were recognised. The page layout may have changed.";
     }
   } catch (e) {
-    st.error = String(e.message || e).slice(0, 200);
+    // Node's fetch says only "fetch failed"; the real reason (timeout, connection reset, DNS…) is in e.cause
+    const why = e.cause && (e.cause.code || e.cause.message);
+    st.error = (String(e.message || e) + (why && !String(e.message).includes(why) ? ` (${why})` : "")).slice(0, 200);
   }
   if (!st.ok) st.lastOk = prev.ok ? prev.checked : prev.lastOk || null;
   sources.push(st);
@@ -360,6 +366,9 @@ for (const s of SOURCES) {
 
 const draws = [...byId.values()].filter((x) => x.date >= cutoff).sort((a, b) => b.date.localeCompare(a.date) || a.program.localeCompare(b.program) || a.stream.localeCompare(b.stream));
 fs.mkdirSync(new URL("../../data/", import.meta.url), { recursive: true });
-fs.writeFileSync(OUT, JSON.stringify({ updated: added || changed ? now : old.updated || now, checked: now, draws, sources }, null, 1) + "\n");
+fs.writeFileSync(OUT, JSON.stringify({ updated: added || changed ? now : old.updated || now, checked: ONLY.length ? old.checked || now : now,
+  ...(ONLY.length ? { refreshed: now, refreshedOnly: ONLY } : {}), draws, sources }, null, 1) + "\n");
 console.log(`\n${draws.length} draws kept · ${added} new · ${changed} updated`);
-if (sources.every((x) => !x.ok)) process.exit(1); // every source failed: something is wrong with the runner, don't commit
+// Every source failed on a full run: something is wrong with the runner, don't commit. A refresh of a few
+// sources always commits, so the admin sees the new result (or the new error) for exactly those sources.
+if (!ONLY.length && sources.every((x) => !x.ok)) process.exit(1);

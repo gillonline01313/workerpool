@@ -103,8 +103,10 @@ export async function onRequestGet({ request, env, params }) {
   }
   if (route === "draws") {
     const auto = await autoDraws(request, env), ed = await drawEdits(env);
-    return json({ ok: true, ready: ed !== null, checked: auto.checked, updated: auto.updated, sources: auto.sources || [], draws: mergeDraws(auto, ed, true) });
+    return json({ ok: true, ready: ed !== null, checked: auto.checked, updated: auto.updated, refreshed: auto.refreshed || null, refreshedOnly: auto.refreshedOnly || null,
+      canRefresh: !!env.GITHUB_TOKEN, sources: auto.sources || [], draws: mergeDraws(auto, ed, true) });
   }
+  if (route === "draws-refresh") return drawsRefreshStatus(env);
   if (route === "forum-views") {
     try {
       const topic = str(url.searchParams.get("topic"), 64);
@@ -206,6 +208,7 @@ export async function onRequestPost({ request, env, params }) {
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
   if (route.startsWith("news-")) return newsAction(env, route, b);
   if (route.startsWith("forum-")) return forumAction(env, route, b);
+  if (route === "draws-refresh") return drawsRefresh(env, b);
   if (route.startsWith("draws-")) return drawsAction(request, env, route, b);
   if (route === "student-status") {
     await ensureStudents(env);
@@ -404,6 +407,37 @@ async function forumAction(env, route, b) {
     }
   } catch { return json({ ok: false, error: "Couldn't save. Run schema-forum.sql in the D1 console first." }, 500); }
   return json({ ok: false, error: "Not found." }, 404);
+}
+
+// Latest draws: "Refresh now" re-runs the official-page reader (GitHub Actions → .github/workflows/draws.yml) on demand,
+// for every source or only the ones picked (e.g. a source that failed). Needs the Cloudflare secret GITHUB_TOKEN:
+// a fine-grained GitHub token for this repository with "Actions: Read and write". The run commits data/draws.json and
+// Cloudflare redeploys, so new scores appear on the site about 2–4 minutes after pressing the button.
+const GH_WORKFLOW = "draws.yml";
+async function gh(env, path, init = {}) {
+  const repo = env.GITHUB_REPO || "gillonline01313/workerpool";
+  return fetch(`https://api.github.com/repos/${repo}/actions/workflows/${GH_WORKFLOW}${path}`, { ...init, headers: {
+    authorization: "Bearer " + env.GITHUB_TOKEN, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28",
+    "user-agent": "WorkerPool-admin", ...(init.body ? { "content-type": "application/json" } : {}) } });
+}
+const NO_TOKEN = "Refresh isn't set up yet: add the GITHUB_TOKEN secret in Cloudflare (see README → Latest draws). Until then use “Run on GitHub ↗”.";
+async function drawsRefresh(env, b) {
+  if (!env.GITHUB_TOKEN) return json({ ok: false, error: NO_TOKEN }, 400);
+  const ids = [...new Set((Array.isArray(b.sources) ? b.sources : []).map((x) => String(x).toLowerCase().trim()).filter((x) => /^[a-z0-9-]{1,40}$/.test(x)))].slice(0, 40);
+  const r = await gh(env, "/dispatches", { method: "POST", body: JSON.stringify({ ref: "main", inputs: { sources: ids.join(",") } }) }).catch(() => null);
+  if (!r || r.status !== 204) {
+    const why = r ? (r.status === 401 || r.status === 403 ? "GitHub refused the token (check it has Actions: Read and write on this repository, and hasn't expired)." : `GitHub said HTTP ${r.status}.`) : "Couldn't reach GitHub.";
+    return json({ ok: false, error: "Couldn't start the refresh. " + why }, 502);
+  }
+  return json({ ok: true, at: new Date().toISOString(), sources: ids });
+}
+async function drawsRefreshStatus(env) {
+  if (!env.GITHUB_TOKEN) return json({ ok: true, ready: false, runs: [] });
+  const r = await gh(env, "/runs?per_page=5").catch(() => null);
+  if (!r || !r.ok) return json({ ok: false, error: "Couldn't read the refresh status from GitHub." }, 502);
+  const j = await r.json();
+  return json({ ok: true, ready: true, runs: (j.workflow_runs || []).map((x) => ({ id: x.id, event: x.event, name: x.display_title || x.name, status: x.status, conclusion: x.conclusion,
+    created: x.created_at, updated: x.updated_at, url: x.html_url })) });
 }
 
 // Latest draws: edit / hide / restore an automatic draw, or add, edit and delete a draw entered by hand.
