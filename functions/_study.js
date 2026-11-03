@@ -258,6 +258,8 @@ export function studentFacts(row) {
   const num = (x) => { const v = parseFloat(x); return isNaN(v) ? null : v; };
   const bands = [e.listening, e.reading, e.writing, e.speaking].map(num).filter((v) => v != null);
   return {
+    // how far the student already is: an associate degree counts above a diploma, so they are pointed to bachelor's degrees
+    topRank: top ? ({ tenth: 0, twelfth: 1, diploma: /associate/i.test([top.credential, top.major].join(" ")) ? 2.5 : 2, bachelors: 3, masters: 4, phd: 5 })[top.level] ?? 1 : 1,
     top: top ? top.level : null, topName: top ? [top.credential, top.major].filter(Boolean).join(" – ") : "",
     percent: top ? percent(top.result) : null, backlogs: top ? parseInt(top.backlogs) || 0 : 0, gap,
     test: e.test || "none", overall: num(e.overall), minBand: bands.length ? Math.min(...bands) : null,
@@ -320,13 +322,20 @@ export function matchOne(f, p, school) {
 
 export function matchAll(row, programs, schools) {
   const f = studentFacts(row), byId = new Map(schools.map((s) => [s.id, s]));
-  const out = [];
+  const RANK = { certificate: 1, diploma: 2, "advanced-diploma": 2.5, bachelors: 3, "pg-cert": 3.5, masters: 4 };
+  const isAssociate = (p) => /associate/i.test(p.name);
+  let out = [];
   for (const p of programs) {
     const s = byId.get(p.school_id);
     if (!s || !s.applyboard || !p.active) continue; // ApplyBoard schools only
+    const r = isAssociate(p) ? 2.5 : RANK[p.level] || 2;
+    // Never suggest a step backwards: nothing below what the student already holds (an associate holder isn't offered associate degrees)
+    if (r < f.topRank || (f.topRank >= 2.5 && r <= 2.5 && r <= f.topRank && !(f.levels && f.levels.includes(p.level)))) continue;
     const m = matchOne(f, p, s);
     out.push({ ...m, program: p, school: { id: s.id, name: s.name, city: s.city, province: s.province, kind: s.kind } });
   }
+  // The level the student asked for is a filter (when anything at that level matches), not just a ranking hint
+  if (f.levels) { const want = out.filter((m) => f.levels.includes(m.program.level)); if (want.length) out = want; }
   out.sort((a, b) => ({ good: 0, maybe: 1, no: 2 })[a.grade] - ({ good: 0, maybe: 1, no: 2 })[b.grade] || b.score - a.score);
   return { facts: f, matches: out };
 }

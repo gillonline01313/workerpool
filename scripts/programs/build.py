@@ -109,9 +109,30 @@ for l in L:
     if on and re.search(CREDW, l, re.I) and len(l) < 120 and not re.search(r'Program Availability|^PROGRAM$', l, re.I): rows.append((l, cred_of(l) or l))
 P['okanagan-college'] = rows
 
+# Bachelor's degrees checked by hand on official pages (Nov 2026). Bachelor's degrees at public institutions need no
+# field-of-study match for a PGWP. intakes = what the school publishes for international students.
+UFV = 'https://international.ufv.ca/future-students/programs/'
+KPU_NOTE = 'KPU international deadlines: January intake closes Nov 1; May intake open until Mar 1 (limited-intake deadline Dec 1). Check program availability.'
+MANUAL = [('university-of-the-fraser-valley', n, i, UFV, 'UFV lists this as PGWP-eligible for international students. May 2027 and Sept 2027 applications open (Nov 2026).') for n, i in [
+    ('Bachelor of Arts', 'Sep, Jan, May'), ('Bachelor of Arts in Global Development Studies', 'Sep, Jan, May'), ('Bachelor of Arts (Criminal Justice)', 'Sep, Jan'),
+    ('Bachelor of Agricultural Science', 'Sep, Jan, May'), ('Bachelor of Business Administration', 'Sep, Jan'), ('Bachelor of Business Administration in Aviation', 'Sep, Jan, May'),
+    ('Bachelor of Computer Information Systems', 'Sep, Jan, May'), ('Bachelor of Environmental Studies', 'Sep, Jan, May'), ('Bachelor of Fine Arts', 'Sep, Jan'),
+    ('Bachelor of Integrated Studies', 'Sep, Jan, May'), ('Bachelor of Kinesiology', 'Sep, Jan, May'), ('Bachelor of Media Arts', 'Sep, Jan'),
+    ('Bachelor of Regional & Community Planning', 'Sep, Jan, May'), ('Bachelor of Science', 'Sep, Jan, May'), ('Bachelor of Social Work', 'Sep')]] + [
+  ('kwantlen-polytechnic-university', 'Bachelor of Arts, Major in General Studies', 'Sep, Jan, May', 'https://calendar.kpu.ca/programs-az/arts/general-studies/general-studies-ba/general-studies-ba.pdf', KPU_NOTE),
+  ('kwantlen-polytechnic-university', 'Bachelor of Arts, Major in English', 'Sep, Jan, May', 'https://calendar.kpu.ca/programs-az/arts/english/english-ba/english-ba.pdf', KPU_NOTE),
+  ('university-of-northern-british-columbia', 'Bachelor of Arts, Major in General Studies', '', 'https://www.unbc.ca/sites/default/files/sections/registrar/pathwaycnc-associateofartsdegreesociology.pdf', 'UNBC publishes transfer pathways from CNC Associate of Arts degrees into this BA. Check UNBC intakes.'),
+  ('capilano-university', 'Bachelor of Arts, Major in Interdisciplinary Studies', '', 'https://www.capilanou.ca/programs--courses/capu-for-you/international-students/international-program-availability-status/', 'Check CapU international program availability for the intake.'),
+  ('vancouver-island-university', 'Bachelor of Arts (General)', '', 'https://connect.viu.ca/january-intake', 'VIU runs a January intake for international students; check program availability.'),
+]
+
 IRCC = json.load(open(os.path.join(os.path.dirname(__file__), 'ircc_cip.json')))
 OK_CIP = {c for c, v in IRCC.items() if v['pgwp'].startswith(('Your field of study is eligible', 'Your CIP code is eligible'))}
 def level(name, cred):
+    n = name.lower().strip()  # the program's own name wins over a section heading
+    if re.match(r'(honours )?bachelor|applied bachelor|baccalaureate', n): return 'bachelors'
+    if re.match(r'master|mba\b|juris doctor', n): return 'masters'
+    if re.match(r'associate', n): return 'diploma'
     t = (cred + ' ' + name).lower()
     if re.search(r"\bmaster|\bmba\b|juris doctor|\bm\.?eng", t): return 'masters'
     if re.search(r"graduate certificate|graduate diploma|post[- ]?(baccalaureate|degree|diploma|graduate)|postgraduate", t): return 'pg-cert'
@@ -126,7 +147,7 @@ EXTRA = {'health': 'brain disorders disorder clinical medical rehabilitation ger
 for k, v in EXTRA.items(): FW[k] = FW.get(k, []) + v.split()
 def field(name):
     t = ' ' + re.sub(r'[^a-z0-9.+ ]+', ' ', name.lower()) + ' '; best = ('other', 0)
-    if re.search(r'health|nurs|medical|clinical|brain|mental|disorder|therap|pharm|paramedic|care aide', t): return 'health'
+    if re.search(r'health|nurs|medical|clinical|brain|\bmental\b|disorder|therap|pharm|paramedic|care aide', t): return 'health'
     for k, ws in FW.items():
         sc = sum((2 if len(w) > 3 else 1) for w in ws if w != 'services' and (' ' + w + ' ' in t or (len(w) > 5 and w in t)))
         if sc > best[1]: best = (k, sc)
@@ -145,6 +166,12 @@ def build():
             pid = 'c-' + hashlib.sha1(f'{sch}|{name}|{lv}'.encode()).hexdigest()[:12]
             out.append({'id': pid, 'school': sch, 'name': name, 'level': lv, 'field': field(name), 'pgwp': 'yes', 'link': src, 'source': src,
                         'note': (f'CIP {c}. ' if c else '') + 'Listed as PGWP-eligible on the college\'s official page.'})
+    for sch, name, intakes, link, note in MANUAL:
+        pid = 'c-' + hashlib.sha1(f'{sch}|{name}|bachelors'.encode()).hexdigest()[:12]
+        out.append({'id': pid, 'school': sch, 'name': name, 'level': 'bachelors', 'field': field(name), 'pgwp': 'yes', 'intakes': intakes, 'link': link, 'source': link, 'note': note})
+    for p in out:  # TRU: Bachelor of Arts programs take September, January and May intakes (tru.ca BA page)
+        if p['school'] == 'thompson-rivers-university' and p['name'].startswith('Bachelor of Arts'):
+            p['intakes'] = 'Sep, Jan, May'; p['link'] = 'https://www.tru.ca/programs/catalogue/bachelor-arts.html'
     return out
 if __name__ == '__main__' and len(sys.argv) > 2 and sys.argv[2] == 'json':
     progs = build()
