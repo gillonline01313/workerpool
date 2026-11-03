@@ -909,7 +909,7 @@ function renderStudy(body){
   if(soF==="schools"){
     const R=S.filter(x=>(!soAb||x.applyboard)&&(!q||[x.name,x.city,x.province,x.dli].join(" ").toLowerCase().includes(q)));
     html=`<div class="wpa-tbl"><table><thead><tr><th>On ApplyBoard</th><th>School</th><th>City</th><th>Programs</th><th></th></tr></thead><tbody>${R.map(x=>`<tr>
-      <td><label style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ab="${esc(x.id)}"${x.applyboard?" checked":""}> ${x.applyboard?"Yes":"No"}</label></td>
+      <td><label style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ab="${esc(x.id)}"${x.applyboard?" checked":""}> ${x.applyboard?"Yes":"No"}</label>${x.ab_source?`<br><a class="sub" href="${esc(x.ab_source)}" target="_blank" rel="noopener" title="Public page showing this school on ApplyBoard">source</a>`:""}</td>
       <td><b>${esc(x.name)}</b><br><span class="sub">${esc(x.kind||"")}${x.dli?" · DLI "+esc(x.dli):""}${x.website?` · <a href="${esc(x.website)}" target="_blank" rel="noopener">website</a>`:""}</span></td>
       <td>${esc(x.city||"")}${x.province?", "+esc(x.province):""}</td><td>${cnt[x.id]||0}</td>
       <td style="white-space:nowrap"><button class="dl" type="button" data-se="${esc(x.id)}">Edit</button> <button class="dl" type="button" data-sp="${esc(x.id)}">+ Program</button></td></tr>`).join("")||`<tr><td colspan="5" class="sub">Nothing here.</td></tr>`}</tbody></table></div>`;

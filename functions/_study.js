@@ -40,9 +40,97 @@ export async function ensureStudyTables(env) {
     campus TEXT, intakes TEXT, tuition INTEGER, months INTEGER, min_prior TEXT, min_percent REAL, max_gap INTEGER, max_backlogs INTEGER,
     ielts REAL, ielts_band REAL, pte REAL, toefl REAL, duolingo REAL, pgwp TEXT, link TEXT, note TEXT, active INTEGER NOT NULL DEFAULT 1, updated TEXT NOT NULL)`).run();
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS study_programs_school ON study_programs (school_id)`).run();
+  try { await env.DB.prepare(`ALTER TABLE study_schools ADD COLUMN ab_source TEXT`).run(); } catch {}
   const n = await env.DB.prepare(`SELECT COUNT(*) AS n FROM study_schools`).first();
   if (!n || !n.n) await seedSchools(env);
+  await applyEvidence(env);
 }
+// Schools with public evidence of being on ApplyBoard (its own public school page, help-centre article or blog), checked
+// November 3, 2026. Applied once as the starting ticks; the admin can untick or tick anything afterwards. Schools without
+// such evidence (e.g. UBC, SFU, Camosun, Algonquin, Durham, Lambton, U of A, U of C, Dalhousie) stay unticked.
+export const AB_EVIDENCE = {
+  "douglas-college": "https://www.applyboard.com/schools/douglas-college-new-westminster",
+  "langara-college": "https://www.applyboard.com/schools/langara-college",
+  "vancouver-community-college": "https://www.applyboard.com/schools/vancouver-community-college-broadway",
+  "british-columbia-institute-of-technology": "https://assist.applyboard.com/hc/en-us/articles/6478177974285-British-Columbia-Institute-of-Technology-BCIT-Programs-Fees-and-How-to-Apply",
+  "okanagan-college": "https://www.applyboard.com/schools/okanagan-college-kelowna",
+  "selkirk-college": "https://www.applyboard.com/schools/selkirk-college-nelson",
+  "college-of-new-caledonia": "https://www.applyboard.com/schools/college-of-new-caledonia",
+  "north-island-college": "https://www.applyboard.com/schools/north-island-college-comox-valley",
+  "coast-mountain-college": "https://www.applyboard.com/schools/coast-mountain-college-terrace",
+  "college-of-the-rockies": "https://www.applyboard.com/schools/college-of-the-rockies",
+  "kwantlen-polytechnic-university": "https://www.applyboard.com/schools/kwantlen-polytechnic-university-surrey",
+  "capilano-university": "https://www.applyboard.com/schools/capilano-university",
+  "vancouver-island-university": "https://www.applyboard.com/schools/vancouver-island-university",
+  "thompson-rivers-university": "https://www.applyboard.com/schools/thompson-rivers-university",
+  "university-of-the-fraser-valley": "https://www.applyboard.com/schools/university-of-the-fraser-valley",
+  "university-of-victoria": "https://assist.applyboard.com/hc/en-us/articles/47516928158989-University-of-Victoria-Programs-Fees-and-How-to-Apply",
+  "university-of-northern-british-columbia": "https://www.applyboard.com/schools/university-of-northern-british-columbia",
+  "royal-roads-university": "https://www.applyboard.com/schools/royal-roads-university",
+  "bow-valley-college": "https://www.applyboard.com/schools/bow-valley-college",
+  "sait": "https://assist.applyboard.com/hc/en-us/articles/6478190335757-Southern-Alberta-Institute-of-Technology-Programs-Fees-and-How-to-Apply",
+  "nait": "https://www.applyboard.com/schools/northern-alberta-institute-of-technology-nait-main",
+  "norquest-college": "https://www.applyboard.com/schools/norquest-college",
+  "red-deer-polytechnic": "https://www.applyboard.com/schools/red-deer-polytechnic",
+  "lakeland-college": "https://www.applyboard.com/schools/lakeland-college-vermilion",
+  "olds-college": "https://www.applyboard.com/schools/olds-college",
+  "northwestern-polytechnic": "https://www.applyboard.com/schools/northwestern-polytechnic-grande-prairie",
+  "keyano-college": "https://www.applyboard.com/schools/keyano-college",
+  "macewan-university": "https://www.applyboard.com/schools/macewan-university",
+  "mount-royal-university": "https://www.applyboard.com/schools/mount-royal-university",
+  "university-of-lethbridge": "https://www.applyboard.com/schools/university-of-lethbridge-lethbridge",
+  "saskatchewan-polytechnic": "https://www.applyboard.com/blog/introducing-the-partner-schools-presenting-at-top-recruiters-workshop",
+  "university-of-regina": "https://www.applyboard.com/schools/university-of-regina",
+  "university-of-saskatchewan": "https://www.applyboard.com/schools/university-of-saskatchewan",
+  "red-river-college-polytechnic": "https://assist.applyboard.com/hc/en-us/articles/6478115211277-Red-River-College-Polytechnic-Programs-Fees-and-How-to-Apply",
+  "assiniboine-college": "https://www.applyboard.com/schools/assiniboine-college",
+  "university-of-manitoba": "https://www.applyboard.com/schools/270",
+  "brandon-university": "https://www.applyboard.com/schools/brandon-university",
+  "conestoga-college": "https://assist.applyboard.com/hc/en-us/articles/6478291604621-Conestoga-College-Programs-Fees-and-How-to-Apply",
+  "seneca-polytechnic": "https://assist.applyboard.com/hc/en-us/articles/6478305628173-Seneca-Polytechnic-Programs-Fees-and-How-to-Apply",
+  "humber-polytechnic": "https://www.applyboard.com/best-programs/best-undergraduate-advertising-programs-in-canada",
+  "george-brown-college": "https://assist.applyboard.com/hc/en-us/articles/6478177492493-George-Brown-Polytechnic-Programs-Fees-and-How-to-Apply",
+  "centennial-college": "https://assist.applyboard.com/hc/en-us/articles/6478323312525-Centennial-College-Programs-Fees-and-How-to-Apply",
+  "sheridan-college": "https://www.applyboard.com/best-programs/best-undergraduate-advertising-programs-in-canada",
+  "fanshawe-college": "https://www.applyboard.com/schools/fanshawe-college",
+  "georgian-college": "https://www.applyboard.com/schools/georgian-college-midland",
+  "niagara-college": "https://assist.applyboard.com/hc/en-us/articles/47290566156301-Niagara-College-Programs-Fees-and-How-to-Apply",
+  "mohawk-college": "https://www.applyboard.com/best-programs/best-undergraduate-advertising-programs-in-canada",
+  "st-clair-college": "https://www.applyboard.com/best-programs/best-undergraduate-advertising-programs-in-canada",
+  "fleming-college": "https://www.applyboard.com/schools/fleming-college",
+  "loyalist-college": "https://www.applyboard.com/schools/loyalist-college-belleville-campus",
+  "st-lawrence-college": "https://www.applyboard.com/schools/st-lawrence-college-kingston",
+  "cambrian-college": "https://www.applyboard.com/schools/cambrian-college",
+  "canadore-college": "https://www.applyboard.com/schools/canadore-college-college-drive",
+  "confederation-college": "https://www.applyboard.com/schools/confederation-college-thunder-bay",
+  "northern-college": "https://www.applyboard.com/schools/northern-college-timmins",
+  "sault-college": "https://www.applyboard.com/schools/sault-college-sault-ste-marie",
+  "university-of-windsor": "https://assist.applyboard.com/hc/en-us/articles/41391287334925-Study-at-the-University-of-Windsor-A-Guide-for-International-Students",
+  "lakehead-university": "https://www.applyboard.com/schools/lakehead-university",
+  "trent-university": "https://www.applyboard.com/schools/trent-university-peterborough",
+  "algoma-university": "https://www.applyboard.com/blog/which-universities-in-ontario-are-partnered-with-applyboard",
+  "laurentian-university": "https://www.applyboard.com/blog/which-universities-in-ontario-are-partnered-with-applyboard",
+  "brock-university": "https://www.applyboard.com/schools/brock-university",
+  "ontario-tech-university": "https://www.applyboard.com/schools/ontario-tech-university-north-oshawa",
+  "wilfrid-laurier-university": "https://www.applyboard.com/schools/wilfrid-laurier-university-waterloo",
+  "university-of-waterloo": "https://www.applyboard.com/schools/2",
+  "toronto-metropolitan-university": "https://www.applyboard.com/schools/toronto-metropolitan-university",
+  "cape-breton-university": "https://www.applyboard.com/schools/cape-breton-university",
+  "new-brunswick-community-college": "https://assist.applyboard.com/hc/en-us/articles/47678110685709-New-Brunswick-Community-College-Programs-Fees-and-How-to-Apply",
+  "university-of-new-brunswick": "https://www.applyboard.com/schools/university-of-new-brunswick-fredericton",
+  "university-of-prince-edward-island": "https://www.applyboard.com/schools/university-of-prince-edward-island",
+  "college-of-the-north-atlantic": "https://www.applyboard.com/schools/college-of-the-north-atlantic-ridge-road",
+  "memorial-university-of-newfoundland": "https://www.applyboard.com/schools/memorial-university-of-newfoundland-mun-st-john-s-campus",
+};
+async function applyEvidence(env) {
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS study_meta (k TEXT PRIMARY KEY, v TEXT)`).run();
+  if (await env.DB.prepare(`SELECT v FROM study_meta WHERE k = 'ab-evidence-2026-11'`).first()) return;
+  const now = new Date().toISOString();
+  await env.DB.batch([...Object.entries(AB_EVIDENCE).map(([id, url]) =>
+    env.DB.prepare(`UPDATE study_schools SET applyboard = 1, ab_source = ?1, updated = ?2 WHERE id = ?3 AND ab_source IS NULL`).bind(url, now, id)),
+    env.DB.prepare(`INSERT OR REPLACE INTO study_meta (k, v) VALUES ('ab-evidence-2026-11', ?1)`).bind(now)]);
+}
+
 
 // Starter list of well-known public colleges, polytechnics and universities (name, type, city, province only).
 // None is marked "On ApplyBoard": the admin ticks the ones they can see in their ApplyBoard account.
