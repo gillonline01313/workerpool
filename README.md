@@ -130,6 +130,9 @@ Setup (Cloudflare → Pages → Settings → Variables and secrets):
 | `ADMIN_EMAIL` | Text | Where new-lead alerts go, e.g. admin@workerpool.ca |
 | `MAIL_FROM` | Text | `WorkerPool <noreply@workerpool.ca>` |
 | `REPLY_TO` | Text | Optional. Where replies to site emails go (defaults to `ADMIN_EMAIL`), e.g. your personal email |
+| `BULK_FROM` | Text | Optional. Sender for emails from the admin **Email** tab (default `WorkerPool <info@workerpool.ca>`) |
+| `BULK_REPLY_TO` | Text | Optional. Where replies to those emails go (default: the `BULK_FROM` address) |
+| `MAIL_ADDRESS` | Text | Optional but recommended. Business mailing address shown in the email footer (Canada's anti-spam law, CASL) |
 | `SITE_URL` | Text | `https://workerpool.ca` |
 
 Redeploy after changing settings.
@@ -137,3 +140,10 @@ Redeploy after changing settings.
 ## Next phases
 
 - Delete and export tools on the admin page for privacy requests.
+
+
+## Email to people who signed up (admin → Email)
+
+The **Email** tab in the admin dashboard sends a message to anyone on the site's lists: all accounts, people who submitted (or didn't finish) the questionnaire, people who agreed to updates, forum members, Student Pool, B2B clients and employer interest. Tap a group to pick everyone in it, tick or untick people, write a subject and message (`{name}` becomes each person's first name), **Send me a test**, then send. Up to 4,000 people per send; past sends are listed with sent / failed / skipped counts and **Use again**.
+
+Emails go through Resend (`RESEND_API_KEY`) from `info@workerpool.ca`, and replies come back to that inbox. Because `workerpool.ca` is already verified in Resend for `noreply@`, any address on the domain can send; make sure the SPF, DKIM (and ideally a DMARC `p=none` record) from Resend → Domains are in the DNS, or mail lands in spam. Each email has a plain-text and HTML version, a footer saying why they got it, and an unsubscribe link plus one-click `List-Unsubscribe` headers (required by Gmail and Yahoo). Unsubscribes (`/api/unsubscribe`, signed links) are stored in `email_unsubs` and always skipped; a person can be resubscribed only if they ask. Sends are logged in `email_campaigns`. Both tables are created automatically. Resend's free plan allows 100 emails a day and 3,000 a month; larger sends need a paid plan. Code: `functions/_mail.js`, `functions/api/unsubscribe.js`, admin routes `mail*`.

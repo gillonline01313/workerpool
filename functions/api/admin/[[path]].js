@@ -3,6 +3,7 @@ import { json, readJson, str, sendEmail, ensureSignupLog, chatOpen, CHAT_MSG_SQL
 import { NEWS_SEED } from "../../_news.js";
 import { ensureTable as ensureStudents, STATUSES as STUDENT_STATUSES } from "../../_students.js";
 import { autoDraws, edits as drawEdits, merge as mergeDraws, FIELDS as DRAW_FIELDS } from "../../_draws.js";
+import { audience, GROUPS, FROM, MAX_RECIPIENTS, ensureMailTables, buildMessage, sendBatch } from "../../_mail.js";
 function same(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
   let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0;
@@ -40,6 +41,17 @@ export async function onRequestGet({ request, env, params }) {
       return { id: "u_" + u.id, t: u.created, source: src, outcome: "success", name: u.name, email: u.email, phone: u.phone, username: u.username, user_id: u.id, untracked: 1 };
     });
     return json({ ok: true, rows: log.results.concat(extra).sort((a, b) => (a.t < b.t ? 1 : -1)) });
+  }
+  if (route === "mail") { // Email tab: everyone who can be emailed, their groups, unsubscribes and past sends
+    const { people, unsubs } = await audience(env);
+    const sends = (await env.DB.prepare(`SELECT id, created, subject, audience, total, sent, failed, skipped, error FROM email_campaigns ORDER BY created DESC LIMIT 50`).all()).results;
+    return json({ ok: true, ready: !!env.RESEND_API_KEY, from: FROM(env), groups: GROUPS.map(([k, l]) => [k, l]), max: MAX_RECIPIENTS,
+      people: people.map((p) => ({ ...p, unsub: unsubs.has(p.email) ? 1 : 0 })), sends });
+  }
+  if (route === "mail-campaign") {
+    await ensureMailTables(env);
+    const c = await env.DB.prepare(`SELECT * FROM email_campaigns WHERE id = ?1`).bind(url.searchParams.get("id") || "").first();
+    return c ? json({ ok: true, row: c }) : json({ ok: false, error: "Not found." }, 404);
   }
   if (route === "scanner-passes") {
     await env.DB.prepare(`CREATE TABLE IF NOT EXISTS scan_passes (id TEXT PRIMARY KEY, kind TEXT NOT NULL, created TEXT NOT NULL, expires TEXT NOT NULL, docs_used INTEGER NOT NULL DEFAULT 0, docs_max INTEGER NOT NULL, amount INTEGER, note TEXT)`).run();
@@ -166,6 +178,7 @@ export async function onRequestPost({ request, env, params }) {
   if (!env.ADMIN_KEY || !same(request.headers.get("x-admin-key") || "", env.ADMIN_KEY)) return json({ ok: false, error: "Wrong admin key." }, 401);
   const route = (params.path || []).join("/");
   if (route === "chat-file") return adminFile(request, env);
+  if (route.startsWith("mail-")) return mailAction(env, route, await readJson(request, 400000));
   const b = await readJson(request, 6000);
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
   if (route.startsWith("news-")) return newsAction(env, route, b);
@@ -202,6 +215,47 @@ export async function onRequestPost({ request, env, params }) {
   if (route === "chat-close") {
     await env.DB.prepare(`UPDATE chat_threads SET status = ?1, updated = ?2 WHERE id = ?3`).bind(b.reopen ? "open" : "closed", now, t.id).run();
     return json({ ok: true });
+  }
+  return json({ ok: false, error: "Not found." }, 404);
+}
+
+// Email tab: send a test, send to the chosen people, or unsubscribe / resubscribe someone by hand.
+async function mailAction(env, route, b) {
+  if (!b) return json({ ok: false, error: "Invalid request." }, 400);
+  await ensureMailTables(env);
+  if (route === "mail-unsub") {
+    const email = str(b.email, 200).toLowerCase();
+    if (!email) return json({ ok: false, error: "Missing email." }, 400);
+    if (b.resubscribe) await env.DB.prepare(`DELETE FROM email_unsubs WHERE email = ?1`).bind(email).run();
+    else await env.DB.prepare(`INSERT INTO email_unsubs (email, t) VALUES (?1, ?2) ON CONFLICT(email) DO NOTHING`).bind(email, new Date().toISOString()).run();
+    return json({ ok: true });
+  }
+  if (!env.RESEND_API_KEY) return json({ ok: false, error: "RESEND_API_KEY isn't set in Cloudflare, so email can't be sent." }, 503);
+  const subject = str(b.subject, 200), body = str(b.body, 50000);
+  if (!subject) return json({ ok: false, error: "Add a subject." }, 400);
+  if (!body) return json({ ok: false, error: "Write the message first." }, 400);
+  const isEmailAddr = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  if (route === "mail-test") {
+    const to = (str(b.to, 200) || env.ADMIN_EMAIL || "").toLowerCase();
+    if (!isEmailAddr(to)) return json({ ok: false, error: "Enter an address for the test." }, 400);
+    const r = await sendBatch(env, [await buildMessage(env, { email: to, name: str(b.name, 80) || "Test" }, "[Test] " + subject, body)]);
+    return r.sent ? json({ ok: true, to }) : json({ ok: false, error: "Resend refused the test: " + r.error }, 502);
+  }
+  if (route === "mail-send") {
+    // Only addresses that are on the sign-up lists, plus any typed in by hand. Unsubscribed people are always skipped.
+    const { people, unsubs } = await audience(env);
+    const known = new Map(people.map((p) => [p.email, p]));
+    const want = [...new Set((Array.isArray(b.emails) ? b.emails : []).map((e) => String(e || "").trim().toLowerCase()).filter(isEmailAddr))];
+    if (!want.length) return json({ ok: false, error: "Pick at least one person." }, 400);
+    if (want.length > MAX_RECIPIENTS) return json({ ok: false, error: `That's ${want.length} people. Send to ${MAX_RECIPIENTS} or fewer at a time.` }, 400);
+    const to = want.filter((e) => !unsubs.has(e)).map((e) => known.get(e) || { email: e, name: "" });
+    const skipped = want.length - to.length, cid = crypto.randomUUID();
+    if (!to.length) return json({ ok: false, error: "Everyone you picked has unsubscribed." }, 400);
+    const messages = []; for (const p of to) messages.push(await buildMessage(env, p, subject, body));
+    const r = await sendBatch(env, messages);
+    await env.DB.prepare(`INSERT INTO email_campaigns (id, created, subject, body, audience, total, sent, failed, skipped, error) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`)
+      .bind(cid, new Date().toISOString(), subject, body, str(b.label, 300) || "Selected people", want.length, r.sent, r.failed, skipped, r.error || null).run();
+    return json({ ok: r.sent > 0, id: cid, sent: r.sent, failed: r.failed, skipped, error: r.error ? "Resend said: " + r.error : "" });
   }
   return json({ ok: false, error: "Not found." }, 404);
 }
