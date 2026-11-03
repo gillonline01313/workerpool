@@ -1,0 +1,450 @@
+[
+ {
+  "id": "conestoga-college",
+  "url": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=1",
+  "final": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=1",
+  "status": 200,
+  "bytes": 227040,
+  "pdf": false
+ },
+ {
+  "id": "conestoga-college",
+  "url": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=2",
+  "final": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=2",
+  "status": 200,
+  "bytes": 226573,
+  "pdf": false
+ },
+ {
+  "id": "conestoga-college",
+  "url": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=3",
+  "final": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=3",
+  "status": 200,
+  "bytes": 226892,
+  "pdf": false
+ },
+ {
+  "id": "conestoga-college",
+  "url": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=4",
+  "final": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=4",
+  "status": 200,
+  "bytes": 226899,
+  "pdf": false
+ },
+ {
+  "id": "conestoga-college",
+  "url": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=5",
+  "final": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=5",
+  "status": 200,
+  "bytes": 226880,
+  "pdf": false
+ },
+ {
+  "id": "conestoga-college",
+  "url": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=6",
+  "final": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=6",
+  "status": 200,
+  "bytes": 226934,
+  "pdf": false
+ },
+ {
+  "id": "conestoga-college",
+  "url": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=7",
+  "final": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=7",
+  "status": 200,
+  "bytes": 227028,
+  "pdf": false
+ },
+ {
+  "id": "conestoga-college",
+  "url": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=8",
+  "final": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=8",
+  "status": 200,
+  "bytes": 226859,
+  "pdf": false
+ },
+ {
+  "id": "conestoga-college",
+  "url": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=9",
+  "final": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=9",
+  "status": 200,
+  "bytes": 226843,
+  "pdf": false
+ },
+ {
+  "id": "conestoga-college",
+  "url": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=10",
+  "final": "https://www.conestogac.on.ca/international/apply-to-conestoga/pgwp-aligned-programs?page=10",
+  "status": 200,
+  "bytes": 220487,
+  "pdf": false
+ },
+ {
+  "id": "seneca-polytechnic",
+  "url": "https://www.senecapolytechnic.ca/international/pgwp-eligible-programs.html",
+  "final": "https://www.senecapolytechnic.ca/international/pgwp-eligible-programs.html",
+  "status": 200,
+  "bytes": 45105,
+  "pdf": false
+ },
+ {
+  "id": "fanshawe-college",
+  "url": "https://www.fanshawec.ca/international/applicants/international-programs/pgwp-programs",
+  "final": "https://www.fanshawec.ca/international/applicants/international-programs/pgwp-programs",
+  "status": 200,
+  "bytes": 172220,
+  "pdf": false
+ },
+ {
+  "id": "humber-polytechnic",
+  "url": "https://humber.ca/search/full-time-international-programs.html",
+  "final": "https://humber.ca/search/full-time-international-programs.html",
+  "status": 202,
+  "bytes": 2055,
+  "pdf": false
+ },
+ {
+  "id": "humber-polytechnic",
+  "url": "https://humber.ca/downtowncampus/programs/search-programs/pgwp-eligible-programs",
+  "final": "https://humber.ca/downtowncampus/programs/search-programs/pgwp-eligible-programs",
+  "status": 202,
+  "bytes": 2055,
+  "pdf": false
+ },
+ {
+  "id": "george-brown-college",
+  "url": "https://www.georgebrown.ca/pgwp-eligible",
+  "final": "https://www.georgebrown.ca/pgwp-eligible",
+  "status": 403,
+  "bytes": 389,
+  "pdf": false
+ },
+ {
+  "id": "sheridan-college",
+  "url": "https://www.sheridancollege.ca/admissions/international/prospective-students/study-and-work-permit/pgwp-programs",
+  "final": "https://www.sheridancollege.ca/admissions/international/prospective-students/study-and-work-permit/pgwp-programs",
+  "status": 200,
+  "bytes": 99768,
+  "pdf": false
+ },
+ {
+  "id": "georgian-college",
+  "url": "https://www.georgiancollege.ca/program-table-test",
+  "final": "https://www.georgiancollege.ca/program-table-test",
+  "status": 404,
+  "bytes": 380841,
+  "pdf": false
+ },
+ {
+  "id": "niagara-college",
+  "url": "https://international.niagaracollege.ca/pgwp-aligned-programs",
+  "final": "https://international.niagaracollege.ca/programs/pgwp-eligible-programs",
+  "status": 200,
+  "bytes": 103202,
+  "pdf": false
+ },
+ {
+  "id": "mohawk-college",
+  "url": "https://www.mohawkcollege.ca/pgwp",
+  "final": "https://www.mohawkcollege.ca/post-graduation-work-permits-pgwp-eligible-programs",
+  "status": 200,
+  "bytes": 90069,
+  "pdf": false
+ },
+ {
+  "id": "st-clair-college",
+  "url": "https://www.stclaircollege.ca/international/pgwp-eligible-programs",
+  "final": "https://www.stclaircollege.ca/international/pgwp-eligible-programs",
+  "status": 200,
+  "bytes": 101444,
+  "pdf": false
+ },
+ {
+  "id": "loyalist-college",
+  "url": "https://loyalistcollege.com/admissions/how-to-apply/international-applicants/pgwp-aligned-programs/",
+  "final": "https://loyalistcollege.com/admissions/how-to-apply/international-applicants/pgwp-aligned-programs/",
+  "status": 200,
+  "bytes": 125374,
+  "pdf": false
+ },
+ {
+  "id": "st-lawrence-college",
+  "url": "https://www.stlawrencecollege.ca/services/international/pgwp-aligned-programs",
+  "final": "https://www.stlawrencecollege.ca/services/international/pgwp-aligned-programs",
+  "status": 200,
+  "bytes": 86016,
+  "pdf": false
+ },
+ {
+  "id": "confederation-college",
+  "url": "https://confederationcollege.ca/department/international-education/pgwp-programs",
+  "final": "https://confederationcollege.ca/department/international-education/pgwp-programs",
+  "status": 403,
+  "bytes": 5888,
+  "pdf": false
+ },
+ {
+  "id": "cambrian-college",
+  "url": "https://cambriancollege.ca/admissions/international-admissions/post-graduation-work-permit-eligibility",
+  "final": "https://cambriancollege.ca/admissions/international-admissions/post-graduation-work-permit-eligibility",
+  "status": 200,
+  "bytes": 249140,
+  "pdf": false
+ },
+ {
+  "id": "canadore-college",
+  "url": "https://www.canadorecollege.ca/canadore-international/pgwp",
+  "final": "https://www.canadorecollege.ca/canadore-international/pgwp",
+  "status": 200,
+  "bytes": 3038,
+  "pdf": false
+ },
+ {
+  "id": "northern-college",
+  "url": "https://www.northerncollege.ca/international/programs/",
+  "final": "https://www.northerncollege.ca/international/programs/",
+  "status": 200,
+  "bytes": 123893,
+  "pdf": false
+ },
+ {
+  "id": "sault-college",
+  "url": "https://www.saultcollege.ca/International",
+  "final": "https://www.saultcollege.ca/international-students",
+  "status": 200,
+  "bytes": 97612,
+  "pdf": false
+ },
+ {
+  "id": "sault-college",
+  "url": "https://saultcollege.ca/studying-canada-has-options/study-work",
+  "final": "https://www.saultcollege.ca/studying-canada-has-options/study-work",
+  "status": 200,
+  "bytes": 83901,
+  "pdf": false
+ },
+ {
+  "id": "centennial-college",
+  "url": "https://www.centennialcollege.ca/international-education/programs/",
+  "final": "https://www.centennialcollege.ca/international-education/programs/",
+  "status": 200,
+  "bytes": 176426,
+  "pdf": false
+ },
+ {
+  "id": "fleming-college",
+  "url": "https://flemingcollege.ca/international-education/how-to-apply",
+  "final": "https://flemingcollege.ca/international-education/how-to-apply",
+  "status": 200,
+  "bytes": 93503,
+  "pdf": false
+ },
+ {
+  "id": "fleming-college",
+  "url": "https://flemingcollege.ca/international-education/programs",
+  "final": "https://flemingcollege.ca/international-education/programs",
+  "status": 404,
+  "bytes": 69215,
+  "pdf": false
+ },
+ {
+  "id": "vancouver-community-college",
+  "url": "https://www.vcc.ca/international/current-students/immigration-and-visas/pgwp-eligible-programs/",
+  "final": "https://www.vcc.ca/international/current-students/immigration-and-visas/pgwp-eligible-programs/",
+  "status": 200,
+  "bytes": 66875,
+  "pdf": false
+ },
+ {
+  "id": "vancouver-island-university",
+  "url": "https://international.viu.ca/international-student-support-iss-hub/pgwp-eligible-programs",
+  "final": "https://international.viu.ca/international-student-support-iss-hub/pgwp-eligible-programs",
+  "status": 200,
+  "bytes": 86414,
+  "pdf": false
+ },
+ {
+  "id": "selkirk-college",
+  "url": "https://selkirk.ca/international/international-students/international-programs/pgwp-eligible-programs",
+  "final": "https://selkirk.ca/international/international-students/international-programs/pgwp-eligible-programs",
+  "status": 200,
+  "bytes": 214818,
+  "pdf": false
+ },
+ {
+  "id": "douglas-college",
+  "url": "https://www.douglascollege.ca/pgwpeligibility",
+  "final": "https://www.douglascollege.ca/sites/default/files/docs/post-graduation-work-permit-program-eligibility-reference-document.pdf",
+  "status": 200,
+  "bytes": 298320,
+  "pdf": true
+ },
+ {
+  "id": "douglas-college",
+  "url": "https://www.douglascollege.ca/sites/default/files/docs/post-graduation-work-permit-program-eligibility-reference-document.pdf",
+  "final": "https://www.douglascollege.ca/sites/default/files/docs/post-graduation-work-permit-program-eligibility-reference-document.pdf",
+  "status": 200,
+  "bytes": 298320,
+  "pdf": true
+ },
+ {
+  "id": "langara-college",
+  "url": "https://langara.ca/why-langara/international-student-experience/immigration-resources/post-graduate-work-permit",
+  "final": "https://langara.ca/why-langara/international-student-experience/immigration-resources/post-graduate-work-permit",
+  "status": 200,
+  "bytes": 224763,
+  "pdf": false
+ },
+ {
+  "id": "okanagan-college",
+  "url": "https://www.okanagancollege.ca/node/12683",
+  "final": "https://www.okanagancollege.ca/international/program-availability-for-international-students",
+  "status": 200,
+  "bytes": 311222,
+  "pdf": false
+ },
+ {
+  "id": "kwantlen-polytechnic-university",
+  "url": "https://www.kpu.ca/node/27421",
+  "final": "https://www.kpu.ca/international/admissions",
+  "status": 200,
+  "bytes": 77837,
+  "pdf": false
+ },
+ {
+  "id": "british-columbia-institute-of-technology",
+  "url": "https://www.bcit.ca/international-students/programs-requirements-how-to-apply/full-time-programs/",
+  "final": "https://www.bcit.ca/international-students/programs-requirements-how-to-apply/full-time-programs/",
+  "status": 200,
+  "bytes": 58228,
+  "pdf": false
+ },
+ {
+  "id": "coast-mountain-college",
+  "url": "https://www.coastmountaincollege.ca/docs/default-source/international-documents/pgwp-eligible-programs-list_cmtn_december-15-2025.pdf",
+  "final": "https://www.coastmountaincollege.ca/docs/default-source/international-documents/pgwp-eligible-programs-list_cmtn_december-15-2025.pdf",
+  "status": 200,
+  "bytes": 229422,
+  "pdf": true
+ },
+ {
+  "id": "college-of-the-rockies",
+  "url": "https://cotr.bc.ca/future-students/international/pgwp-programs/",
+  "final": "https://cotr.bc.ca/future-students/international/programs-for-international-students/",
+  "status": 200,
+  "bytes": 155132,
+  "pdf": false
+ },
+ {
+  "id": "north-island-college",
+  "url": "https://www.nic.bc.ca/admissions/international-students/programs.html",
+  "final": "https://www.nic.bc.ca/admissions/international-students/programs.html",
+  "status": 200,
+  "bytes": 54748,
+  "pdf": false
+ },
+ {
+  "id": "thompson-rivers-university",
+  "url": "https://www.tru.ca/__shared/assets/CIP_code_pdf_v363630.pdf",
+  "final": "https://www.tru.ca/__shared/assets/CIP_code_pdf_v363630.pdf",
+  "status": 200,
+  "bytes": 122382,
+  "pdf": true
+ },
+ {
+  "id": "bow-valley-college",
+  "url": "https://bowvalleycollege.ca/post-graduation-work-permit",
+  "final": "https://www.bowvalleycollege.ca/post-graduation-work-permit",
+  "status": 200,
+  "bytes": 174482,
+  "pdf": false
+ },
+ {
+  "id": "sait",
+  "url": "https://www.sait.ca/assets/documents/international-students/pgwp-eligible-designated-learning-programs.pdf",
+  "final": "https://www.sait.ca/assets/documents/international-students/pgwp-eligible-designated-learning-programs.pdf",
+  "status": 200,
+  "bytes": 1671065,
+  "pdf": true
+ },
+ {
+  "id": "nait",
+  "url": "https://www.nait.ca/nait/international/immigration-visa-requirements/international-student-program-changes",
+  "final": "https://www.nait.ca/nait/international/immigration-visa-requirements/international-student-program-changes",
+  "status": 200,
+  "bytes": 183783,
+  "pdf": false
+ },
+ {
+  "id": "norquest-college",
+  "url": "https://www.norquest.ca/international-students/immigration/post-graduation-work-permit",
+  "final": "https://www.norquest.ca/internationalstudents/immigration/post-graduation-work-permit/",
+  "status": 200,
+  "bytes": 74682,
+  "pdf": false
+ },
+ {
+  "id": "red-deer-polytechnic",
+  "url": "https://rdpolytech.ca/international/why-choose-rdp",
+  "final": "https://rdpolytech.ca/international/why-choose-rdp",
+  "status": 200,
+  "bytes": 272391,
+  "pdf": false
+ },
+ {
+  "id": "lakeland-college",
+  "url": "https://www.lakelandcollege.ca/future-students/international-eligible-programs.aspx",
+  "final": "https://www.lakelandcollege.ca/admissions/international-students/eligible-programs.html",
+  "status": 200,
+  "bytes": 67731,
+  "pdf": false
+ },
+ {
+  "id": "keyano-college",
+  "url": "https://www.keyano.ca/admissions/international-students/programs-for-international-students/",
+  "final": "https://www.keyano.ca/admissions/international-students/programs-for-international-students/",
+  "status": 200,
+  "bytes": 70591,
+  "pdf": false
+ },
+ {
+  "id": "northwestern-polytechnic",
+  "url": "https://www.nwpolytech.ca/international-student-programs",
+  "final": "https://www.nwpolytech.ca/international-students/international-student-programs",
+  "status": 200,
+  "bytes": 203176,
+  "pdf": false
+ },
+ {
+  "id": "macewan-university",
+  "url": "https://www.macewan.ca/c/documents/international-pgwp-cip-eligible-programs.pdf",
+  "final": "https://www.macewan.ca/c/documents/international-pgwp-cip-eligible-programs.pdf",
+  "status": 200,
+  "bytes": 137627,
+  "pdf": true
+ },
+ {
+  "id": "saskatchewan-polytechnic",
+  "url": "https://saskpolytech.ca/programs-and-courses/international/post-graduation-work-permit-program.aspx",
+  "final": "https://saskpolytech.ca/programs-and-courses/international/post-graduation-work-permit-program.aspx",
+  "status": 200,
+  "bytes": 47302,
+  "pdf": false
+ },
+ {
+  "id": "red-river-college-polytechnic",
+  "url": "https://www.rrc.ca/international/study-at-rrc/list-of-programs",
+  "final": "https://www.rrc.ca/international/study-at-rrc/",
+  "status": 200,
+  "bytes": 141528,
+  "pdf": false
+ },
+ {
+  "id": "new-brunswick-community-college",
+  "url": "https://nbcc.ca/admissions/ircc/pgwp-program-eligibility",
+  "final": "https://nbcc.ca/admissions/ircc/pgwp-program-eligibility",
+  "status": 200,
+  "bytes": 71079,
+  "pdf": false
+ }
+]

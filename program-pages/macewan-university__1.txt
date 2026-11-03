@@ -1,0 +1,101 @@
+MacEwan’s Credit Program CIP codes for IRCC purposes
+Immigration, Refugees, and Citizenship Canada has implemented new eligibility criteria for Post-graduation Work Permits (PGWP). There
+are several PGWP eligibility criteria that students must meet in addition to program eligibility.
+
+Field of study requirement CIPs
+There are no field of study requirements for university graduates with a bachelor’s degree. This means that all of MacEwan’s bachelor
+degrees are PGWP eligible, regardless of subject or major.
+
+Certificate or Diploma programs:
+
+   •   If you submitted your study permit application before November 1, 2024, there are no field of study requirements.
+   •   If you submitted your study permit application for a certificate or diploma program on or after November 1, 2024, you must
+       graduate from a program with a PGWP eligible field of study Classification of Instructional Program (CIP) code.
+
+MacEwan’s certificate and diploma program CIPs are listed below. To confirm if the program is PGWP eligible, find your program CIP code
+and enter it onto the PGWP eligible field of study search tool. If the CIP code appears on the PGWP eligible field of study list, the program
+is PGWP eligible.
+
+We recommend students take a screen shot of the program CIP code if it appears on the IRCC PGWP list. Ensure the screenshot shows a
+date and time stamp taken immediately before submitting your study permit application and retain that image for your PGWP application.
+
+ Program Name                                        PGWP eligible
+
+ Bachelor of Arts
+ Bachelor of Child and Youth Care
+ Bachelor of Commerce
+ Bachelor of Communication Studies
+ Bachelor of Design
+ Bachelor of Early Childhood Curriculum Studies       Yes, PGWP eligible. There are no field of
+                                                       study/CIP requirements for bachelor’s
+ Bachelor of Fine Arts
+                                                          degrees offered by a university.
+ Bachelor of Music
+ Bachelor of Psychiatric Nursing
+ Bachelor of Science
+ Bachelor of Science in Nursing
+ Bachelor of Social Work
+
+
+If you enter a degree program and decide to exit with a diploma, you must check the CIP code on the IRCC PGWP Field of Study list to
+confirm if the diploma is PGWP eligible.
+ Program      Name of Credential (credit programs)                           CIP
+ Credential                                                                  Code
+ Diploma      Music – Composition (diploma exit credential from B.Mus)       50.0904
+ Diploma      Music - General (diploma exit credential from B.Mus)           50.0905
+ Diploma      Music – Performance (diploma exit credential from B.Mus)       50.0903
+ Diploma      Music – Recording (diploma exit credential from B.Mus)         10.0203
+ Diploma      Public Relations                                               09.0902
+ Diploma      Acupuncture                                                    51.3301
+ Diploma      Correctional Services                                          43.0102
+ Diploma      Massage Therapy                                                51.3501
+ Diploma      Police and Investigations - Investigative Studies              43.0112
+ Diploma      Police and Investigations - Police Studies                     43.0107
+ Diploma      Social Work                                                    44.0701
+ Diploma      Physical & Occupational Therapist Assistant                    51.0817
+ Diploma      Speech Language Pathologist Assistant                          51.0899
+ Diploma      Psychiatric Nursing                                            51.3810
+ Diploma      Accounting and Strategic Measurement                           52.0301
+ Diploma      Asia Pacific Management                                        52.1101
+ Diploma      Business Management - General                                  52.0201
+ Diploma      Business Management - Insurance and Risk Management            52.1701
+ Diploma      Business Management - Aviation Management                      49.0104
+ Diploma      Human Resources Management Diploma                             52.1001
+ Diploma      Library and Information Technology                             25.9999
+ Diploma      Paralegal Studies                                              22.0302
+ Diploma      Travel and Tourism                                             52.1905
+ Diploma      Arts and Cultural Management Diploma (diploma exit             50.1002
+              credential from BFA)
+ Diploma      Music Theatre Performance (diploma exit credential from        50.0501
+              BFA)
+ Diploma      Studio Arts (diploma exit credential from BFA)                 50.0702
+ Diploma      Theatre Production (diploma exit credential from BFA)          50.0507
+ Diploma      Early Learning and Child Care (diploma exit credential from    19.0709
+              BECCS)
+ Diploma      Graphic Design* (diploma exit credential from Bachelor of      50.0401
+              Design)
+ Diploma      Child and Youth Care (diploma exit credential from BCYC)       44.0702
+ Diploma      Business Management Certificate (certificate exit credential   52.0201
+              from MGMT diploma)
+ Diploma      Human Resources Management Certificate (certificate exit       52.1001
+              credential from HR diploma)
+ Diploma       Accounting Technology Certificate (certificate exit        52.0302
+               credential from ACST diploma)
+ Certificate   Digital Experience Design                                  11.0801
+ Certificate   Educational Assistant                                      13.1501
+ Certificate   Emergency Communications and Response                      43.9999
+ Certificate   Bridge to Canadian Nursing                                 51.3801
+ Certificate   Gerontology                                                51.0999
+ Certificate   Hospice Palliative Care*                                   51.1512
+ Certificate   Office Assistant - Administrative                          52.0408
+ Certificate   Office Assistant - Legal                                   22.0301
+ Certificate   Office Assistant - Medical                                 51.0710
+ Degree        Bachelor of Applied Human Service Administration (Online   N/A
+               program - not PGWP eligible)
+ Diploma       Hearing Aid Practitioner (Online program - not PGWP        N/A
+               eligible)
+ Certificate   Occupational Health Nursing (Online program - not PGWP     N/A
+               eligible)
+*MacEwan University has submitted a request to update the CIP code for these programs with the Ministry of Advanced Education. Please
+check back regularly for any updates to these CIP codes.
+

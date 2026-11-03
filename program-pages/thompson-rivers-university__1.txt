@@ -1,0 +1,148 @@
+                                                                   TRU Programs CIP Codes and PGWP Eligibility
+                                                                                             *Last updated on July 8, 2025
+Master's Degree                                                                                                                                    PGWP Eligible   CIP code
+Law - Juris Doctor                                                                                                                                 ✓                22.0101
+Master of Arts in Human Rights and Social Justice                                                                                                  ✓                45.9999
+Master of Business Administration                                                                                                                  ✓                52.0201
+Master of Science in Data Science                                                                                                                  ✓                30.7001
+Master of Education                                                                                                                                ✓                13.0101
+Graduate Certificate in Educational Studies (Pre-M.Ed.)                                                                                            ✓                13.0101
+Master in Environmental Economics and Management                                                                                                   ✓                03.0204
+Master of Science in Environmental Science                                                                                                         ✓                03.0104
+Master of Nursing                                                                                                                                  ✓                51.3801
+Master of Science in Environmental Economics and Management (thesis-based) (MScEEM)                                                                ✓                03.0204
+
+Post-Baccalaureate Diplomas (PBD)                                                                                                                  PGWP Eligible   CIP code
+Post-Baccalaureate Diploma in Accounting                                                                                                                            52.0301
+Post-Baccalaureate Diploma in Business administration                                                                                                               52.0201
+Post-Baccalaureate Diploma in Economics                                                                                                                             45.0601
+Post-Baccalaureate Diploma in Economics and Political Studies                                                                                                       45.1004
+Post-Baccalaureate Diploma in Entrepreneurship                                                                                                                      52.0701
+Post-Baccalaureate Diploma in Finance                                                                                                                               52.0801
+Post-Baccalaureate Diploma in Human Resource Management                                                                                                             52.1001
+Post-Baccalaureate Diploma in International Business                                                                                                                52.1101
+Post-Baccalaureate Diploma in Marketing                                                                                                                             52.1401
+Post-Baccalaureate Diploma in Politics and International Studies                                                                                                    44.0504
+Post-Baccalaureate Diploma in Supply Chain Management                                                                                              ✓                52.0203
+Post-Baccalaureate Diploma in Mathematics and Economics                                                                                            ✓                30.4901
+Post-Baccalaureate Diploma in Applied Data Science                                                                                                 ✓                30.7001
+Post-Baccalaureate Diploma in Tourism Destination Development                                                                                                       52.0903
+
+Undergraduate Degrees                                                                                                                              PGWP Eligible   CIP code
+Bachelor of Arts in Economics                                                                                                                      ✓                45.0601
+Bachelor of Arts in Economics & Math                                                                                                               ✓                30.4901
+Bachelor of Arts in Economics & Political Studies                                                                                                  ✓                45.1004
+Bachelor of Arts in English                                                                                                                        ✓                23.0101
+Bachelor of Arts in Geography & Environmental Studies                                                                                              ✓                45.0701
+Bachelor of Arts in History                                                                                                                        ✓                54.0101
+Bachelor of Arts in Mathematics                                                                                                                    ✓                27.0101
+Bachelor of Arts in Philosophy                                                                                                                     ✓                38.0101
+Bachelor of Arts in Psychology                                                                                                                     ✓                42.0101
+Bachelor of Arts in Sociology                                                                                                                      ✓                45.1101
+Bachelor of Arts in Theatre                                                                                                                        ✓                50.0501
+Bachelor of Business Administration in Accounting                                                                                                  ✓                52.0301
+Bachelor of Business Administration in Economics                                                                                                   ✓                52.0601
+Bachelor of Business Administration in Entrepreneurship                                                                                            ✓                52.0701
+Bachelor of Business Administration in Finance                                                                                                     ✓                52.0801
+Bachelor of Business Administration in Human Resource Management                                                                                   ✓                52.1001
+Bachelor of Business Administration in International Business                                                                                      ✓                52.1101
+Bachelor of Business Administration in Marketing                                                                                                   ✓                52.1401
+Bachelor of Business Administration in Supply Chain Management                                                                                     ✓                52.0203
+(Double Degrees) Bachelor of Business Administration & Bachelor of Arts or Bachelor of Business Administration and Bachelor of Computing Science   ✓                52.0201
+Bachelor of Computing Science                                                                                                                      ✓                11.0701
+Bachelor of Communication and Digital Journalism in Public Relations                                                                               ✓                09.0702
+Bachelor of Communication and Digital Journalism in Media Studies                                                                                  ✓                09.0702
+Bachelor of Communication and Digital Journalism in Digital Journalism                                                                             ✓                09.0702
+Bachelor of Communication and Digital Journalism Double Major                                                                                      ✓                09.0702
+Bachelor of Education (Elementary)                                                                                                                 ✓                13.0101
+Bachelor of Education (Secondary) Science, Technology, Engineering, & Mathematics (STEM)                                                           ✓                13.0101
+Bachelor of Engineering in Computer Engineering                                                                                                    ✓                14.0901
+Bachelor of Engineering in Software Engineering                                                                                                    ✓                14.0903
+Bachelor of Interdisciplinary Studies (3rd year entry)                                                                                             ✓                30.9999
+Bachelor of Natural Resource Science**                                                                                                             ✓                03.0201
+Bachelor of Science in Animal Biology                                                                                                              ✓                26.0701
+Bachelor of Science in Biology                                                                                                                     ✓                26.0101
+Bachelor of Science in Cellular                                                                                                                    ✓                26.0406
+Bachelor of Science in Data Science                                                                                                                ✓                30.7001
+Bachelor of Science in Molecular                                                                                                                   ✓                26.0406
+Bachelor of Science in Chemical Biology                                                                                                            ✓                26.0202
+Bachelor of Science in Chemistry                                                                                                                   ✓                40.0501
+Bachelor of Science in Computing Science                                                                                                           ✓                11.0701
+Bachelor of Science in Computing Science & Mathematics                                                                                             ✓                30.0801
+Bachelor of Science in Ecology & Environmental Biology                                                                                             ✓                26.1301
+Bachelor of Science in Environmental Chemistry                                                                                                     ✓                40.0509
+Bachelor of Science in General Science                                                                                                             ✓                30.0101
+Bachelor of Science in Mathematics                                                                                                                 ✓                27.0101
+Bachelor of Science in Mathematics & Economics                                                                                                     ✓                30.4901
+Bachelor of Science in Data Science                                                                                                                ✓                30.7001
+Bachelor of Science in Molecular & Microbial Biology                                                                                               ✓                26.0406
+Bachelor of Science in Physics                                                                                                                     ✓                40.0801
+Bachelor of Science in Pre-Professional Health Science                                                                                             ✓                51.0000
+Bachelor of Science in Nursing                                                                                                                     ✓                51.3801
+Bachelor of Social Work (3rd year admission)                                                                                                       ✓                44.0701
+Bachelor of Tourism Management in Entrepreneurship                                                                                                 ✓                52.0903
+Bachelor of Tourism Management in Tourism Studies                                                                                                          ✓               52.0903
+Bachelor of Tourism Management in Adventure Studies                                                                                                        ✓               52.0903
+Engineering - First & second year transfer to UBC and UVic                                                                                                 ✓               14.0101
+Forestry – First and second year transfer to UBC                                                                                                           ✓               03.0511
+
+Diploma Programs & Associate Degrees                                                                                                                       PGWP Eligible   CIP code
+Accounting Technician                                                                                                                                                       52.0302
+Adventure Guide                                                                                                                                                             31.0601
+Architectural and Engineering Technology (ARET) Diploma                                                                                                    ✓                15.0101
+Regenerative Agriculture Diploma (Williams Lake Campus only)                                                                                               ✓                01.0308
+Associate of Commerce & Business Administration Diploma                                                                                                                     52.0101
+Associate of Arts                                                                                                                                                           24.0102
+Associate of Science                                                                                                                                                        30.0101
+Computer Network and Cybersecurity Diploma                                                                                                                 ✓                11.1003
+Computing Science Diploma                                                                                                                                  ✓                11.0701
+Early Childhood Education Diploma                                                                                                                          ✓                19.0709
+Events and Conventions Management Diploma                                                                                                                                   52.0907
+Horticulture Management Diploma                                                                                                                            ✓                01.0601
+Human Service Diploma                                                                                                                                      ✓                44.0000
+Management Diploma                                                                                                                                                          52.0201
+Police & Justice Studies Diploma                                                                                                                                            43.0107
+Power Engineering Technology Diploma                                                                                                                       ✓                47.0701
+Practical Nursing Diploma (Williams Lake campus only)                                                                                                      ✓                51.3901
+Respiratory Therapy Diploma                                                                                                                                ✓                51.0908
+Sport Event Management Diploma                                                                                                                                              31.0504
+Tourism Management Diploma                                                                                                                                                  52.0903
+Water and Wastewater Technology                                                                                                                                             15.0506
+
+
+Certificate                                                                                                                                                PGWP Eligible   CIP code
+Adventure Guide                                                                                                                                                             31.0601
+Business Foundations                                                                                                                                                        52.0408
+Culinary Arts                                                                                                                                              ✓                12.0505
+Horticulture                                                                                                                                               ✓                01.0601
+Regenerative Agriculture Certificate                                                                                                                       ✓                01.0308
+Teaching English to Speakers of Other Languages (TESOL) Certificate                                                                                                         13.1401
+Water & Wastewater Utilities                                                                                                                                                15.0506
+
+Trades Foundation Certificate Programs                                                                                                                     PGWP Eligible   CIP code
+Electrician                                                                                                                                                ✓                46.0302
+Heavy Mechanical                                                                                                                                           ✓                47.0302
+Horticulture                                                                                                                                               ✓                01.0601
+Industrial Mechanic (Millwright)                                                                                                                           ✓                47.0303
+Meatcutter                                                                                                                                                 ✓                12.0506
+Power Engineering (Fourth Class)                                                                                                                           ✓                47.0701
+Refrigeration and Air Conditioning Mechanic                                                                                                                ✓                47.0201
+Residential Construction (Carpenter)                                                                                                                       ✓                46.0201
+Welding                                                                                                                                                    ✓                48.0508
+Automotive Service Technician                                                                                                                                               47.0604
+Instrumentation and Control Technician                                                                                                                     ✓                47.0105
+Plumbing and Piping (Plumber)                                                                                                                              ✓                46.0503
+
+University Preparation & Student Development                                                                                                               PGWP Eligible   CIP code
+Adult Basic Education & BC Adult Graduation Diploma                                                                                                                         53.0102
+English for Academic Purpose                                                                                                                                                13.1401
+University Preparation Courses                                                                                                                                              53.0102
+
+
+
+Programs marked as PGWP eligible meet the field of study requirements for the Post-Graduation Work Permit, allowing graduates to apply for a work permit
+upon completion. Graduating from a PGWP-eligible program in Canada may qualify you for a PGWP, but it’s not guaranteed. The PGWP is issued by
+Immigration, Refugees and Citizenship Canada (IRCC).
+Learn more about the PGWP
+IRCC CIP Code list for PGWP Eligibility
+

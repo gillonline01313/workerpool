@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+	<link rel="icon" href="/favicon.png" sizes="32x32" />
+<link rel="icon" href="/favicon.png" sizes="any" />
+<link rel="apple-touch-icon" href="/favicon.png" />
+<link rel="mask-icon" href="/favicon.svg" />
+<meta name="msapplication-TileImage" content="/favicon.png" />
+<meta charset="utf-8"><script type="text/javascript">(window.NREUM||(NREUM={})).init={ajax:{deny_list:["bam.nr-data.net"]},feature_flags:["rum_v2"]};(window.NREUM||(NREUM={})).loader_config={licenseKey:"NRJS-46d509a65902fb304fd",applicationID:"1049498091",browserID:"1103358035"};;/*! For license information please see nr-loader-rum-1.324.0.min.js.LICENSE.txt */
+(()=>{var e={8122(e,t,r){"use strict";r.d(t,{a:()=>i});var n=r(944);function i(e,t){try{if(!e||"object"!=typeof e)return(0,n.R)(3);if(!t||"object"!=typeof t)return(0,n.R)(4);const r=Object.create(Object.getPrototypeOf(t),Object.getOwnPropertyDescriptors(t)),a=0===Object.keys(r).length?e:r;for(let s in a)if(void 0!==e[s])try{if(null===e[s]){r[s]=null;continue}Array.isArray(e[s])&&Array.isArray(t[s])?r[s]=Array.from(new Set([...e[s],...t[s]])):e[s]instanceof Map||e[s]instanceof Set||e[s]instanceof Date||e[s]instanceof RegExp?r[s]=e[s]:"object"==typeof e[s]&&null!==t[s]&&"object"==typeof t[s]?r[s]=i(e[s],t[s]):r[s]=e[s]}catch(e){r[s]||(0,n.R)(1,e)}return r}catch(e){(0,n.R)(2,e)}}},2555(e,t,r){"use strict";r.d(t,{f:()=>s});var n=r(384),i=r(8122);const a={beacon:n.NT.beacon,errorBeacon:n.NT.errorBeacon,licenseKey:void 0,applicationID:void 0,sa:void 0,queueTime:void 0,applicationTime:void 0,ttGuid:void 0,user:void 0,account:void 0,product:void 0,extra:void 0,jsAttributes:{},userAttributes:void 0,atts:void 0,transactionName:void 0,tNamePlain:void 0};function s(e){try{return!!e.licenseKey&&!!e.errorBeacon&&!!e.applicationID}catch(e){return!1}}r.d(t,["D",0,e=>(0,i.a)(e,a)])},7699(e,t,r){"use strict";var n=r(860);const i=1e6,a={[n.K7.logging]:!0,[n.K7.genericEvents]:!0,[n.K7.jserrors]:!0,[n.K7.ajax]:!0};r.d(t,["It",0,i,"KC",0,a,"qh",0,"SESSION_ERROR","zd",0,5e5])},9324(e,t,r){"use strict";r.d(t,["xv",0,"1.324.0"])},981(e,t,r){"use strict";r.d(t,["R",0,{AJAX:"AjaxRequest",PA:"PageAction",UA:"UserAction",BP:"BrowserPerformance",WS:"WebSocket",SPV:"SecurityPolicyViolation",JSE:"JavaScriptError",LOG:"Log",PVE:"PageView",PVT:"PageViewTiming",SR:"SessionReplay",ST:"SessionTrace",BI:"BrowserInteraction"}])},6154(e,t,r){"use strict";var n=r(1863);const i="undefined"!=typeof window&&!!window.document,a="undefined"!=typeof WorkerGlobalScope&&("undefined"!=typeof self&&self instanceof WorkerGlobalScope&&self.navigator instanceof WorkerNavigator||"undefined"!=typeof globalThis&&globalThis instanceof WorkerGlobalScope&&globalThis.navigator instanceof WorkerNavigator),s=i?window:"undefined"!=typeof WorkerGlobalScope&&("undefined"!=typeof self&&self instanceof WorkerGlobalScope&&self||"undefined"!=typeof globalThis&&globalThis instanceof WorkerGlobalScope&&globalThis),o=Boolean("hidden"===s?.document?.visibilityState),c=""+s?.location,u=/iPad|iPhone|iPod/.test(s.navigator?.userAgent),d=u&&"undefined"==typeof SharedWorker,l=((()=>{const e=s.navigator?.userAgent?.match(/Firefox[/\s](\d+\.\d+)/);Array.isArray(e)&&e.length>=2&&e[1]})(),Date.now()-(0,n.t)());r.d(t,["OF",0,u,"RI",0,i,"WN",0,l,"bv",0,a,"gm",0,s,"m",0,c,"mw",0,o,"sb",0,d,"zk",0,()=>{const e=s?.performance?.getEntriesByType?.("navigation")?.[0];if(e&&e.responseStart>0&&e.responseStart<s.performance.now())return e}])},3241(e,t,r){"use strict";r.d(t,{W:()=>i});var n=r(6154);function i(e={}){try{n.gm.dispatchEvent(new CustomEvent("newrelic",{detail:e}))}catch(e){}}},1687(e,t,r){"use strict";r.d(t,{Ak:()=>o,Ze:()=>u,x3:()=>c});var n=r(3241),i=r(3606),a=r(860),s=r(2646);function o(e,t){if(!e)return;const r={staged:!1,priority:a.P3[t]||0};e.runtime.drainRegistry.get(t)||e.runtime.drainRegistry.set(t,r)}function c(e,t){if(!e)return;const r=e.runtime.drainRegistry;r&&(r.get(t)&&r.delete(t),l(e,t,!1),r.size&&d(e))}function u(e,t="feature",r=!1){if(e){if(!e.runtime.drainRegistry.get(t)||r)return l(e,t);e.runtime.drainRegistry.get(t).staged=!0,d(e)}}function d(e){if(!e)return;const t=Array.from(e.runtime.drainRegistry);t.every(([e,t])=>t.staged)&&(t.sort((e,t)=>e[1].priority-t[1].priority),t.forEach(([t])=>{e.runtime.drainRegistry.delete(t),l(e,t)}))}function l(e,t,r=!0){if(!e)return;const a=e.ee,o=i.i.handlers;if(a&&!a.aborted&&a.backlog&&o){if((0,n.W)({type:"lifecycle",name:"drain",feature:t}),r){const e=a.backlog[t],r=o[t];if(r){for(let t=0;e&&t<e.length;++t)f(e[t],r);Object.entries(r).forEach(([e,t])=>{Object.values(t||{}).forEach(t=>{t[0]?.on&&t[0].context()instanceof s.y&&!t[0].listeners(e).includes(t[1])&&t[0].on(e,t[1])})})}}a.isolatedBacklog||delete o[t],a.backlog[t]=null,a.emit("drain-"+t,[])}}function f(e,t){var r=e[1];Object.values(t[r]||{}).forEach(t=>{var r=e[0];if(t[0]===r){var n=t[1],i=e[3],a=e[2];n.apply(i,a)}})}},7836(e,t,r){"use strict";var n=r(384),i=r(8990),a=r(2646),s=r(5607);const o="nr@context:".concat(s.W),c=function e(t,r){var n={},s={},d={},l=!1;try{l=16===r.length&&u.initializedAgents?.[r]?.runtime.isolatedBacklog}catch(e){}var f={on:p,addEventListener:p,removeEventListener:function(e,t){var r=n[e];if(!r)return;for(var i=0;i<r.length;i++)r[i]===t&&r.splice(i,1)},emit:function(e,r,n,i,a){!1!==a&&(a=!0);if(c.aborted&&!i)return;t&&a&&t.emit(e,r,n);var o=g(n);m(e).forEach(e=>{e.apply(o,r)});var u=v()[s[e]];u&&u.push([f,e,r,o]);return o},get:h,listeners:m,context:g,buffer:function(e,t){const r=v();if(t=t||"feature",f.aborted)return;Object.entries(e||{}).forEach(([e,n])=>{s[n]=t,t in r||(r[t]=[])})},abort:function(){f._aborted=!0,Object.keys(f.backlog).forEach(e=>{delete f.backlog[e]})},isBuffering:function(e){return!!v()[s[e]]},debugId:r,backlog:l?{}:t&&"object"==typeof t.backlog?t.backlog:{},isolatedBacklog:l};return Object.defineProperty(f,"aborted",{get:()=>{let e=f._aborted||!1;return e||(t&&(e=t.aborted),e)}}),f;function g(e){return e&&e instanceof a.y?e:e?(0,i.I)(e,o,()=>new a.y(o)):new a.y(o)}function p(e,t){n[e]=m(e).concat(t)}function m(e){return n[e]||[]}function h(t){return d[t]=d[t]||e(f,t)}function v(){return f.backlog}}(void 0,"globalEE"),u=(0,n.Zm)();u.ee||(u.ee=c),r.d(t,["P",0,o,"ee",0,c])},2646(e,t,r){"use strict";r.d(t,{y:()=>n});class n{constructor(e){this.contextId=e}}},9908(e,t,r){"use strict";r.d(t,{d:()=>n,p:()=>i});var n=r(7836).ee.get("handle");function i(e,t,r,i,a){a?(a.buffer([e],i),a.emit(e,t,r)):(n.buffer([e],i),n.emit(e,t,r))}},3606(e,t,r){"use strict";r.d(t,{i:()=>a});var n=r(9908);a.on=s;var i=a.handlers={};function a(e,t,r,a){s(a||n.d,i,e,t,r)}function s(e,t,r,i,a){a||(a="feature"),e||(e=n.d);var s=t[a]=t[a]||{};(s[r]=s[r]||[]).push([e,i])}},3878(e,t,r){"use strict";function n(e,t){return{capture:e,passive:!1,signal:t}}function i(e,t,r=!1,i){window.addEventListener(e,t,n(r,i))}function a(e,t,r=!1,i){document.addEventListener(e,t,n(r,i))}r.d(t,{DD:()=>a,jT:()=>n,sp:()=>i})},5607(e,t,r){"use strict";const n=(0,r(9566).bz)();r.d(t,["W",0,n])},9566(e,t,r){"use strict";r.d(t,{LA:()=>s,bz:()=>a});var n=r(6154);function i(e,t){return e?15&e[t]:16*Math.random()|0}function a(){const e=n.gm?.crypto||n.gm?.msCrypto;let t,r=0;return e&&e.getRandomValues&&(t=e.getRandomValues(new Uint8Array(30))),"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".split("").map(e=>"x"===e?i(t,r++).toString(16):"y"===e?(3&i()|8).toString(16):e).join("")}function s(e){const t=n.gm?.crypto||n.gm?.msCrypto;let r,a=0;t&&t.getRandomValues&&(r=t.getRandomValues(new Uint8Array(e)));const s=[];for(var o=0;o<e;o++)s.push(i(r,a++).toString(16));return s.join("")}},2614(e,t,r){"use strict";r.d(t,["BB",0,18e5,"Wt",0,"NRBA_SESSION::","iL",0,{SAME_TAB:"same-tab",CROSS_TAB:"cross-tab"},"tS",0,{STARTED:"session-started",PAUSE:"session-pause",RESET:"session-reset",RESUME:"session-resume",UPDATE:"session-update"},"wk",0,144e5])},1863(e,t,r){"use strict";function n(){return Math.floor(performance.now())}r.d(t,{t:()=>n})},944(e,t,r){"use strict";r.d(t,{R:()=>i});var n=r(3241);function i(e,t){"function"==typeof console.debug&&(console.debug("New Relic Warning: https://github.com/newrelic/newrelic-browser-agent/blob/main/docs/warning-codes.md#".concat(e),t),(0,n.W)({drained:null,type:"data",name:"warn",feature:"warn",data:{code:e,secondary:t}}))}},8990(e,t,r){"use strict";r.d(t,{I:()=>i});var n=Object.prototype.hasOwnProperty;function i(e,t,r){if(n.call(e,t))return e[t];var i=r();if(Object.defineProperty&&Object.keys)try{return Object.defineProperty(e,t,{value:i,writable:!0,enumerable:!1}),i}catch(e){}return e[t]=i,i}},6389(e,t,r){"use strict";function n(e,t=500,r={}){const n=r?.leading||!1;let i;return(...r)=>{n&&void 0===i&&(e.apply(this,r),i=setTimeout(()=>{i=clearTimeout(i)},t)),n||(clearTimeout(i),i=setTimeout(()=>{e.apply(this,r)},t))}}function i(e){let t=!1;return(...r)=>{t||(t=!0,e.apply(this,r))}}r.d(t,{J:()=>i,s:()=>n})},1910(e,t,r){"use strict";r.d(t,{i:()=>a});var n=r(944);const i=new Map;function a(...e){return e.every(e=>{if(i.has(e))return i.get(e);const t="function"==typeof e?e.toString():"",r=t.includes("[native code]"),a=t.includes("nrWrapper");return r||a||(0,n.R)(64,e?.name||t),i.set(e,r),r})}},5289(e,t,r){"use strict";r.d(t,{GG:()=>s,Qr:()=>c,sB:()=>o});var n=r(3878),i=r(6389);function a(){return"undefined"==typeof document||"complete"===document.readyState}function s(e,t){if(a())return e();const r=(0,i.J)(e),s=setInterval(()=>{a()&&(clearInterval(s),r())},500);(0,n.sp)("load",r,t)}function o(e){if(a())return e();(0,n.DD)("DOMContentLoaded",e)}function c(e){if(a())return e();(0,n.sp)("popstate",e)}},384(e,t,r){"use strict";r.d(t,{Zm:()=>c,bQ:()=>d,dV:()=>u,pV:()=>l});var n=r(6154),i=r(1863),a=r(944),s=r(1910);const o={beacon:"bam.nr-data.net",errorBeacon:"bam.nr-data.net"};function c(){return n.gm.NREUM||(n.gm.NREUM={}),void 0===n.gm.newrelic&&(n.gm.newrelic=n.gm.NREUM),n.gm.NREUM}function u(){let e=c();return e.o||(e.o={ST:n.gm.setTimeout,SI:n.gm.setImmediate||n.gm.setInterval,CT:n.gm.clearTimeout,XHR:n.gm.XMLHttpRequest,REQ:n.gm.Request,EV:n.gm.Event,PR:n.gm.Promise,MO:n.gm.MutationObserver,FETCH:n.gm.fetch,WS:n.gm.WebSocket},(0,s.i)(...Object.values(e.o))),e}function d(e,t){let r=c();r.initializedAgents??={},t.initializedAt={ms:(0,i.t)(),date:new Date},r.initializedAgents[e]=t,2===Object.keys(r.initializedAgents).length&&(0,a.R)(69)}function l(){return function(){let e=c();const t=e.info||{};e.info={beacon:o.beacon,errorBeacon:o.errorBeacon,...t}}(),function(){let e=c();const t=e.init||{};e.init={...t}}(),u(),function(){let e=c();const t=e.loader_config||{};e.loader_config={...t}}(),c()}r.d(t,["NT",0,o])},2843(e,t,r){"use strict";r.d(t,{G:()=>a,u:()=>i});var n=r(3878);function i(e,t=!1,r,i){(0,n.DD)("visibilitychange",function(){if(t)return void("hidden"===document.visibilityState&&e());e(document.visibilityState)},r,i)}function a(e,t,r){(0,n.sp)("pagehide",e,t,r)}},9300(e,t,r){"use strict";r(860).K7.ajax;r.d(t,["mo",0,{NONE:"none",FAILURES:"failures",ALL:"all"}])},3969(e,t,r){"use strict";const n=r(860).K7.metrics;r.d(t,["TZ",0,n,"XG",0,"storeEventMetrics","xV",0,"storeSupportabilityMetrics"])},6630(e,t,r){"use strict";const n=r(860).K7.pageViewEvent;r.d(t,["T",0,n])},782(e,t,r){"use strict";const n=r(860).K7.pageViewTiming;r.d(t,["T",0,n])},4234(e,t,r){"use strict";r.d(t,{W:()=>i});var n=r(1687);class i{constructor(e,t){this.agentRef=e,this.ee=e?.ee,this.featureName=t,this.blocked=!1}deregisterDrain(){(0,n.x3)(this.agentRef,this.featureName)}}},7767(e,t,r){"use strict";var n=r(6154);r.d(t,["V",0,e=>n.RI&&!0===e?.privacy.cookies_enabled])},8362(e,t,r){"use strict";r.d(t,{d:()=>a});var n=r(9566),i=r(1741);class a extends i.W{agentIdentifier=(0,n.LA)(16)}},1741(e,t,r){"use strict";r.d(t,{W:()=>a});var n=r(944),i=r(4261);class a{#e(e,...t){if(this[e]!==a.prototype[e])return this[e](...t);(0,n.R)(35,e)}addPageAction(e,t){return this.#e(i.hG,e,t)}register(e){return this.#e(i.eY,e)}recordCustomEvent(e,t){return this.#e(i.fF,e,t)}setPageViewName(e,t){return this.#e(i.Fw,e,t)}setCustomAttribute(e,t,r){return this.#e(i.cD,e,t,r)}noticeError(e,t){return this.#e(i.o5,e,t)}setUserId(e,t=!1){return this.#e(i.Dl,e,t)}setApplicationVersion(e){return this.#e(i.nb,e)}setErrorHandler(e){return this.#e(i.bt,e)}addRelease(e,t){return this.#e(i.k6,e,t)}log(e,t){return this.#e("log",e,t)}start(){return this.#e("start")}finished(e){return this.#e(i.BL,e)}recordReplay(){return this.#e(i.CH)}pauseReplay(){return this.#e(i.Tb)}addToTrace(e){return this.#e(i.U2,e)}setCurrentRouteName(e){return this.#e(i.PA,e)}interaction(e){return this.#e(i.dT,e)}wrapLogger(e,t,r){return this.#e(i.Wb,e,t,r)}measure(e,t){return this.#e(i.V1,e,t)}consent(e){return this.#e(i.Pv,e)}}},4261(e,t,r){"use strict";r.d(t,["BL",0,"finished","CH",0,"recordReplay","Dl",0,"setUserId","Fw",0,"setPageViewName","PA",0,"setCurrentRouteName","Pv",0,"consent","Tb",0,"pauseReplay","U2",0,"addToTrace","V1",0,"measure","Wb",0,"wrapLogger","bt",0,"setErrorHandler","cD",0,"setCustomAttribute","dT",0,"interaction","eY",0,"register","fF",0,"recordCustomEvent","hG",0,"addPageAction","k6",0,"addRelease","nb",0,"setApplicationVersion","o5",0,"noticeError"])},1738(e,t,r){"use strict";r.d(t,{U:()=>l,Y:()=>d});var n=r(3241),i=r(9908),a=r(1863),s=r(944),o=r(3969),c=r(8362),u=r(860);function d(e,t,r,a){const d=a||r;!d||d[e]&&d[e]!==c.d.prototype[e]||(d[e]=function(){(0,i.p)(o.xV,["API/"+e+"/called"],void 0,u.K7.metrics,r.ee),(0,n.W)({drained:!!r.runtime?.activatedFeatures,type:"data",name:"api",feature:"api-"+e,data:{}});try{return t.apply(this,arguments)}catch(e){(0,s.R)(23,e)}})}function l(e,t,r,n,s){const o=e.info;null===r?delete o.jsAttributes[t]:o.jsAttributes[t]=r,(s||null===r)&&(0,i.p)("api-"+n,[(0,a.t)(),t,r],void 0,"session",e.ee)}},8374(e,t,r){r.nc=(()=>{try{return document?.currentScript?.nonce}catch(e){}return""})()},860(e,t,r){"use strict";const n="events",i="jserrors",a="browser/blobs",s="browser/logs",o={ajax:"ajax",genericEvents:"generic_events",jserrors:i,logging:"logging",metrics:"metrics",pageAction:"page_action",pageViewEvent:"page_view_event",pageViewTiming:"page_view_timing",sessionReplay:"session_replay",sessionTrace:"session_trace",softNav:"soft_navigations"},c={[o.pageViewEvent]:1,[o.pageViewTiming]:2,[o.metrics]:3,[o.jserrors]:4,[o.softNav]:5,[o.ajax]:6,[o.sessionTrace]:7,[o.sessionReplay]:8,[o.logging]:9,[o.genericEvents]:10},u={[o.pageViewEvent]:"rum",[o.pageViewTiming]:n,[o.ajax]:n,[o.softNav]:n,[o.metrics]:i,[o.jserrors]:i,[o.sessionTrace]:a,[o.sessionReplay]:a,[o.logging]:s,[o.genericEvents]:"ins"};r.d(t,["$J",0,u,"K7",0,o,"P3",0,c,"XX",0,i,"Yy",0,s,"df",0,a,"hg",0,"connect"])}};const t={};function r(n){const i=t[n];if(void 0!==i)return i.exports;const a=t[n]={exports:{}};return e[n](a,a.exports,r),a.exports}r.m=e,r.d=(e,t)=>{if(Array.isArray(t))for(var n=0;n<t.length;){var i=t[n++],a=t[n++];r.o(e,i)?0===a&&n++:0===a?Object.defineProperty(e,i,{enumerable:!0,value:t[n++]}):Object.defineProperty(e,i,{enumerable:!0,get:a})}else for(var i in t)r.o(t,i)&&!r.o(e,i)&&Object.defineProperty(e,i,{enumerable:!0,get:t[i]})},r.f={},r.e=e=>Promise.all(Object.keys(r.f).reduce((t,n)=>(r.f[n](e,t),t),[])),r.u=e=>"nr-rum-1.324.0.min.js",r.o=(e,t)=>Object.prototype.hasOwnProperty.call(e,t),(()=>{const e={},t="NRBA-1.324.0.PROD:";r.l=(n,i,a,s)=>{if(e[n])return void e[n].push(i);let o,c;if(void 0!==a){const e=document.getElementsByTagName("script");for(var u=0;u<e.length;u++){const r=e[u];if(r.getAttribute("src")==n||r.getAttribute("data-webpack")==t+a){o=r;break}}}if(!o){c=!0;var d={296:"sha512-Pjy0Jxmo6oAG6oGKLKrf8x8xyaSM1NuL7vLGv9xRLEw0hrpERDruLI5RxlCHNy0NpMyEPWhlC34zujXIR3qJPQ=="};o=document.createElement("script"),o.charset="utf-8",r.nc&&o.setAttribute("nonce",r.nc),o.setAttribute("data-webpack",t+a),o.src=n,0!==o.src.indexOf(window.location.origin+"/")&&(o.crossOrigin="anonymous"),d[s]&&(o.integrity=d[s])}e[n]=[i];const l=(t,r)=>{o.onerror=o.onload=null,clearTimeout(f);const i=e[n];if(delete e[n],o.parentNode?.removeChild(o),i?.forEach(e=>e(r)),t)return t(r)},f=setTimeout(l.bind(null,void 0,{type:"timeout",target:o}),12e4);o.onerror=l.bind(null,o.onerror),o.onload=l.bind(null,o.onload),c&&document.head.appendChild(o)}})(),r.r=e=>{Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},r.p="https://js-agent.newrelic.com/",(()=>{const e={374:0,840:0};r.f.j=(t,n)=>{let i=r.o(e,t)?e[t]:void 0;if(0!==i)if(i)n.push(i[2]);else{const a=new Promise((r,n)=>i=e[t]=[r,n]);n.push(i[2]=a);const s=r.p+r.u(t),o=new Error,c=n=>{if(r.o(e,t)&&(i=e[t],0!==i&&(e[t]=void 0),i)){const e=n&&("load"===n.type?"missing":n.type),r=n&&n.target&&n.target.src;o.message="Loading chunk "+t+" failed: ("+e+": "+r+")",o.name="ChunkLoadError",o.type=e,o.request=r,i[1](o)}};r.l(s,c,"chunk-"+t,t)}};const t=(t,n)=>{let[i,a,s]=n;var o,c,u=0;if(i.some(t=>0!==e[t])){for(o in a)r.o(a,o)&&(r.m[o]=a[o]);if(s)s(r)}for(t&&t(n);u<i.length;u++)c=i[u],r.o(e,c)&&e[c]&&e[c][0](),e[c]=0},n=self["webpackChunk:NRBA-1.324.0.PROD"]=self["webpackChunk:NRBA-1.324.0.PROD"]||[];n.forEach(t.bind(null,0)),n.push=t.bind(null,n.push.bind(n))})(),(()=>{"use strict";r(8374);var e=r(8362),t=r(860);const n=Object.values(t.K7);var i=r(384),a=r(1741);var s=r(2555),o=r(981);t.K7.genericEvents,o.R.PA,o.R.UA,o.R.BP;const c={RESOURCES:"experimental.resources",REGISTER:"register"};var u=r(9300);const d=e=>{if(!e||"string"!=typeof e)return!1;try{document.createDocumentFragment().querySelector(e)}catch{return!1}return!0};var l=r(2614),f=r(944),g=r(8122);const p="[data-nr-mask]",m=e=>(0,g.a)(e,(()=>{const e={feature_flags:[],experimental:{register:!1,resources:!1,iframe_bridge:!1,iframe_domains:[]},mask_selector:"*",block_selector:"[data-nr-block]",mask_input_options:{color:!1,date:!1,"datetime-local":!1,email:!1,month:!1,number:!1,range:!1,search:!1,tel:!1,text:!1,time:!1,url:!1,week:!1,textarea:!1,select:!1,password:!0}};return{ajax:{deny_list:void 0,block_internal:!0,enabled:!0,autoStart:!0,capture_payloads:u.mo.NONE},api:{register:{get enabled(){return e.feature_flags.includes(c.REGISTER)||e.experimental.register},set enabled(t){e.experimental.register=t},duplicate_data_to_container:!1,get allow_iframe_bridge(){return e.feature_flags.includes(c.IFRAME_BRIDGE)||e.experimental.iframe_bridge},set allow_iframe_bridge(t){e.experimental.iframe_bridge=t},get iframe_domains(){return e.experimental.iframe_domains},set iframe_domains(t){Array.isArray(t)?e.experimental.iframe_domains=t:(0,f.R)(1,t)}}},browser_consent_mode:{enabled:!1},distributed_tracing:{enabled:void 0,exclude_newrelic_header:void 0,cors_use_newrelic_header:void 0,cors_use_tracecontext_headers:void 0,allowed_origins:void 0},get feature_flags(){return e.feature_flags},set feature_flags(t){e.feature_flags=t},generic_events:{enabled:!0,autoStart:!0},harvest:{interval:30},jserrors:{enabled:!0,autoStart:!0},logging:{enabled:!0,autoStart:!0},metrics:{enabled:!0,autoStart:!0},obfuscate:void 0,page_action:{enabled:!0},page_view_event:{enabled:!0,autoStart:!0},page_view_timing:{enabled:!0,autoStart:!0},performance:{capture_marks:!1,capture_measures:!1,capture_detail:!0,resources:{get enabled(){return e.feature_flags.includes(c.RESOURCES)||e.experimental.resources},set enabled(t){e.experimental.resources=t},asset_types:[],first_party_domains:[],ignore_newrelic:!0}},privacy:{cookies_enabled:!0},proxy:{assets:void 0,beacon:void 0},session:{expiresMs:l.wk,inactiveMs:l.BB},session_replay:{autoStart:!0,enabled:!1,preload:!1,sampling_rate:10,error_sampling_rate:100,collect_fonts:!1,inline_images:!1,fix_stylesheets:!0,mask_all_inputs:!0,get mask_text_selector(){return e.mask_selector},set mask_text_selector(t){d(t)?e.mask_selector="".concat(t,",").concat(p):""===t||null===t?e.mask_selector=p:(0,f.R)(5,t)},get block_class(){return"nr-block"},get ignore_class(){return"nr-ignore"},get mask_text_class(){return"nr-mask"},get block_selector(){return e.block_selector},set block_selector(t){d(t)?e.block_selector+=",".concat(t):""!==t&&(0,f.R)(6,t)},get mask_input_options(){return e.mask_input_options},set mask_input_options(t){t&&"object"==typeof t?e.mask_input_options={...t,password:!0}:(0,f.R)(7,t)}},session_trace:{enabled:!0,autoStart:!0},soft_navigations:{enabled:!0,autoStart:!0},ssl:void 0,user_actions:{enabled:!0,elementAttributes:["id","className","tagName","type"]},web_sockets:{enabled:!1}}})());var h=r(6154),v=r(9324);let b=0;const y={buildEnv:"PROD",distMethod:"CDN",version:v.xv,originTime:h.WN},_={consented:!1},w={activatedFeatures:void 0,appMetadata:{},configured:!1,get consented(){return this.session?.state?.consent||_.consented},set consented(e){_.consented=e},customTransaction:void 0,denyList:[],disabled:!1,drainRegistry:new Map,connector:void 0,harvester:void 0,v2Target:void 0,isolatedBacklog:!1,isRecording:!1,loaderType:void 0,maxBytes:3e4,obfuscator:void 0,onerror:void 0,ptid:void 0,releaseIds:{},session:void 0,timeKeeper:void 0,registeredEntities:[],jsAttributesMetadata:{bytes:0},get harvestCount(){return++b},listeningForIframeMessages:!1},R="BA";var A=r(7836),x=r(3241);const E={accountID:void 0,trustKey:void 0,agentID:void 0,licenseKey:void 0,applicationID:void 0,xpid:void 0};var S=r(9908);const k="newrelic-iframe-";function T(e,t={},n,o){let{init:c,info:u,loader_config:d,runtime:l={},exposed:f=!0}=t;if(!u){const e=(0,i.pV)();c=e.init,u=e.info,d=e.loader_config}var p;e.init=m(c||{}),e.loader_config=(p=d||{},(0,g.a)(p,E)),u.jsAttributes??={},h.bv&&(u.jsAttributes.isWorker=!0),e.info=(0,s.D)(u);const v=e.init;e.runtime??=(e=>{const t=(0,g.a)(e,w),r=Object.keys(y).reduce((e,t)=>(e[t]={value:y[t],writable:!1,configurable:!0,enumerable:!0},e),{});return Object.defineProperties(t,r)})(l),e.runtime.v2Target??={type:R,instance:e.agentIdentifier,get id(){return e.runtime.appMetadata?.agents?.[0]?.entityGuid},get attributes(){return{"entity.guid":this.id,appId:e.info.applicationID}}},v.proxy.assets&&(e=>{const t=e.startsWith("http");e+="/",r.p=t?e:"https://"+e})(v.proxy.assets),e.runtime.configured||(Object.defineProperty(e,"beacons",{get:()=>[e.info.beacon,e.info.errorBeacon,e.init.proxy.assets,e.init.proxy.beacon].filter(Boolean)}),Object.defineProperty(e.runtime,"denyList",{get:()=>[...e.init.ajax.deny_list||[],...e.init.ajax.block_internal?e.beacons:[]]}),e.runtime.ptid=e.agentIdentifier,function(e){const t=(0,i.pV)();Object.getOwnPropertyNames(a.W.prototype).forEach(r=>{const n=a.W.prototype[r];if("function"!=typeof n||"constructor"===n)return;let i=t[r];e[r]&&!1!==e.exposed&&"micro-agent"!==e.runtime?.loaderType&&(t[r]=(...t)=>{const n=e[r](...t);return i?i(...t):n})})}(e),e.runtime.loaderType=n,e.ee=A.ee.get(e.agentIdentifier),e.exposed=f,(0,x.W)({drained:!!e.runtime.activatedFeatures,type:"lifecycle",name:"initialize",feature:void 0,data:e.config}),e.init.api.register.allow_iframe_bridge&&h.gm.addEventListener("message",t=>{"string"==typeof t.data?.type&&t.data.type.startsWith(k)&&(0,S.p)("iframe-message",[t],void 0,"IFRAME",e.ee)}),e.runtime.configured=!0)}var j=r(1863),P=r(4261),N=r(1738);var O=r(1687),M=r(4234),I=r(5289),D=r(7767);function V(e){return!!(0,i.dV)().o.MO&&(0,D.V)(e)&&!0===e?.session_trace.enabled}var W=r(6389),B=r(7699);const C=new WeakSet,K=new WeakMap;class U extends M.W{constructor(e,t){super(e,t),this.abortHandler=void 0,this.featAggregate=void 0,this.loadedSuccessfully=void 0,this.onAggregateImported=new Promise(e=>{this.loadedSuccessfully=e}),this.deferred=Promise.resolve(),!1===e.init[this.featureName].autoStart?this.deferred=new Promise((t,r)=>{this.ee.on("manual-start-all",(0,W.J)(()=>{(0,O.Ak)(e,this.featureName),t()}))}):(0,O.Ak)(e,t)}importAggregator(e,t,n={}){if(this.featAggregate)return;const i=async()=>{if(await this.deferred,this.#t(e),!(0,s.f)(e.info))return(0,f.R)(43),e.ee.abort(),void this.loadedSuccessfully(!1);try{await async function(e,t,n){if(K.has(e))return K.get(e);const i=(async()=>{if((0,D.V)(e.init))try{const{setupAgentSession:t}=await r.e(296).then(r.bind(r,1768));t(e)}catch(e){(0,f.R)(20,e),t.emit("internal-error",[e]),(0,S.p)(B.qh,[e],void 0,n,t)}if(e.init.api.register.allow_iframe_bridge)try{const{setupIframeMFEMessageListener:t}=await Promise.resolve().then(function(){const e=new Error("Cannot find module '../../loaders/configure/iframe-message-handler'");throw e.code="MODULE_NOT_FOUND",e});t(e)}catch(e){(0,f.R)(23,e)}const[{Connector:i},{Harvester:a}]=await Promise.all([r.e(296).then(r.bind(r,6589)),r.e(296).then(r.bind(r,5237))]);e.runtime.connector=new i(e),e.runtime.harvester=new a(e);const s=Object.values(e.features).filter(t=>e.runtime.drainRegistry.has(t.featureName));Promise.all(s.map(e=>e.onAggregateImported)).then(()=>e.runtime.harvester.startTimer())})();K.set(e,i),await i}(e,this.ee,this.featureName)}catch(e){return(0,f.R)(79,e),this.ee.abort(),void this.loadedSuccessfully(!1)}try{if(!this.#r(this.featureName,e.runtime.session,e.init))return this.abortHandler?.(),(0,O.Ze)(this.agentRef,this.featureName),void this.loadedSuccessfully(!1);const{Aggregate:r}=await t();this.featAggregate=new r(e,n),e.runtime.harvester.initializedAggregates.push(this.featAggregate),this.loadedSuccessfully(!0)}catch(e){(0,f.R)(34,e),this.abortHandler?.(),(0,O.Ze)(this.agentRef,this.featureName,!0),this.loadedSuccessfully(!1)}};h.RI?(0,I.GG)(()=>i(),!0):i()}#r(e,r,n){if(this.blocked)return!1;switch(e){case t.K7.sessionReplay:return V(n)&&!!r;case t.K7.sessionTrace:return!!r;default:return!0}}#t(e){if(!C.has(e)&&(C.add(e),!(0,s.f)(e.info))){const t=(0,i.pV)();let r={...t.info?.jsAttributes};try{r={...r,...e.info?.jsAttributes}}catch(e){}T(e,{...t,info:{...t.info,jsAttributes:r},runtime:e.runtime},e.runtime.loaderType)}}}var L=r(6630);class F extends U{static featureName=L.T;constructor(e){var t;super(e,L.T),this.setupInspectionEvents(),t=e,(0,N.Y)(P.Fw,function(e,r){"string"==typeof e&&("/"!==e.charAt(0)&&(e="/"+e),t.runtime.customTransaction=(r||"http://custom.transaction")+e,(0,S.p)("api-"+P.Fw,[(0,j.t)()],void 0,void 0,t.ee))},t),this.importAggregator(e,()=>e.init.feature_flags.includes("rum_v2")?r.e(296).then(r.bind(r,908)):r.e(296).then(r.bind(r,7927)))}setupInspectionEvents(){const e=(e,t)=>{e&&(0,x.W)({timeStamp:e.timeStamp,loaded:"complete"===e.target.readyState,type:"window",name:t,data:e.target.location+""})};(0,I.sB)(t=>{e(t,"DOMContentLoaded")}),(0,I.GG)(t=>{e(t,"load")}),(0,I.Qr)(t=>{e(t,"navigate")}),this.ee.on(l.tS.UPDATE,(e,t)=>{(0,x.W)({type:"lifecycle",name:"session",data:t})})}}class G extends e.d{constructor(e){var t;(super(),h.gm)?(this.features={},(0,i.bQ)(this.agentIdentifier,this),this.desiredFeatures=new Set(e.features||[]),this.desiredFeatures.add(F),T(this,e,e.loaderType||"agent"),t=this,(0,N.Y)(P.cD,function(e,r,n=!1){if("string"==typeof e){if(["string","number","boolean"].includes(typeof r)||null===r)return(0,N.U)(t,e,r,P.cD,n);(0,f.R)(40,typeof r)}else(0,f.R)(39,typeof e)},t),function(e){(0,N.Y)(P.Dl,function(t,r=!1){if("string"!=typeof t&&null!==t)return void(0,f.R)(41,typeof t);const n=e.info.jsAttributes["enduser.id"];r&&null!=n&&n!==t?(0,S.p)("api-setUserIdAndResetSession",[t],void 0,"session",e.ee):(0,N.U)(e,"enduser.id",t,P.Dl,!0)},e)}(this),function(e){(0,N.Y)(P.nb,function(t){if("string"==typeof t||null===t)return(0,N.U)(e,"application.version",t,P.nb,!1);(0,f.R)(42,typeof t)},e)}(this),function(e){(0,N.Y)("start",function(){e.ee.emit("manual-start-all")},e)}(this),function(e){(0,N.Y)(P.Pv,function(t=!0){if("boolean"==typeof t){if((0,S.p)("api-"+P.Pv,[t],void 0,"session",e.ee),e.runtime.consented=t,t){const t=e.features.page_view_event;t.onAggregateImported.then(e=>{const r=t.featAggregate;e&&!r.sentRum&&r.sendRum?.()})}}else(0,f.R)(65,typeof t)},e)}(this),this.run()):(0,f.R)(21)}get config(){return{info:this.info,init:this.init,loader_config:this.loader_config,runtime:this.runtime}}get api(){return this}run(){try{const e=function(e){const t={};return n.forEach(r=>{t[r]=!!e[r]?.enabled}),t}(this.init),r=[...this.desiredFeatures],i=this.init.feature_flags.includes("rum_v2");r.sort((e,r)=>t.P3[e.featureName]-t.P3[r.featureName]),r.forEach(r=>{if(!e[r.featureName]&&(i||r.featureName!==t.K7.pageViewEvent))return;const n=function(e){switch(e){case t.K7.ajax:return[t.K7.jserrors];case t.K7.sessionTrace:return[t.K7.ajax,t.K7.pageViewEvent];case t.K7.sessionReplay:return[t.K7.sessionTrace];case t.K7.pageViewTiming:return[t.K7.pageViewEvent];default:return[]}}(r.featureName).filter(e=>!(e in this.features));n.length>0&&(0,f.R)(36,{targetFeature:r.featureName,missingDependencies:n}),this.features[r.featureName]=new r(this)})}catch(e){(0,f.R)(22,e);for(const e in this.features)this.features[e].abortHandler?.();const t=(0,i.Zm)();delete t.initializedAgents[this.agentIdentifier]?.features,delete this.sharedAggregator;return t.ee.get(this.agentIdentifier).abort(),!1}}}var H=r(2843),z=r(782);class Y extends U{static featureName=z.T;constructor(e){super(e,z.T),h.RI&&((0,H.u)(()=>(0,S.p)("docHidden",[(0,j.t)()],void 0,z.T,this.ee),!0),(0,H.G)(()=>(0,S.p)("winPagehide",[(0,j.t)()],void 0,z.T,this.ee)),this.importAggregator(e,()=>r.e(296).then(r.bind(r,9981))))}}var Z=r(3969);class q extends U{static featureName=Z.TZ;constructor(e){super(e,Z.TZ),this.importAggregator(e,()=>r.e(296).then(r.bind(r,9623)))}}new G({features:[F,Y,q],loaderType:"lite"})})()})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+<meta name='robots' content='index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' />
+
+	<!-- This site is optimized with the Yoast SEO plugin v28.6 - https://yoast.com/product/yoast-seo-wordpress/ -->
+	<title>PGWP-aligned programs - Loyalist College</title>
+	<meta name="description" content="The Post-Graduation Work Permit (PGWP) allows you to gain valuable Canadian work experience in your field after graduation. If you plan to work in Canada after completing your studies, it is important to ensure that your program is eligible for the PGWP." />
+	<link rel="canonical" href="https://loyalistcollege.com/admissions/how-to-apply/international-applicants/pgwp-aligned-programs/" />
+	<meta property="og:locale" content="en_US" />
+	<meta property="og:type" content="article" />
+	<meta property="og:title" content="PGWP-aligned programs - Loyalist College" />
+	<meta property="og:description" content="The Post-Graduation Work Permit (PGWP) allows you to gain valuable Canadian work experience in your field after graduation. If you plan to work in Canada after completing your studies, it is important to ensure that your program is eligible for the PGWP." />
+	<meta property="og:url" content="https://loyalistcollege.com/admissions/how-to-apply/international-applicants/pgwp-aligned-programs/" />
+	<meta property="og:site_name" content="Loyalist College" />
+	<meta property="article:modified_time" content="2026-07-03T17:57:12+00:00" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:label1" content="Est. reading time" />
+	<meta name="twitter:data1" content="3 minutes" />
+	<script type="application/ld+json" class="yoast-schema-graph">{"@context":"https:\/\/schema.org","@graph":[{"@type":"WebPage","@id":"https:\/\/loyalistcollege.com\/admissions\/how-to-apply\/international-applicants\/pgwp-aligned-programs\/","url":"https:\/\/loyalistcollege.com\/admissions\/how-to-apply\/international-applicants\/pgwp-aligned-programs\/","name":"PGWP-aligned programs - Loyalist College","isPartOf":{"@id":"https:\/\/loyalistcollege.com\/#website"},"datePublished":"2024-12-04T19:26:13+00:00","dateModified":"2026-07-03T17:57:12+00:00","description":"The Post-Graduation Work Permit (PGWP) allows you to gain valuable Canadian work experience in your field after graduation. If you plan to work in Canada after completing your studies, it is important to ensure that your program is eligible for the PGWP.","breadcrumb":{"@id":"https:\/\/loyalistcollege.com\/admissions\/how-to-apply\/international-applicants\/pgwp-aligned-programs\/#breadcrumb"},"inLanguage":"en-US","potentialAction":[{"@type":"ReadAction","target":["https:\/\/loyalistcollege.com\/admissions\/how-to-apply\/international-applicants\/pgwp-aligned-programs\/"]}]},{"@type":"BreadcrumbList","@id":"https:\/\/loyalistcollege.com\/admissions\/how-to-apply\/international-applicants\/pgwp-aligned-programs\/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https:\/\/loyalistcollege.com\/"},{"@type":"ListItem","position":2,"name":"Admissions","item":"https:\/\/loyalistcollege.com\/admissions\/"},{"@type":"ListItem","position":3,"name":"How to apply","item":"https:\/\/loyalistcollege.com\/admissions\/how-to-apply\/"},{"@type":"ListItem","position":4,"name":"International student application","item":"https:\/\/loyalistcollege.com\/admissions\/how-to-apply\/international-applicants\/"},{"@type":"ListItem","position":5,"name":"PGWP-aligned programs"}]},{"@type":"WebSite","@id":"https:\/\/loyalistcollege.com\/#website","url":"https:\/\/loyalistcollege.com\/","name":"Loyalist College","description":"","potentialAction":[{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https:\/\/loyalistcollege.com\/?s={search_term_string}"},"query-input":{"@type":"PropertyValueSpecification","valueRequired":true,"valueName":"search_term_string"}}],"inLanguage":"en-US"}]}</script>
+	<!-- / Yoast SEO plugin. -->
+
+
+<link rel='dns-prefetch' href='//loyalistcollege.com' />
+<link rel='dns-prefetch' href='//cdn.jsdelivr.net' />
+<link rel='dns-prefetch' href='//use.typekit.net' />
+<link rel="alternate" title="oEmbed (JSON)" type="application/json+oembed" href="https://loyalistcollege.com/wp-json/oembed/1.0/embed?url=https%3A%2F%2Floyalistcollege.com%2Fadmissions%2Fhow-to-apply%2Finternational-applicants%2Fpgwp-aligned-programs%2F" />
+<link rel="alternate" title="oEmbed (XML)" type="text/xml+oembed" href="https://loyalistcollege.com/wp-json/oembed/1.0/embed?url=https%3A%2F%2Floyalistcollege.com%2Fadmissions%2Fhow-to-apply%2Finternational-applicants%2Fpgwp-aligned-programs%2F&#038;format=xml" />
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<style id="wp-block-library-inline-css">
+:root{--wp-block-synced-color:#7a00df;--wp-block-synced-color--rgb:122,0,223;--wp-bound-block-color:var(--wp-block-synced-color);--wp-editor-canvas-background:#ddd;--wp-admin-theme-color:#007cba;--wp-admin-theme-color--rgb:0,124,186;--wp-admin-theme-color-darker-10:#006ba1;--wp-admin-theme-color-darker-10--rgb:0,107,160.5;--wp-admin-theme-color-darker-20:#005a87;--wp-admin-theme-color-darker-20--rgb:0,90,135;--wp-admin-border-width-focus:2px}@media (min-resolution:192dpi){:root{--wp-admin-border-width-focus:1.5px}}.wp-element-button{cursor:pointer}:root .has-very-light-gray-background-color{background-color:#eee}:root .has-very-dark-gray-background-color{background-color:#313131}:root .has-very-light-gray-color{color:#eee}:root .has-very-dark-gray-color{color:#313131}:root .has-vivid-green-cyan-to-vivid-cyan-blue-gradient-background{background:linear-gradient(135deg,#00d084,#0693e3)}:root .has-purple-crush-gradient-background{background:linear-gradient(135deg,#34e2e4,#4721fb 50%,#ab1dfe)}:root .has-hazy-dawn-gradient-background{background:linear-gradient(135deg,#faaca8,#dad0ec)}:root .has-subdued-olive-gradient-background{background:linear-gradient(135deg,#fafae1,#67a671)}:root .has-atomic-cream-gradient-background{background:linear-gradient(135deg,#fdd79a,#004a59)}:root .has-nightshade-gradient-background{background:linear-gradient(135deg,#330968,#31cdcf)}:root .has-midnight-gradient-background{background:linear-gradient(135deg,#020381,#2874fc)}:root{--wp--preset--font-size--normal:16px;--wp--preset--font-size--huge:42px}.has-regular-font-size{font-size:1em}.has-larger-font-size{font-size:2.625em}.has-normal-font-size{font-size:var(--wp--preset--font-size--normal)}.has-huge-font-size{font-size:var(--wp--preset--font-size--huge)}:root .has-text-align-center{text-align:center}:root .has-text-align-left{text-align:left}:root .has-text-align-right{text-align:right}.has-fit-text{white-space:nowrap!important}#end-resizable-editor-section{display:none}.aligncenter{clear:both}.items-justified-left{justify-content:flex-start}.items-justified-center{justify-content:center}.items-justified-right{justify-content:flex-end}.items-justified-space-between{justify-content:space-between}.screen-reader-text{word-wrap:normal!important;border:0;clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px;word-break:normal!important}.screen-reader-text:focus{background-color:#ddd;clip-path:none;color:#444;display:block;font-size:1em;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}html :where(.has-border-color){border-style:solid}html :where([style^=border-color],[style*=";border-color"],[style*="; border-color"]){border-style:solid}html :where([style^=border-top-color],[style*=";border-top-color"],[style*="; border-top-color"]){border-top-style:solid}html :where([style^=border-right-color],[style*=";border-right-color"],[style*="; border-right-color"]){border-right-style:solid}html :where([style^=border-bottom-color],[style*=";border-bottom-color"],[style*="; border-bottom-color"]){border-bottom-style:solid}html :where([style^=border-left-color],[style*=";border-left-color"],[style*="; border-left-color"]){border-left-style:solid}html :where([style^=border-width],[style*=";border-width"],[style*="; border-width"]){border-style:solid}html :where([style^=border-top-width],[style*=";border-top-width"],[style*="; border-top-width"]){border-top-style:solid}html :where([style^=border-right-width],[style*=";border-right-width"],[style*="; border-right-width"]){border-right-style:solid}html :where([style^=border-bottom-width],[style*=";border-bottom-width"],[style*="; border-bottom-width"]){border-bottom-style:solid}html :where([style^=border-left-width],[style*=";border-left-width"],[style*="; border-left-width"]){border-left-style:solid}html :where(img[class*=wp-image-]){height:auto;max-width:100%}:where(figure){margin:0 0 1em}html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:var(--wp-admin--admin-bar--height,0px)}@media screen and (max-width:600px){html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:0px}}
+
+/*# sourceURL=/wp-includes/css/dist/block-library/common.min.css */
+</style>
+<style id="wp-block-button-inline-css">
+.wp-block-button__link{align-content:center;box-sizing:border-box;cursor:pointer;display:inline-block;height:100%;text-align:center;word-break:break-word}.wp-block-button__link.aligncenter{text-align:center}.wp-block-button__link.alignright{text-align:right}:where(.wp-block-button__link){border-radius:9999px;box-shadow:none;padding:calc(.667em + 2px) calc(1.333em + 2px);text-decoration:none}.wp-block-button[style*=text-decoration] .wp-block-button__link{text-decoration:inherit}.wp-block-buttons>.wp-block-button.has-custom-width{max-width:none}.wp-block-buttons>.wp-block-button.has-custom-width .wp-block-button__link{width:100%}.wp-block-buttons>.wp-block-button.has-custom-font-size .wp-block-button__link{font-size:inherit}.wp-block-buttons>.wp-block-button[class*=wp-block-button__width]{width:calc(var(--wp--block-button--width)*1% - var(--wp--style--block-gap, .5em)*(1 - var(--wp--block-button--width)/100))}.wp-block-buttons>.wp-block-button.wp-block-button__width-25{width:calc(25% - var(--wp--style--block-gap, .5em)*.75)}.wp-block-buttons>.wp-block-button.wp-block-button__width-50{width:calc(50% - var(--wp--style--block-gap, .5em)*.5)}.wp-block-buttons>.wp-block-button.wp-block-button__width-75{width:calc(75% - var(--wp--style--block-gap, .5em)*.25)}.wp-block-buttons>.wp-block-button.wp-block-button__width-100{flex-basis:100%;width:100%}.wp-block-buttons.is-vertical>.wp-block-button[class*=wp-block-button__width]{width:calc(var(--wp--block-button--width)*1%)}.wp-block-buttons.is-vertical>.wp-block-button.wp-block-button__width-25{width:25%}.wp-block-buttons.is-vertical>.wp-block-button.wp-block-button__width-50{width:50%}.wp-block-buttons.is-vertical>.wp-block-button.wp-block-button__width-75{width:75%}.wp-block-button.is-style-squared,.wp-block-button__link.wp-block-button.is-style-squared{border-radius:0}.wp-block-button.no-border-radius,.wp-block-button__link.no-border-radius{border-radius:0!important}:root :where(.wp-block-button .wp-block-button__link.is-style-outline),:root :where(.wp-block-button.is-style-outline>.wp-block-button__link){border:2px solid;padding:.667em 1.333em}:root :where(.wp-block-button .wp-block-button__link.is-style-outline:not(.has-text-color)),:root :where(.wp-block-button.is-style-outline>.wp-block-button__link:not(.has-text-color)){color:currentColor}:root :where(.wp-block-button .wp-block-button__link.is-style-outline:not(.has-background)),:root :where(.wp-block-button.is-style-outline>.wp-block-button__link:not(.has-background)){background-color:transparent;background-image:none}
+/*# sourceURL=https://loyalistcollege.com/wp-includes/blocks/button/style.min.css */
+</style>
+<style id="wp-block-paragraph-inline-css">
+.is-small-text{font-size:.875em}.is-regular-text{font-size:1em}.is-large-text{font-size:2.25em}.is-larger-text{font-size:3em}.has-drop-cap:not(:focus):first-letter{float:left;font-size:8.4em;font-style:normal;font-weight:100;line-height:.68;margin:.05em .1em 0 0;text-transform:uppercase}body.rtl .has-drop-cap:not(:focus):first-letter{float:none;margin-left:.1em}p.has-drop-cap.has-background{overflow:hidden}:root :where(p.has-background){padding:1.25em 2.375em}:where(p.has-text-color:not(.has-link-color)) a{color:inherit}p.has-text-align-left[style*="writing-mode:vertical-lr"],p.has-text-align-right[style*="writing-mode:vertical-rl"]{rotate:180deg}
+/*# sourceURL=https://loyalistcollege.com/wp-includes/blocks/paragraph/style.min.css */
+</style>
+<style id="wp-block-buttons-inline-css">
+.wp-block-buttons{box-sizing:border-box}.wp-block-buttons.is-vertical{flex-direction:column}.wp-block-buttons.is-vertical>.wp-block-button:last-child{margin-bottom:0}.wp-block-buttons>.wp-block-button{display:inline-block;margin:0}.wp-block-buttons.is-content-justification-left{justify-content:flex-start}.wp-block-buttons.is-content-justification-left.is-vertical{align-items:flex-start}.wp-block-buttons.is-content-justification-center{justify-content:center}.wp-block-buttons.is-content-justification-center.is-vertical{align-items:center}.wp-block-buttons.is-content-justification-right{justify-content:flex-end}.wp-block-buttons.is-content-justification-right.is-vertical{align-items:flex-end}.wp-block-buttons.is-content-justification-space-between{justify-content:space-between}.wp-block-buttons.aligncenter{text-align:center}.wp-block-buttons:not(.is-content-justification-space-between,.is-content-justification-right,.is-content-justification-left,.is-content-justification-center) .wp-block-button.aligncenter{margin-left:auto;margin-right:auto;width:100%}.wp-block-buttons[style*=text-decoration] .wp-block-button,.wp-block-buttons[style*=text-decoration] .wp-block-button__link{text-decoration:inherit}.wp-block-buttons.has-custom-font-size .wp-block-button__link{font-size:inherit}.wp-block-buttons .wp-block-button__link{width:100%}.wp-block-button.aligncenter{text-align:center}
+/*# sourceURL=https://loyalistcollege.com/wp-includes/blocks/buttons/style.min.css */
+</style>
+<style id="wp-block-group-inline-css">
+.wp-block-group{box-sizing:border-box}:where(.wp-block-group.wp-block-group-is-layout-constrained){position:relative}
+/*# sourceURL=https://loyalistcollege.com/wp-includes/blocks/group/style.min.css */
+</style>
+<style id="wp-block-table-inline-css">
+.wp-block-table{overflow-x:auto}.wp-block-table table{border-collapse:collapse;width:100%}.wp-block-table thead{border-bottom:3px solid}.wp-block-table tfoot{border-top:3px solid}.wp-block-table td,.wp-block-table th{border:1px solid;padding:.5em}.wp-block-table .has-fixed-layout{table-layout:fixed;width:100%}.wp-block-table .has-fixed-layout td,.wp-block-table .has-fixed-layout th{word-break:break-word}.wp-block-table.aligncenter,.wp-block-table.alignleft,.wp-block-table.alignright{display:table;width:auto}.wp-block-table.aligncenter td,.wp-block-table.aligncenter th,.wp-block-table.alignleft td,.wp-block-table.alignleft th,.wp-block-table.alignright td,.wp-block-table.alignright th{word-break:break-word}.wp-block-table .has-subtle-light-gray-background-color{background-color:#f3f4f5}.wp-block-table .has-subtle-pale-green-background-color{background-color:#e9fbe5}.wp-block-table .has-subtle-pale-blue-background-color{background-color:#e7f5fe}.wp-block-table .has-subtle-pale-pink-background-color{background-color:#fcf0ef}.wp-block-table.is-style-stripes{background-color:transparent;border-collapse:inherit;border-spacing:0}.wp-block-table.is-style-stripes tbody tr:nth-child(odd){background-color:#f0f0f0}.wp-block-table.is-style-stripes.has-subtle-light-gray-background-color tbody tr:nth-child(odd){background-color:#f3f4f5}.wp-block-table.is-style-stripes.has-subtle-pale-green-background-color tbody tr:nth-child(odd){background-color:#e9fbe5}.wp-block-table.is-style-stripes.has-subtle-pale-blue-background-color tbody tr:nth-child(odd){background-color:#e7f5fe}.wp-block-table.is-style-stripes.has-subtle-pale-pink-background-color tbody tr:nth-child(odd){background-color:#fcf0ef}.wp-block-table.is-style-stripes td,.wp-block-table.is-style-stripes th{border-color:transparent}.wp-block-table.is-style-stripes{border-bottom:1px solid #f0f0f0}.wp-block-table .has-border-color td,.wp-block-table .has-border-color th,.wp-block-table .has-border-color tr,.wp-block-table .has-border-color>*{border-color:inherit}.wp-block-table table[style*=border-top-color] tr:first-child,.wp-block-table table[style*=border-top-color] tr:first-child td,.wp-block-table table[style*=border-top-color] tr:first-child th,.wp-block-table table[style*=border-top-color]>*,.wp-block-table table[style*=border-top-color]>* td,.wp-block-table table[style*=border-top-color]>* th{border-top-color:inherit}.wp-block-table table[style*=border-top-color] tr:not(:first-child){border-top-color:currentColor}.wp-block-table table[style*=border-right-color] td:last-child,.wp-block-table table[style*=border-right-color] th,.wp-block-table table[style*=border-right-color] tr,.wp-block-table table[style*=border-right-color]>*{border-right-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:last-child,.wp-block-table table[style*=border-bottom-color] tr:last-child td,.wp-block-table table[style*=border-bottom-color] tr:last-child th,.wp-block-table table[style*=border-bottom-color]>*,.wp-block-table table[style*=border-bottom-color]>* td,.wp-block-table table[style*=border-bottom-color]>* th{border-bottom-color:inherit}.wp-block-table table[style*=border-bottom-color] tr:not(:last-child){border-bottom-color:currentColor}.wp-block-table table[style*=border-left-color] td:first-child,.wp-block-table table[style*=border-left-color] th,.wp-block-table table[style*=border-left-color] tr,.wp-block-table table[style*=border-left-color]>*{border-left-color:inherit}.wp-block-table table[style*=border-style] td,.wp-block-table table[style*=border-style] th,.wp-block-table table[style*=border-style] tr,.wp-block-table table[style*=border-style]>*{border-style:inherit}.wp-block-table table[style*=border-width] td,.wp-block-table table[style*=border-width] th,.wp-block-table table[style*=border-width] tr,.wp-block-table table[style*=border-width]>*{border-style:inherit;border-width:inherit}
+/*# sourceURL=https://loyalistcollege.com/wp-includes/blocks/table/style.min.css */
+</style>
+
+
+<style id="global-styles-inline-css">
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--color--neutral-000: #2E3035;--wp--preset--color--neutral-100: #D4D4D4;--wp--preset--color--neutral-200: #FFFFFF;--wp--preset--color--neutral-300: #DCDCDC;--wp--preset--color--primary-000: #1172E8;--wp--preset--color--primary-100: #EC0048;--wp--preset--color--primary-200: #CEFC8C;--wp--preset--color--primary-300: #67E5DF;--wp--preset--color--primary-400: #FFB761;--wp--preset--color--secondary-000: #004DAC;--wp--preset--color--secondary-100: #DBEAFC;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 0.75rem;--wp--preset--font-size--medium: 0.875rem;--wp--preset--font-size--large: 1rem;--wp--preset--font-size--x-large: 1.3125rem;--wp--preset--font-family--work-sans: "Work Sans", sans-serif;--wp--preset--font-family--roc-grotesk: "roc-grotesk", serif;--wp--preset--font-family--icons-font: "Icons Font", sans-serif;--wp--preset--spacing--20: 1rem;--wp--preset--spacing--30: 1.5rem;--wp--preset--spacing--40: 2rem;--wp--preset--spacing--50: 3rem;--wp--preset--spacing--60: 4rem;--wp--preset--spacing--70: 5rem;--wp--preset--spacing--80: 6rem;--wp--preset--spacing--10: 0.5rem;--wp--preset--spacing--90: 7.5rem;--wp--preset--spacing--100: 10rem;--wp--preset--spacing--110: 15rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}.wp-block-button{--wp--preset--dimension--25: 25%;--wp--preset--dimension--50: 50%;--wp--preset--dimension--75: 75%;--wp--preset--dimension--100: 100%;}.wp-block-heading{--wp--preset--font-size--small: 1rem;--wp--preset--font-size--medium: 2rem;--wp--preset--font-size--large: 3rem;--wp--preset--font-size--x-large: 4rem;}:root { --wp--style--global--content-size: 100%;--wp--style--global--wide-size: ; }:where(body) { margin: 0; }.wp-site-blocks { padding-top: var(--wp--style--root--padding-top); padding-bottom: var(--wp--style--root--padding-bottom); }.has-global-padding { padding-right: var(--wp--style--root--padding-right); padding-left: var(--wp--style--root--padding-left); }.has-global-padding > .alignfull { margin-right: calc(var(--wp--style--root--padding-right) * -1); margin-left: calc(var(--wp--style--root--padding-left) * -1); }.has-global-padding :where(:not(.alignfull.is-layout-flow) > .has-global-padding:not(.wp-block-block, .alignfull)) { padding-right: 0; padding-left: 0; }.has-global-padding :where(:not(.alignfull.is-layout-flow) > .has-global-padding:not(.wp-block-block, .alignfull)) > .alignfull { margin-left: 0; margin-right: 0; }.wp-site-blocks > .alignleft { float: left; margin-right: 2em; }.wp-site-blocks > .alignright { float: right; margin-left: 2em; }.wp-site-blocks > .aligncenter { justify-content: center; margin-left: auto; margin-right: auto; }:where(.wp-site-blocks) > * { margin-block-start: 0; margin-block-end: 0; }:where(.wp-site-blocks) > :first-child { margin-block-start: 0; }:where(.wp-site-blocks) > :last-child { margin-block-end: 0; }:root { --wp--style--block-gap: 0; }:root :where(.is-layout-flow) > :first-child{margin-block-start: 0;}:root :where(.is-layout-flow) > :last-child{margin-block-end: 0;}:root :where(.is-layout-flow) > *{margin-block-start: 0;margin-block-end: 0;}:root :where(.is-layout-constrained) > :first-child{margin-block-start: 0;}:root :where(.is-layout-constrained) > :last-child{margin-block-end: 0;}:root :where(.is-layout-constrained) > *{margin-block-start: 0;margin-block-end: 0;}:root :where(.is-layout-flex){gap: 0;}:root :where(.is-layout-grid){gap: 0;}.is-layout-flow > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-flow > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-flow > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-constrained > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-constrained > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width: var(--wp--style--global--content-size);margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignwide{max-width: var(--wp--style--global--wide-size);}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}body{background-color: var(--wp--preset--color--neutral-200);color: var(--wp--preset--color--neutral-000);font-family: var(--wp--preset--font-family--work-sans);font-size: var(--wp--preset--font-size--large);line-height: 130%;--wp--style--root--padding-top: var(--wp--preset--spacing--20);--wp--style--root--padding-right: 1.88rem;--wp--style--root--padding-bottom: var(--wp--preset--spacing--20);--wp--style--root--padding-left: 1.88rem;}h1, h2, h3, h4, h5, h6{color: var(--wp--preset--color--neutral-000);font-family: var(--wp--preset--font-family--roc-grotesk);font-weight: 600;line-height: 1;}:root :where(.wp-element-button, .wp-block-button__link){background-color: var(--wp--preset--color--primary-200);border-radius: 0;border-width: 0;color: var(--wp--preset--color--neutral-000);font-family: inherit;font-size: 0.9375rem;font-style: inherit;font-weight: 700;letter-spacing: inherit;line-height: 24px;padding-top: 0.625rem;padding-right: 1rem;padding-bottom: 0.625rem;padding-left: 1rem;text-decoration: none;text-transform: uppercase;}:root :where(.wp-element-button:hover, .wp-block-button__link:hover){background-color: var(--wp--preset--color--secondary-000);color: var(--wp--preset--color--neutral-200);}:root :where(.wp-element-button:focus-visible, .wp-block-button__link:focus-visible){border-color: var(--wp--preset--color--neutral-200);border-width: 2px;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-neutral-000-color{color: var(--wp--preset--color--neutral-000) !important;}.has-neutral-100-color{color: var(--wp--preset--color--neutral-100) !important;}.has-neutral-200-color{color: var(--wp--preset--color--neutral-200) !important;}.has-neutral-300-color{color: var(--wp--preset--color--neutral-300) !important;}.has-primary-000-color{color: var(--wp--preset--color--primary-000) !important;}.has-primary-100-color{color: var(--wp--preset--color--primary-100) !important;}.has-primary-200-color{color: var(--wp--preset--color--primary-200) !important;}.has-primary-300-color{color: var(--wp--preset--color--primary-300) !important;}.has-primary-400-color{color: var(--wp--preset--color--primary-400) !important;}.has-secondary-000-color{color: var(--wp--preset--color--secondary-000) !important;}.has-secondary-100-color{color: var(--wp--preset--color--secondary-100) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-neutral-000-background-color{background-color: var(--wp--preset--color--neutral-000) !important;}.has-neutral-100-background-color{background-color: var(--wp--preset--color--neutral-100) !important;}.has-neutral-200-background-color{background-color: var(--wp--preset--color--neutral-200) !important;}.has-neutral-300-background-color{background-color: var(--wp--preset--color--neutral-300) !important;}.has-primary-000-background-color{background-color: var(--wp--preset--color--primary-000) !important;}.has-primary-100-background-color{background-color: var(--wp--preset--color--primary-100) !important;}.has-primary-200-background-color{background-color: var(--wp--preset--color--primary-200) !important;}.has-primary-300-background-color{background-color: var(--wp--preset--color--primary-300) !important;}.has-primary-400-background-color{background-color: var(--wp--preset--color--primary-400) !important;}.has-secondary-000-background-color{background-color: var(--wp--preset--color--secondary-000) !important;}.has-secondary-100-background-color{background-color: var(--wp--preset--color--secondary-100) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-neutral-000-border-color{border-color: var(--wp--preset--color--neutral-000) !important;}.has-neutral-100-border-color{border-color: var(--wp--preset--color--neutral-100) !important;}.has-neutral-200-border-color{border-color: var(--wp--preset--color--neutral-200) !important;}.has-neutral-300-border-color{border-color: var(--wp--preset--color--neutral-300) !important;}.has-primary-000-border-color{border-color: var(--wp--preset--color--primary-000) !important;}.has-primary-100-border-color{border-color: var(--wp--preset--color--primary-100) !important;}.has-primary-200-border-color{border-color: var(--wp--preset--color--primary-200) !important;}.has-primary-300-border-color{border-color: var(--wp--preset--color--primary-300) !important;}.has-primary-400-border-color{border-color: var(--wp--preset--color--primary-400) !important;}.has-secondary-000-border-color{border-color: var(--wp--preset--color--secondary-000) !important;}.has-secondary-100-border-color{border-color: var(--wp--preset--color--secondary-100) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}.has-work-sans-font-family{font-family: var(--wp--preset--font-family--work-sans) !important;}.has-roc-grotesk-font-family{font-family: var(--wp--preset--font-family--roc-grotesk) !important;}.has-icons-font-font-family{font-family: var(--wp--preset--font-family--icons-font) !important;}:where(.wp-block-heading).has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}:where(.wp-block-heading).has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}:where(.wp-block-heading).has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}:where(.wp-block-heading).has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+
+<link rel='stylesheet' id='wp-smart-crop-renderer-css' href='https://loyalistcollege.com/app/plugins/wp-smartcrop/css/image-renderer.css?ver=2.0.10' media='all' />
+<link rel='stylesheet' id='theme-styles-css' href='https://loyalistcollege.com/app/themes/loc/build/styles/style.min.css?ver=1.1.1' media='all' />
+<link rel='stylesheet' id='adobe-fonts-css' href='https://use.typekit.net/zxg2ame.css?ver=1.1.1' media='all' />
+<link rel='stylesheet' id='tom-select-css' href='https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css?ver=1.1.1' media='all' />
+
+<link rel='shortlink' href='https://loyalistcollege.com/?p=14426' />
+<meta name="tec-api-version" content="v1"><meta name="tec-api-origin" content="https://loyalistcollege.com"><link rel="alternate" href="https://loyalistcollege.com/wp-json/tribe/events/v1/" /><!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-PFMZJK');</script>
+<!-- End Google Tag Manager --><!-- AcuityAds Pixel -->
+<script>
+    'use strict'
+    !(function(a, e) {
+        if (!a.aap) {
+            a.aap = function(e) {
+                ;(a.acuityAdsEventQueue = a.acuityAdsEventQueue || []).push(e)
+            }
+            var t = 'script'
+            var i = e.createElement(t)
+            i.async = true
+            i.src = 'https://origin.acuityplatform.com/event/v2/pixel.js'
+            var c = e.getElementsByTagName(t)[0]
+            c.parentNode.insertBefore(i, c)
+            a.acuityPiggybackCallback = function(e) {
+                a.acuityParseResponse(e)
+            }
+        }
+    })(window, document)
+    aap({ pixelKey: '1347494756653419782' })
+</script>
+<!-- AcuityAds Pixel --><!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '401380000865651');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=401380000865651&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code --><style class="wp-fonts-local">
+@font-face{font-family:"Work Sans";font-style:normal;font-weight:400;font-display:fallback;src:url('https://loyalistcollege.com/app/themes/loc/assets/fonts/WorkSans-Regular.woff2') format('woff2');}
+@font-face{font-family:"Work Sans";font-style:italic;font-weight:400;font-display:fallback;src:url('https://loyalistcollege.com/app/themes/loc/assets/fonts/WorkSans-Italic.woff2') format('woff2');}
+@font-face{font-family:"Work Sans";font-style:normal;font-weight:600;font-display:fallback;src:url('https://loyalistcollege.com/app/themes/loc/assets/fonts/WorkSans-SemiBold.woff2') format('woff2');}
+@font-face{font-family:"Work Sans";font-style:normal;font-weight:700;font-display:fallback;src:url('https://loyalistcollege.com/app/themes/loc/assets/fonts/WorkSans-Bold.woff2') format('woff2');}
+@font-face{font-family:"Icons Font";font-style:normal;font-weight:400;font-display:fallback;src:url('https://loyalistcollege.com/app/themes/loc/assets/fonts/icons-font.woff2') format('woff2');}
+</style>
+<link rel="icon" href="https://loyalistcollege.com/app/uploads/2024/07/cropped-favicon-150x150.png" sizes="32x32" />
+<link rel="icon" href="https://loyalistcollege.com/app/uploads/2024/07/cropped-favicon-300x300.png" sizes="192x192" />
+<link rel="apple-touch-icon" href="https://loyalistcollege.com/app/uploads/2024/07/cropped-favicon-300x300.png" />
+<meta name="msapplication-TileImage" content="https://loyalistcollege.com/app/uploads/2024/07/cropped-favicon-300x300.png" />
+</head>
+<body class="wp-singular page-template page-template-page-templates page-template-basic-sidebar-layout-page page-template-page-templatesbasic-sidebar-layout-page-php page page-id-14426 page-child parent-pageid-3744 wp-theme-loc tribe-no-js">
+<a class="skip-link sr-only" href="#main-content">Skip to main content</a>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PFMZJK"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->	<header class="site-header">
+		<div class="site-header__branding">
+			<a href="https://loyalistcollege.com/" class="branding__logo">
+	<img src="https://loyalistcollege.com/app/themes/loc/build/images/svg/loc-main-logo.svg"
+		 alt="Loyalist College" />
+</a>
+		</div>
+
+		<div class="site-header__navigations">
+			
+<div class="utility-nav">
+			<nav class="utility-nav__nav" aria-label="Utility navigation">
+			<span class="utility-nav__nav-info">Info for</span>
+			<ul class="menu-utility-navigation"><li id="menu-item-20" class="utility-menu-btn menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-20"><a href="https://loyalistcollege.com/info-for-future-students/"><span>Future Students</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-5570" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5570"><a href="https://loyalistcollege.com/info-for-future-students/"><span>Future students</span></a></li>
+	<li id="menu-item-5564" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5564"><a href="https://loyalistcollege.com/info-for-current-students/"><span>Current students</span></a></li>
+	<li id="menu-item-140" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-140"><a href="https://loyalistcollege.com/info-for-international-students/"><span>International students</span></a></li>
+	<li id="menu-item-5562" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5562"><a href="https://loyalistcollege.com/info-for-alumni-and-donors/"><span>Alumni and donors</span></a></li>
+	<li id="menu-item-5566" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5566"><a href="https://loyalistcollege.com/info-for-employees/"><span>Employees</span></a></li>
+	<li id="menu-item-5565" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5565"><a href="https://loyalistcollege.com/info-for-employers/"><span>Employers</span></a></li>
+	<li id="menu-item-5567" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5567"><a href="https://loyalistcollege.com/info-for-parents-and-supporters/"><span>Parents and supporters</span></a></li>
+	<li id="menu-item-5563" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5563"><a href="https://loyalistcollege.com/info-for-community-members/"><span>Community members</span></a></li>
+</ul>
+</li>
+<li id="menu-item-24" class="loyalist-menu-btn menu-item menu-item-type-custom menu-item-object-custom menu-item-24"><a href="http://myloyalist.com"><span>MyLoyalist</span></a></li>
+</ul>		</nav>
+		
+	<div class="utility-nav__search">
+		<button
+			id="open-loc-search"
+			class="utility-nav__search-btn"
+			aria-label="Open search"
+			aria-controls="loc-search">
+			<i class="icon icon-search"></i>
+		</button>
+		<button
+			id="close-loc-search-mobile"
+			class="utility-nav__search-btn utility-nav__search-btn-mobile"
+			aria-label="Close search"
+			aria-controls="loc-search">
+			<i class="icon icon-menu-close"></i>
+		</button>
+					<div id="loc-search" class="utility-nav__search-form">
+				<form id="loc-search-form" method="get" action="https://loyalistcollege.com/search-results/" role="search">
+					<i class="icon icon-search"></i>
+					<label for="loc-search-input" class="sr-only">Search Loyalist by keyword</label>
+					<input
+							type="text"
+							id="loc-search-input"
+							name="q"
+							autocomplete="off"
+							placeholder="Search Loyalist by keyword..."
+							aria-hidden="true"
+							tabindex="-1"
+					/>
+				</form>
+				<button
+						id="close-loc-search"
+						type="button"
+						aria-label="Close search"
+						aria-hidden="true"
+						tabindex="-1"
+				>
+					<i class="icon icon-menu-close"></i>
+				</button>
+			</div>
+				</div>
+</div>
+
+			<div class="main-nav">
+				
+<nav class="main-nav__desktop" aria-label="Main navigation">
+	<ul class="menu-main-navigation"><li id="menu-item-12" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-12"><a href="https://loyalistcollege.com/learn/"><span>Learn</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-13" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-13"><a href="https://loyalistcollege.com/learn/"><span>Learning options</span></a></li>
+	<li id="menu-item-6538" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6538"><a href="https://loyalistcollege.com/learn/programs-list/"><span>Program search</span></a></li>
+	<li id="menu-item-23992" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-23992"><a href="https://loyalistcollege.com/learn/continuous-professional-learning/"><span>Continuous and professional learning</span></a></li>
+	<li id="menu-item-7949" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-7949"><a href="https://loyalistcollege.com/learn/learning-options/post-graduate/"><span>Post-graduate programs</span></a></li>
+	<li id="menu-item-55" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-55"><a href="https://loyalistcollege.com/program/career-and-college-prep/"><span>Career and College Prep</span></a></li>
+	<li id="menu-item-4185" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4185"><a href="https://loyalistcollege.com/learn/apprenticeships/"><span>Apprenticeships</span></a></li>
+	<li id="menu-item-4194" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4194"><a href="https://loyalistcollege.com/learn/college-credits-for-high-school-students/"><span>College credits for high school students</span></a></li>
+	<li id="menu-item-25417" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-25417"><a href="https://loyalistcollege.com/learn/military-connected-campus/"><span>Military-Connected Campus</span></a></li>
+	<li id="menu-item-20213" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-20213"><a href="https://loyalistcollege.com/learn/experiential-learning/"><span>Experiential learning</span></a></li>
+	<li id="menu-item-16283" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-16283"><a href="https://loyalistcollege.com/learn/personal-and-professional-development/arts-experience/"><span>Creative experiences</span></a></li>
+</ul>
+</li>
+<li id="menu-item-17" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-17"><a href="https://loyalistcollege.com/admissions/"><span>Admissions</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-3860" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3860"><a href="https://loyalistcollege.com/admissions/"><span>Admissions overview</span></a></li>
+	<li id="menu-item-3844" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3844"><a href="https://loyalistcollege.com/admissions/visit-us/"><span>Visit us</span></a></li>
+	<li id="menu-item-3848" class="menu-item menu-item-type-post_type menu-item-object-page current-page-ancestor menu-item-3848"><a href="https://loyalistcollege.com/admissions/how-to-apply/"><span>How to apply</span></a></li>
+	<li id="menu-item-3846" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3846"><a href="https://loyalistcollege.com/admissions/how-to-apply/admission-requirements/"><span>Admission requirements</span></a></li>
+	<li id="menu-item-3849" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3849"><a href="https://loyalistcollege.com/admissions/international-applicants/"><span>International applicants</span></a></li>
+	<li id="menu-item-3850" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3850"><a href="https://loyalistcollege.com/admissions/next-steps-for-applicants/"><span>Next steps for applicants</span></a></li>
+	<li id="menu-item-3851" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3851"><a href="https://loyalistcollege.com/admissions/paying-for-college/"><span>Paying for college</span></a></li>
+	<li id="menu-item-3852" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3852"><a href="https://loyalistcollege.com/admissions/transfer-credit/"><span>Transfer credit</span></a></li>
+	<li id="menu-item-21031" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-21031"><a href="https://loyalistcollege.com/admissions/academic-calendar/"><span>Academic calendar</span></a></li>
+	<li id="menu-item-26677" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-26677"><a href="https://loyalistcollege.com/openenrolment/"><span>Open Enrolment Programs</span></a></li>
+</ul>
+</li>
+<li id="menu-item-32" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-32"><a href="https://loyalistcollege.com/life-at-loyalist/"><span>Life at Loyalist</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-6182" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6182"><a href="https://loyalistcollege.com/life-at-loyalist/"><span>Discover Life at Loyalist</span></a></li>
+	<li id="menu-item-38" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-38"><a href="https://loyalistcollege.com/life-at-loyalist/get-involved/"><span>Get involved</span></a></li>
+	<li id="menu-item-6184" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6184"><a href="https://loyalistcollege.com/life-at-loyalist/student-support-services/"><span>Student support services</span></a></li>
+	<li id="menu-item-6186" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6186"><a href="https://loyalistcollege.com/life-at-loyalist/health-and-wellness/"><span>Health and wellness</span></a></li>
+	<li id="menu-item-8993" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-8993"><a href="https://loyalistcollege.com/life-at-loyalist/student-support-services/registrars-office/"><span>Registrar&#8217;s Office</span></a></li>
+	<li id="menu-item-24042" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-24042"><a href="https://loyalistcollege.com/life-at-loyalist/get-involved/athletics/"><span>Athletics and Recreation</span></a></li>
+	<li id="menu-item-6703" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6703"><a href="https://loyalistcollege.com/life-at-loyalist/student-support-services/residence-and-housing/"><span>Residence and housing</span></a></li>
+	<li id="menu-item-6189" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6189"><a href="https://loyalistcollege.com/events/category/student-events/month/"><span>Events calendar</span></a></li>
+	<li id="menu-item-19800" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19800"><a href="https://loyalistcollege.com/our-locations/belleville/belleville-location-facilities-and-services/student-spaces/tsi-titewayataroroks-indigenous-centre/"><span>Tsi Titewaya’taró:roks Indigenous Centre </span></a></li>
+</ul>
+</li>
+<li id="menu-item-33" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-33"><a href="https://loyalistcollege.com/our-locations/"><span>Our Locations</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-39" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-39"><a href="https://loyalistcollege.com/our-locations/"><span>Locations overview</span></a></li>
+	<li id="menu-item-3944" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3944"><a href="https://loyalistcollege.com/our-locations/belleville/"><span>Belleville</span></a></li>
+	<li id="menu-item-3943" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3943"><a href="https://loyalistcollege.com/our-locations/bancroft/"><span>Bancroft</span></a></li>
+	<li id="menu-item-3947" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3947"><a href="https://loyalistcollege.com/our-locations/port-hope/"><span>Port Hope</span></a></li>
+	<li id="menu-item-3948" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3948"><a href="https://loyalistcollege.com/our-locations/tyendinaga/"><span>Tyendinaga</span></a></li>
+	<li id="menu-item-3939" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3939"><a href="https://loyalistcollege.com/our-locations/inclement-weather/"><span>Inclement weather</span></a></li>
+	<li id="menu-item-3940" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3940"><a href="https://loyalistcollege.com/our-locations/safety-and-emergency-response/"><span>Safety and emergency response</span></a></li>
+	<li id="menu-item-3941" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3941"><a href="https://loyalistcollege.com/our-locations/infrastructure-and-construction-updates/"><span>Infrastructure and construction updates</span></a></li>
+</ul>
+</li>
+<li id="menu-item-18" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-18"><a href="https://loyalistcollege.com/partnerships-and-collaborations/"><span>Partnerships and collaborations</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-4171" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4171"><a href="https://loyalistcollege.com/partnerships-and-collaborations/"><span>Partnerships and collaborations</span></a></li>
+	<li id="menu-item-24807" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-24807"><a href="https://loyalistcollege.com/learn/continuous-professional-learning/"><span>Corporate training and workforce development</span></a></li>
+	<li id="menu-item-25333" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-25333"><a href="https://loyalistcollege.com/partnerships-and-collaborations/applied-research-and-innovation-office/"><span>Applied Research and Innovation Office</span></a></li>
+	<li id="menu-item-4176" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4176"><a href="https://loyalistcollege.com/about/employment/career-services-for-employers/"><span>Career services for employers</span></a></li>
+</ul>
+</li>
+<li id="menu-item-16" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-16"><a href="https://loyalistcollege.com/about/"><span>About</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-4083" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4083"><a href="https://loyalistcollege.com/about/"><span>About Loyalist</span></a></li>
+	<li id="menu-item-7354" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-7354"><a href="https://loyalistcollege.com/about/media-centre/"><span>News and events</span></a></li>
+	<li id="menu-item-4159" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4159"><a href="https://loyalistcollege.com/about/publications-policies-and-procedures/"><span>Publications, policies and procedures</span></a></li>
+	<li id="menu-item-4119" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4119"><a href="https://loyalistcollege.com/about/organization/"><span>Organization</span></a></li>
+	<li id="menu-item-4157" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4157"><a href="https://loyalistcollege.com/about/employment/"><span>Employment</span></a></li>
+	<li id="menu-item-4118" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4118"><a href="https://loyalistcollege.com/about/alumni/"><span>Alumni</span></a></li>
+	<li id="menu-item-4161" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4161"><a href="https://loyalistcollege.com/about/contact-us/"><span>Contact us</span></a></li>
+	<li id="menu-item-4167" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4167"><a href="https://loyalistcollege.com/about/donate/"><span>Donate</span></a></li>
+</ul>
+</li>
+</ul></nav>
+
+<button class="main-nav__mobile-btn" aria-label="Open the navigation" aria-expanded="false"
+		aria-controls="main-nav-mobile-menu">
+	<i class="icon icon-hamburger"></i>
+	<i class="icon icon-menu-close"></i>
+</button>
+
+<nav aria-label="Main menu - mobile" class="main-nav__mobile" id="main-nav-mobile-menu">
+	<ul class="menu-main-navigation"><li id="menu-item-12" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-12"><a href="https://loyalistcollege.com/learn/"><span>Learn</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-13" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-13"><a href="https://loyalistcollege.com/learn/"><span>Learning options</span></a></li>
+	<li id="menu-item-6538" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6538"><a href="https://loyalistcollege.com/learn/programs-list/"><span>Program search</span></a></li>
+	<li id="menu-item-23992" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-23992"><a href="https://loyalistcollege.com/learn/continuous-professional-learning/"><span>Continuous and professional learning</span></a></li>
+	<li id="menu-item-7949" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-7949"><a href="https://loyalistcollege.com/learn/learning-options/post-graduate/"><span>Post-graduate programs</span></a></li>
+	<li id="menu-item-55" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-55"><a href="https://loyalistcollege.com/program/career-and-college-prep/"><span>Career and College Prep</span></a></li>
+	<li id="menu-item-4185" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4185"><a href="https://loyalistcollege.com/learn/apprenticeships/"><span>Apprenticeships</span></a></li>
+	<li id="menu-item-4194" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4194"><a href="https://loyalistcollege.com/learn/college-credits-for-high-school-students/"><span>College credits for high school students</span></a></li>
+	<li id="menu-item-25417" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-25417"><a href="https://loyalistcollege.com/learn/military-connected-campus/"><span>Military-Connected Campus</span></a></li>
+	<li id="menu-item-20213" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-20213"><a href="https://loyalistcollege.com/learn/experiential-learning/"><span>Experiential learning</span></a></li>
+	<li id="menu-item-16283" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-16283"><a href="https://loyalistcollege.com/learn/personal-and-professional-development/arts-experience/"><span>Creative experiences</span></a></li>
+</ul>
+</li>
+<li id="menu-item-17" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-17"><a href="https://loyalistcollege.com/admissions/"><span>Admissions</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-3860" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3860"><a href="https://loyalistcollege.com/admissions/"><span>Admissions overview</span></a></li>
+	<li id="menu-item-3844" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3844"><a href="https://loyalistcollege.com/admissions/visit-us/"><span>Visit us</span></a></li>
+	<li id="menu-item-3848" class="menu-item menu-item-type-post_type menu-item-object-page current-page-ancestor menu-item-3848"><a href="https://loyalistcollege.com/admissions/how-to-apply/"><span>How to apply</span></a></li>
+	<li id="menu-item-3846" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3846"><a href="https://loyalistcollege.com/admissions/how-to-apply/admission-requirements/"><span>Admission requirements</span></a></li>
+	<li id="menu-item-3849" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3849"><a href="https://loyalistcollege.com/admissions/international-applicants/"><span>International applicants</span></a></li>
+	<li id="menu-item-3850" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3850"><a href="https://loyalistcollege.com/admissions/next-steps-for-applicants/"><span>Next steps for applicants</span></a></li>
+	<li id="menu-item-3851" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3851"><a href="https://loyalistcollege.com/admissions/paying-for-college/"><span>Paying for college</span></a></li>
+	<li id="menu-item-3852" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3852"><a href="https://loyalistcollege.com/admissions/transfer-credit/"><span>Transfer credit</span></a></li>
+	<li id="menu-item-21031" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-21031"><a href="https://loyalistcollege.com/admissions/academic-calendar/"><span>Academic calendar</span></a></li>
+	<li id="menu-item-26677" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-26677"><a href="https://loyalistcollege.com/openenrolment/"><span>Open Enrolment Programs</span></a></li>
+</ul>
+</li>
+<li id="menu-item-32" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-32"><a href="https://loyalistcollege.com/life-at-loyalist/"><span>Life at Loyalist</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-6182" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6182"><a href="https://loyalistcollege.com/life-at-loyalist/"><span>Discover Life at Loyalist</span></a></li>
+	<li id="menu-item-38" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-38"><a href="https://loyalistcollege.com/life-at-loyalist/get-involved/"><span>Get involved</span></a></li>
+	<li id="menu-item-6184" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6184"><a href="https://loyalistcollege.com/life-at-loyalist/student-support-services/"><span>Student support services</span></a></li>
+	<li id="menu-item-6186" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6186"><a href="https://loyalistcollege.com/life-at-loyalist/health-and-wellness/"><span>Health and wellness</span></a></li>
+	<li id="menu-item-8993" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-8993"><a href="https://loyalistcollege.com/life-at-loyalist/student-support-services/registrars-office/"><span>Registrar&#8217;s Office</span></a></li>
+	<li id="menu-item-24042" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-24042"><a href="https://loyalistcollege.com/life-at-loyalist/get-involved/athletics/"><span>Athletics and Recreation</span></a></li>
+	<li id="menu-item-6703" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6703"><a href="https://loyalistcollege.com/life-at-loyalist/student-support-services/residence-and-housing/"><span>Residence and housing</span></a></li>
+	<li id="menu-item-6189" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6189"><a href="https://loyalistcollege.com/events/category/student-events/month/"><span>Events calendar</span></a></li>
+	<li id="menu-item-19800" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-19800"><a href="https://loyalistcollege.com/our-locations/belleville/belleville-location-facilities-and-services/student-spaces/tsi-titewayataroroks-indigenous-centre/"><span>Tsi Titewaya’taró:roks Indigenous Centre </span></a></li>
+</ul>
+</li>
+<li id="menu-item-33" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-33"><a href="https://loyalistcollege.com/our-locations/"><span>Our Locations</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-39" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-39"><a href="https://loyalistcollege.com/our-locations/"><span>Locations overview</span></a></li>
+	<li id="menu-item-3944" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3944"><a href="https://loyalistcollege.com/our-locations/belleville/"><span>Belleville</span></a></li>
+	<li id="menu-item-3943" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3943"><a href="https://loyalistcollege.com/our-locations/bancroft/"><span>Bancroft</span></a></li>
+	<li id="menu-item-3947" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3947"><a href="https://loyalistcollege.com/our-locations/port-hope/"><span>Port Hope</span></a></li>
+	<li id="menu-item-3948" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3948"><a href="https://loyalistcollege.com/our-locations/tyendinaga/"><span>Tyendinaga</span></a></li>
+	<li id="menu-item-3939" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3939"><a href="https://loyalistcollege.com/our-locations/inclement-weather/"><span>Inclement weather</span></a></li>
+	<li id="menu-item-3940" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3940"><a href="https://loyalistcollege.com/our-locations/safety-and-emergency-response/"><span>Safety and emergency response</span></a></li>
+	<li id="menu-item-3941" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3941"><a href="https://loyalistcollege.com/our-locations/infrastructure-and-construction-updates/"><span>Infrastructure and construction updates</span></a></li>
+</ul>
+</li>
+<li id="menu-item-18" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-18"><a href="https://loyalistcollege.com/partnerships-and-collaborations/"><span>Partnerships and collaborations</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-4171" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4171"><a href="https://loyalistcollege.com/partnerships-and-collaborations/"><span>Partnerships and collaborations</span></a></li>
+	<li id="menu-item-24807" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-24807"><a href="https://loyalistcollege.com/learn/continuous-professional-learning/"><span>Corporate training and workforce development</span></a></li>
+	<li id="menu-item-25333" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-25333"><a href="https://loyalistcollege.com/partnerships-and-collaborations/applied-research-and-innovation-office/"><span>Applied Research and Innovation Office</span></a></li>
+	<li id="menu-item-4176" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4176"><a href="https://loyalistcollege.com/about/employment/career-services-for-employers/"><span>Career services for employers</span></a></li>
+</ul>
+</li>
+<li id="menu-item-16" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-16"><a href="https://loyalistcollege.com/about/"><span>About</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-4083" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4083"><a href="https://loyalistcollege.com/about/"><span>About Loyalist</span></a></li>
+	<li id="menu-item-7354" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-7354"><a href="https://loyalistcollege.com/about/media-centre/"><span>News and events</span></a></li>
+	<li id="menu-item-4159" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4159"><a href="https://loyalistcollege.com/about/publications-policies-and-procedures/"><span>Publications, policies and procedures</span></a></li>
+	<li id="menu-item-4119" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4119"><a href="https://loyalistcollege.com/about/organization/"><span>Organization</span></a></li>
+	<li id="menu-item-4157" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4157"><a href="https://loyalistcollege.com/about/employment/"><span>Employment</span></a></li>
+	<li id="menu-item-4118" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4118"><a href="https://loyalistcollege.com/about/alumni/"><span>Alumni</span></a></li>
+	<li id="menu-item-4161" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4161"><a href="https://loyalistcollege.com/about/contact-us/"><span>Contact us</span></a></li>
+	<li id="menu-item-4167" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4167"><a href="https://loyalistcollege.com/about/donate/"><span>Donate</span></a></li>
+</ul>
+</li>
+</ul><ul class="menu-utility-navigation"><li id="menu-item-20" class="utility-menu-btn menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children menu-item-20"><a href="https://loyalistcollege.com/info-for-future-students/"><span>Future Students</span></a>
+<ul class="sub-menu">
+	<li id="menu-item-5570" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5570"><a href="https://loyalistcollege.com/info-for-future-students/"><span>Future students</span></a></li>
+	<li id="menu-item-5564" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5564"><a href="https://loyalistcollege.com/info-for-current-students/"><span>Current students</span></a></li>
+	<li id="menu-item-140" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-140"><a href="https://loyalistcollege.com/info-for-international-students/"><span>International students</span></a></li>
+	<li id="menu-item-5562" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5562"><a href="https://loyalistcollege.com/info-for-alumni-and-donors/"><span>Alumni and donors</span></a></li>
+	<li id="menu-item-5566" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5566"><a href="https://loyalistcollege.com/info-for-employees/"><span>Employees</span></a></li>
+	<li id="menu-item-5565" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5565"><a href="https://loyalistcollege.com/info-for-employers/"><span>Employers</span></a></li>
+	<li id="menu-item-5567" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5567"><a href="https://loyalistcollege.com/info-for-parents-and-supporters/"><span>Parents and supporters</span></a></li>
+	<li id="menu-item-5563" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5563"><a href="https://loyalistcollege.com/info-for-community-members/"><span>Community members</span></a></li>
+</ul>
+</li>
+<li id="menu-item-24" class="loyalist-menu-btn menu-item menu-item-type-custom menu-item-object-custom menu-item-24"><a href="http://myloyalist.com"><span>MyLoyalist</span></a></li>
+</ul></nav>
+			</div>
+		</div>
+	</header>
+	<div id="main-content">
+
+<main>
+	
+<div class="page__hero">
+    <div class="row">
+        <div class="col">
+            <h1 class="page__title wp-block-heading has-small-font-size">PGWP-aligned programs</h1>
+			        </div>
+    </div>
+
+    <div class="page__meta row">
+        <div class="col-lg-6">
+			        </div>
+        <div class="col-lg-4 offset-lg-2">
+            <p class="page__hero-arrow loc-hero-arrow hero-empty-description">
+                <a href="#content"
+                   aria-label="Skip to main content">
+                    Skip to main content
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+<div class="loc-yoast-breadcrumbs loc-component"><span><span><a href="https://loyalistcollege.com/">Home</a></span> / <span><a href="https://loyalistcollege.com/admissions/">Admissions</a></span> / <span><a href="https://loyalistcollege.com/admissions/how-to-apply/">How to apply</a></span> / <span><a href="https://loyalistcollege.com/admissions/how-to-apply/international-applicants/">International student application</a></span> / <span class="breadcrumb_last" aria-current="page"><strong>PGWP-aligned programs</strong></span></span></div>  <div class="loc-component loc-sidebar-menu-mobile has-global-padding is-layout-constrained" data-placement="top">
+    <h3 class="loc-mobile-nav-label" class="space-y-4">
+      International student application    </h3>
+    <select
+      id="loc-mobile-nav-select-top"
+      class="loc-select"
+      onchange="if(this.value) window.location.href = this.value;"
+      aria-label="Navigate away from PGWP-aligned programs"
+    >
+      <option value="">PGWP-aligned programs</option>
+              <option value="https://loyalistcollege.com/admissions/how-to-apply/international-applicants/coming-to-canada/" >
+          Coming to Canada         </option>
+              <option value="https://loyalistcollege.com/admissions/how-to-apply/international-applicants/international-agent-partners/" >
+          International agent partners        </option>
+              <option value="https://loyalistcollege.com/admissions/how-to-apply/international-applicants/pgwp-aligned-programs/"  selected='selected'>
+          PGWP-aligned programs        </option>
+          </select>
+  </div>
+  			<div class="page__wrapper">
+				<div class="row">
+					<div class="page__wrapper__sidebar col-lg-3">
+						    <div class="loc-component loc-sidebar-menu">
+      <nav class="loc-sidebar-menu-nav" aria-label="Sidebar menu">
+        <ul class="root-menu">
+          <li>
+            <a href="https://loyalistcollege.com/admissions/how-to-apply/international-applicants/">
+              International student application            </a>
+            <ul class="children">
+              <li class="page_item page-item-3781 page_item_has_children"><a href="https://loyalistcollege.com/admissions/how-to-apply/international-applicants/coming-to-canada/">Coming to Canada </a></li>
+<li class="page_item page-item-3768 page_item_has_children"><a href="https://loyalistcollege.com/admissions/how-to-apply/international-applicants/international-agent-partners/">International agent partners</a></li>
+<li class="page_item page-item-14426 current_page_item"><a href="https://loyalistcollege.com/admissions/how-to-apply/international-applicants/pgwp-aligned-programs/" aria-current="page">PGWP-aligned programs</a></li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </div>
+    					</div>
+					<div class="page__wrapper__content col-lg-7 offset-lg-1">
+						<div class="entry-content page__content">
+							
+<div class="wp-block-group has-global-padding is-layout-constrained wp-block-group-is-layout-constrained">
+<div class="wp-block-group loc-component intro has-primary-400-background-color has-background is-layout-flow wp-block-group-is-layout-flow" style="padding-top:30px;padding-bottom:30px">
+<div class="wp-block-group intro__description is-layout-flow wp-block-group-is-layout-flow">
+<p class="wp-block-paragraph"><strong>June 25, 2025:</strong> Immigration, Refugees and Citizenship Canada (IRCC) recently updated the Post-Graduation Work Permit (PGWP) eligibility list. Please refer to the following link for the most up to date information.</p>
+</div>
+
+
+
+<div class="wp-block-buttons is-layout-flex wp-block-buttons-is-layout-flex">
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/work/after-graduation/eligibility/field-of-study/currently-eligible.html#wb-auto-5">Updated pgwp eligibility list</a></div>
+</div>
+</div>
+</div>
+
+
+
+<div class="wp-block-group has-global-padding is-layout-constrained wp-block-group-is-layout-constrained">
+<p class="wp-block-paragraph">The Post-Graduation Work Permit (PGWP) allows you to gain valuable Canadian work experience in your field after graduation. If you plan to work in Canada after completing your studies, it is important to ensure that your program is eligible&nbsp;for the PGWP.</p>
+
+
+
+<p class="wp-block-paragraph">Based on the information currently available, the following Loyalist College programs align with the requirements, and graduates from these programs may be eligible for the PGWP. This list will be updated regularly to reflect any changes. <strong>The final decision regarding PGWP approval is determined by Immigration, Refugees and Citizenship Canada (IRCC).</strong> Applicants are advised to consult the <a href="https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/work/after-graduation/eligibility.html#instructions" target="_blank" rel="noreferrer noopener">Government of Canada website</a> to determine if they meet the eligibility requirements for the PGWP.</p>
+
+
+
+<p class="wp-block-paragraph">Please note that the following list includes all PGWP-aligned programs offered at Loyalist College at this time, however, due to capacity limits not all programs listed are currently open to international student applicants.</p>
+
+
+
+<figure class="wp-block-table"><table><thead><tr><th>Program name</th><th>Credential</th><th>CIP code</th></tr></thead><tbody><tr><td><a href="https://loyalistcollege.com/program/acupuncture/">Acupuncture</a></td><td>Ontario College Advanced Diploma</td><td>51.3301</td></tr><tr><td><a href="https://loyalistcollege.com/program/addictions-and-mental-health/">Addictions and Mental Health</a></td><td>Ontario College Graduate Certificate </td><td>51.1501</td></tr><tr><td><a href="https://loyalistcollege.com/program/artificial-intelligence-and-data-science/">Artificial Intelligence and Data Science</a></td><td>Ontario College Graduate Certificate</td><td>11.0102</td></tr><tr><td><a href="https://loyalistcollege.com/program/biotechnology/">Biotechnology</a></td><td>Ontario College Diploma</td><td>41.0101</td></tr><tr><td><a href="https://loyalistcollege.com/program/carpentry-and-renovation-techniques/">Carpentry and Renovation Techniques</a></td><td>Ontario College Certificate</td><td>46.0201</td></tr><tr><td><a href="https://loyalistcollege.com/program/child-and-youth-care/">Child and Youth Care</a></td><td>Ontario College Advanced Diploma</td><td>44.0702</td></tr><tr><td><a href="https://loyalistcollege.com/program/civil-engineering-technician/">Civil Engineering Technician</a></td><td>Ontario College Certificate</td><td>15.0201</td></tr><tr><td><a href="https://loyalistcollege.com/program/community-pharmacy-assistant/">Community Pharmacy Assistant</a></td><td>Ontario College Certificate</td><td>51.0805</td></tr><tr><td><a href="https://loyalistcollege.com/program/computer-systems-technician/">Computer Systems Technician</a></td><td>Ontario College Diploma</td><td>15.1202</td></tr><tr><td><a href="https://loyalistcollege.com/program/construction-engineering-technician/">Construction Engineering Technician</a></td><td>Ontario College Diploma</td><td>15.1001</td></tr><tr><td><a href="https://loyalistcollege.com/program/cyber-security/">Cyber Security</a></td><td>Ontario College Graduate Certificate</td><td>11.1003</td></tr><tr><td><a href="https://loyalistcollege.com/program/developmental-services-worker/">Developmental Services Worker</a></td><td>Ontario College Diploma</td><td>19.0710</td></tr><tr><td><a href="https://loyalistcollege.com/program/early-childhood-education/">Early Childhood Education</a></td><td>Ontario College Diploma</td><td>19.0709</td></tr><tr><td><a href="https://loyalistcollege.com/program/electrical-techniques/">Electrical Techniques</a></td><td>Ontario College Certificate</td><td>46.0302</td></tr><tr><td><a href="https://loyalistcollege.com/program/electrical-engineering-technician-industrial/">Electrical Technician</a></td><td>Ontario College Diploma</td><td>15.0303</td></tr><tr><td><a href="https://loyalistcollege.com/program/fitness-and-health-promotion/">Fitness and Health Promotion</a></td><td>Ontario College Diploma</td><td>31.0501</td></tr><tr><td><a href="https://loyalistcollege.com/program/heating-refrigeration-and-air-conditioning-technician/">Heating, Refrigeration and Air Conditioning Technician</a></td><td>Ontario College Diploma</td><td>15.0501</td></tr><tr><td><a href="https://loyalistcollege.com/program/heating-refrigeration-and-air-conditioning-techniques/">Heating, Refrigeration and Air Conditioning Techniques</a></td><td>Ontario College Certificate</td><td>47.0201</td></tr><tr><td><a href="https://loyalistcollege.com/program/nursing-honours-bachelor-of-science/">Honours Bachelor of Science in Nursing</a></td><td>Honours Bachelor of Science in Nursing</td><td>51.3801</td></tr><tr><td><a href="https://loyalistcollege.com/program/massage-therapy/">Massage Therapy</a></td><td>Ontario College Advanced Diploma</td><td>51.3501</td></tr><tr><td><a href="https://loyalistcollege.com/program/mechanical-techniques/">Mechanical Techniques</a></td><td>Ontario College Certificate</td><td>47.0000</td></tr><tr><td><a href="https://loyalistcollege.com/program/mechatronics/">Mechatronics</a></td><td>Ontario College Diploma</td><td>15.0403</td></tr><tr><td><a href="https://loyalistcollege.com/program/medical-radiation-technology-mrt/">Medical Radiation Technology</a></td><td>Ontario College Advanced Diploma</td><td>51.0911</td></tr><tr><td><a href="https://loyalistcollege.com/program/mental-health-and-addictions-worker/">Mental Health and Addictions Worker</a></td><td>Ontario College Diploma</td><td>51.1501</td></tr><tr><td><a href="https://loyalistcollege.com/program/occupational-therapist-assistant-and-physiotherapist-assistant/">Occupational Therapist Assistant and Physiotherapist Assistant</a></td><td>Ontario College Diploma</td><td>51.0817</td></tr><tr><td><a href="https://loyalistcollege.com/program/paramedic/">Paramedic</a></td><td>Ontario College Diploma</td><td>51.0904</td></tr><tr><td><a href="https://loyalistcollege.com/program/personal-support-worker/">Personal Support Worker</a></td><td>Ontario College Certificate</td><td>51.2602</td></tr><tr><td><a href="https://loyalistcollege.com/program/pharmacy-technician/">Pharmacy Technician</a></td><td>Ontario College Diploma</td><td>51.0805</td></tr><tr><td><a href="https://loyalistcollege.com/program/practical-nursing/">Practical Nursing</a></td><td>Ontario College Diploma</td><td>51.3901</td></tr><tr><td><a href="https://loyalistcollege.com/program/pre-health-sciences-pathway-to-advanced-diplomas-and-degrees/">Pre-Health Sciences Pathway to Advanced Diplomas and Degrees</a></td><td>Ontario College Certificate</td><td>51.1199</td></tr><tr><td><a href="https://loyalistcollege.com/program/radiation-safety/">Radiation Safety</a></td><td>Ontario College Certificate</td><td>51.0916</td></tr><tr><td><a href="https://loyalistcollege.com/program/renewable-energy-systems/">Renewable Energy Systems</a></td><td>Ontario College Graduate Certificate</td><td>14.4899</td></tr><tr><td><a href="https://loyalistcollege.com/program/social-service-worker/">Social Service Worker</a></td><td>Ontario College Diploma</td><td>44.0000</td></tr><tr><td><a href="https://loyalistcollege.com/program/supply-chain-management-global-logistics/">Supply Chain Management – Global Logistics</a></td><td>Ontario College Graduate Certificate</td><td>52.0203</td></tr><tr><td><a href="https://loyalistcollege.com/program/welding-and-fabrication-technician/">Welding and Fabrication Technician</a></td><td>Ontario College Diploma</td><td>48.0508</td></tr><tr><td><a href="https://loyalistcollege.com/program/welding-techniques/">Welding Techniques</a></td><td>Ontario College Certificate</td><td>48.0508</td></tr></tbody></table></figure>
+</div>
+						</div>
+					</div>
+				</div>
+			</div>
+						</main>
+
+
+<footer class="site-footer">
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col">
+				<div class="site-footer__circles">
+	<div class="site-footer__circles-wrapper">
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+		<div class="circle"></div>
+	</div>
+	<div class="site-footer__circles-content">
+		<div class="site-footer__circles-title">
+			Choose small<span>.</span>
+		</div>
+	</div>
+</div>
+
+				<div class="site-footer__top">
+					<div class="site-footer__top--logos">
+	<a href="https://loyalistcollege.com">
+		<img class="site-footer__top--logos-loc"
+			src="https://loyalistcollege.com/app/themes/loc/build/images/svg/loc-main-logo_blue.svg"
+			alt="Loyalist College" />
+	</a>
+	<img class="site-footer__top--logos-top50"
+		src="https://loyalistcollege.com/app/themes/loc/assets/images/svg/top-50-logo.svg"
+		alt="Canada&#039;s Top 50 Research Colleges" />
+</div>
+
+					<div class="site-footer__top--right">
+						<div class="site-footer__top--nav">
+			<div id="footer-menu-col-1"
+			class="footer-widget widget_nav_menu">
+			<h3 class="footer-widget-title">
+				About Loyalist			</h3>
+			<div class="menu-about-loyalist-container"><ul id="menu-about-loyalist" class="menu"><li id="menu-item-197" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-197"><a href="https://loyalistcollege.com/about/contact-us/">Contact us</a></li>
+<li id="menu-item-196" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-196"><a href="https://loyalistcollege.com/about/publications-policies-and-procedures/">Publications, policies and procedures</a></li>
+<li id="menu-item-12923" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-12923"><a href="https://loyalistcollege.com/about/accessibility-and-aoda/">Accessibility and AODA</a></li>
+</ul></div>		</div>
+				<div id="footer-menu-col-2"
+			class="footer-widget widget_nav_menu">
+			<h3 class="footer-widget-title">
+				Study at Loyalist			</h3>
+			<div class="menu-study-at-loyalist-container"><ul id="menu-study-at-loyalist" class="menu"><li id="menu-item-218" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-218"><a href="https://loyalistcollege.com/admissions/visit-us/">Visit us</a></li>
+<li id="menu-item-219" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-219"><a href="https://loyalistcollege.com/admissions/how-to-apply/">How to apply</a></li>
+<li id="menu-item-220" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-220"><a href="https://loyalistcollege.com/admissions/international-applicants/">International applicants</a></li>
+</ul></div>		</div>
+				<div id="footer-menu-col-3"
+			class="footer-widget widget_nav_menu">
+			<h3 class="footer-widget-title">
+				Alumni			</h3>
+			<div class="menu-alumni-container"><ul id="menu-alumni" class="menu"><li id="menu-item-221" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-221"><a href="https://loyalistcollege.com/about/alumni/">Alumni</a></li>
+<li id="menu-item-222" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-222"><a href="https://loyalistcollege.com/about/alumni/alumni-perks/">Alumni perks</a></li>
+<li id="menu-item-223" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-223"><a href="https://loyalistcollege.com/about/alumni/giving-back/">Giving back</a></li>
+</ul></div>		</div>
+				<div id="footer-menu-col-4"
+			class="footer-widget widget_nav_menu">
+			<h3 class="footer-widget-title">
+				Employment			</h3>
+			<div class="menu-employment-container"><ul id="menu-employment" class="menu"><li id="menu-item-224" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-224"><a href="https://loyalistcollege.com/about/employment/work-at-loyalist/">Work at Loyalist</a></li>
+<li id="menu-item-225" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-225"><a href="https://loyalistcollege.com/about/employment/career-services-for-employers/">Career services for employers</a></li>
+<li id="menu-item-226" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-226"><a href="https://loyalistcollege.com/about/employment/career-services-for-students-and-alumni/">Career services for students and alumni</a></li>
+</ul></div>		</div>
+		</div>
+<div class="site-footer__text">
+	<p class="has-medium-font-size">
+		Loyalist College is built upon the lands governed by the Dish with One Spoon wampum agreement. We affirm and thank the Haudenosaunee, Anishinaabeg, and Huron-Wendat nations for their continued caretaking of the land. We offer respect to Indigenous people from all nations who call this area home. We honour traditional knowledge keepers, past, present, and future.	</p>
+</div>
+					</div>
+				</div>
+
+				<div class="site-footer__bottom">
+					<div class="site-footer__bottom--copyright">
+	<p class="has-small-font-size">Copyright
+		&copy;2026 Loyalist College</p>
+</div>
+<nav class="site-footer__bottom--utility-nav" aria-label="Footer utility menu">
+	<ul id="menu-footer-navigation" class="menu"><li id="menu-item-193" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-193"><a href="https://loyalistcollege.com/about/contact-us/">Contact us</a></li>
+<li id="menu-item-194" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-194"><a href="https://loyalistcollege.com/about/privacy-legal-and-edi-data/">Privacy, legal and EDI data</a></li>
+</ul></nav>
+
+<nav class="site-footer__bottom--social" aria-label="Footer social menu">
+			<ul>
+							<li class="site-footer__bottom--social-item">
+					<a class="site-footer__bottom--social-link"
+						href="https://www.facebook.com/loyalistcollege"
+						target="_blank">
+						<i class="icon icon-facebook"></i>
+						<span
+							class="sr-only">Facebook</span>
+					</a>
+				</li>
+								<li class="site-footer__bottom--social-item">
+					<a class="site-footer__bottom--social-link"
+						href="http://instagram.com/loyalistcollege"
+						target="_blank">
+						<i class="icon icon-instagram"></i>
+						<span
+							class="sr-only">Instagram</span>
+					</a>
+				</li>
+								<li class="site-footer__bottom--social-item">
+					<a class="site-footer__bottom--social-link"
+						href="https://www.youtube.com/user/goloyalist"
+						target="_blank">
+						<i class="icon icon-youtube"></i>
+						<span
+							class="sr-only">YouTube</span>
+					</a>
+				</li>
+								<li class="site-footer__bottom--social-item">
+					<a class="site-footer__bottom--social-link"
+						href="https://www.linkedin.com/company/loyalist-college"
+						target="">
+						<i class="icon icon-linkedin"></i>
+						<span
+							class="sr-only">LinkedIn</span>
+					</a>
+				</li>
+								<li class="site-footer__bottom--social-item">
+					<a class="site-footer__bottom--social-link"
+						href="https://twitter.com/LoyalistCollege"
+						target="_blank">
+						<i class="icon icon-x"></i>
+						<span
+							class="sr-only">Twitter</span>
+					</a>
+				</li>
+						</ul>
+		</nav>
+				</div>
+			</div>
+		</div>
+	</div>
+</footer>
+<script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/wp-*.php","/wp-admin/*","/app/uploads/*","/app/*","/app/plugins/*","/app/themes/loc/*","/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+		<script>
+		( function ( body ) {
+			'use strict';
+			body.className = body.className.replace( /\btribe-no-js\b/, 'tribe-js' );
+		} )( document.body );
+		</script>
+		<script> /* <![CDATA[ */var tribe_l10n_datatables = {"aria":{"sort_ascending":": activate to sort column ascending","sort_descending":": activate to sort column descending"},"length_menu":"Show _MENU_ entries","empty_table":"No data available in table","info":"Showing _START_ to _END_ of _TOTAL_ entries","info_empty":"Showing 0 to 0 of 0 entries","info_filtered":"(filtered from _MAX_ total entries)","zero_records":"No matching records found","search":"Search:","all_selected_text":"All items on this page were selected. ","select_all_link":"Select all pages","clear_selection":"Clear Selection.","pagination":{"all":"All","next":"Next","previous":"Previous"},"select":{"rows":{"0":"","_":": Selected %d rows","1":": Selected 1 row"}},"datepicker":{"dayNames":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],"dayNamesShort":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],"dayNamesMin":["S","M","T","W","T","F","S"],"monthNames":["January","February","March","April","May","June","July","August","September","October","November","December"],"monthNamesShort":["January","February","March","April","May","June","July","August","September","October","November","December"],"monthNamesMin":["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],"nextText":"Next","prevText":"Prev","currentText":"Today","closeText":"Done","today":"Today","clear":"Clear"}};/* ]]> */ </script><script id="tec-user-agent-js" defer src="https://loyalistcollege.com/app/plugins/the-events-calendar/common/build/js/user-agent.js?ver=da75d0bdea6dde3898df"></script>
+<script id="jquery-core-js" src="https://loyalistcollege.com/wp-includes/js/jquery/jquery.min.js?ver=3.7.1"></script>
+<script id="jquery.wp-smartcrop-js-extra">
+var wpsmartcrop_options = {"focus_mode":"power-lines"};
+//# sourceURL=jquery.wp-smartcrop-js-extra
+</script>
+<script id="jquery.wp-smartcrop-js" defer src="https://loyalistcollege.com/app/plugins/wp-smartcrop/js/jquery.wp-smartcrop.min.js?ver=2.0.10"></script>
+<script data-wp-strategy="defer" defer id="theme-scripts-js" src="https://loyalistcollege.com/app/themes/loc/build/scripts/index.min.js?ver=1.1.1"></script>
+<script id="tom-select-js" src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js?ver=1.1.1"></script>
+<script data-wp-strategy="defer" defer id="bootstrap-custom-script-js" src="https://loyalistcollege.com/app/themes/loc/build/scripts/bootstrap.custom.min.js?ver=1.1.1"></script>
+<script id="page-links-to-js" defer src="https://loyalistcollege.com/app/plugins/page-links-to/dist/new-tab.js?ver=3.4.1"></script>
+</div><script type="text/javascript">window.NREUM||(NREUM={});NREUM.info={"beacon":"bam.nr-data.net","licenseKey":"NRJS-46d509a65902fb304fd","applicationID":"1049498091","transactionName":"YVJWYEJTVkFRUEwPWlgYdVdEW1dcH1FZFVxVGkddVFdaU0IeVAdMWUJAGUBTX1c=","queueTime":0,"applicationTime":893,"atts":"TRVVFgpJRU8=","errorBeacon":"bam.nr-data.net","agent":""}</script></body></html>
+<!-- plugin=object-cache-pro client=phpredis metric#hits=17582 metric#misses=26 metric#hit-ratio=99.9 metric#bytes=9194791 metric#prefetches=8 metric#store-reads=197 metric#store-writes=8 metric#store-hits=746 metric#store-misses=13 metric#sql-queries=28 metric#ms-total=888.91 metric#ms-cache=86.10 metric#ms-cache-avg=0.4221 metric#ms-cache-ratio=9.7 -->
