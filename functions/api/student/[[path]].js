@@ -180,7 +180,7 @@ async function submit(request, env) {
   const english = { test: TEST_NAMES[l.test] ? l.test : "none", overall: str(String(l.overall ?? ""), 8), listening: str(String(l.listening ?? ""), 8), reading: str(String(l.reading ?? ""), 8),
     writing: str(String(l.writing ?? ""), 8), speaking: str(String(l.speaking ?? ""), 8), date: str(l.date, 7), planned: str(l.planned, 120) };
   const p = b.plans || {};
-  const plans = { country: str(p.country, 60), level: str(p.level, 60), field: str(p.field, 120), intake: str(p.intake, 40), budget: str(p.budget, 60),
+  const plans = { country: str(p.country, 60), province: str(p.province, 4), level: str(p.level, 60), field: str(p.field, 120), intake: str(p.intake, 40), budget: str(p.budget, 60),
     living_in: str(p.living_in, 60), city: str(p.city, 60), in_canada: str(p.in_canada, 60), gap: str(p.gap, 400), notes: str(p.notes, 1500) };
   if (!edu.length) return reply({ ok: false, error: "Add at least one qualification." }, 400);
   const order = ["tenth", "twelfth", "diploma", "bachelors", "masters", "phd", "other"];
@@ -348,11 +348,30 @@ async function matchOptions(env, request, edu, english, plans) {
     await ensureStudyTables(env, request);
     const sc = (await env.DB.prepare(`SELECT * FROM study_schools WHERE applyboard = 1`).all()).results;
     const pr = (await env.DB.prepare(`SELECT * FROM study_programs WHERE active = 1`).all()).results;
-    const all = matchAll({ plans: JSON.stringify(plans), profile: JSON.stringify({ education: edu, english }) }, pr, sc).matches.filter((m) => m.grade !== "no");
+    let all = matchAll({ plans: JSON.stringify(plans), profile: JSON.stringify({ education: edu, english }) }, pr, sc).matches.filter((m) => m.grade !== "no");
+    const prov = String(plans.province || "").toUpperCase().slice(0, 2);
+    if (prov && all.some((m) => m.school.province === prov)) all = all.filter((m) => m.school.province === prov); // preferred province
     const pool = all.some((m) => m.fieldFit) ? all.filter((m) => m.fieldFit) : all;
-    const perSchool = {};
-    for (const m of pool) {
-      if ((perSchool[m.school.id] = (perSchool[m.school.id] || 0) + 1) > 2) continue; // a spread of schools
+    // Spread the list: rotate through provinces, each school's best program first, then a second per school
+    const byProv = {};
+    for (const m of pool) (byProv[m.school.province || "?"] ||= []).push(m);
+    const order = [], perSchool = {};
+    for (const round of [1, 2]) {
+      const queues = Object.values(byProv).map((list) => list.slice());
+      let progress = true;
+      while (progress && order.length < 12) {
+        progress = false;
+        for (const q of queues) {
+          while (q.length) {
+            const m = q.shift(), k = m.school.id;
+            if ((perSchool[k] || 0) >= round || order.includes(m)) continue;
+            perSchool[k] = (perSchool[k] || 0) + 1; order.push(m); progress = true; break;
+          }
+          if (order.length >= 12) break;
+        }
+      }
+    }
+    for (const m of order) {
       const p = m.program;
       options.push({ id: p.id, name: p.name, school: m.school.name, city: m.school.city || "", province: m.school.province || "", level: STUDY_LEVELS[p.level] || p.level,
         intakes: p.intakes || "", tuition: p.tuition || null, pgwp: p.pgwp === "yes", link: p.link || "", fit: m.grade,
@@ -370,7 +389,7 @@ function cleanForMatch(b) {
   const english = { test: TEST_NAMES[l.test] ? l.test : "none", overall: str(String(l.overall ?? ""), 8), listening: str(String(l.listening ?? ""), 8), reading: str(String(l.reading ?? ""), 8),
     writing: str(String(l.writing ?? ""), 8), speaking: str(String(l.speaking ?? ""), 8) };
   const p = b.plans || {};
-  const plans = { country: str(p.country, 60), level: str(p.level, 60), field: str(p.field, 120), intake: str(p.intake, 40), budget: str(p.budget, 60), gap: str(p.gap, 400), notes: str(p.notes, 1500) };
+  const plans = { country: str(p.country, 60), province: str(p.province, 4), level: str(p.level, 60), field: str(p.field, 120), intake: str(p.intake, 40), budget: str(p.budget, 60), gap: str(p.gap, 400), notes: str(p.notes, 1500) };
   return { edu, english, plans };
 }
 async function match(request, env) {

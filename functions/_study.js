@@ -262,7 +262,9 @@ export function studentFacts(row) {
     percent: top ? percent(top.result) : null, backlogs: top ? parseInt(top.backlogs) || 0 : 0, gap,
     test: e.test || "none", overall: num(e.overall), minBand: bands.length ? Math.min(...bands) : null,
     levels: PLAN_LEVEL(plans.level), budget: budgetMax(plans.budget), intake: intakeMonth(plans.intake), intakeTxt: plans.intake || "",
-    fields: fieldsOf([plans.field, plans.field, top && top.major, top && top.credential].join(" ")), fieldTxt: plans.field || "",
+    // the field the student typed decides; their last major is used only when they left it blank
+    fields: String(plans.field || "").trim() ? fieldsOf(plans.field) : fieldsOf([top && top.major, top && top.credential].join(" ")), fieldTxt: plans.field || "",
+    province: String(plans.province || "").toUpperCase().slice(0, 2),
     where: String([plans.notes].join(" ")).toLowerCase(), country: plans.country || "",
   };
 }

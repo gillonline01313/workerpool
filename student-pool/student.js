@@ -249,7 +249,7 @@ function gather() {
   const edu = EDU.map(({ level, credential, board, institution, country, major, start, completed, result, english, maths, backlogs, medium }) => ({ level, credential, board, institution, country, major, start, completed, result, english, maths, backlogs, medium }))
     .filter((e) => e.credential || e.institution || e.board || e.result || e.completed);
   const g = gapYears();
-  const plans = { country: $("pCountry").value, level: $("pLevel").value, field: $("pField").value.trim(), intake: $("pIntake").value, budget: $("pBudget").value,
+  const plans = { country: $("pCountry").value, province: $("pProv").value, level: $("pLevel").value, field: $("pField").value.trim(), intake: $("pIntake").value, budget: $("pBudget").value,
     living_in: $("pLiving").value.trim(), city: $("pCity").value.trim(), in_canada: $("pInCa").value, gap: g == null ? "" : `${g} year${g === 1 ? "" : "s"} since last qualification`, notes: $("pNotes").value.trim() };
   const english = { test: ENG.test, overall: ENG.overall || "", listening: ENG.listening || "", reading: ENG.reading || "", writing: ENG.writing || "", speaking: ENG.speaking || "", date: ENG.date || "", planned: ENG.planned || "" };
   return { edu, plans, english };

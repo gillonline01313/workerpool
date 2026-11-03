@@ -80,6 +80,35 @@ for l in txt('sait'):
 P['sait'] = [r for r in rows if 'qualify' not in r[0]]
 
 
+CREDW = r'(Diploma|Certificate|Degree|Bachelor|Associate|Post-?Degree|Post-?Baccalaureate|Advanced Diploma)'
+def between(L, start, stop):
+    i = next((k for k, l in enumerate(L) if start(l)), None)
+    if i is None: return []
+    out = []
+    for l in L[i + 1:]:
+        if stop(l): break
+        out.append(l)
+    return out
+# VCC: table of program names after "Program Duration"
+L = lines(f('vancouver-community-college'))
+seg = between(L, lambda l: l == 'Program Duration', lambda l: re.search(r'^(How to apply|Ready to apply|Related|Contact|Apply now)', l, re.I))
+P['vancouver-community-college'] = [(l, cred_of(l) or l) for l in seg if re.search(CREDW, l, re.I) and len(l) < 110 and not re.search(r'\d+ (years?|months?)', l)]
+# VIU: "Program: Name"
+P['vancouver-island-university'] = [(m[1].strip(), m[1]) for l in lines(f('vancouver-island-university')) for m in [re.match(r'Program:\s*(.+)$', l)] if m]
+# Selkirk: "Name - Credential" lines in the two PGWP lists
+L = lines(f('selkirk-college'))
+seg = between(L, lambda l: l.startswith('PGWP-Eligible Programs Accepting International Applications'), lambda l: l.startswith('*Bachelor'))
+P['selkirk-college'] = [(l, l.rsplit(' - ', 1)[-1]) for l in seg if ' - ' in l and re.search(CREDW, l, re.I)]
+# College of the Rockies: name then credential type
+P['college-of-the-rockies'] = [r for r in generic('college-of-the-rockies') if not re.search(r'January|September|May|intake', r[0], re.I)]
+# Okanagan: per-term PGWP tables; collect every program row, de-duplicated
+L = lines(f('okanagan-college')); rows = []; on = False
+for l in L:
+    if re.search(r'Post Graduate Work Permit \(PGWP\) Eligible Programs', l): on = True; continue
+    if on and re.search(r'^All other programs|^Programs not eligible|^Other programs', l, re.I): break
+    if on and re.search(CREDW, l, re.I) and len(l) < 120 and not re.search(r'Program Availability|^PROGRAM$', l, re.I): rows.append((l, cred_of(l) or l))
+P['okanagan-college'] = rows
+
 IRCC = json.load(open(os.path.join(os.path.dirname(__file__), 'ircc_cip.json')))
 OK_CIP = {c for c, v in IRCC.items() if v['pgwp'].startswith(('Your field of study is eligible', 'Your CIP code is eligible'))}
 def level(name, cred):
