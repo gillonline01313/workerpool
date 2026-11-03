@@ -94,6 +94,14 @@ input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{out
 .miss{margin:0;padding-left:18px;font-size:.88rem;max-height:260px;overflow:auto}
 .app{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);flex-wrap:wrap}
 .app b{display:block}
+.consent{border:2px solid var(--accent-2);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--surface)}
+.consent h3{font-size:1.05rem}
+.consent ul{margin:0;padding-left:20px;font-size:.9rem;display:flex;flex-direction:column;gap:4px}
+.consent fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.consent legend{font-weight:600;font-size:.92rem;margin-bottom:6px;padding:0}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:.9rem;background:var(--field)}
+.opt input{width:18px;height:18px;flex:none;margin-top:2px;accent-color:var(--accent)}
+.opt:has(input:checked){border-color:var(--accent-2);background:var(--accent-soft)}
 .app span{font-size:.84rem;color:var(--muted)}
 .pill{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--field);border:1px solid var(--line);color:var(--muted)}
 .pill.sub{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
@@ -115,7 +123,7 @@ footer a{color:var(--muted)}
 <footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents. We are not immigration representatives and do not give immigration advice. Your information is kept private and is used only to prepare your file. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
 <datalist id="countries"></datalist>
 <script type="module">
-import { FORMS, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName } from "/assets/intake-config.js?v=1";
+import { FORMS, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName, CONSENT_TEXT, KEEP_TEXT, KEEP_DAYS } from "/assets/intake-config.js?v=2";
 
 const $ = (s, r = document) => r.querySelector(s);
 const view = $("#view");
@@ -305,6 +313,20 @@ function draw() {
         <div class="stack" id="docList">${form.docs.map(docHtml).join("")}</div></div></details>
       <div class="card" id="finish"><h2>Review and submit</h2>
         <div id="missWrap"></div>
+        <div class="consent" id="consentBox">
+          <h3>Your consent before submitting</h3>
+          <p style="margin:0;font-size:.9rem">Please read how we handle your documents:</p>
+          <ul>
+            <li>We use your information and documents only to prepare your application.</li>
+            <li>Once your file is complete, our team <b>permanently destroys every document you uploaded</b>.</li>
+            <li>Before that, we <b>share the complete submitted file with you</b> (a summary of your answers plus all your documents in one file) so you have it for future reference. You can download it here, and we email you when it's ready.</li>
+          </ul>
+          <label class="cb"><input type="checkbox" id="cConsent"><span>${esc(CONSENT_TEXT)}<span class="req" aria-hidden="true">*</span></span></label>
+          <fieldset><legend>Do you also want WorkerPool to save your complete file for future reference?<span class="req" aria-hidden="true">*</span></legend>
+            <label class="opt"><input type="radio" name="cKeep" value="yes"><span>${esc(KEEP_TEXT[1])}</span></label>
+            <label class="opt"><input type="radio" name="cKeep" value="no"><span>${esc(KEEP_TEXT[0])}</span></label>
+          </fieldset>
+        </div>
         <div class="actions"><span class="saved">You can come back and finish later. Your answers are saved.</span><button class="btn" type="button" id="submit">Submit to WorkerPool</button></div>
         <div class="err" id="subErr"></div></div>
     </form>`;
@@ -314,6 +336,7 @@ function draw() {
   ff.addEventListener("click", onClick);
   ff.addEventListener("change", onFile);
   $("#submit").onclick = submit;
+  $("#consentBox").addEventListener("change", gate);
   const firstOpen = form.sections.find((s) => sectionOn(s, data) && secMissing(s).length);
   const el = firstOpen && ff.querySelector(`[data-sec="${firstOpen.id}"]`); if (el) el.open = true;
   refresh();
@@ -342,7 +365,13 @@ function refresh() {
   $("#meter").style.width = pct + "%"; $("#pct").textContent = pct + "%";
   const miss = missing(form, data, keys());
   $("#missWrap").innerHTML = miss.length ? `<div class="note warn"><b>${miss.length} item${miss.length > 1 ? "s" : ""} still needed before you can submit:</b><ul class="miss">${miss.slice(0, 40).map((x) => `<li>${esc(x)}</li>`).join("")}${miss.length > 40 ? `<li>…and ${miss.length - 40} more</li>` : ""}</ul></div>` : `<div class="note">Everything required is complete. Check your answers, then submit.</div>`;
-  $("#submit").disabled = !!miss.length;
+  window.__miss = miss.length; gate();
+}
+const keepPick = () => { const r = document.querySelector('input[name="cKeep"]:checked'); return r ? r.value : ""; };
+function gate() {
+  const c = $("#cConsent"), b = $("#submit"); if (!c || !b) return;
+  b.disabled = !!window.__miss || !c.checked || !keepPick();
+  b.title = window.__miss ? "Complete the items listed above first" : !c.checked ? "Tick the consent box first" : !keepPick() ? "Choose whether we should save your complete file" : "";
 }
 function onInput(e) {
   const t = e.target; if (!t.dataset || !t.dataset.s) return;
@@ -418,14 +447,27 @@ async function removeFile(b) {
 async function submit() {
   const b = $("#submit"), err = $("#subErr"); err.textContent = "";
   await flush(); if (dirty) { err.textContent = "Your latest answers aren't saved yet. Check your connection and try again."; return; }
-  if (!confirm("Submit this form now? You can still make changes later if needed.")) return;
+  if (!$("#cConsent").checked || !keepPick()) { err.textContent = "Give your consent and choose whether we should save your complete file."; return; }
+  const keep = keepPick();
+  if (!confirm(`Submit this form now?\n\nYou agree that WorkerPool will permanently destroy your uploaded documents once your file is complete and share the complete file with you.\n\nSave a copy with WorkerPool: ${keep === "yes" ? "Yes" : "No"}`)) return;
   b.disabled = true; b.textContent = "Submitting…";
-  const r = await api("/api/intake/submit", { method: "POST", body: JSON.stringify({ id: cur.id }) });
+  const r = await api("/api/intake/submit", { method: "POST", body: JSON.stringify({ id: cur.id, consent: true, keep }) });
   if (!r.ok) { b.disabled = false; b.textContent = "Submit to WorkerPool"; err.textContent = r.j.error || "Couldn't submit. Try again."; return; }
-  cur.status = "submitted"; cur.submitted = cur.submitted || new Date().toISOString(); done(true);
+  cur.status = "submitted"; cur.submitted = cur.submitted || new Date().toISOString(); cur.consent_at = new Date().toISOString(); cur.keep_file = keep === "yes" ? 1 : 0; done(true);
 }
 
 /* ---------- submitted ---------- */
+function fileCard() {
+  const keep = cur.keep_file ? `<b>Saved with WorkerPool:</b> yes. Your complete file stays in your account for future reference.`
+    : `<b>Saved with WorkerPool:</b> no. ${cur.final_expires ? `Your complete file will be removed on ${day(cur.final_expires)}. Download your copy before then.` : `Your complete file will be removed ${KEEP_DAYS} days after we share it.`}`;
+  const file = cur.final_ready
+    ? `<div class="actions"><span>Your complete file is ready (${kb(cur.final_size || 0)} · prepared ${day(cur.final_at)}). It has a summary of your answers and all your documents.</span><a class="btn sm" href="/api/intake/final?id=${cur.id}" id="dlFinal" download>Download complete file</a></div>`
+    : cur.final_at ? `<p style="margin:0">Your complete file was shared on ${day(cur.final_at)} and has since been removed, as you chose.</p>`
+    : `<p style="margin:0">Once our team completes your file, your complete submitted file will appear here to download and we'll email you.</p>`;
+  return `<div class="card"><h2>Your complete file</h2>${file}
+    <div class="note">${keep} <button class="linkbtn" type="button" data-keep="${cur.keep_file ? "no" : "yes"}">${cur.keep_file ? "Don't save it" : "Save it with WorkerPool"}</button></div>
+    ${cur.consent_at ? `<p class="saved" style="margin:0">Consent given ${day(cur.consent_at)}: documents to be destroyed once your file is complete, complete file shared with you.</p>` : ""}</div>`;
+}
 function shown(v) { return v === true ? "Yes" : String(v ?? "").trim(); }
 function done(just) {
   window.scrollTo(0, 0);
@@ -438,12 +480,21 @@ function done(just) {
   view.innerHTML = `<div class="stack">
     <div><span class="eyebrow">Submitted ${day(cur.submitted)}</span><h1>${esc(form.name)}</h1>${applicantName(data) ? `<p class="lede">Applicant: ${esc(applicantName(data))}</p>` : ""}</div>
     ${just ? `<div class="note"><b>Thank you. Your form was submitted.</b> We emailed you a confirmation, and our team will contact you if anything else is needed.</div>` : ""}
-    <div class="card"><div class="actions"><span>Need to fix something or add a document?</span><button class="btn ghost sm" id="reopen" type="button">Make changes</button></div><div class="err" id="roErr" style="min-height:0"></div></div>
+    ${fileCard()}
+    ${cur.docs_destroyed_at ? "" : `<div class="card"><div class="actions"><span>Need to fix something or add a document?</span><button class="btn ghost sm" id="reopen" type="button">Make changes</button></div><div class="err" id="roErr" style="min-height:0"></div></div>`}
     <div>${blocks}</div>
-    <div class="card"><h2>Documents (${docs.length})</h2>${files || `<p class="saved" style="margin:0">No files.</p>`}</div>
+    <div class="card"><h2>Documents (${docs.length})</h2>${cur.docs_destroyed_at ? `<p style="margin:0">As you agreed, the documents you uploaded were permanently destroyed on ${day(cur.docs_destroyed_at)}. They are all inside your complete file.</p>` : files || `<p class="saved" style="margin:0">No files.</p>`}</div>
     <div><button class="btn ghost" id="back" type="button">Back to my forms</button></div></div>`;
   $("#back").onclick = () => { cur = null; list(); };
-  $("#reopen").onclick = async () => {
+  view.querySelectorAll("[data-keep]").forEach((b) => b.onclick = async () => {
+    const k = b.dataset.keep;
+    if (k === "no" && !confirm(`Stop saving your complete file with WorkerPool? ${cur.final_ready ? `It will be removed ${KEEP_DAYS} days from now, so download your copy first.` : `It will be removed ${KEEP_DAYS} days after we share it with you.`}`)) return;
+    b.disabled = true;
+    const r = await api("/api/intake/keep", { method: "POST", body: JSON.stringify({ id: cur.id, keep: k }) });
+    if (!r.ok) { b.disabled = false; alert(r.j.error || "Couldn't change it."); return; }
+    cur.keep_file = k === "yes" ? 1 : 0; cur.final_expires = r.j.final_expires; done();
+  });
+  const ro = $("#reopen"); if (ro) ro.onclick = async () => {
     if (!confirm("Reopen this form to make changes? Our team will wait until you submit it again.")) return;
     const r = await api("/api/intake/reopen", { method: "POST", body: JSON.stringify({ id: cur.id }) });
     if (!r.ok) { $("#roErr").textContent = r.j.error || "Couldn't reopen it."; return; }

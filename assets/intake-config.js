@@ -380,6 +380,16 @@ const TRV_OUT = {
 
 export const FORMS = { "trv-out": TRV_OUT };
 
+/* ---------- consent shown before every submission (stored word for word with the submission) ----------
+   Bump CONSENT_V when the wording changes. KEEP_DAYS must match functions/_intake_file.js. */
+export const CONSENT_V = "2026-11-03";
+export const KEEP_DAYS = 30;
+export const CONSENT_TEXT = "I give my consent to WorkerPool to use the information and documents in this form only to prepare my application. I understand that once my file is complete, the WorkerPool team will permanently destroy all the documents I uploaded, and will share the complete submitted file (my answers and all my documents) with me for my future reference.";
+export const KEEP_TEXT = {
+  1: "Yes, save my complete file with WorkerPool for future reference. It stays in my WorkerPool account until I ask for it to be removed.",
+  0: `No, don't save it. Remove my complete file from WorkerPool ${KEEP_DAYS} days after it is shared with me (I will download my own copy).`,
+};
+
 /* ---------- shared logic (browser and server) ---------- */
 function ageOf(dob) {
   const d = new Date(dob); if (isNaN(d)) return 99;

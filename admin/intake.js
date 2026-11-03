@@ -72,7 +72,7 @@
     return j;
   }
   const post = (path, b) => call(path, { method: "POST", body: JSON.stringify(b) });
-  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=1"); return C; }
+  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=2"); return C; }
   const site = () => location.origin;
   const genLink = (k) => `${site()}/intake/?f=${encodeURIComponent(k)}`;
   const formName = (k) => (C.FORMS[k] && C.FORMS[k].name) || ((C.catalogEntry(k) || {}).form || {}).name || k;
@@ -236,10 +236,11 @@
           <div><button class="ik-btn" type="button" id="ikSave">Save</button></div></div><div class="ik-note" id="ikMsg"></div>
         ${missing.length ? `<div class="ik-miss"><b>${missing.length} required item${missing.length > 1 ? "s" : ""} not complete</b>${r.status === "submitted" ? " (the form rules changed after they submitted)" : ""}<ul>${missing.slice(0, 60).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
       </div>
-      <div class="wpa-card wide"><h3>Documents (${docs.length} file${docs.length === 1 ? "" : "s"})</h3>${docRows || `<span class="ik-note">No documents.</span>`}</div>
+      ${lifeCard(r, docs)}
+      <div class="wpa-card wide"><h3>Documents (${docs.length} file${docs.length === 1 ? "" : "s"})</h3>${r.docs_destroyed_at ? `<span class="ik-note">${r.docs_destroyed_count || 0} uploaded document${r.docs_destroyed_count === 1 ? " was" : "s were"} permanently destroyed on ${when(r.docs_destroyed_at)}.</span>` : docRows || `<span class="ik-note">No documents.</span>`}</div>
       <div class="wpa-card wide"><h3>Answers</h3>${A.map(sec).join("")}</div>
       <div class="wpa-card wide"><h3>Manage</h3><div class="ik-acts">
-        ${r.status === "submitted" ? `<button class="ik-btn g" type="button" id="ikUnlock">Let client edit and resubmit</button>` : ""}
+        ${r.status === "submitted" && !r.docs_destroyed_at ? `<button class="ik-btn g" type="button" id="ikUnlock">Let client edit and resubmit</button>` : ""}
         <button class="ik-btn g" type="button" id="ikUnread">Mark as new again</button>
         <button class="ik-btn red" type="button" id="ikDel">Delete form and all files permanently</button></div>
         <p class="ik-note" style="margin:0">Only you can see this page. Files are stored privately and are never public.</p></div></div>`;
@@ -251,9 +252,41 @@
     $("#ikAll").onclick = async (e) => { const b = e.target; b.disabled = true; for (let i = 0; i < docs.length; i++) { b.textContent = `Downloading ${i + 1} of ${docs.length}…`; await getFile(docs[i].id, prefix(form, docs[i]) + docs[i].name, false).catch(() => {}); await new Promise((ok) => setTimeout(ok, 400)); } b.textContent = `Download all files (${docs.length})`; b.disabled = false; };
     body.querySelectorAll("[data-view]").forEach((b) => b.onclick = () => getFile(b.dataset.view, b.dataset.name, true).catch((e) => alert(e.message)));
     body.querySelectorAll("[data-dl]").forEach((b) => b.onclick = () => getFile(b.dataset.dl, b.dataset.name, false).catch((e) => alert(e.message)));
+    const fz = $("#ikFinal"); if (fz) fz.onclick = async () => {
+      if (!confirm(`${r.final_key ? "Rebuild the complete file and share it again" : "Build the complete file (answers summary + all " + docs.length + " documents) and share it with the client"}? They get an email and can download it from their WorkerPool account.`)) return;
+      fz.disabled = true; fz.textContent = "Building the complete file…";
+      try { const j = await post("finalize", { id: r.id }); alert(`Complete file shared: ${j.files} documents, ${(j.final_size / 1048576).toFixed(1)} MB.${j.emailed ? " The client was emailed." : " (The email couldn't be sent; tell the client to sign in.)"}`); openItem(r.id); }
+      catch (e) { fz.disabled = false; fz.textContent = "Create & share complete file with client"; alert(e.message); }
+    };
+    const fd = $("#ikFinalDl"); if (fd) fd.onclick = async () => { fd.disabled = true; try { const x = await fetch("/api/intake/admin/final?id=" + encodeURIComponent(r.id), { headers: { "x-admin-key": KEY } }); if (!x.ok) throw new Error("Couldn't download it."); const url = URL.createObjectURL(await x.blob()); const a = document.createElement("a"); a.href = url; a.download = r.final_name || "complete-file.zip"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 60000); } catch (e) { alert(e.message); } fd.disabled = false; };
+    const ds = $("#ikDestroy"); if (ds) ds.onclick = async () => {
+      if (!confirm(`Permanently destroy all ${docs.length} uploaded documents for ${name}? The client consented to this. Their complete file is ${r.keep_file ? "kept (they asked WorkerPool to save it)" : "kept only until " + when(r.final_expires)}.`)) return;
+      if (prompt("Type DESTROY to confirm") !== "DESTROY") return;
+      ds.disabled = true; try { const j = await post("destroy", { id: r.id }); alert(`${j.destroyed} documents destroyed. The client was told by email.`); openItem(r.id); } catch (e) { ds.disabled = false; alert(e.message); }
+    };
     const u = $("#ikUnlock"); if (u) u.onclick = async () => { if (!confirm("Unlock this form so the client can change answers and documents? It returns here as Updated when they resubmit.")) return; await post("unlock", { id: r.id }); openItem(r.id); };
     $("#ikUnread").onclick = async () => { await post("unseen", { id: r.id }); back(); };
     $("#ikDel").onclick = async () => { if (!confirm(`Permanently delete ${name}'s form and all ${docs.length} files? This can't be undone.`)) return; if (prompt('Type DELETE to confirm') !== "DELETE") return; await post("delete", { id: r.id }); back(); };
+  }
+  function lifeCard(r, docs) {
+    if (r.status !== "submitted" && !r.consent_at) return "";
+    const keep = r.keep_file == null ? "–" : r.keep_file ? "<b>Yes</b> – keep the complete file in their account" : `<b>No</b> – remove the complete file ${r.final_expires ? "on " + when(r.final_expires) : "30 days after it's shared"}`;
+    const step1 = r.final_key ? `✓ Shared ${when(r.final_at)} · ${kb(r.final_size)} · downloaded by client ${r.final_downloads || 0}×` : r.final_at ? `Shared ${when(r.final_at)}; since removed (client chose not to keep it)` : "Not yet";
+    const step2 = r.docs_destroyed_at ? `✓ Destroyed ${when(r.docs_destroyed_at)} (${r.docs_destroyed_count} files)` : "Not yet";
+    return `<div class="wpa-card wide"><h3>Consent, complete file and document destruction</h3>
+      <dl class="ik-dl">
+        <dt>Client consent</dt><dd>${r.consent_at ? `✓ Given ${when(r.consent_at)}` : "Not given (form not submitted)"}</dd>
+        <dt>Save complete file with WorkerPool</dt><dd>${keep}${r.keep_changed && r.keep_changed !== r.consent_at ? ` <span class="ik-note">(changed ${when(r.keep_changed)})</span>` : ""}</dd>
+        <dt>1. Complete file shared with client</dt><dd>${step1}</dd>
+        <dt>2. Uploaded documents destroyed</dt><dd>${step2}</dd>
+      </dl>
+      ${r.consent_text ? `<details><summary class="ik-note" style="cursor:pointer">Exact consent wording the client agreed to</summary><p class="ik-note" style="white-space:pre-wrap">${esc(r.consent_text.replace(/ \| /g, "\n"))}</p></details>` : ""}
+      <div class="ik-acts">
+        ${r.consent_at && !r.docs_destroyed_at ? `<button class="ik-btn" type="button" id="ikFinal">${r.final_key ? "Rebuild & share complete file again" : "Create & share complete file with client"}</button>` : ""}
+        ${r.final_key ? `<button class="ik-btn g" type="button" id="ikFinalDl">Download complete file</button>` : ""}
+        ${r.final_key && !r.docs_destroyed_at && docs.length ? `<button class="ik-btn red" type="button" id="ikDestroy">Destroy uploaded documents (${docs.length})</button>` : ""}
+      </div>
+      <p class="ik-note" style="margin:0">Order: finish your work, then share the complete file (a ZIP with an answers summary PDF and every document in numbered folders), then destroy the uploaded documents. The client is emailed at each step.</p></div>`;
   }
   const prefix = (form, d) => { const i = form.docs.findIndex((x) => x.k === d.doc_key); return (i >= 0 ? String(i + 1).padStart(2, "0") + "-" + d.doc_key + "-" : ""); };
   async function getFile(id, name, view) {

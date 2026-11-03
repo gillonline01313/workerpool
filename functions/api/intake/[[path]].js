@@ -2,7 +2,8 @@
 // the admin (x-admin-key) creates links, sees every intake and opens the answers and files.
 // Tables are created automatically. Files live privately in the RESUMES R2 bucket under intake/.
 import { json, readJson, str, isEmail, getUser, sendEmail, randomToken, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
-import { FORMS, missing, progress, applicantName } from "../../../assets/intake-config.js";
+import { FORMS, missing, progress, applicantName, CONSENT_V, CONSENT_TEXT, KEEP_TEXT } from "../../../assets/intake-config.js";
+import { buildCompleteFile, KEEP_DAYS } from "../../_intake_file.js";
 
 const MAX_FILES = 150, MAX_PER_DOC = 20;
 let ready = false;
@@ -18,6 +19,9 @@ async function ensure(env) {
     env.DB.prepare(`CREATE TABLE IF NOT EXISTS intake_invites (code TEXT PRIMARY KEY, form_key TEXT NOT NULL, label TEXT, email TEXT, note TEXT,
       created TEXT, opens INTEGER DEFAULT 0, first_open TEXT, last_open TEXT, archived INTEGER DEFAULT 0)`),
   ]) await q.run();
+  // consent, the client's choice to keep a copy, the complete file and document destruction
+  for (const c of ["consent_at TEXT", "consent_text TEXT", "keep_file INTEGER", "keep_changed TEXT", "final_key TEXT", "final_name TEXT", "final_size INTEGER", "final_at TEXT",
+    "final_expires TEXT", "final_downloads INTEGER DEFAULT 0", "docs_destroyed_at TEXT", "docs_destroyed_count INTEGER"]) { try { await env.DB.prepare(`ALTER TABLE intakes ADD COLUMN ${c}`).run(); } catch {} }
   ready = true;
 }
 const site = (env) => env.SITE_URL || "https://workerpool.ca";
@@ -32,7 +36,18 @@ async function docKeys(env, intakeId) {
   return new Set(r.results.map((d) => d.doc_key));
 }
 const mine = (env, u, intakeId) => env.DB.prepare(`SELECT * FROM intakes WHERE id = ?1 AND user_id = ?2`).bind(intakeId || "", u.id).first();
-const clientRow = (r) => ({ id: r.id, form_key: r.form_key, status: r.status, progress: r.progress, created: r.created, updated: r.updated, submitted: r.submitted, name: applicantName(parse(r.data)) });
+const clientRow = (r) => ({ id: r.id, form_key: r.form_key, status: r.status, progress: r.progress, created: r.created, updated: r.updated, submitted: r.submitted, name: applicantName(parse(r.data)),
+  consent_at: r.consent_at, keep_file: r.keep_file, final_at: r.final_at, final_size: r.final_size, final_name: r.final_name, final_expires: r.final_expires, docs_destroyed_at: r.docs_destroyed_at,
+  final_ready: !!r.final_key });
+// A complete file the client didn't ask us to keep is removed after KEEP_DAYS. Runs whenever the admin list or a client's forms load.
+async function sweep(env, where = "", bind = []) {
+  const now = new Date().toISOString();
+  const r = await env.DB.prepare(`SELECT id, final_key FROM intakes WHERE final_key IS NOT NULL AND final_expires IS NOT NULL AND final_expires < ?1 ${where} LIMIT 50`).bind(now, ...bind).all();
+  for (const x of r.results) {
+    if (env.RESUMES) await env.RESUMES.delete(x.final_key).catch(() => {});
+    await env.DB.prepare(`UPDATE intakes SET final_key = NULL, final_size = NULL WHERE id = ?1`).bind(x.id).run();
+  }
+}
 
 export async function onRequest(ctx) {
   const { request, env, params } = ctx;
@@ -74,6 +89,7 @@ async function client({ request, env }, route, m) {
   if (!u) return json({ ok: false, error: "Sign in to continue." }, 401);
 
   if (route === "mine" && m === "GET") {
+    await sweep(env, "AND user_id = ?2", [u.id]);
     const r = await env.DB.prepare(`SELECT * FROM intakes WHERE user_id = ?1 ORDER BY updated DESC LIMIT 50`).bind(u.id).all();
     return json({ ok: true, user: { name: u.name, email: u.email, phone: u.phone }, rows: r.results.map(clientRow) });
   }
@@ -156,21 +172,44 @@ async function client({ request, env }, route, m) {
     const form = FORMS[a.form_key], data = parse(a.data), keys = await docKeys(env, a.id);
     const miss = missing(form, data, keys);
     if (miss.length) return json({ ok: false, error: `Still needed: ${miss[0]}${miss.length > 1 ? ` (and ${miss.length - 1} more)` : ""}.`, missing: miss }, 400);
+    if (b.consent !== true) return json({ ok: false, error: "Read the consent and tick the box to agree before submitting." }, 400);
+    if (b.keep !== "yes" && b.keep !== "no") return json({ ok: false, error: "Choose whether WorkerPool should keep a copy of your complete file." }, 400);
     const now = new Date().toISOString(), resub = !!a.submitted;
-    await env.DB.prepare(`UPDATE intakes SET status = 'submitted', progress = 100, updated = ?1, submitted = COALESCE(submitted, ?1), resubmitted = ?2, admin_seen = NULL WHERE id = ?3`)
-      .bind(now, resub ? now : null, a.id).run();
+    const keep = b.keep === "yes" ? 1 : 0;
+    await env.DB.prepare(`UPDATE intakes SET status = 'submitted', progress = 100, updated = ?1, submitted = COALESCE(submitted, ?1), resubmitted = ?2, admin_seen = NULL,
+        consent_at = ?1, consent_text = ?3, keep_file = ?4, keep_changed = ?1 WHERE id = ?5`)
+      .bind(now, resub ? now : null, `[${CONSENT_V}] ${CONSENT_TEXT} | Keep a copy: ${KEEP_TEXT[keep]}`, keep, a.id).run();
     const who = applicantName(data) || u.name, files = (await env.DB.prepare(`SELECT COUNT(*) AS n FROM intake_docs WHERE intake_id = ?1`).bind(a.id).first()).n;
     await sendEmail(env, env.ADMIN_EMAIL, `${resub ? "Updated" : "New"} intake form: ${form.name} – ${who}`,
-      `${resub ? "A client made changes and resubmitted their intake form." : "A client submitted an intake form."}\n\nApplicant: ${who}\nAccount: ${u.name} (${u.email}, ${u.phone})\nForm: ${form.name}\nFiles uploaded: ${files}\nSubmitted: ${now}\n\nOpen it in the admin dashboard: ${site(env)}/admin/ (Intake forms tab)`, u.email);
+      `${resub ? "A client made changes and resubmitted their intake form." : "A client submitted an intake form."}\n\nApplicant: ${who}\nAccount: ${u.name} (${u.email}, ${u.phone})\nForm: ${form.name}\nFiles uploaded: ${files}\nSubmitted: ${now}\nConsent given: yes (documents to be destroyed, complete file to be shared with the client)\nKeep a copy with WorkerPool: ${keep ? "YES" : "NO"}\n\nOpen it in the admin dashboard: ${site(env)}/admin/ (Intake forms tab)`, u.email);
     await sendEmail(env, u.email, `We received your ${form.name} form`,
-      `Hi ${String(u.name || "").split(" ")[0] || "there"},\n\nThank you. We received ${resub ? "the changes to " : ""}your information and documents for: ${form.name}${who && who !== u.name ? ` (applicant: ${who})` : ""}.\n\nOur team will review everything and contact you if anything else is needed. You can sign in at ${site(env)}/intake/ any time to see what you sent.\n\nWorkerPool`);
+      `Hi ${String(u.name || "").split(" ")[0] || "there"},\n\nThank you. We received ${resub ? "the changes to " : ""}your information and documents for: ${form.name}${who && who !== u.name ? ` (applicant: ${who})` : ""}.\n\nOur team will review everything and contact you if anything else is needed. As you agreed, once your file is complete we will share the complete file with you and permanently destroy the documents you uploaded. ${keep ? "You asked us to keep a copy of your complete file in your WorkerPool account." : `You chose not to have us keep a copy, so the complete file will be removed ${KEEP_DAYS} days after we share it. Download it when we tell you it's ready.`}\n\nYou can sign in at ${site(env)}/intake/ any time to see what you sent.\n\nWorkerPool`);
     return json({ ok: true });
+  }
+  if (route === "keep" && m === "POST") { // the client changes their mind about WorkerPool keeping the complete file
+    const b = await readJson(request, 2000) || {};
+    const a = await mine(env, u, b.id);
+    if (!a || !a.consent_at) return json({ ok: false, error: "Form not found." }, 404);
+    const keep = b.keep === "yes" ? 1 : 0, now = new Date().toISOString();
+    const exp = keep ? null : a.final_key ? new Date(Math.max(Date.now(), Date.parse(a.final_at || now)) + KEEP_DAYS * 864e5).toISOString() : null;
+    await env.DB.prepare(`UPDATE intakes SET keep_file = ?1, keep_changed = ?2, final_expires = ?3, consent_text = COALESCE(consent_text, '') || ?4 WHERE id = ?5`)
+      .bind(keep, now, exp, ` | Changed ${now}: ${KEEP_TEXT[keep]}`, a.id).run();
+    return json({ ok: true, final_expires: exp });
+  }
+  if (route === "final" && m === "GET") { // the client downloads their complete file
+    const a = await mine(env, u, url.searchParams.get("id"));
+    if (!a || !a.final_key || !env.RESUMES) return json({ ok: false, error: "Your complete file isn't available." }, 404);
+    const obj = await env.RESUMES.get(a.final_key);
+    if (!obj) return json({ ok: false, error: "Your complete file was removed." }, 404);
+    await env.DB.prepare(`UPDATE intakes SET final_downloads = COALESCE(final_downloads, 0) + 1 WHERE id = ?1`).bind(a.id).run();
+    return fileResponse(obj, a.final_name || "complete-file.zip", "application/zip");
   }
   if (route === "reopen" && m === "POST") {
     const b = await readJson(request, 2000) || {};
     const a = await mine(env, u, b.id);
     if (!a) return json({ ok: false, error: "Form not found." }, 404);
     if (a.status !== "submitted") return json({ ok: true, already: true });
+    if (a.docs_destroyed_at) return json({ ok: false, error: "Your documents were already destroyed after your file was completed. Contact us to make a change." }, 409);
     if (a.admin_status === "done") return json({ ok: false, error: "Our team has finished working on this form. Contact us to make a change." }, 409);
     await env.DB.prepare(`UPDATE intakes SET status = 'editing', updated = ?1 WHERE id = ?2`).bind(new Date().toISOString(), a.id).run();
     const form = FORMS[a.form_key];
@@ -186,7 +225,8 @@ const INV_COLS = `code, form_key, label, email, note, created, opens, first_open
 async function admin({ request, env }, route, m) {
   const url = new URL(request.url);
   if (route === "list" && m === "GET") {
-    const rows = await env.DB.prepare(`SELECT i.id, i.form_key, i.invite_code, i.status, i.data, i.progress, i.created, i.updated, i.submitted, i.resubmitted, i.admin_seen, i.admin_status, i.admin_note,
+    await sweep(env);
+    const rows = await env.DB.prepare(`SELECT i.id, i.form_key, i.invite_code, i.status, i.data, i.progress, i.created, i.updated, i.submitted, i.resubmitted, i.admin_seen, i.admin_status, i.admin_note, i.keep_file, i.final_at, i.docs_destroyed_at,
         u.name AS acct_name, u.email AS acct_email, u.phone AS acct_phone, v.label AS invite_label,
         (SELECT COUNT(*) FROM intake_docs d WHERE d.intake_id = i.id) AS files
       FROM intakes i JOIN users u ON u.id = i.user_id LEFT JOIN intake_invites v ON v.code = i.invite_code ORDER BY COALESCE(i.resubmitted, i.submitted, i.updated) DESC LIMIT 2000`).all();
@@ -207,7 +247,7 @@ async function admin({ request, env }, route, m) {
     const docs = await env.DB.prepare(`SELECT id, doc_key, name, size, type, uploaded FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(id).all();
     if (r.status === "submitted" && !r.admin_seen) await env.DB.prepare(`UPDATE intakes SET admin_seen = ?1 WHERE id = ?2`).bind(new Date().toISOString(), id).run();
     const form = FORMS[r.form_key];
-    return json({ ok: true, row: { ...r, data: parse(r.data) }, docs: docs.results, missing: form ? missing(form, parse(r.data), new Set(docs.results.map((d) => d.doc_key))) : [] });
+    return json({ ok: true, row: { ...r, data: parse(r.data) }, docs: docs.results, missing: form ? missing(form, parse(r.data), r.docs_destroyed_at ? new Set(form.docs.map((d) => d.k)) : new Set(docs.results.map((d) => d.doc_key))) : [] });
   }
   if (route === "doc" && m === "GET") {
     const d = await env.DB.prepare(`SELECT * FROM intake_docs WHERE id = ?1`).bind(url.searchParams.get("id") || "").first();
@@ -217,6 +257,12 @@ async function admin({ request, env }, route, m) {
     const inline = url.searchParams.get("view") === "1" && /^(application\/pdf|image\/(png|jpeg))$/.test(d.type || "");
     return new Response(obj.body, { headers: { "content-type": d.type || "application/octet-stream",
       "content-disposition": `${inline ? "inline" : "attachment"}; filename="${String(d.name).replace(/"/g, "")}"`, "cache-control": "private, no-store", "x-content-type-options": "nosniff" } });
+  }
+  if (route === "final" && m === "GET") {
+    const r = await env.DB.prepare(`SELECT final_key, final_name FROM intakes WHERE id = ?1`).bind(url.searchParams.get("id") || "").first();
+    const obj = r && r.final_key && env.RESUMES ? await env.RESUMES.get(r.final_key) : null;
+    if (!obj) return json({ ok: false, error: "No complete file." }, 404);
+    return new Response(obj.body, { headers: { "content-type": "application/zip", "content-disposition": `attachment; filename="${String(r.final_name || "complete-file.zip").replace(/"/g, "")}"`, "cache-control": "private, no-store" } });
   }
   if (m !== "POST") return json({ ok: false, error: "Not found." }, 404);
   const b = await readJson(request, 20000) || {};
@@ -248,6 +294,36 @@ async function admin({ request, env }, route, m) {
       .bind(st, typeof b.note === "string" ? b.note.slice(0, 5000) : r.admin_note, new Date().toISOString(), r.id).run();
     return json({ ok: true });
   }
+  if (route === "finalize") { // build the complete file and share it with the client (in their account, plus an email)
+    if (r.status !== "submitted" || !r.consent_at) return json({ ok: false, error: "The client hasn't submitted this form with consent yet." }, 409);
+    if (r.docs_destroyed_at) return json({ ok: false, error: "The documents were already destroyed, so the file can't be rebuilt." }, 409);
+    if (!env.RESUMES) return json({ ok: false, error: "File storage isn't connected." }, 503);
+    const acct = await env.DB.prepare(`SELECT name, email, phone FROM users WHERE id = ?1`).bind(r.user_id).first();
+    const docs = (await env.DB.prepare(`SELECT * FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(r.id).all()).results;
+    let built;
+    try { built = await buildCompleteFile(env, { ...r, data: parse(r.data) }, docs, acct); } catch (e) { return json({ ok: false, error: e.message }, 400); }
+    const key = `intake/final/${r.id}/${crypto.randomUUID()}.zip`, now = new Date().toISOString();
+    await env.RESUMES.put(key, built.bytes, { httpMetadata: { contentType: "application/zip" }, customMetadata: { intake: r.id } });
+    if (r.final_key) await env.RESUMES.delete(r.final_key).catch(() => {});
+    const exp = r.keep_file ? null : new Date(Date.now() + KEEP_DAYS * 864e5).toISOString();
+    await env.DB.prepare(`UPDATE intakes SET final_key = ?1, final_name = ?2, final_size = ?3, final_at = ?4, final_expires = ?5 WHERE id = ?6`).bind(key, built.name, built.bytes.length, now, exp, r.id).run();
+    const form = FORMS[r.form_key], first = String(acct.name || "").split(" ")[0] || "there";
+    const emailed = b.notify === false ? false : await sendEmail(env, acct.email, `Your complete ${form.name} file is ready`,
+      `Hi ${first},\n\nYour complete file for ${form.name} is ready: the summary of your answers and every document you submitted, in one ZIP file.\n\nSign in to download it: ${site(env)}/intake/\n\n${r.keep_file ? "As you asked, we will keep a copy in your WorkerPool account for future reference." : `You chose not to have us keep a copy, so it will be removed on ${new Date(exp).toLocaleDateString("en-CA", { dateStyle: "long" })}. Please download it and keep it safe before then.`}\n\nAs you agreed when you submitted, the documents you uploaded will now be permanently destroyed by our team.\n\nWorkerPool`);
+    return json({ ok: true, final_at: now, final_size: built.bytes.length, files: built.count, emailed });
+  }
+  if (route === "destroy") { // permanently delete every uploaded document (the client's complete file is kept per their choice)
+    if (!r.final_key && b.force !== true) return json({ ok: false, error: "Share the complete file with the client first." }, 409);
+    const docs = (await env.DB.prepare(`SELECT r2_key FROM intake_docs WHERE intake_id = ?1`).bind(r.id).all()).results;
+    if (env.RESUMES) for (const d of docs) await env.RESUMES.delete(d.r2_key).catch(() => {});
+    const now = new Date().toISOString();
+    await env.DB.prepare(`DELETE FROM intake_docs WHERE intake_id = ?1`).bind(r.id).run();
+    await env.DB.prepare(`UPDATE intakes SET docs_destroyed_at = ?1, docs_destroyed_count = ?2 WHERE id = ?3`).bind(now, docs.length, r.id).run();
+    const acct = await env.DB.prepare(`SELECT name, email FROM users WHERE id = ?1`).bind(r.user_id).first();
+    if (acct && b.notify !== false) await sendEmail(env, acct.email, "Your uploaded documents were destroyed",
+      `Hi ${String(acct.name || "").split(" ")[0] || "there"},\n\nAs you agreed, we permanently destroyed the ${docs.length} document${docs.length === 1 ? "" : "s"} you uploaded for ${FORMS[r.form_key] ? FORMS[r.form_key].name : "your application"} on ${new Date(now).toLocaleDateString("en-CA", { dateStyle: "long" })}.\n\n${r.final_key ? (r.keep_file ? `Your complete file stays in your WorkerPool account for future reference: ${site(env)}/intake/` : `Your complete file is still available to download until ${new Date(r.final_expires).toLocaleDateString("en-CA", { dateStyle: "long" })}: ${site(env)}/intake/`) : ""}\n\nWorkerPool`);
+    return json({ ok: true, destroyed: docs.length });
+  }
   if (route === "unseen") {
     await env.DB.prepare(`UPDATE intakes SET admin_seen = NULL WHERE id = ?1`).bind(r.id).run();
     return json({ ok: true });
@@ -259,6 +335,7 @@ async function admin({ request, env }, route, m) {
   if (route === "delete") { // permanent: answers and every file
     const docs = await env.DB.prepare(`SELECT r2_key FROM intake_docs WHERE intake_id = ?1`).bind(r.id).all();
     if (env.RESUMES) for (const d of docs.results) await env.RESUMES.delete(d.r2_key).catch(() => {});
+    if (env.RESUMES && r.final_key) await env.RESUMES.delete(r.final_key).catch(() => {});
     await env.DB.batch([env.DB.prepare(`DELETE FROM intake_docs WHERE intake_id = ?1`).bind(r.id), env.DB.prepare(`DELETE FROM intakes WHERE id = ?1`).bind(r.id)]);
     return json({ ok: true });
   }
