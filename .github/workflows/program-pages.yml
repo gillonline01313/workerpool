@@ -1,0 +1,22 @@
+# One-off helper on the program-pages branch: snapshots official PGWP program pages for building the Study options readers.
+name: Program pages snapshot
+on:
+  push:
+    branches: [program-pages]
+    paths: ["scripts/programs/urls.json", ".github/workflows/program-pages.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  snap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - run: node scripts/programs/snapshot.mjs
+      - run: |
+          git config user.name "WorkerPool programs"; git config user.email "programs-bot@users.noreply.github.com"
+          git add program-pages && git commit -qm "Program pages snapshot" && git push -q origin HEAD:program-pages
