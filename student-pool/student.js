@@ -275,7 +275,7 @@ async function submit() {
     }
     KEEP = []; // done with the files either way
     track("submitted");
-    renderDone(contact, edu, english, plans);
+    renderDone(contact, edu, english, plans, j.options || []);
     show("p3");
   } catch (e) { err.textContent = e.message; }
   b.disabled = false; b.textContent = "Send my profile · Free";
@@ -286,12 +286,12 @@ function engLine(e) {
   const bands = [e.listening, e.reading, e.writing, e.speaking];
   return `${TEST_NAME[e.test] || "Test"} ${e.overall || ""}${bands.some(Boolean) ? ` (L ${bands[0] || "–"} · R ${bands[1] || "–"} · W ${bands[2] || "–"} · S ${bands[3] || "–"})` : ""}`.trim();
 }
-function renderDone(c, edu, eng, plans) {
+function renderDone(c, edu, eng, plans, options) {
   const sorted = [...edu].sort((a, b) => ORDER.indexOf(a.level) - ORDER.indexOf(b.level));
   const top = [...sorted].reverse().find((e) => e.level !== "other") || sorted[sorted.length - 1];
   const due = new Date(Date.now() + 864e5).toLocaleString("en-CA", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const g = gapYears();
-  $("doneSub").innerHTML = `We've emailed <b>${esc(c.email)}</b>. One of our education consultants is now working on your credentials and will get back to you with the study options available to you within 24 hours. It's free.`;
+  $("doneSub").innerHTML = (options && options.length ? `Below are programs that already fit your profile. ` : "") + `We've emailed <b>${esc(c.email)}</b>. One of our education consultants is now working on your credentials and will get back to you with the study options available to you within 24 hours. It's free.`;
   $("pcard").innerHTML = `<div class="pcard">
     <div class="pc-h"><div><small>Student profile${REF ? " · " + esc(REF) : ""}</small><b>${esc(c.name)}</b></div>
       <div class="pc-free"><span>Free service</span><span class="t">Reply by ${esc(due)}</span></div></div>
@@ -306,8 +306,21 @@ function renderDone(c, edu, eng, plans) {
       <li><span class="lv">English</span><span class="dt"><b>${esc(engLine(eng))}</b>${esc(eng.date ? "Taken " + eng.date : "")}</span></li>
       ${plans.level || plans.field || plans.intake ? `<li><span class="lv">Looking for</span><span class="dt"><b>${esc([plans.level, plans.field].filter(Boolean).join(" · ") || "Study options")}</b>${esc([plans.country, plans.intake, plans.budget].filter(Boolean).join(" · "))}</span></li>` : ""}
     </ul>
+    ${optionsHtml(options || [])}
     <div class="pc-foot">An education consultant is working on your credentials. ${KEPT ? `${KEPT} document${KEPT > 1 ? "s were" : " was"} shared privately with our education team, as you allowed.` : "Your documents were not saved; only this profile is kept."}</div>
   </div>`;
+}
+
+// Programs that fit the profile, shown right away; the consultant confirms requirements, fees and intakes
+function optionsHtml(list) {
+  if (!list.length) return `<div class="pc-opts"><h4>Your study options</h4><p class="pc-note">Our education consultant is matching your profile with colleges and universities and will send your options within 24 hours.</p></div>`;
+  return `<div class="pc-opts"><h4>Programs that fit your profile</h4>
+    <p class="pc-note">Based on your education, English score and plans. Our consultant will confirm entry requirements, fees and intakes with you before you apply.</p>
+    <ol class="pc-optlist">${list.map((o) => `<li><b>${esc(o.name)}</b>
+      <span>${esc([o.school, [o.city, o.province].filter(Boolean).join(", ")].filter(Boolean).join(" · "))}</span>
+      <span class="pc-tags"><em>${esc(o.level)}</em>${o.pgwp ? "<em>PGWP-eligible</em>" : ""}${o.intakes ? `<em>${esc(o.intakes)}</em>` : ""}${o.tuition ? `<em>~$${Number(o.tuition).toLocaleString("en-CA")}/yr</em>` : ""}${o.fit === "good" ? '<em class="ok">Good fit</em>' : ""}</span>
+      ${o.todo && o.todo.length ? `<small>To check: ${esc(o.todo.join("; "))}</small>` : ""}
+      ${o.link ? `<a href="${esc(o.link)}" target="_blank" rel="noopener">College page ↗</a>` : ""}</li>`).join("")}</ol></div>`;
 }
 
 /* ---------------- steps ---------------- */

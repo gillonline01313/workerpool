@@ -12,6 +12,7 @@
 // Admin views and updates profiles through /api/admin/students and /api/admin/student-status.
 import { str, isEmail, readJson, id, sendEmail, randomToken, sha256hex, fileName, fileCheck, FILE_MAX } from "../../_lib.js";
 import { ensureTable, DOC_KINDS } from "../../_students.js";
+import { ensureStudyTables, matchAll, LEVELS as STUDY_LEVELS } from "../../_study.js";
 
 const MODELS = ["@cf/meta/llama-4-scout-17b-16e-instruct", "@cf/mistralai/mistral-small-3.1-24b-instruct"];
 export const KINDS = { tenth: "10th (Secondary)", twelfth: "12th (Senior Secondary)", diploma: "Diploma", bachelors: "Bachelor's degree", masters: "Master's / Post-graduation", english: "English test", other: "Other education document" };
@@ -194,7 +195,27 @@ async function submit(request, env) {
       JSON.stringify(plans), JSON.stringify({ education: edu, english }), str(cf.country, 4) || null,
       keep ? now : null, upload ? await sha256hex(upload) : null, upload ? new Date(Date.now() + 36e5).toISOString() : null).run();
 
+  // Study options for this profile, from the Study options catalog (only schools ticked "On ApplyBoard")
+  let options = [];
+  try {
+    await ensureStudyTables(env, request);
+    const sc = (await env.DB.prepare(`SELECT * FROM study_schools WHERE applyboard = 1`).all()).results;
+    const pr = (await env.DB.prepare(`SELECT * FROM study_programs WHERE active = 1`).all()).results;
+    const all = matchAll({ plans: JSON.stringify(plans), profile: JSON.stringify({ education: edu, english }) }, pr, sc).matches.filter((m) => m.grade !== "no");
+    const pool = all.some((m) => m.fieldFit) ? all.filter((m) => m.fieldFit) : all;
+    const perSchool = {};
+    for (const m of pool) {
+      if ((perSchool[m.school.id] = (perSchool[m.school.id] || 0) + 1) > 2) continue; // a spread of schools
+      const p = m.program;
+      options.push({ name: p.name, school: m.school.name, city: m.school.city || "", province: m.school.province || "", level: STUDY_LEVELS[p.level] || p.level,
+        intakes: p.intakes || "", tuition: p.tuition || null, pgwp: p.pgwp === "yes", link: p.link || "", fit: m.grade,
+        todo: m.checks.filter((c) => c.state === "soft").map((c) => c.text).slice(0, 3) });
+      if (options.length >= 10) break;
+    }
+  } catch {}
+
   const site = env.SITE_URL || "https://workerpool.ca";
+  const optLines = options.slice(0, 5).map((o, i) => `${i + 1}. ${o.name} – ${o.school}${o.city ? ", " + o.city : ""} (${o.level})${o.pgwp ? ", listed by the college as PGWP-eligible" : ""}`).join("\n");
   const eduLines = edu.map((e) => `• ${LEVEL_NAMES[e.level]}: ${[e.credential, e.major, e.institution || e.board, e.completed && "completed " + e.completed, e.result].filter(Boolean).join(", ")}`).join("\n");
   const first = name.split(/\s+/)[0];
   await sendEmail(env, email, "Your Student Pool profile is with our education team – free, reply within 24 hours",
@@ -203,7 +224,7 @@ async function submit(request, env) {
 Thank you for joining the WorkerPool Student Pool.
 
 One of our education consultants is now working on your credentials and will get back to you with the study options available to you within 24 hours.
-
+${optLines ? `\nPrograms that already look like a good fit for your profile:\n${optLines}\n\nOur consultant will confirm entry requirements, fees and intakes with you before you apply.\n` : ""}
 This is a completely free service. There is nothing to pay, now or later.
 
 Your reference: ${ref}
@@ -237,7 +258,8 @@ Plans
 ${Object.entries(plans).filter(([, v]) => v).map(([k, v]) => `• ${k.replace(/_/g, " ")}: ${v}`).join("\n") || "• none given"}
 
 Open the admin dashboard (Student Pool tab): ${site}/admin/`, email);
-  return reply({ ok: true, ref, ...(upload ? { upload, docs: nDocs } : {}) });
+  if (options.length) await env.DB.prepare(`UPDATE student_profiles SET note = ?1 WHERE id = ?2`).bind(("Shown to student on submit: " + options.map((o) => `${o.name} – ${o.school}`).join("; ")).slice(0, 1990), pid).run().catch(() => {});
+  return reply({ ok: true, ref, options, ...(upload ? { upload, docs: nDocs } : {}) });
 }
 
 /* ---------------- keep one original document (only with the student's permission) ---------------- */

@@ -287,7 +287,7 @@ export function matchOne(f, p, school) {
   // English
   const req = { ielts_academic: p.ielts, pte_academic: p.pte, toefl_ibt: p.toefl, duolingo: p.duolingo }[f.test];
   const anyReq = p.ielts || p.pte || p.toefl || p.duolingo;
-  if (!anyReq) add("english", "ok", "No English score listed – check the program page");
+  if (!anyReq) add("english", f.test === "none" || f.test === "planned" ? "soft" : "ok", f.test === "none" || f.test === "planned" ? "English test needed (IELTS Academic, PTE or similar)" : "No English score listed – check the program page");
   else if (f.test === "none" || f.test === "planned") add("english", "soft", `English test needed${p.ielts ? ` (IELTS ${p.ielts}${p.ielts_band ? `, no band below ${p.ielts_band}` : ""})` : ""}`);
   else if (f.test === "ielts_general") add("english", "soft", "Has IELTS General – colleges usually need IELTS Academic");
   else if (req == null) add("english", "soft", `Check whether ${testName(f.test)} is accepted`);
