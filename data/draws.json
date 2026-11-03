@@ -1,6 +1,10 @@
 {
  "updated": "2026-11-02T14:40:10.963Z",
  "checked": "2026-11-03T05:50:33.277Z",
+ "refreshed": "2026-11-03T06:02:46.200Z",
+ "refreshedOnly": [
+  "sk"
+ ],
  "draws": [
   {
    "id": "bc-2026-10-29-8ed5df72c2e5",
@@ -7192,7 +7196,7 @@
    "program": "SINP",
    "name": "Saskatchewan.ca – SINP International Skilled Worker EOI selection results (PDF)",
    "url": "https://www.saskatchewan.ca/residents/moving-to-saskatchewan/live-in-saskatchewan/by-immigrating/saskatchewan-immigrant-nominee-program/browse-sinp-programs/applicants-international-skilled-workers/international-skilled-worker-eoi-system",
-   "checked": "2026-11-03T05:50:33.277Z",
+   "checked": "2026-11-03T06:02:46.200Z",
    "ok": false,
    "found": 0,
    "manual": false,
