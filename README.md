@@ -167,3 +167,14 @@ The reader (`scripts/draws/fetch.mjs`, run by `.github/workflows/draws.yml`) che
 - From GitHub you can do the same: Actions → Latest draws → Run workflow, with source ids such as `sk,ee` (empty = all).
 
 Needs the `GITHUB_TOKEN` secret above.
+
+## Study options matcher (Student Pool)
+
+Admin → **Study options** holds WorkerPool's own catalog of schools and programs (`functions/_study.js`, tables in `schema-study.sql`, created automatically):
+
+- **Schools**: starts with a list of public colleges, polytechnics and universities across Canada, all unticked. Tick **On ApplyBoard** for each school you can see in your ApplyBoard recruiter account. Only ticked schools are ever suggested.
+- **Programs**: add from each college's official program page (level, field, intakes, tuition, IELTS/PTE/TOEFL/Duolingo, minimum marks, gap, PGWP, link), or paste many at once under **Import** (spreadsheet cells or CSV with a header row).
+- **🎓 Find options** on a Student Pool profile ranks the programs against the student's highest education, marks (CGPA ×9.5), English scores and bands, study gap, backlogs, budget, intake, level and field. Each option shows ✅ / 🟡 / ⛔ checks. Tick the ones to send, then **Copy email** or **Open in email app**, and **Save to notes & mark “Options sent”**.
+
+Applications are made by hand in ApplyBoard. The tool never logs in to, reads from or copies ApplyBoard (its recruiter terms forbid bots, scraping and sharing its content).
+

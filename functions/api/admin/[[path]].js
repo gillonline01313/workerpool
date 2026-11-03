@@ -2,6 +2,7 @@
 import { json, readJson, str, sendEmail, ensureSignupLog, chatOpen, CHAT_MSG_SQL, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
 import { NEWS_SEED } from "../../_news.js";
 import { ensureTable as ensureStudents, STATUSES as STUDENT_STATUSES } from "../../_students.js";
+import { ensureStudyTables, matchAll, LEVELS as STUDY_LEVELS, FIELDS as STUDY_FIELDS, slug as studySlug } from "../../_study.js";
 import { autoDraws, edits as drawEdits, merge as mergeDraws, FIELDS as DRAW_FIELDS } from "../../_draws.js";
 import { audience, GROUPS, FROM, MAX_RECIPIENTS, ensureMailTables, buildMessage, sendBatch, cleanSender, logSend, stripPixel } from "../../_mail.js";
 import { TEMPLATES, CARE_TEAM } from "../../_templates.js";
@@ -107,6 +108,22 @@ export async function onRequestGet({ request, env, params }) {
       canRefresh: !!env.GITHUB_TOKEN, sources: auto.sources || [], draws: mergeDraws(auto, ed, true) });
   }
   if (route === "draws-refresh") return drawsRefreshStatus(env);
+  if (route === "study") { // Study options catalog: schools (with the ApplyBoard tick) and programs
+    await ensureStudyTables(env);
+    const sc = await env.DB.prepare(`SELECT * FROM study_schools ORDER BY province, name`).all();
+    const pr = await env.DB.prepare(`SELECT * FROM study_programs ORDER BY school_id, name`).all();
+    return json({ ok: true, schools: sc.results, programs: pr.results, levels: STUDY_LEVELS, fields: STUDY_FIELDS });
+  }
+  if (route === "study-match") { // ranked options for one Student Pool profile, ApplyBoard schools only
+    await ensureStudyTables(env); await ensureStudents(env);
+    const row = await env.DB.prepare(`SELECT * FROM student_profiles WHERE id = ?1`).bind(str(url.searchParams.get("id"), 64)).first();
+    if (!row) return json({ ok: false, error: "Profile not found." }, 404);
+    const sc = await env.DB.prepare(`SELECT * FROM study_schools WHERE applyboard = 1`).all();
+    const pr = await env.DB.prepare(`SELECT * FROM study_programs WHERE active = 1`).all();
+    const r = matchAll(row, pr.results, sc.results);
+    return json({ ok: true, facts: r.facts, matches: r.matches.slice(0, 60), total: r.matches.length,
+      abSchools: sc.results.length, programsOnAb: r.matches.length, levels: STUDY_LEVELS, fields: STUDY_FIELDS });
+  }
   if (route === "forum-views") {
     try {
       const topic = str(url.searchParams.get("topic"), 64);
@@ -204,6 +221,7 @@ export async function onRequestPost({ request, env, params }) {
   const route = (params.path || []).join("/");
   if (route === "chat-file") return adminFile(request, env);
   if (route.startsWith("mail-")) return mailAction(env, route, await readJson(request, 400000));
+  if (route.startsWith("study-")) return studyAction(env, route, await readJson(request, 600000));
   const b = await readJson(request, 6000);
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
   if (route.startsWith("news-")) return newsAction(env, route, b);
@@ -438,6 +456,79 @@ async function drawsRefreshStatus(env) {
   const j = await r.json();
   return json({ ok: true, ready: true, runs: (j.workflow_runs || []).map((x) => ({ id: x.id, event: x.event, name: x.display_title || x.name, status: x.status, conclusion: x.conclusion,
     created: x.created_at, updated: x.updated_at, url: x.html_url })) });
+}
+
+// Study options catalog. Schools and programs come from each college's official website; "applyboard" is the admin's
+// own tick for schools they can apply to through their ApplyBoard account. Only ticked schools are ever matched.
+const PROG_NUM = ["tuition", "months", "min_percent", "max_gap", "max_backlogs", "ielts", "ielts_band", "pte", "toefl", "duolingo"];
+function cleanProgram(p) {
+  if (!p || typeof p !== "object") return null;
+  const o = { school_id: str(p.school_id, 80), name: str(p.name, 160), level: STUDY_LEVELS[p.level] ? p.level : "", field: STUDY_FIELDS[p.field] ? p.field : "other",
+    campus: str(p.campus, 80), intakes: str(p.intakes, 60), min_prior: ["twelfth", "diploma", "bachelors"].includes(p.min_prior) ? p.min_prior : null,
+    pgwp: ["yes", "no", "check"].includes(p.pgwp) ? p.pgwp : "check", link: str(p.link, 500), note: str(p.note, 500), active: p.active === false || p.active === 0 || p.active === "0" ? 0 : 1 };
+  for (const k of PROG_NUM) { const v = p[k] === "" || p[k] == null ? null : Number(String(p[k]).replace(/[$,\s]/g, "")); o[k] = v == null || isNaN(v) ? null : v; }
+  if (o.link && !/^https:\/\//.test(o.link)) o.link = "";
+  return o.school_id && o.name && o.level ? o : null;
+}
+async function studyAction(env, route, b) {
+  if (!b) return json({ ok: false, error: "Invalid request." }, 400);
+  await ensureStudyTables(env);
+  const now = new Date().toISOString();
+  if (route === "study-applyboard") {
+    await env.DB.prepare(`UPDATE study_schools SET applyboard = ?1, updated = ?2 WHERE id = ?3`).bind(b.on ? 1 : 0, now, str(b.id, 80)).run();
+    return json({ ok: true });
+  }
+  if (route === "study-school-save") {
+    const x = b.school || {}, name = str(x.name, 120);
+    if (!name) return json({ ok: false, error: "School name is needed." }, 400);
+    const id = str(x.id, 80) || studySlug(name);
+    await env.DB.prepare(`INSERT INTO study_schools (id, name, kind, province, city, dli, applyboard, website, note, updated) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+      ON CONFLICT(id) DO UPDATE SET name = excluded.name, kind = excluded.kind, province = excluded.province, city = excluded.city, dli = excluded.dli, applyboard = excluded.applyboard, website = excluded.website, note = excluded.note, updated = excluded.updated`)
+      .bind(id, name, str(x.kind, 20) || "college", str(x.province, 4), str(x.city, 60), str(x.dli, 20) || null, x.applyboard ? 1 : 0, /^https:\/\//.test(x.website || "") ? str(x.website, 300) : null, str(x.note, 300) || null, now).run();
+    return json({ ok: true, id });
+  }
+  if (route === "study-school-del") {
+    const id = str(b.id, 80);
+    await env.DB.batch([env.DB.prepare(`DELETE FROM study_programs WHERE school_id = ?1`).bind(id), env.DB.prepare(`DELETE FROM study_schools WHERE id = ?1`).bind(id)]);
+    return json({ ok: true });
+  }
+  if (route === "study-program-save") {
+    const o = cleanProgram(b.program);
+    if (!o) return json({ ok: false, error: "School, program name and level are needed." }, 400);
+    const id = str(b.program.id, 40) || "p-" + crypto.randomUUID().slice(0, 10);
+    const cols = Object.keys(o);
+    await env.DB.prepare(`INSERT INTO study_programs (id, ${cols.join(", ")}, updated) VALUES (?1, ${cols.map((_, i) => "?" + (i + 2)).join(", ")}, ?${cols.length + 2})
+      ON CONFLICT(id) DO UPDATE SET ${cols.map((c) => `${c} = excluded.${c}`).join(", ")}, updated = excluded.updated`).bind(id, ...cols.map((c) => o[c]), now).run();
+    return json({ ok: true, id });
+  }
+  if (route === "study-program-del") {
+    await env.DB.prepare(`DELETE FROM study_programs WHERE id = ?1`).bind(str(b.id, 40)).run();
+    return json({ ok: true });
+  }
+  if (route === "study-import") { // rows from a pasted spreadsheet (CSV), matched to schools by name; new schools are created unticked
+    const rows = Array.isArray(b.rows) ? b.rows.slice(0, 2000) : [];
+    const schools = (await env.DB.prepare(`SELECT id, name FROM study_schools`).all()).results;
+    const find = (n) => { const k = studySlug(n); return schools.find((s) => s.id === k || studySlug(s.name) === k || s.name.toLowerCase() === String(n).toLowerCase()); };
+    const stmts = [], bad = [];
+    let added = 0, newSchools = 0;
+    rows.forEach((r, i) => {
+      let s = r.school && find(r.school);
+      if (!s && r.school) {
+        s = { id: studySlug(r.school), name: str(r.school, 120) }; schools.push(s); newSchools++;
+        stmts.push(env.DB.prepare(`INSERT OR IGNORE INTO study_schools (id, name, kind, province, city, applyboard, updated) VALUES (?1, ?2, 'college', ?3, ?4, 0, ?5)`).bind(s.id, s.name, str(r.province, 4), str(r.city || r.campus, 60), now));
+      }
+      const lv = Object.entries(STUDY_LEVELS).find(([k, l]) => k === String(r.level).toLowerCase() || l.toLowerCase() === String(r.level).toLowerCase() || l.toLowerCase().startsWith(String(r.level).toLowerCase()));
+      const fd = Object.entries(STUDY_FIELDS).find(([k, l]) => k === String(r.field).toLowerCase() || l.toLowerCase().startsWith(String(r.field).toLowerCase()));
+      const o = cleanProgram({ ...r, school_id: s && s.id, level: lv && lv[0], field: fd ? fd[0] : "other" });
+      if (!o) { bad.push(i + 2); return; }
+      const cols = Object.keys(o), id = "p-" + crypto.randomUUID().slice(0, 10);
+      stmts.push(env.DB.prepare(`INSERT INTO study_programs (id, ${cols.join(", ")}, updated) VALUES (?1, ${cols.map((_, j) => "?" + (j + 2)).join(", ")}, ?${cols.length + 2})`).bind(id, ...cols.map((c) => o[c]), now));
+      added++;
+    });
+    for (let i = 0; i < stmts.length; i += 80) await env.DB.batch(stmts.slice(i, i + 80));
+    return json({ ok: true, added, newSchools, skipped: bad });
+  }
+  return json({ ok: false, error: "Unknown action." }, 400);
 }
 
 // Latest draws: edit / hide / restore an automatic draw, or add, edit and delete a draw entered by hand.

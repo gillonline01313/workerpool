@@ -235,6 +235,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
       <button type="button" data-t="b2b" aria-pressed="false">B2B applications</button>
       <button type="button" data-t="students" aria-pressed="false" id="stuTab">Student Pool</button>
+      <button type="button" data-t="study" aria-pressed="false">Study options</button>
       <button type="button" data-t="assessments" aria-pressed="false">Shared assessments</button>
       <button type="button" data-t="forum" aria-pressed="false">Forum</button>
       <button type="button" data-t="mail" aria-pressed="false">Email</button>
@@ -261,7 +262,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const fmtDur=s=>!s?"–":s<60?s+"s":Math.floor(s/60)+"m "+String(s%60).padStart(2,"0")+"s";
 const when=t=>new Date(t).toLocaleString("en-CA",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
 let KEY=""; try{KEY=sessionStorage.getItem("wp_admin")||"";}catch(e){}
-let stF="open", stQ="", stOpen=null, anView="visits", qF="left", qQ="", qShown=100, suF="all", suQ="", suOpen=null, suShown=100, drF="all", drQ="", drEdit=null, fvTopic=null, forumF="reports", tab="analytics", range=7, pageF="all", data={}, newsF="live", newsEdit=null;
+let soF="programs", soQ="", soAb=false, soEdit=null, smId=null, smData=null, smPick=new Set(), stF="open", stQ="", stOpen=null, anView="visits", qF="left", qQ="", qShown=100, suF="all", suQ="", suOpen=null, suShown=100, drF="all", drQ="", drEdit=null, fvTopic=null, forumF="reports", tab="analytics", range=7, pageF="all", data={}, newsF="live", newsEdit=null;
 async function api(path){
   const r=await fetch("/api/admin/"+path,{headers:{"x-admin-key":KEY}});
   if(r.status===401) throw new Error("auth");
@@ -284,6 +285,7 @@ async function load(){
       const j=await r.json(); if(!j.ok) throw new Error(j.error||"Request failed"); data.forum=j;
       if(forumF==="views"){ const v=await fetch("/api/admin/forum-views?days="+days+(fvTopic?"&topic="+encodeURIComponent(fvTopic.id):""),{headers:{"x-admin-key":KEY}}); const vj=await v.json(); data.fviews=vj.ok?vj.rows:null; data.fviewsErr=vj.ok?"":(vj.error||"Couldn't load views"); }
     }
+    else if(tab==="study"){ if(soEdit) return; data.study=await soGet("study"); }
     else if(tab==="students"){
       const r=await fetch("/api/admin/students",{headers:{"x-admin-key":KEY}});
       if(r.status===401) throw new Error("auth");
@@ -343,6 +345,13 @@ function controls(){
     if($("#qCsv")) $("#qCsv").onclick=qCsv;
     c.querySelectorAll('[data-seg="range"] button').forEach(b=>b.onclick=()=>{range=+b.dataset.v; controls(); load();});
     c.querySelectorAll('[data-seg="page"] button').forEach(b=>b.onclick=()=>{pageF=b.dataset.v; controls(); render();});
+  } else if(tab==="study"){
+    c.innerHTML=seg("sof",[["programs","Programs"],["schools","Schools"],["import","Import"]],soF)+`<input id="soQ" type="search" placeholder="Search school, program, city" value="${esc(soQ)}" style="font:inherit;font-size:.85rem;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);min-width:200px"><label style="font-size:.85rem;display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="soAb"${soAb?" checked":""}> ApplyBoard only</label><button class="dl" type="button" id="soAddP">+ Add program</button><button class="dl" type="button" id="soAddS">+ Add school</button>`;
+    c.querySelectorAll('[data-seg="sof"] button').forEach(b=>b.onclick=()=>{ soF=b.dataset.v; soEdit=null; controls(); render(); });
+    $("#soQ").oninput=e=>{ soQ=e.target.value; render(); };
+    $("#soAb").onchange=e=>{ soAb=e.target.checked; render(); };
+    $("#soAddP").onclick=()=>{ soEdit={type:"program",row:{level:"pg-cert",field:"business",pgwp:"check",active:1,intakes:"Jan, May, Sep"}}; render(); };
+    $("#soAddS").onclick=()=>{ soEdit={type:"school",row:{kind:"college",province:"BC",applyboard:1}}; render(); };
   } else if(tab==="students"){
     c.innerHTML=seg("stf",[["open","To do"],["new","New"],["working","Working"],["options-sent","Options sent"],["closed","Closed"],["all","All"]],stF)+`<input id="stQ" type="search" placeholder="Search name, email, course…" value="${esc(stQ)}" style="font:inherit;font-size:.85rem;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);min-width:200px"><a class="dl" href="/student-pool/" target="_blank" rel="noopener" style="text-decoration:none">Open Student Pool ↗</a>`;
     c.querySelectorAll('[data-seg="stf"] button').forEach(b=>b.onclick=()=>{ stF=b.dataset.v; controls(); render(); });
@@ -490,6 +499,7 @@ function render(){
   if(tab==="b2b") return renderB2B(body);
   if(tab==="assessments") return renderAssess(body);
   if(tab==="students") return renderStudents(body);
+  if(tab==="study") return renderStudy(body);
   if(tab==="chat") return renderChat(body);
   if(tab==="news") return renderNews(body);
   if(tab==="scanner") return renderPasses(body);
@@ -789,7 +799,7 @@ function renderStudents(body){
         <details${stOpen===r.id?" open":""} data-sd="${esc(r.id)}"><summary>Full profile${sd.length?` · ${sd.length} doc${sd.length>1?"s":""}`:""}</summary><pre>${esc(det)}</pre>${docs}</details></td>
       <td style="min-width:190px"><select data-st="${esc(r.id)}" style="font:inherit;font-size:.82rem;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);width:100%">${Object.entries(ST_NAME).map(([k,l])=>`<option value="${k}"${k===r.status?" selected":""}>${l}</option>`).join("")}</select>
         <textarea data-sn="${esc(r.id)}" rows="2" placeholder="Notes (colleges suggested, follow-up…)" style="font:inherit;font-size:.8rem;margin-top:6px;width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)">${esc(r.note||"")}</textarea>
-        <button class="dl" type="button" data-ss="${esc(r.id)}" style="margin-top:4px">Save</button></td></tr>`;}).join("")||`<tr><td colspan="6" class="sub">Nothing here.</td></tr>`}
+        <button class="dl" type="button" data-ss="${esc(r.id)}" style="margin-top:4px">Save</button> <button class="dl" type="button" data-sm="${esc(r.id)}" style="margin-top:4px">🎓 Find options</button></td></tr>`;}).join("")||`<tr><td colspan="6" class="sub">Nothing here.</td></tr>`}
   </tbody></table></div></div>`;
   body.querySelectorAll("[data-sd]").forEach(d=>d.ontoggle=()=>{ stOpen=d.open?d.dataset.sd:(stOpen===d.dataset.sd?null:stOpen); });
   body.querySelectorAll("[data-sdoc]").forEach(b=>b.onclick=async()=>{
@@ -820,6 +830,163 @@ function renderStudents(body){
       render();
     }catch(e){ b.textContent=e.message; b.disabled=false; }
   });
+  body.querySelectorAll("[data-sm]").forEach(b=>b.onclick=()=>smOpen(b.dataset.sm));
+  if(smId) smCard(body);
+}
+/* ---------- Study options matcher (Student Pool) ----------
+   Ranks programs from the Study options catalog against one student's profile. Only schools ticked "On ApplyBoard"
+   are used, so every option can be applied for through the ApplyBoard recruiter account by hand. */
+async function soGet(route){ const r=await fetch("/api/admin/"+route,{headers:{"x-admin-key":KEY}}); if(r.status===401) throw new Error("auth"); const j=await r.json(); if(!j.ok) throw new Error(j.error||"Request failed"); return j; }
+async function soPost(route,body){ return newsPost(route,body); }
+async function smOpen(id){
+  smId=id; smData=null; smPick=new Set(); render(); window.scrollTo({top:0,behavior:"smooth"});
+  try{ smData=await soGet("study-match?id="+encodeURIComponent(id)); smData.matches.filter(m=>m.grade==="good"&&m.fieldFit).slice(0,5).forEach(m=>smPick.add(m.program.id));
+    if(!smPick.size) smData.matches.filter(m=>m.grade!=="no").slice(0,3).forEach(m=>smPick.add(m.program.id)); }
+  catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); smData={error:x.message}; }
+  if(tab==="students") render();
+}
+const SM_GRADE={good:["Good fit","#2e8b57"],maybe:["Possible – needs work","#c47a1a"],no:["Not eligible now","#b4321f"]};
+function smEmail(r){
+  const first=String(r.name||"").trim().split(/\s+/)[0]||"there", L=smData.levels||{};
+  const picks=smData.matches.filter(m=>smPick.has(m.program.id));
+  const lines=picks.map((m,i)=>{ const p=m.program, todo=m.checks.filter(c=>c.state!=="ok").map(c=>c.text);
+    const req=[p.ielts&&`IELTS ${p.ielts}${p.ielts_band?` (no band below ${p.ielts_band})`:""}`,p.pte&&`PTE ${p.pte}`,p.duolingo&&`Duolingo ${p.duolingo}`,p.min_percent&&`${p.min_percent}% in your last qualification`].filter(Boolean).join(", ");
+    return `${i+1}. ${p.name} – ${m.school.name}${m.school.city?`, ${m.school.city}`:""}${m.school.province?` (${m.school.province})`:""}
+   ${[L[p.level]||p.level,p.months&&`${p.months} months`,p.intakes&&`intakes: ${p.intakes}`,p.tuition&&`about $${Number(p.tuition).toLocaleString("en-CA")} CAD tuition a year`].filter(Boolean).join(" · ")}${req?`\n   Entry requirements: ${req}`:""}${p.pgwp==="yes"?"\n   The college lists this program as eligible for a post-graduation work permit.":""}${todo.length?`\n   To check: ${todo.join("; ")}`:""}${p.link?`\n   ${p.link}`:""}`; }).join("\n\n");
+  return { subject:`Your study options in Canada – WorkerPool Student Pool ${r.ref||""}`.trim(), body:`Hi ${first},
+
+Thank you for sending your profile to WorkerPool Student Pool. Based on your education, English score and study plans, these programs in Canada are a good fit for you:
+
+${lines}
+
+Tuition fees, intakes and entry requirements can change, so we confirm the latest details with the college before you apply. Reply to this email with the options you like (or any questions), and we'll help you with the application, free of charge.
+
+Warm regards,
+WorkerPool Student Pool team
+workerpool.ca` };
+}
+function smCard(body){
+  const r=(data.students||[]).find(x=>x.id===smId); if(!r){ smId=null; return; }
+  const D=smData, L=(D&&D.levels)||{};
+  let inner;
+  if(!D) inner=`<div class="wpa-empty">Finding options…</div>`;
+  else if(D.error) inner=`<div class="err">${esc(D.error)}</div>`;
+  else if(!D.abSchools) inner=`<div class="nw-item" style="border-color:#c47a1a"><div><b>No schools are ticked “On ApplyBoard” yet.</b><small style="display:block">Open <b>Study options → Schools</b> and tick the colleges and universities you can see in your ApplyBoard account. Then add their programs (or import them) and come back.</small></div></div>`;
+  else if(!D.total) inner=`<div class="nw-item" style="border-color:#c47a1a"><div><b>No programs at your ApplyBoard schools yet.</b><small style="display:block">Add programs in <b>Study options → Programs</b> (or paste a list under Import), using each college's official program page.</small></div></div>`;
+  else {
+    const f=D.facts;
+    inner=`<p class="sub" style="margin:4px 0 10px">Read from the profile: ${esc([f.topName||LV[f.top]||"highest level unknown",f.percent!=null?f.percent+"%":"marks unread",f.overall!=null?`English ${f.overall}${f.minBand!=null?" (lowest band "+f.minBand+")":""}`:"no English score",f.gap!=null?f.gap+"-year gap":"",f.budget?(f.budget===Infinity?"budget open":"budget up to $"+f.budget.toLocaleString("en-CA")):"",f.intakeTxt&&"intake "+f.intakeTxt,f.fieldTxt&&"wants "+f.fieldTxt].filter(Boolean).join(" · "))}. Showing ${Math.min(D.total,60)} of ${D.total} programs at your ${D.abSchools} ApplyBoard schools.</p>
+    <div class="nw-list">${D.matches.map(m=>{ const p=m.program, g=SM_GRADE[m.grade];
+      return `<div class="nw-item${m.grade==="no"?" arch":""}"><div style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" data-pk="${esc(p.id)}"${smPick.has(p.id)?" checked":""} style="margin-top:4px" aria-label="Include in email"><div>
+        <b>${esc(p.name)}</b> <span class="pill" style="background:transparent;border:1px solid ${g[1]};color:${g[1]}">${g[0]}</span>${m.fieldFit?"":` <span class="pill">other field</span>`}
+        <small style="display:block">${esc(m.school.name)}${m.school.city?" · "+esc(m.school.city):""}${m.school.province?", "+esc(m.school.province):""} · ${esc(L[p.level]||p.level)}${p.intakes?" · "+esc(p.intakes):""}${p.tuition?" · $"+Number(p.tuition).toLocaleString("en-CA")+"/yr":""}${p.pgwp==="yes"?" · PGWP ✓":""}${p.link?` · <a href="${esc(p.link)}" target="_blank" rel="noopener">program page</a>`:""}</small>
+        <small style="display:block">${m.checks.map(c=>`${c.state==="ok"?"✅":c.state==="soft"?"🟡":"⛔"} ${esc(c.text)}`).join(" · ")}</small></div></div></div>`; }).join("")}</div>
+    <div class="nw-acts" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px"><button class="dl" type="button" id="smCopy">Copy email (${smPick.size})</button><button class="dl" type="button" id="smMail">Open in email app</button><button class="dl" type="button" id="smSave" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">Save to notes &amp; mark “Options sent”</button></div>
+    <p class="sub" style="margin-top:8px">Apply for the chosen program yourself in ApplyBoard. Check tuition and requirements on the program page before sending.</p>`;
+  }
+  body.insertAdjacentHTML("afterbegin",`<div class="wpa-card wide" id="smCard" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h3>🎓 Study options for ${esc(r.name)} <span class="sub">${esc(r.ref||"")}</span></h3><button class="dl" type="button" id="smClose">Close</button></div>${inner}</div>`);
+  const card=body.querySelector("#smCard");
+  card.querySelector("#smClose").onclick=()=>{ smId=null; smData=null; render(); };
+  card.querySelectorAll("[data-pk]").forEach(cb=>cb.onchange=()=>{ cb.checked?smPick.add(cb.dataset.pk):smPick.delete(cb.dataset.pk); const b=card.querySelector("#smCopy"); if(b) b.textContent=`Copy email (${smPick.size})`; });
+  const need=()=>{ if(!smPick.size){ alert("Tick at least one program."); return null; } return smEmail(r); };
+  const cp=card.querySelector("#smCopy"); if(cp) cp.onclick=async()=>{ const e=need(); if(!e) return; try{ await navigator.clipboard.writeText(`Subject: ${e.subject}\n\n${e.body}`); cp.textContent="Copied ✓"; }catch(x){ prompt("Copy this email:",e.body); } };
+  const ml=card.querySelector("#smMail"); if(ml) ml.onclick=()=>{ const e=need(); if(!e) return; location.href=`mailto:${encodeURIComponent(r.email||"")}?subject=${encodeURIComponent(e.subject)}&body=${encodeURIComponent(e.body)}`; };
+  const sv=card.querySelector("#smSave"); if(sv) sv.onclick=async()=>{ if(!smPick.size) return alert("Tick at least one program.");
+    const list=smData.matches.filter(m=>smPick.has(m.program.id)).map(m=>`${m.program.name} – ${m.school.name}`).join("; ");
+    const note=[r.note,`Options sent ${new Date().toLocaleDateString("en-CA",{timeZone:"America/Edmonton"})}: ${list}`].filter(Boolean).join("\n").slice(0,1990);
+    sv.disabled=true; try{ await soPost("student-status",{id:r.id,status:"options-sent",note}); r.status="options-sent"; r.note=note; sv.textContent="Saved ✓"; setTimeout(render,800); }catch(x){ alert(x.message); sv.disabled=false; } };
+}
+/* ---------- Study options catalog (schools + programs) ---------- */
+const SO_PROV=["BC","AB","SK","MB","ON","QC","NB","NS","PE","NL","YT","NT","NU"];
+function renderStudy(body){
+  const D=data.study; if(!D){ body.innerHTML=`<div class="wpa-empty">Loading…</div>`; return; }
+  if(soEdit) return soForm(body,D);
+  const S=D.schools||[], P=D.programs||[], ab=new Set(S.filter(x=>x.applyboard).map(x=>x.id)), byS=new Map(S.map(x=>[x.id,x]));
+  const q=soQ.trim().toLowerCase(), cnt={}; P.forEach(p=>cnt[p.school_id]=(cnt[p.school_id]||0)+1);
+  const head=`<h3>${ab.size} school${ab.size===1?"":"s"} on ApplyBoard · ${P.filter(p=>ab.has(p.school_id)&&p.active).length} programs ready to match · ${P.length} programs in total</h3>
+    <p class="sub" style="margin:4px 0 12px">Tick the schools you can see in your ApplyBoard account; only those are suggested to students. Add programs from each college's official program page (tuition, intakes, entry requirements), then use “🎓 Find options” on any Student Pool profile.</p>`;
+  let html="";
+  if(soF==="schools"){
+    const R=S.filter(x=>(!soAb||x.applyboard)&&(!q||[x.name,x.city,x.province,x.dli].join(" ").toLowerCase().includes(q)));
+    html=`<div class="wpa-tbl"><table><thead><tr><th>On ApplyBoard</th><th>School</th><th>City</th><th>Programs</th><th></th></tr></thead><tbody>${R.map(x=>`<tr>
+      <td><label style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ab="${esc(x.id)}"${x.applyboard?" checked":""}> ${x.applyboard?"Yes":"No"}</label></td>
+      <td><b>${esc(x.name)}</b><br><span class="sub">${esc(x.kind||"")}${x.dli?" · DLI "+esc(x.dli):""}${x.website?` · <a href="${esc(x.website)}" target="_blank" rel="noopener">website</a>`:""}</span></td>
+      <td>${esc(x.city||"")}${x.province?", "+esc(x.province):""}</td><td>${cnt[x.id]||0}</td>
+      <td style="white-space:nowrap"><button class="dl" type="button" data-se="${esc(x.id)}">Edit</button> <button class="dl" type="button" data-sp="${esc(x.id)}">+ Program</button></td></tr>`).join("")||`<tr><td colspan="5" class="sub">Nothing here.</td></tr>`}</tbody></table></div>`;
+  } else if(soF==="programs"){
+    const R=P.filter(p=>(!soAb||ab.has(p.school_id))&&(!q||[p.name,(byS.get(p.school_id)||{}).name,(byS.get(p.school_id)||{}).city,p.campus].join(" ").toLowerCase().includes(q)));
+    html=R.length?`<div class="wpa-tbl"><table><thead><tr><th>Program</th><th>School</th><th>Level · field</th><th>Intakes</th><th>Tuition/yr</th><th>Entry</th><th></th></tr></thead><tbody>${R.map(p=>{ const sc=byS.get(p.school_id)||{}; return `<tr${p.active?"":' style="opacity:.55"'}>
+      <td><b>${esc(p.name)}</b>${p.link?`<br><a class="sub" href="${esc(p.link)}" target="_blank" rel="noopener">program page</a>`:""}${p.active?"":` <span class="pill">paused</span>`}</td>
+      <td>${esc(sc.name||p.school_id)}${ab.has(p.school_id)?"":` <span class="pill" title="Not ticked On ApplyBoard: never suggested">not on ApplyBoard</span>`}<br><span class="sub">${esc(p.campus||sc.city||"")}</span></td>
+      <td>${esc((D.levels||{})[p.level]||p.level)}<br><span class="sub">${esc((D.fields||{})[p.field]||"")}</span></td><td>${esc(p.intakes||"–")}</td><td>${p.tuition?"$"+Number(p.tuition).toLocaleString("en-CA"):"–"}</td>
+      <td class="sub">${[p.ielts&&"IELTS "+p.ielts+(p.ielts_band?"/"+p.ielts_band:""),p.pte&&"PTE "+p.pte,p.min_percent&&p.min_percent+"%",p.pgwp==="yes"&&"PGWP ✓"].filter(Boolean).join(" · ")||"–"}</td>
+      <td style="white-space:nowrap"><button class="dl" type="button" data-pe="${esc(p.id)}">Edit</button></td></tr>`; }).join("")}</tbody></table></div>`
+      :`<div class="wpa-empty">${P.length?"No programs match.":"No programs yet. Add one with “+ Add program”, or paste a list under Import."}</div>`;
+  } else {
+    html=`<p class="sub">Paste rows from a spreadsheet (copy the cells, including the header row) or a CSV file. Columns, in any order:</p>
+      <pre style="white-space:pre-wrap;font-size:.8rem">${esc(SO_COLS.join("\t"))}</pre>
+      <p class="sub">Level: Certificate, Diploma, Advanced diploma, Bachelor's degree, Post-graduate certificate, Master's degree. Field: one of ${esc(Object.values(D.fields||{}).join(", "))}. Intakes like “Jan, May, Sep”. PGWP: yes / no / check. Schools are matched by name; a new school is added unticked.</p>
+      <button class="dl" type="button" id="soTpl">Copy header row</button>
+      <textarea id="soCsv" rows="10" style="width:100%;margin-top:8px;font:inherit;font-size:.82rem;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)" placeholder="Paste here"></textarea>
+      <div class="err" id="soErr"></div><button class="dl" type="button" id="soImp" style="margin-top:6px;background:var(--accent);color:var(--surface);border-color:var(--accent)">Import programs</button>`;
+  }
+  body.innerHTML=`<div class="wpa-card wide">${head}${html}</div>`;
+  body.querySelectorAll("[data-ab]").forEach(cb=>cb.onchange=async()=>{ try{ await soPost("study-applyboard",{id:cb.dataset.ab,on:cb.checked}); const x=byS.get(cb.dataset.ab); if(x) x.applyboard=cb.checked?1:0; render(); }catch(e){ alert(e.message); cb.checked=!cb.checked; } });
+  body.querySelectorAll("[data-se]").forEach(b=>b.onclick=()=>{ soEdit={type:"school",row:{...byS.get(b.dataset.se)}}; render(); });
+  body.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>{ soEdit={type:"program",row:{school_id:b.dataset.sp,level:"diploma",field:"business",pgwp:"check",active:1,intakes:"Jan, May, Sep"}}; render(); });
+  body.querySelectorAll("[data-pe]").forEach(b=>b.onclick=()=>{ soEdit={type:"program",row:{...P.find(p=>p.id===b.dataset.pe)}}; render(); });
+  const tpl=$("#soTpl"); if(tpl) tpl.onclick=async()=>{ try{ await navigator.clipboard.writeText(SO_COLS.join("\t")); tpl.textContent="Copied ✓"; }catch(e){} };
+  const imp=$("#soImp"); if(imp) imp.onclick=async()=>{ const rows=soParse($("#soCsv").value); if(!rows.length) return $("#soErr").textContent="Nothing to import. Include the header row.";
+    imp.disabled=true; try{ const j=await soPost("study-import",{rows}); alert(`${j.added} programs imported${j.newSchools?`, ${j.newSchools} new schools added (tick them under Schools if they're on ApplyBoard)`:""}${j.skipped.length?`. Skipped rows ${j.skipped.join(", ")} (school, program and level are needed).`:"."}`); soF="programs"; controls(); load(); }
+    catch(e){ $("#soErr").textContent=e.message; imp.disabled=false; } };
+}
+const SO_COLS=["school","program","level","field","campus","province","intakes","tuition","months","ielts","ielts_band","pte","toefl","duolingo","min_percent","max_gap","pgwp","link","note"];
+function soParse(txt){ // tab-separated (pasted cells) or CSV with quotes
+  const t=String(txt||"").trim(); if(!t) return [];
+  const sep=t.split("\n")[0].includes("\t")?"\t":",", rows=[]; let row=[], cur="", q=false;
+  for(let i=0;i<t.length;i++){ const ch=t[i];
+    if(q){ if(ch==='"'&&t[i+1]==='"'){ cur+='"'; i++; } else if(ch==='"') q=false; else cur+=ch; continue; }
+    if(ch==='"') q=true; else if(ch===sep){ row.push(cur); cur=""; } else if(ch==="\n"){ row.push(cur); rows.push(row); row=[]; cur=""; } else if(ch!=="\r") cur+=ch; }
+  row.push(cur); rows.push(row);
+  const head=rows.shift().map(h=>h.trim().toLowerCase().replace(/[^a-z_]+/g,"_").replace(/^_|_$/g,"")).map(h=>h==="program_name"||h==="name"?"program":h==="school_name"||h==="college"||h==="institution"?"school":h);
+  return rows.filter(r=>r.some(c=>c.trim())).map(r=>{ const o={}; head.forEach((h,i)=>o[h]=(r[i]||"").trim()); o.name=o.program; return o; });
+}
+function soForm(body,D){
+  const e=soEdit, r=e.row, isNew=!r.id||(e.type==="school"&&!(D.schools||[]).some(x=>x.id===r.id));
+  const inp=(id,label,val,extra="")=>`<label>${label}<input id="${id}" value="${esc(val??"")}" ${extra}></label>`;
+  const sel=(id,label,opts,val)=>`<label>${label}<select id="${id}">${opts.map(([k,l])=>`<option value="${esc(k)}"${String(val??"")===String(k)?" selected":""}>${esc(l)}</option>`).join("")}</select></label>`;
+  if(e.type==="school"){
+    body.innerHTML=`<div class="wpa-card wide"><h3>${isNew?"Add a school":"Edit school"}</h3><form class="nw-form" id="soF" style="margin-top:12px">
+      ${inp("sN","School name",r.name,'required maxlength="120"')}${sel("sK","Type",[["college","College"],["polytechnic","Polytechnic"],["university","University"],["private","Private college"]],r.kind)}
+      ${sel("sP","Province",SO_PROV.map(x=>[x,x]),r.province)}${inp("sC","City",r.city,'maxlength="60"')}${inp("sD","DLI number (optional)",r.dli,'maxlength="20" placeholder="O19…"')}
+      ${inp("sW","Official website",r.website,'maxlength="300" placeholder="https://…"')}
+      <label class="chk"><input id="sA" type="checkbox"${r.applyboard?" checked":""}> On ApplyBoard (I can apply to this school through my ApplyBoard account)</label>
+      <div class="err full" id="soErr"></div>
+      <div class="nw-acts full"><button class="dl" type="submit" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">Save</button><button class="dl" type="button" id="soCancel">Cancel</button>${isNew?"":`<button class="dl" type="button" id="soDel">Delete school and its programs</button>`}</div></form></div>`;
+    $("#soF").onsubmit=async ev=>{ ev.preventDefault(); try{ await soPost("study-school-save",{school:{id:isNew?"":r.id,name:$("#sN").value.trim(),kind:$("#sK").value,province:$("#sP").value,city:$("#sC").value.trim(),dli:$("#sD").value.trim(),website:$("#sW").value.trim(),applyboard:$("#sA").checked}}); soEdit=null; load(); }catch(x){ $("#soErr").textContent=x.message; } };
+    if($("#soDel")) $("#soDel").onclick=async()=>{ if(!confirm("Delete this school and all its programs?")) return; try{ await soPost("study-school-del",{id:r.id}); soEdit=null; load(); }catch(x){ alert(x.message); } };
+  } else {
+    const schools=(D.schools||[]).map(x=>[x.id,`${x.name} (${x.province||"–"})${x.applyboard?" ✓ ApplyBoard":""}`]);
+    body.innerHTML=`<div class="wpa-card wide"><h3>${isNew?"Add a program":"Edit program"}</h3><p class="sub" style="margin:4px 0 0">Copy the details from the college's official program page and paste its link, so you can check them before sending.</p><form class="nw-form" id="soF" style="margin-top:12px">
+      ${sel("pS","School",schools,r.school_id)}${inp("pN","Program name",r.name,'required maxlength="160"')}
+      ${sel("pL","Level",Object.entries(D.levels||{}),r.level)}${sel("pF","Field",Object.entries(D.fields||{}),r.field)}
+      ${inp("pC","Campus (if not the main city)",r.campus,'maxlength="80"')}${inp("pI","Intakes",r.intakes,'maxlength="60" placeholder="Jan, May, Sep"')}
+      ${inp("pT","Tuition per year (CAD)",r.tuition,'inputmode="numeric" placeholder="18500"')}${inp("pM","Length (months)",r.months,'inputmode="numeric"')}
+      ${inp("pIe","IELTS overall",r.ielts,'inputmode="decimal" placeholder="6.5"')}${inp("pIb","IELTS lowest band",r.ielts_band,'inputmode="decimal" placeholder="6.0"')}
+      ${inp("pPt","PTE overall",r.pte,'inputmode="decimal"')}${inp("pTo","TOEFL iBT",r.toefl,'inputmode="decimal"')}${inp("pDu","Duolingo",r.duolingo,'inputmode="decimal"')}
+      ${sel("pPr","Minimum prior education",[["","Usual for this level"],["twelfth","12th"],["diploma","Diploma"],["bachelors","Bachelor's"]],r.min_prior)}
+      ${inp("pPc","Minimum marks %",r.min_percent,'inputmode="decimal" placeholder="60"')}${inp("pG","Maximum study gap (years)",r.max_gap,'inputmode="numeric"')}${inp("pB","Maximum backlogs",r.max_backlogs,'inputmode="numeric"')}
+      ${sel("pW","PGWP eligible",[["check","Check"],["yes","Yes"],["no","No"]],r.pgwp)}
+      <label class="full">Official program page<input id="pU" value="${esc(r.link||"")}" maxlength="500" placeholder="https://…"></label>
+      <label class="full">Note<input id="pNo" value="${esc(r.note||"")}" maxlength="500" placeholder="e.g. Seats fill early; PAL needed"></label>
+      <label class="chk"><input id="pA" type="checkbox"${r.active===0?"":" checked"}> Suggest this program to students</label>
+      <div class="err full" id="soErr"></div>
+      <div class="nw-acts full"><button class="dl" type="submit" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">Save</button><button class="dl" type="button" id="soCancel">Cancel</button>${isNew?"":`<button class="dl" type="button" id="soDel">Delete program</button>`}</div></form></div>`;
+    const v=id=>$("#"+id).value.trim();
+    $("#soF").onsubmit=async ev=>{ ev.preventDefault(); try{ await soPost("study-program-save",{program:{id:isNew?"":r.id,school_id:v("pS"),name:v("pN"),level:v("pL"),field:v("pF"),campus:v("pC"),intakes:v("pI"),tuition:v("pT"),months:v("pM"),ielts:v("pIe"),ielts_band:v("pIb"),pte:v("pPt"),toefl:v("pTo"),duolingo:v("pDu"),min_prior:v("pPr"),min_percent:v("pPc"),max_gap:v("pG"),max_backlogs:v("pB"),pgwp:v("pW"),link:v("pU"),note:v("pNo"),active:$("#pA").checked}}); soEdit=null; load(); }catch(x){ $("#soErr").textContent=x.message; } };
+    if($("#soDel")) $("#soDel").onclick=async()=>{ if(!confirm("Delete this program?")) return; try{ await soPost("study-program-del",{id:r.id}); soEdit=null; load(); }catch(x){ alert(x.message); } };
+  }
+  $("#soCancel").onclick=()=>{ soEdit=null; render(); };
 }
 function renderB2B(body){
   const R=data.b2b||[], D=data.b2bDocs||[], C=window.B2B;
