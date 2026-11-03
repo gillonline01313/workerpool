@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Client intake form · WorkerPool</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%2324514b'/%3E%3Ccircle cx='10' cy='12' r='2.4' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2.4' fill='white' opacity='.75'/%3E%3Ccircle cx='20' cy='12' r='2.4' fill='white' opacity='.5'/%3E%3Cpath d='M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#f1f4f5;--surface:#fff;--fg:#1a2629;--muted:#59686c;--line:#d2dbdd;--field:#f7f9fa;
+  --accent:#24514b;--accent-2:#3f7a72;--accent-soft:#dbe9e5;--accent-fg:#fff;--warn:#9a5b1e;--warn-soft:#f6ebdc;--ok:#2f7a4f;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;--body:"Figtree","Segoe UI",system-ui,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#111718;--surface:#1b2426;--fg:#e3eaeb;--muted:#97a6a8;--line:#2c3a3d;--field:#162022;
+  --accent:#8cc4ba;--accent-2:#7fbcb2;--accent-soft:#203230;--accent-fg:#0f2220;--warn:#e3b27c;--warn-soft:#33281b;--ok:#7fcf9e;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55;padding-top:env(safe-area-inset-top,0px)}
+.in{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{border-bottom:1px solid var(--line);background:var(--surface)}
+.nav{display:flex;align-items:center;gap:14px;min-height:62px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+.logo b{font-family:var(--display);font-weight:700;font-size:1.1rem}
+.logo small{display:block;font-size:.72rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.who{margin-left:auto;display:flex;gap:12px;align-items:center;font-size:.88rem;color:var(--muted)}
+main{padding-block:26px 64px}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.015em;text-wrap:balance}
+h1{font-size:clamp(1.7rem,4.4vw,2.4rem);line-height:1.1}
+h2{font-size:1.25rem}
+.lede{color:var(--muted);max-width:64ch;margin:10px 0 0}
+.eyebrow{font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--accent-2)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:640px){.grid{grid-template-columns:1fr}.card{padding:16px}}
+.f{display:flex;flex-direction:column;gap:6px;min-width:0}
+.f.full{grid-column:1/-1}
+.f.hd{grid-column:1/-1;font-family:var(--display);font-weight:600;font-size:1rem;margin-top:6px}
+label,.lab{font-size:.88rem;font-weight:600}
+.help{font-size:.8rem;color:var(--muted);margin-top:-2px}
+.req{color:var(--warn);margin-left:2px}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+textarea{min-height:90px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--accent-2);outline-offset:1px}
+.yn{display:flex;gap:8px}
+.yn label{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--field);border-radius:10px;padding:9px;cursor:pointer;font-weight:600}
+.yn input{width:auto;margin:0;accent-color:var(--accent)}
+.yn label:has(input:checked){border-color:var(--accent-2);background:var(--accent-soft)}
+.cb{display:flex;gap:10px;align-items:flex-start;font-weight:500;font-size:.92rem;cursor:pointer}
+.cb input{width:20px;height:20px;flex:none;margin-top:2px;accent-color:var(--accent)}
+.btn{font:inherit;font-weight:600;padding:11px 18px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn.sm{padding:7px 14px;font-size:.86rem}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--accent-2);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.err{color:var(--warn);font-size:.88rem;min-height:1.2em}
+.note{background:var(--accent-soft);border-radius:12px;padding:12px 14px;font-size:.9rem}
+.note.warn{background:var(--warn-soft)}
+.tabs{display:flex;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:4px}
+.tabs button{flex:1;font:inherit;font-weight:600;border:0;background:none;color:var(--muted);padding:9px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:start}
+@media (max-width:820px){.hero{grid-template-columns:1fr}}
+.points{display:flex;flex-direction:column;gap:10px;margin-top:20px;padding:0;list-style:none}
+.points li{display:flex;gap:10px;color:var(--muted)}
+.points li::before{content:"";flex:none;width:8px;height:8px;border-radius:2px;background:var(--accent-2);margin-top:.55em}
+.stack{display:flex;flex-direction:column;gap:12px}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:16px}
+.meter{flex:1;min-width:140px;height:10px;border-radius:999px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent-2);transition:width .3s}
+.pct{font-weight:600;font-variant-numeric:tabular-nums;font-size:.9rem}
+.saved{font-size:.82rem;color:var(--muted)}
+.sec{border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-bottom:12px}
+.sec>summary{list-style:none;cursor:pointer;padding:15px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sec>summary::-webkit-details-marker{display:none}
+.sec>summary h2{font-size:1.05rem}
+.sec>summary .st{font-size:.78rem;font-weight:600;color:var(--warn);white-space:nowrap}
+.sec>summary .st.ok{color:var(--ok)}
+.sec .body{padding:0 18px 18px;display:flex;flex-direction:column;gap:14px}
+.sec .intro{margin:0;color:var(--muted);font-size:.9rem}
+.rep{border:1px dashed var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.rep-h{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.doc{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--field);display:flex;flex-direction:column;gap:10px}
+.doc-h{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.doc-h b{font-weight:600}
+.doc .tag{font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;color:var(--muted)}
+.doc .tag.need{color:var(--warn)}
+.doc .tag.ok{color:var(--ok)}
+.files{display:flex;flex-direction:column;gap:6px}
+.file{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:.88rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.file span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.file div{display:flex;gap:12px;flex:none}
+.up{display:inline-flex;align-self:flex-start}
+.up input{position:absolute;width:1px;height:1px;opacity:0}
+.actions{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.miss{margin:0;padding-left:18px;font-size:.88rem;max-height:260px;overflow:auto}
+.app{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);flex-wrap:wrap}
+.app b{display:block}
+.app span{font-size:.84rem;color:var(--muted)}
+.pill{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--field);border:1px solid var(--line);color:var(--muted)}
+.pill.sub{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+dl.ro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:6px 14px;margin:0;font-size:.9rem}
+dl.ro dt{color:var(--muted)}dl.ro dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+@media (max-width:560px){dl.ro{grid-template-columns:1fr}dl.ro dd{margin-bottom:6px}}
+footer{border-top:1px solid var(--line);padding-block:22px 36px;color:var(--muted);font-size:.82rem}
+footer a{color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header><div class="in nav">
+  <a class="logo" href="/"><svg width="34" height="34" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="9" fill="var(--accent)"/><circle cx="10" cy="12" r="2.4" fill="var(--accent-fg)"/><circle cx="15" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".75"/><circle cx="20" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".5"/><path d="M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0" fill="none" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round"/></svg>
+    <span><b>WorkerPool</b><small>Secure client intake</small></span></a>
+  <div class="who" id="who" hidden><span id="whoName"></span><button class="linkbtn" id="myForms" type="button">My forms</button><button class="linkbtn" id="logout" type="button">Sign out</button></div>
+</div></header>
+<main class="in" id="view"><div class="card"><p style="margin:0" class="saved">Loading…</p></div></main>
+<footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents. We are not immigration representatives and do not give immigration advice. Your information is kept private and is used only to prepare your file. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
+<datalist id="countries"></datalist>
+<script type="module">
+import { FORMS, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName } from "/assets/intake-config.js?v=1";
+
+const $ = (s, r = document) => r.querySelector(s);
+const view = $("#view");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const kb = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
+const day = (t) => t ? new Date(t).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" }) : "";
+$("#countries").innerHTML = COUNTRIES.map((c) => `<option value="${esc(c)}">`).join("");
+
+const qs = new URLSearchParams(location.search);
+let link = { code: qs.get("i") || "", form: qs.get("f") || "" }, linkInfo = null, me = null;
+let cur = null, form = null, data = {}, docs = [], saveTimer = null, saving = false, dirty = false;
+
+async function api(url, opts = {}) {
+  const r = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...(opts.headers || {}) } });
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (r.status === 401 && !/\/api\/auth\//.test(url)) { me = null; header(); authView("signup", "Your session ended. Sign in to continue."); throw new Error("auth"); }
+  return { ok: r.ok && j.ok !== false, status: r.status, j };
+}
+function header() { $("#who").hidden = !me; if (me) $("#whoName").textContent = me.name; }
+$("#logout").onclick = async () => { await flush(); try { await fetch("/api/auth/logout", { method: "POST" }); } catch (e) {} me = null; cur = null; header(); authView("login"); };
+$("#myForms").onclick = async () => { await flush(); cur = null; history.replaceState(null, "", location.pathname + location.search); list(); };
+window.addEventListener("beforeunload", (e) => { if (dirty) { flush(); e.preventDefault(); e.returnValue = ""; } });
+
+/* ---------- start ---------- */
+async function boot() {
+  if (link.code || link.form) {
+    const r = await api(`/api/intake/link?${link.code ? "i=" + encodeURIComponent(link.code) : "f=" + encodeURIComponent(link.form)}`);
+    if (!r.ok) { view.innerHTML = `<div class="card"><h2>Link not available</h2><p style="margin:0">${esc(r.j.error || "This link doesn't work.")}</p><p class="saved" style="margin:0">If someone sent you this link, ask them for a new one.</p></div>`; return; }
+    linkInfo = r.j; link.form = r.j.form;
+  }
+  const r = await api("/api/auth/me");
+  me = r.j.user || null; header();
+  if (!me) return authView(linkInfo ? "signup" : "login");
+  list(true);
+}
+
+/* ---------- sign up / sign in ---------- */
+function authView(mode = "signup", notice = "") {
+  const title = linkInfo ? linkInfo.name : "Your intake forms";
+  const hi = linkInfo && linkInfo.for ? `Hi ${esc(linkInfo.for)}, ` : "";
+  const box = mode === "forgot" ? `
+      <h2>Reset your password</h2><p class="saved" style="margin:0">We'll email you a link to choose a new password.</p>
+      <form id="fForm" class="stack" novalidate>
+        <div class="f"><label for="fEmail">Email</label><input id="fEmail" type="email" autocomplete="email"></div>
+        <div class="err" id="aErr"></div><button class="btn" type="submit">Send reset link</button>
+      </form><button class="linkbtn" id="back" type="button">Back to sign in</button>` : `
+      <div class="tabs" role="tablist"><button type="button" role="tab" id="tS" aria-selected="${mode === "signup"}">Create account</button><button type="button" role="tab" id="tL" aria-selected="${mode === "login"}">Sign in</button></div>
+      ${notice ? `<div class="note">${esc(notice)}</div>` : ""}
+      <form id="aForm" class="stack" novalidate>
+        ${mode === "signup" ? `<div class="f"><label for="aName">Your full name</label><input id="aName" autocomplete="name"></div>
+        <div class="f"><label for="aPhone">Phone number (with country code)</label><input id="aPhone" type="tel" autocomplete="tel" placeholder="+91 98765 43210"></div>` : ""}
+        <div class="f"><label for="aEmail">Email</label><input id="aEmail" type="email" autocomplete="email" value="${esc(linkInfo && linkInfo.email || "")}"></div>
+        <div class="f"><label for="aPass">Password</label><input id="aPass" type="password" autocomplete="${mode === "signup" ? "new-password" : "current-password"}" placeholder="${mode === "signup" ? "At least 8 characters" : ""}"></div>
+        <div class="err" id="aErr"></div>
+        <button class="btn" type="submit">${mode === "signup" ? "Create account and start" : "Sign in"}</button>
+        ${mode === "login" ? `<button class="linkbtn" id="forgot" type="button">Forgot your password?</button>` : `<p class="saved" style="margin:0">By creating an account you agree to our <a href="/terms/">terms</a> and <a href="/privacy/">privacy policy</a>. Already have a WorkerPool account? Sign in with it.</p>`}
+      </form>`;
+  view.innerHTML = `<section class="hero">
+    <div><span class="eyebrow">Secure client intake</span>
+      <h1>${esc(title)}</h1>
+      <p class="lede">${hi}this secure form collects the information and documents we need to prepare your application.</p>
+      <ul class="points">
+        <li>Create an account first, so your answers are saved and only you can see them.</li>
+        <li>Your answers save automatically. Stop any time and come back on any device.</li>
+        <li>Upload each document in its own place. PDF, JPG, PNG, DOC or DOCX, up to 10 MB each.</li>
+        <li>When everything is complete, press Submit and our team is notified.</li>
+      </ul></div>
+    <div class="card">${box}</div></section>`;
+  if (mode === "forgot") {
+    $("#back").onclick = () => authView("login");
+    $("#fForm").onsubmit = async (e) => { e.preventDefault(); const email = $("#fEmail").value.trim();
+      if (!/^\S+@\S+\.\S+$/.test(email)) return $("#aErr").textContent = "Enter a valid email address.";
+      await fetch("/api/auth/forgot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) }).catch(() => {});
+      $("#fForm").outerHTML = `<div class="note">If an account exists for ${esc(email)}, a reset link is on its way. After you choose a new password, open this page again.</div>`; };
+    return;
+  }
+  $("#tS").onclick = () => authView("signup"); $("#tL").onclick = () => authView("login");
+  const fg = $("#forgot"); if (fg) fg.onclick = () => authView("forgot");
+  $("#aForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const err = (m) => $("#aErr").textContent = m;
+    const body = { email: $("#aEmail").value.trim().toLowerCase(), password: $("#aPass").value, ref: "intake:" + (link.form || "") };
+    if (!/^\S+@\S+\.\S+$/.test(body.email)) return err("Enter a valid email address.");
+    if (mode === "signup") {
+      body.name = $("#aName").value.trim(); body.phone = $("#aPhone").value.trim();
+      try { body.tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (x) {}
+      if (!body.name) return err("Enter your full name.");
+      if (body.phone.replace(/\D/g, "").length < 7) return err("Enter a phone number we can reach you on.");
+      if (body.password.length < 8) return err("Password needs at least 8 characters.");
+    } else if (!body.password) return err("Enter your password.");
+    const btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
+    const r = await api(mode === "signup" ? "/api/auth/signup" : "/api/auth/login", { method: "POST", body: JSON.stringify(body) }).catch(() => ({ ok: false, j: {} }));
+    if (!r.ok) { btn.disabled = false; return err(r.j.error || "Something went wrong. Try again."); }
+    boot();
+  };
+}
+
+/* ---------- my forms ---------- */
+async function list(auto) {
+  const r = await api("/api/intake/mine");
+  me = r.j.user || me; header();
+  const rows = (r.j.rows || []).filter((x) => FORMS[x.form_key]);
+  const forThis = link.form ? rows.filter((x) => x.form_key === link.form) : [];
+  if (auto && link.form && !forThis.length) return start(false);
+  if (auto && link.form && forThis.length === 1 && forThis[0].status !== "submitted") return open(forThis[0].id);
+  view.innerHTML = `<div class="stack">
+    <div><span class="eyebrow">Signed in as ${esc(me.email)}</span><h1>Your forms</h1></div>
+    ${rows.length ? rows.map((x) => `<div class="app"><div><b>${esc(FORMS[x.form_key].name)}</b>
+        <span>${x.name ? "Applicant: " + esc(x.name) + " · " : ""}${x.status === "submitted" ? "Submitted " + day(x.submitted) : x.progress + "% complete · last saved " + day(x.updated)}</span></div>
+        <div style="display:flex;gap:8px;align-items:center"><span class="pill ${x.status === "submitted" ? "sub" : ""}">${x.status === "submitted" ? "Submitted" : x.status === "editing" ? "Making changes" : "In progress"}</span>
+        <button class="btn sm" data-open="${x.id}">${x.status === "submitted" ? "View" : "Continue"}</button></div></div>`).join("")
+      : `<div class="card"><p style="margin:0">You don't have any forms yet. Open the link we sent you to start one.</p></div>`}
+    ${link.form && FORMS[link.form] ? `<div class="card"><h2>Applying for more than one person?</h2><p style="margin:0" class="saved">Each person needs their own form (for example your spouse or each child). Start one for each family member applying.</p>
+      <div><button class="btn ghost" id="another">Start a ${esc(FORMS[link.form].name)} form for another person</button></div></div>` : ""}
+  </div>`;
+  view.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => open(b.dataset.open));
+  const an = $("#another"); if (an) an.onclick = () => start(true);
+}
+async function start(other) {
+  const r = await api("/api/intake/start", { method: "POST", body: JSON.stringify({ f: link.form, i: link.code, other }) });
+  if (!r.ok) { view.innerHTML = `<div class="card"><p class="err">${esc(r.j.error || "Couldn't start the form.")}</p></div>`; return; }
+  open(r.j.id);
+}
+
+/* ---------- the form ---------- */
+async function open(id) {
+  view.innerHTML = `<div class="card"><p class="saved" style="margin:0">Opening your form…</p></div>`;
+  const r = await api("/api/intake/item?id=" + encodeURIComponent(id));
+  if (!r.ok) { view.innerHTML = `<div class="card"><p class="err">${esc(r.j.error || "Couldn't open the form.")}</p></div>`; return; }
+  cur = r.j.row; data = cur.data || {}; docs = r.j.docs || []; form = FORMS[cur.form_key];
+  window.scrollTo(0, 0);
+  if (cur.status === "submitted") return done();
+  draw();
+}
+const keys = () => new Set(docs.map((d) => d.doc_key));
+const get = (s, k, i) => { const v = data[s]; return i == null ? (v || {})[k] : ((v || [])[i] || {})[k]; };
+
+function fieldHtml(s, f, i) {
+  const id = `f_${s.id}_${i ?? "x"}_${f.k}`, v = get(s.id, f.k, i) ?? "";
+  const at = `data-s="${s.id}" data-k="${f.k}"${i != null ? ` data-i="${i}"` : ""}`;
+  const lab = `<label for="${id}">${esc(f.l)}${f.r ? '<span class="req" aria-hidden="true">*</span>' : ""}</label>`;
+  const help = f.h ? `<span class="help">${esc(f.h)}</span>` : "";
+  const cond = f.if ? ` data-if="${esc(f.if)}"` : "";
+  const cls = `f${f.full || f.t === "ta" || f.t === "cb" ? " full" : ""}`;
+  if (f.t === "h") return `<div class="f hd">${esc(f.l)}</div>`;
+  let ctl;
+  if (f.t === "s") ctl = `<select id="${id}" ${at}><option value="">Choose…</option>${f.o.map((o) => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+  else if (f.t === "yn") return `<div class="${cls}"${cond} role="radiogroup" aria-labelledby="${id}_l"><span class="lab" id="${id}_l">${esc(f.l)}${f.r ? '<span class="req" aria-hidden="true">*</span>' : ""}</span>${help}
+      <div class="yn">${["Yes", "No"].map((o) => `<label><input type="radio" name="${id}" value="${o}" ${at}${v === o ? " checked" : ""}>${o}</label>`).join("")}</div></div>`;
+  else if (f.t === "cb") return `<div class="${cls}"${cond}><label class="cb"><input type="checkbox" id="${id}" ${at}${v === true ? " checked" : ""}><span>${esc(f.l)}${f.r ? '<span class="req" aria-hidden="true">*</span>' : ""}</span></label></div>`;
+  else if (f.t === "ta") ctl = `<textarea id="${id}" ${at} maxlength="4000">${esc(v)}</textarea>`;
+  else {
+    const type = { d: "date", e: "email", p: "tel", n: "number" }[f.t] || "text";
+    ctl = `<input id="${id}" type="${type}" ${at} value="${esc(v)}"${f.t === "c" ? ' list="countries" autocomplete="off"' : ""}${f.t === "n" ? ' inputmode="decimal" min="0"' : ""}${f.t === "d" ? ' max="2100-12-31"' : ""} maxlength="300">`;
+  }
+  return `<div class="${cls}"${cond}>${lab}${help}${ctl}</div>`;
+}
+function secHtml(s) {
+  const intro = s.intro ? `<p class="intro">${esc(s.intro)}</p>` : "";
+  let inner;
+  if (s.rep) {
+    const rows = Array.isArray(data[s.id]) ? data[s.id] : [];
+    inner = rows.map((row, i) => `<div class="rep"><div class="rep-h"><span>${i + 1}</span><button class="linkbtn" type="button" data-del="${s.id}" data-i="${i}">Remove</button></div>
+      <div class="grid">${s.fields.map((f) => fieldHtml(s, f, i)).join("")}</div></div>`).join("")
+      + (rows.length < (s.rep.max || 20) ? `<div><button class="btn ghost sm" type="button" data-add="${s.id}">+ ${esc(s.rep.add || "Add")}</button></div>` : "");
+  } else inner = `<div class="grid">${s.fields.map((f) => fieldHtml(s, f)).join("")}</div>`;
+  return `<details class="sec" data-sec="${s.id}"${s.if ? ` data-if="${esc(s.if)}"` : ""}><summary><h2>${esc(s.title)}</h2><span class="st"></span></summary><div class="body">${intro}${inner}</div></details>`;
+}
+function docHtml(d) {
+  const mine = docs.filter((x) => x.doc_key === d.k);
+  return `<div class="doc" data-doc="${d.k}"${d.if ? ` data-if="${esc(d.if)}"` : ""}>
+    <div class="doc-h"><div><b>${esc(d.l)}</b>${d.h ? `<div class="help" style="margin-top:3px">${esc(d.h)}</div>` : ""}</div>
+      <span class="tag ${mine.length ? "ok" : d.r ? "need" : ""}">${mine.length ? "✓ Uploaded" : d.r ? "Required" : "Optional"}</span></div>
+    ${mine.length ? `<div class="files">${mine.map((x) => `<div class="file"><span title="${esc(x.name)}">${esc(x.name)} · ${kb(x.size)}</span><div><a class="linkbtn" href="/api/intake/doc?id=${x.id}" target="_blank" rel="noopener">View</a><button class="linkbtn" type="button" data-rm="${x.id}">Remove</button></div></div>`).join("")}</div>` : ""}
+    <label class="btn ghost sm up">Upload file${mine.length ? "s" : ""}<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" data-up="${d.k}"></label>
+    <div class="err" data-uperr="${d.k}" style="min-height:0"></div></div>`;
+}
+function draw() {
+  view.innerHTML = `<div>
+    <span class="eyebrow">${cur.status === "editing" ? "Making changes to a submitted form" : "Intake form"}</span>
+    <h1>${esc(form.name)}</h1>
+    <p class="lede">${esc(form.intro)}</p></div>
+    <div class="bar"><div class="meter" aria-hidden="true"><i id="meter" style="width:0"></i></div><span class="pct" id="pct">0%</span><span class="saved" id="saved">All changes saved</span></div>
+    <form id="ff" novalidate>${form.sections.map(secHtml).join("")}
+      <details class="sec" data-sec="__docs" open><summary><h2>Documents</h2><span class="st"></span></summary><div class="body">
+        <p class="intro">Upload a clear scan or photo of each document. You can add more than one file for any item. The list changes with your answers above.</p>
+        <div class="stack" id="docList">${form.docs.map(docHtml).join("")}</div></div></details>
+      <div class="card" id="finish"><h2>Review and submit</h2>
+        <div id="missWrap"></div>
+        <div class="actions"><span class="saved">You can come back and finish later. Your answers are saved.</span><button class="btn" type="button" id="submit">Submit to WorkerPool</button></div>
+        <div class="err" id="subErr"></div></div>
+    </form>`;
+  const ff = $("#ff");
+  ff.addEventListener("input", onInput);
+  ff.addEventListener("change", onInput);
+  ff.addEventListener("click", onClick);
+  ff.addEventListener("change", onFile);
+  $("#submit").onclick = submit;
+  const firstOpen = form.sections.find((s) => sectionOn(s, data) && secMissing(s).length);
+  const el = firstOpen && ff.querySelector(`[data-sec="${firstOpen.id}"]`); if (el) el.open = true;
+  refresh();
+}
+function secMissing(s) {
+  if (!sectionOn(s, data)) return [];
+  return missing({ sections: [s], docs: [] }, data, new Set());
+}
+function refresh() {
+  const ff = $("#ff"); if (!ff) return;
+  ff.querySelectorAll("[data-if]").forEach((el) => {
+    const row = el.closest(".rep"), sec = el.closest("[data-sec]");
+    let r = null;
+    if (row && sec) { const i = [...sec.querySelectorAll(".rep")].indexOf(row); r = (data[sec.dataset.sec] || [])[i]; }
+    el.hidden = !when(el.dataset.if, data, r);
+  });
+  for (const s of form.sections) {
+    const el = ff.querySelector(`[data-sec="${s.id}"] .st`); if (!el) continue;
+    const m = secMissing(s), rows = s.rep ? (data[s.id] || []).length : 0;
+    el.className = "st" + (m.length ? "" : " ok");
+    el.textContent = m.length ? `${m.length} to answer` : s.rep && !rows ? "Optional" : "✓ Done";
+  }
+  const dm = form.docs.filter((d) => d.r && when(d.if, data) && !keys().has(d.k)).length;
+  const ds = ff.querySelector(`[data-sec="__docs"] .st`); ds.className = "st" + (dm ? "" : " ok"); ds.textContent = dm ? `${dm} required to upload` : "✓ Done";
+  const pct = progress(form, data, keys());
+  $("#meter").style.width = pct + "%"; $("#pct").textContent = pct + "%";
+  const miss = missing(form, data, keys());
+  $("#missWrap").innerHTML = miss.length ? `<div class="note warn"><b>${miss.length} item${miss.length > 1 ? "s" : ""} still needed before you can submit:</b><ul class="miss">${miss.slice(0, 40).map((x) => `<li>${esc(x)}</li>`).join("")}${miss.length > 40 ? `<li>…and ${miss.length - 40} more</li>` : ""}</ul></div>` : `<div class="note">Everything required is complete. Check your answers, then submit.</div>`;
+  $("#submit").disabled = !!miss.length;
+}
+function onInput(e) {
+  const t = e.target; if (!t.dataset || !t.dataset.s) return;
+  if (t.type === "file") return;
+  const s = t.dataset.s, k = t.dataset.k, i = t.dataset.i;
+  const v = t.type === "checkbox" ? t.checked : t.value;
+  if (t.type === "radio" && !t.checked) return;
+  if (i != null) { if (!Array.isArray(data[s])) data[s] = []; (data[s][+i] = data[s][+i] || {})[k] = v; }
+  else (data[s] = data[s] || {})[k] = v;
+  if (e.type === "change" || t.tagName === "SELECT" || t.type === "radio" || t.type === "checkbox") refresh();
+  else clearTimeout(window.__rf), window.__rf = setTimeout(refresh, 400);
+  queueSave();
+}
+function onClick(e) {
+  const add = e.target.closest("[data-add]"), del = e.target.closest("[data-del]"), rm = e.target.closest("[data-rm]");
+  if (add) { const s = form.sections.find((x) => x.id === add.dataset.add); (data[s.id] = Array.isArray(data[s.id]) ? data[s.id] : []).push({}); redrawSec(s, true); queueSave(); }
+  if (del) { if (!confirm("Remove this entry?")) return; const s = form.sections.find((x) => x.id === del.dataset.del); data[s.id].splice(+del.dataset.i, 1); redrawSec(s); queueSave(); }
+  if (rm) removeFile(rm);
+}
+function redrawSec(s, focusLast) {
+  const old = $(`#ff [data-sec="${s.id}"]`), wrap = document.createElement("div");
+  wrap.innerHTML = secHtml(s); const n = wrap.firstElementChild; n.open = true; old.replaceWith(n);
+  refresh();
+  if (focusLast) { const reps = n.querySelectorAll(".rep"); const f = reps[reps.length - 1] && reps[reps.length - 1].querySelector("input,select,textarea"); if (f) f.focus(); }
+}
+function setSaved(t) { const el = $("#saved"); if (el) el.textContent = t; }
+function queueSave() { dirty = true; setSaved("Saving…"); clearTimeout(saveTimer); saveTimer = setTimeout(flush, 1200); }
+async function flush() {
+  clearTimeout(saveTimer);
+  if (!cur || !dirty || saving) return;
+  saving = true; dirty = false;
+  try {
+    const r = await api("/api/intake/item", { method: "PUT", body: JSON.stringify({ id: cur.id, data }) });
+    if (!r.ok) { dirty = true; setSaved(r.j.error || "Couldn't save. Check your connection."); }
+    else setSaved("All changes saved · " + new Date().toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" }));
+  } catch (e) { if (e.message !== "auth") { dirty = true; setSaved("Couldn't save. Check your connection."); } }
+  saving = false;
+  if (dirty) saveTimer = setTimeout(flush, 3000);
+}
+async function onFile(e) {
+  const t = e.target; if (t.type !== "file" || !t.dataset.up) return;
+  const dk = t.dataset.up, err = $(`[data-uperr="${dk}"]`), files = [...t.files]; t.value = "";
+  err.textContent = "";
+  await flush();
+  for (const f of files) {
+    if (f.size > 10 * 1024 * 1024) { err.textContent = `${f.name} is over 10 MB. Compress it or split it.`; continue; }
+    if (!/\.(pdf|jpe?g|png|docx?)$/i.test(f.name)) { err.textContent = `${f.name}: upload a PDF, JPG, PNG, DOC or DOCX.`; continue; }
+    err.textContent = `Uploading ${f.name}…`;
+    try {
+      const r = await fetch("/api/intake/doc", { method: "POST", body: f, headers: { "x-intake-id": cur.id, "x-doc-key": dk, "x-file-name": encodeURIComponent(f.name) } });
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 401) { authView("login", "Your session ended. Sign in to continue."); return; }
+      if (!r.ok || !j.ok) { err.textContent = j.error || "Upload failed. Try again."; continue; }
+      docs.push(j.doc); err.textContent = "";
+    } catch (x) { err.textContent = "Upload failed. Check your connection and try again."; }
+  }
+  redrawDoc(dk);
+}
+function redrawDoc(dk) {
+  const d = form.docs.find((x) => x.k === dk), old = $(`[data-doc="${dk}"]`), w = document.createElement("div");
+  const msg = old.querySelector("[data-uperr]").textContent;
+  w.innerHTML = docHtml(d); old.replaceWith(w.firstElementChild);
+  $(`[data-uperr="${dk}"]`).textContent = msg;
+  refresh();
+}
+async function removeFile(b) {
+  const x = docs.find((d) => d.id === b.dataset.rm); if (!x || !confirm(`Remove ${x.name}?`)) return;
+  b.disabled = true;
+  const r = await api("/api/intake/doc?id=" + encodeURIComponent(x.id), { method: "DELETE" });
+  if (!r.ok) { b.disabled = false; alert(r.j.error || "Couldn't remove it."); return; }
+  docs = docs.filter((d) => d.id !== x.id); redrawDoc(x.doc_key);
+}
+async function submit() {
+  const b = $("#submit"), err = $("#subErr"); err.textContent = "";
+  await flush(); if (dirty) { err.textContent = "Your latest answers aren't saved yet. Check your connection and try again."; return; }
+  if (!confirm("Submit this form now? You can still make changes later if needed.")) return;
+  b.disabled = true; b.textContent = "Submitting…";
+  const r = await api("/api/intake/submit", { method: "POST", body: JSON.stringify({ id: cur.id }) });
+  if (!r.ok) { b.disabled = false; b.textContent = "Submit to WorkerPool"; err.textContent = r.j.error || "Couldn't submit. Try again."; return; }
+  cur.status = "submitted"; cur.submitted = cur.submitted || new Date().toISOString(); done(true);
+}
+
+/* ---------- submitted ---------- */
+function shown(v) { return v === true ? "Yes" : String(v ?? "").trim(); }
+function done(just) {
+  window.scrollTo(0, 0);
+  const blocks = form.sections.filter((s) => sectionOn(s, data)).map((s) => {
+    const one = (row) => s.fields.filter((f) => f.t !== "h" && fieldOn(f, data, row) && shown((row || {})[f.k])).map((f) => `<dt>${esc(f.l)}</dt><dd>${esc(shown(row[f.k]))}</dd>`).join("");
+    const body = s.rep ? ((data[s.id] || []).map((row, i) => `<dl class="ro" style="margin-bottom:10px"><dt style="grid-column:1/-1;font-weight:600;color:var(--fg)">${i + 1}.</dt>${one(row)}</dl>`).join("") || `<p class="saved" style="margin:0">None</p>`) : `<dl class="ro">${one(data[s.id] || {})}</dl>`;
+    return `<details class="sec"><summary><h2>${esc(s.title)}</h2></summary><div class="body">${body}</div></details>`;
+  }).join("");
+  const files = form.docs.filter((d) => docs.some((x) => x.doc_key === d.k)).map((d) => `<div><b>${esc(d.l)}</b><div class="files" style="margin-top:6px">${docs.filter((x) => x.doc_key === d.k).map((x) => `<div class="file"><span>${esc(x.name)} · ${kb(x.size)}</span><a class="linkbtn" href="/api/intake/doc?id=${x.id}" target="_blank" rel="noopener">View</a></div>`).join("")}</div></div>`).join("");
+  view.innerHTML = `<div class="stack">
+    <div><span class="eyebrow">Submitted ${day(cur.submitted)}</span><h1>${esc(form.name)}</h1>${applicantName(data) ? `<p class="lede">Applicant: ${esc(applicantName(data))}</p>` : ""}</div>
+    ${just ? `<div class="note"><b>Thank you. Your form was submitted.</b> We emailed you a confirmation, and our team will contact you if anything else is needed.</div>` : ""}
+    <div class="card"><div class="actions"><span>Need to fix something or add a document?</span><button class="btn ghost sm" id="reopen" type="button">Make changes</button></div><div class="err" id="roErr" style="min-height:0"></div></div>
+    <div>${blocks}</div>
+    <div class="card"><h2>Documents (${docs.length})</h2>${files || `<p class="saved" style="margin:0">No files.</p>`}</div>
+    <div><button class="btn ghost" id="back" type="button">Back to my forms</button></div></div>`;
+  $("#back").onclick = () => { cur = null; list(); };
+  $("#reopen").onclick = async () => {
+    if (!confirm("Reopen this form to make changes? Our team will wait until you submit it again.")) return;
+    const r = await api("/api/intake/reopen", { method: "POST", body: JSON.stringify({ id: cur.id }) });
+    if (!r.ok) { $("#roErr").textContent = r.j.error || "Couldn't reopen it."; return; }
+    cur.status = "editing"; draw();
+  };
+}
+boot().catch((e) => { if (e.message !== "auth") view.innerHTML = `<div class="card"><p class="err">Couldn't load the page. Refresh to try again.</p></div>`; });
+</script>
+</body>
+</html>

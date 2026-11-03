@@ -233,6 +233,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="scanner" aria-pressed="false">Scanner passes</button>
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
+      <button type="button" data-t="intake" aria-pressed="false" id="inTab">Intake forms</button>
       <button type="button" data-t="b2b" aria-pressed="false">B2B applications</button>
       <button type="button" data-t="students" aria-pressed="false" id="stuTab">Student Pool</button>
       <button type="button" data-t="study" aria-pressed="false">Study options</button>
@@ -272,6 +273,7 @@ async function load(){
   const days = range===0?3650:Math.max(range,1);
   try{
     if(tab==="chat"){ await chatList(); render(); return; }
+    if(tab==="intake"){ if(window.WPIntake) await window.WPIntake.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">Intake forms didn't load. Refresh the page.</div>`; return; }
     if(tab==="mail"){ if(!data.mail||ml.reload){ ml.reload=false; data.mail=await chatFetch("mail"); mailInit(); render(); } else if(!$("#mlForm")) render(); return; }
     if(tab==="analytics"&&anView==="signups") data.signups=await api("signups?days="+days);
     else if(tab==="analytics"&&anView==="questionnaire") data.quest=await api("questionnaire?days="+days);
@@ -311,7 +313,7 @@ $("#gate").onsubmit=e=>{ e.preventDefault(); KEY=$("#key").value.trim(); if(!KEY
 $("#out").onclick=()=>lock("");
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; newsEdit=null; drEdit=null; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
 let iv=null;
-function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); vsStart(); }
+function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); vsStart(); if(window.WPIntake) window.WPIntake.badge(KEY); }
 /* ---------- Live visitors (unique visitors, Edmonton time; refreshed every 30 seconds) ---------- */
 let vsIv=null; const vsShown={};
 function vsAnim(el,to){ const from=vsShown[el.dataset.k]??0; vsShown[el.dataset.k]=to; const f0=n=>Number(n||0).toLocaleString("en-CA");
@@ -376,6 +378,8 @@ function controls(){
   } else if(tab==="mail"){
     c.innerHTML=`<button class="dl" type="button" id="mlRefresh">Refresh list</button>`;
     $("#mlRefresh").onclick=()=>{ ml.reload=true; load(); };
+  } else if(tab==="intake"){
+    c.innerHTML="";
   } else if(tab==="chat"){
     c.innerHTML=`<span class="chat-live"><i id="chatDot"></i><span id="chatHrs"></span></span>`; chatStatus();
   } else {
@@ -494,6 +498,7 @@ const place=v=>v.city?`${v.city}, ${v.country||"?"}`:(v.country||(v.tz&&v.tz.spl
 
 function render(){
   const body=$("#wpaBody");
+  if(tab==="intake") return;
   if(tab==="interest") return renderInterest(body);
   if(tab==="submissions") return renderSubs(body);
   if(tab==="b2b") return renderB2B(body);
@@ -1595,5 +1600,6 @@ document.addEventListener("click",async e=>{
 if(KEY) start();
 })();
 </script>
+<script src="/admin/intake.js?v=1"></script>
 </body>
 </html>

@@ -17,6 +17,10 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `functions/api/auth/*` | Accounts: sign up, sign in, sign out, forgot and reset password |
 | `functions/api/profile.js` | Saves a candidate's questionnaire as they go |
 | `functions/api/resume.js` | Resume upload and removal (private R2 storage) |
+| `intake/` | Client intake forms (`/intake/?f=trv-out` or a personal link `/intake/?i=CODE`): the client creates an account or signs in, fills the form (saves as they go) and uploads each document, then submits. They can reopen a submitted form to make changes |
+| `assets/intake-config.js` | Intake form catalog (Temporary: Outside / Inside Canada; Permanent) and each form's questions, conditions and document list. Shared by the client page, the admin tab and the server. Add a form to `FORMS` to switch on its link |
+| `functions/api/intake/[[path]].js` | Intake API: client routes (start, save, upload, submit, reopen) and admin routes under `/api/intake/admin/` (links, list, open, files, status, delete) |
+| `admin/intake.js` | Admin **Intake forms** tab |
 | `b2b/` | B2B Data Entry client portal: application type, information sheet, document checklist |
 | `assets/b2b-config.js` | Application types, info sheet sections and document checklists (edit here to add types) |
 | `functions/api/b2b/*` | B2B applications: create, save, upload documents, submit (emails admin), reopen a submitted application for edits (emails admin to hold processing; resubmit sends an "Updated" email) |
@@ -56,6 +60,16 @@ Then open `https://workerpool.ca/admin/` and enter your admin key.
 ## Resume storage
 
 Cloudflare → R2 Object Storage → Create bucket `workerpool-resumes` (keep it private; no public access). Then Pages project → Settings → Bindings → Add → R2 bucket → Variable name `RESUMES` → bucket `workerpool-resumes`. Run `schema-resumes.sql` in the D1 console once, then redeploy.
+
+## Client intake forms (admin → Intake forms)
+
+Pick an application type under **Temporary residence applications** (Outside Canada / Inside Canada) or **Permanent residence applications**. Types marked *Soon* aren't built yet; **Visitor visa (TRV), outside Canada** is ready. Picking a ready type highlights its client link: **Copy link**, send it on WhatsApp, or **Preview** it. Open *Make a personal link for one client* to create a link with the client's name (and optionally email it to them); the table shows when each personal link was opened and how many forms were started and submitted. **Turn off** stops a personal link working.
+
+The client opens the link, creates a WorkerPool account (or signs in), fills the form and uploads documents. Questions and the document checklist change with their answers (married → marriage certificate, host in Canada → invitation letter and host's status, employed → job letter and pay slips, under 18 → birth certificate and consent letter, and so on). Submit stays locked until every required answer and document is in. One account can fill forms for several family members.
+
+Under **Client forms**, submitted forms show highlighted as **New** (or **Updated** after a resubmission) until you open them, and the tab shows the count. Open one to see every answer by section, the documents grouped by checklist item (View / Download / **Download all files**), anything still missing, and the account's contact details. Set a work status and private notes, **Print / save PDF**, **Copy answers**, **Let client edit and resubmit**, or delete the form and its files permanently. `ADMIN_EMAIL` gets an email for each submission and resubmission; the client gets a confirmation.
+
+The TRV form follows IRCC's Application for Visitor Visa (IMM 5257), Schedule 1 (IMM 5257B), the Family Information form (IMM 5707 / IMM 5645) and the online visitor visa document checklist. Tables (`intakes`, `intake_docs`, `intake_invites`) are created automatically; files go to the private `RESUMES` R2 bucket under `intake/`. When you change `assets/intake-config.js` or `admin/intake.js`, bump the `?v=` on their imports (`intake/index.html`, `admin/index.html`, `admin/intake.js`).
 
 ## B2B Data Entry portal
 

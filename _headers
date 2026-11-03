@@ -6,6 +6,11 @@
 /admin/*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
+/intake/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-cache
+/assets/intake-config.js
+  Cache-Control: no-cache
 /student-pool/*
   Cache-Control: no-cache
 /assets/chat.js
