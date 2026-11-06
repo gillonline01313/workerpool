@@ -157,6 +157,7 @@ function header() {
   $("#who").hidden = !ME;
   if (!ME) return;
   $("#whoFirm").textContent = ME.partner.firm;
+  if (ME.pending) { $("#whoCredits").innerHTML = `<span class="chip zero">Waiting for approval</span>`; return; }
   const c = ME.partner.credits;
   $("#whoCredits").innerHTML = `<span class="chip${c.tr ? "" : " zero"}" title="Temporary residence form credits">TR ${c.tr}</span>${ME.ready.pr || c.pr ? `<span class="chip${c.pr ? "" : " zero"}" title="Permanent residence form credits">PR ${c.pr}</span>` : ""}`;
 }
@@ -167,10 +168,11 @@ async function boot() {
   if (qs.get("reset")) return resetView(qs.get("reset"));
   const r = await api("me").catch(() => ({ ok: false, j: {} }));
   if (!r.ok) {
-    if (r.status === 403) { view.innerHTML = `<div class="card"><h2>Account paused</h2><p style="margin:0">${esc(r.j.error)}</p></div>`; return; }
+    if (r.status === 403 && !r.j.pending) { view.innerHTML = `<div class="card"><h2>Account paused</h2><p style="margin:0">${esc(r.j.error)}</p></div>`; return; }
     return authView(qs.get("paid") ? "login" : "signup", qs.get("paid") ? "Sign in to see your new credits." : "");
   }
   ME = r.j; header();
+  if (ME.pending) return pendingView();
   if (qs.get("paid")) {
     const p = await api("paid?session_id=" + encodeURIComponent(qs.get("paid")));
     history.replaceState(null, "", location.pathname);
@@ -258,7 +260,6 @@ async function authView(mode = "signup", notice = "") {
     const btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
     const r = await api(mode, { method: "POST", body: JSON.stringify(b) }).catch(() => ({ ok: false, j: {} }));
     if (!r.ok) { btn.disabled = false; return err(r.j.error || "Something went wrong. Try again."); }
-    if (mode === "signup") { tab = "credits"; S.flash = "Welcome! Buy form credits, then create a link for your first client under Send a form."; }
     boot();
   };
 }
@@ -271,6 +272,16 @@ function resetView(token) {
     const r = await api("reset", { method: "POST", body: JSON.stringify({ token, password: $("#rP").value }) });
     if (!r.ok) return $("#rErr").textContent = r.j.error || "Couldn't save it.";
     history.replaceState(null, "", location.pathname); authView("login", "Password saved. Sign in with your new password."); };
+}
+
+function pendingView() {
+  const p = ME.partner;
+  view.innerHTML = `<div class="card" style="max-width:620px;margin:0 auto"><span class="eyebrow">Application received</span><h1 style="font-size:1.8rem">Waiting for approval</h1>
+    <p style="margin:0">Thank you, ${esc(String(p.contact || "").split(" ")[0])}. We're checking ${esc(p.firm)}'s licence (${esc(p.licence)}) before you can send intake forms. This usually takes one business day, and we'll email <b>${esc(p.email)}</b> as soon as your account is approved.</p>
+    <dl class="ro"><dt>Firm</dt><dd>${esc(p.firm)}</dd><dt>Type</dt><dd>${esc(p.kind_label)}</dd><dt>Licence</dt><dd>${esc(p.licence)}</dd><dt>Contact</dt><dd>${esc(p.contact)} · ${esc(p.phone)}</dd></dl>
+    <p class="muted" style="margin:0">Something wrong in your details? Email info@workerpool.ca.</p>
+    <div><button class="btn ghost sm" type="button" id="recheck">Check again</button></div></div>`;
+  $("#recheck").onclick = () => boot();
 }
 
 /* ---------- dashboard ---------- */

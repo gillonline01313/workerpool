@@ -34,12 +34,14 @@
   }
 
   function draw() {
+    label();
     const R = D.rows, f = q.trim().toLowerCase();
-    const L = R.filter((p) => !f || [p.firm, p.contact, p.email, p.licence, p.phone, p.city].some((x) => String(x || "").toLowerCase().includes(f)));
-    const tot = { firms: R.length, active: R.filter((p) => p.status === "active").length, paid: R.reduce((a, p) => a + (p.paid || 0), 0), submitted: R.reduce((a, p) => a + p.submitted, 0) };
+    const L = R.slice().sort((a, b) => (b.status === "pending") - (a.status === "pending")).filter((p) => !f || [p.firm, p.contact, p.email, p.licence, p.phone, p.city].some((x) => String(x || "").toLowerCase().includes(f)));
+    const tot = { pending: R.filter((p) => p.status === "pending").length, firms: R.length, active: R.filter((p) => p.status === "active").length, paid: R.reduce((a, p) => a + (p.paid || 0), 0), submitted: R.reduce((a, p) => a + p.submitted, 0) };
     body.innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">
       <div class="wpa-card wide"><h3>Partner intake forms</h3>
         <p class="sub" style="margin:0">RCICs and law firms sign up at <a href="/partners/" target="_blank" rel="noopener">workerpool.ca/partners/</a>, buy form credits and send personal links to their own clients. They see only their own clients' forms; you see every form under <b>Intake forms → Partner firms</b>.</p>
+        ${tot.pending ? `<div style="background:#f6ebdc;color:#5a3a12;border-radius:12px;padding:10px 14px;font-size:.9rem"><b>${tot.pending} firm${tot.pending > 1 ? "s" : ""} waiting for your approval.</b> Check the licence, then open the firm below and press Approve. They can't buy credits or send forms until you do.</div>` : ""}
         <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem"><span><b>${tot.firms}</b> firms (${tot.active} active)</span><span><b>${tot.submitted}</b> forms submitted</span><span><b>${money(tot.paid)}</b> paid online</span>
           <span>${D.stripe ? "Stripe payments: on" : "<b style='color:#b3412e'>Stripe payments: off</b> (set STRIPE_SECRET_KEY; until then add credits by hand)"}</span></div>
         <form id="ptPrice" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
@@ -51,7 +53,7 @@
         ${L.length ? `<div class="wpa-tbl"><table><thead><tr><th>Firm</th><th>Contact</th><th>Status</th><th>Credits left</th><th>Links</th><th>Forms</th><th>Paid</th><th>Joined</th></tr></thead><tbody>
           ${L.map((p) => `<tr class="ik-row${open === p.id ? " new" : ""}" data-p="${p.id}" tabindex="0"><td><b>${esc(p.firm)}</b><br><span class="ik-note">${esc(p.kind_label)} · ${esc(p.licence)}</span></td>
             <td>${esc(p.contact)}<br><span class="ik-note">${esc(p.email)} · ${esc(p.phone)}</span></td>
-            <td>${p.status === "active" ? `<span class="ik-badge sub">Active</span>` : `<span class="ik-badge edit">Paused</span>`}</td>
+            <td>${p.status === "active" ? `<span class="ik-badge sub">Active</span>` : p.status === "pending" ? `<span class="ik-badge new" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">Needs approval</span>` : p.status === "declined" ? `<span class="ik-badge">Declined</span>` : `<span class="ik-badge edit">Paused</span>`}</td>
             <td>TR ${p.credits_tr} · PR ${p.credits_pr}</td><td>${p.links}</td><td>${p.submitted} submitted${p.filling ? ` · ${p.filling} filling` : ""}</td><td>${money(p.paid)}</td>
             <td>${when(p.created)}<br><span class="ik-note">Last sign-in ${when(p.last_login)}</span></td></tr>
             ${open === p.id ? `<tr><td colspan="8" style="background:var(--surface)">${detailHtml(p)}</td></tr>` : ""}`).join("")}
@@ -75,7 +77,7 @@
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
         <label style="display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted);flex:1;min-width:220px">Private note (only you see it)<textarea class="ik-in" id="ptNote" rows="2">${esc(p.admin_note || "")}</textarea></label>
         <button class="ik-btn g" type="button" id="ptSaveNote">Save note</button>
-        ${p.status === "active" ? `<button class="ik-btn red" type="button" id="ptPause" title="Signs them out, stops their links working and stops new links">Pause account</button>` : `<button class="ik-btn" type="button" id="ptResume">Reactivate account</button>`}</div>
+        ${p.status === "pending" ? `<button class="ik-btn" type="button" id="ptApprove">Approve firm</button><button class="ik-btn red" type="button" id="ptDecline">Decline</button>` : p.status === "active" ? `<button class="ik-btn red" type="button" id="ptPause" title="Signs them out, stops their links working and stops new links">Pause account</button>` : `<button class="ik-btn" type="button" id="ptResume">Reactivate account</button>`}</div>
       <div class="ik-note" id="ptMsg"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div><b style="font-size:.85rem">Client links (${d.links.length})</b><div class="wpa-tbl"><table style="min-width:0"><tbody>${d.links.map((v) => `<tr><td>${esc(v.label || "–")}<br><span class="ik-note">${esc(v.form_key)} · ${when(v.created)}</span></td><td>${v.archived ? (v.refunded ? "Off · refunded" : "Off") : v.done ? "Submitted" : v.opens ? `Opened ${v.opens}×` : "Not opened"}</td></tr>`).join("") || `<tr><td class="ik-note">None yet</td></tr>`}</tbody></table></div></div>
@@ -94,8 +96,14 @@
     $("#ptGrant").onclick = async () => { const n = parseInt($("#ptN").value); if (!n) return msg("Enter a number."); try { await post("grant", { id: open, kind: $("#ptK").value, qty: n, note: $("#ptWhy").value }); await refresh(); } catch (e) { msg(e.message); } };
     $("#ptSaveNote").onclick = async () => { try { await post("status", { id: open, note: $("#ptNote").value }); msg("Saved ✓"); p.admin_note = $("#ptNote").value; } catch (e) { msg(e.message); } };
     const pz = $("#ptPause"); if (pz) pz.onclick = async () => { if (!confirm(`Pause ${p.firm}? They're signed out, their client links stop working and they can't create new ones. Forms already submitted stay.`)) return; await post("status", { id: open, status: "suspended" }); await refresh(); };
+    const ap = $("#ptApprove"); if (ap) ap.onclick = async () => { if (!confirm(`Approve ${p.firm} (${p.licence})? They're emailed and can start buying credits and sending forms.`)) return; await post("status", { id: open, status: "active" }); await refresh(); };
+    const dc = $("#ptDecline"); if (dc) dc.onclick = async () => { const reason = prompt(`Decline ${p.firm}? Optional reason to include in the email to them:`, ""); if (reason === null) return; await post("status", { id: open, status: "declined", reason }); await refresh(); };
     const rs = $("#ptResume"); if (rs) rs.onclick = async () => { await post("status", { id: open, status: "active" }); await refresh(); };
   }
 
-  window.WPPartners = { load };
+  function label() { const t = document.getElementById("ptTab"); if (!t || !D) return; const n = D.rows.filter((p) => p.status === "pending").length; t.textContent = n ? `Partners (${n} to approve)` : "Partners"; t.style.fontWeight = n ? "700" : ""; }
+  let bIv = null;
+  async function badge(key) { if (key) KEY = key; if (!KEY) return; try { D = await call("list"); label(); } catch (e) {} if (!bIv) bIv = setInterval(() => { if (!document.hidden && !body) badge(); }, 60000); }
+  window.WPPartners = { load, badge };
 })();
+try { const k = sessionStorage.getItem("wp_admin"); if (k) window.WPPartners.badge(k); } catch (e) {}

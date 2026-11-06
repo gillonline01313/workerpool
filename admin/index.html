@@ -234,7 +234,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
       <button type="button" data-t="intake" aria-pressed="false" id="inTab">Intake forms</button>
-      <button type="button" data-t="partners" aria-pressed="false">Partners</button>
+      <button type="button" data-t="partners" aria-pressed="false" id="ptTab">Partners</button>
       <button type="button" data-t="b2b" aria-pressed="false">B2B applications</button>
       <button type="button" data-t="students" aria-pressed="false" id="stuTab">Student Pool</button>
       <button type="button" data-t="study" aria-pressed="false">Study options</button>
@@ -315,7 +315,7 @@ $("#gate").onsubmit=e=>{ e.preventDefault(); KEY=$("#key").value.trim(); if(!KEY
 $("#out").onclick=()=>lock("");
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; newsEdit=null; drEdit=null; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
 let iv=null;
-function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); vsStart(); if(window.WPIntake) window.WPIntake.badge(KEY); }
+function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); vsStart(); if(window.WPIntake) window.WPIntake.badge(KEY); if(window.WPPartners) window.WPPartners.badge(KEY); }
 /* ---------- Live visitors (unique visitors, Edmonton time; refreshed every 30 seconds) ---------- */
 let vsIv=null; const vsShown={};
 function vsAnim(el,to){ const from=vsShown[el.dataset.k]??0; vsShown[el.dataset.k]=to; const f0=n=>Number(n||0).toLocaleString("en-CA");
@@ -1603,6 +1603,6 @@ if(KEY) start();
 })();
 </script>
 <script src="/admin/intake.js?v=3"></script>
-<script src="/admin/partners.js?v=1"></script>
+<script src="/admin/partners.js?v=2"></script>
 </body>
 </html>

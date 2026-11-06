@@ -91,7 +91,11 @@ async function partner({ request, env }, route, m) {
 
   const p = await getPartner(request, env);
   if (!p) return json({ ok: false, error: "Sign in to continue." }, 401);
-  if (p.status !== "active") return json({ ok: false, error: "Your partner account is paused. Contact WorkerPool at " + (env.ADMIN_EMAIL || "info@workerpool.ca") + "." }, 403);
+  if (p.status === "pending") { // waiting for WorkerPool to approve the firm: they can sign in and see that, nothing else
+    if (route === "me" && m === "GET") return json({ ok: true, pending: true, partner: pub(p), prices: await prices(env), ready: readyKinds(), payments: !!env.STRIPE_SECRET_KEY, catalog: partnerCatalog(), forms: Object.keys(FORMS) });
+    return json({ ok: false, pending: true, error: "Your partner account is waiting for approval. We'll email you as soon as it's approved." }, 403);
+  }
+  if (p.status !== "active") return json({ ok: false, error: p.status === "declined" ? "Your partner application wasn't approved. Contact WorkerPool at info@workerpool.ca if you have questions." : "Your partner account is paused. Contact WorkerPool at info@workerpool.ca." }, 403);
 
   if (route === "me" && m === "GET") {
     const pr = await prices(env), rk = readyKinds();
@@ -256,12 +260,12 @@ async function signup(request, env) {
   if (f.kind === "rcic") f.licence = "R" + f.licence.replace(/\D/g, "");
   const id = crypto.randomUUID(), now = new Date().toISOString();
   await env.DB.prepare(`INSERT INTO partners (id, firm, kind, licence, contact, email, phone, website, city, province, pass_hash, status, created, agreed_at, agreed_text, ip_hash)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'active', ?12, ?12, ?13, ?14)`)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'pending', ?12, ?12, ?13, ?14)`)
     .bind(id, f.firm, f.kind, f.licence, f.contact, f.email, f.phone, f.website || null, f.city || null, f.province || null, await hashPassword(pass), now, `[${PARTNER_TERMS_V}] ${PARTNER_TERMS}`, ipHash).run();
-  await sendEmail(env, env.ADMIN_EMAIL, `New intake partner: ${f.firm}`,
-    `A firm created a partner account for intake forms.\n\nFirm: ${f.firm}\nType: ${KINDS[f.kind]}\nLicence: ${f.licence}${f.kind === "rcic" ? " (check it on the CICC public register at https://college-ic.ca/)" : ""}\nContact: ${f.contact} (${f.email}, ${f.phone})\nWebsite: ${f.website || "-"}\nLocation: ${[f.city, f.province].filter(Boolean).join(", ") || "-"}\n\nThe account is active. Pause it any time in the admin dashboard: ${site(env)}/admin/ (Partners tab)`, f.email);
-  await sendEmail(env, f.email, "Welcome to WorkerPool intake forms",
-    `Hi ${f.contact.split(" ")[0]},\n\nYour WorkerPool partner account for ${f.firm} is ready: ${site(env)}/partners/\n\nHow it works:\n1. Buy form credits (Temporary residence forms and Permanent residence forms are priced separately).\n2. Create a personal link for each client and send it by email or WhatsApp. Each link uses one credit.\n3. Your client fills the form and uploads documents. You get an email when they submit.\n4. Open the form in your portal to view every answer and document, and download everything as one ZIP.\n\nWorkerPool`);
+  await sendEmail(env, env.ADMIN_EMAIL, `Approve new intake partner: ${f.firm}`,
+    `A firm applied for a partner account for intake forms. It can't buy credits or send forms until you approve it.\n\nFirm: ${f.firm}\nType: ${KINDS[f.kind]}\nLicence: ${f.licence}${f.kind === "rcic" ? " (check it on the CICC public register at https://college-ic.ca/)" : ""}\nContact: ${f.contact} (${f.email}, ${f.phone})\nWebsite: ${f.website || "-"}\nLocation: ${[f.city, f.province].filter(Boolean).join(", ") || "-"}\n\nApprove or decline it in the admin dashboard: ${site(env)}/admin/ (Partners tab)`, f.email);
+  await sendEmail(env, f.email, "We received your WorkerPool partner application",
+    `Hi ${f.contact.split(" ")[0]},\n\nThank you for applying for a WorkerPool partner account for ${f.firm}. Our team will check your licence and approve your account, usually within one business day. We'll email you as soon as it's approved.\n\nOnce approved, here's how it works (${site(env)}/partners/):\n1. Buy form credits (Temporary residence forms and Permanent residence forms are priced separately).\n2. Create a personal link for each client and send it by email or WhatsApp. Each link uses one credit.\n3. Your client fills the form and uploads documents. You get an email when they submit.\n4. Open the form in your portal to view every answer and document, and download everything as one ZIP.\n\nWorkerPool`);
   const cookie = await createPartnerSession(env, id);
   return withCookie({ ok: true }, cookie);
 }
@@ -281,7 +285,7 @@ async function login(request, env) {
       .bind(fails >= MAX_FAILS ? 0 : fails, fails >= MAX_FAILS ? new Date(now.getTime() + LOCK_MIN * 60000).toISOString() : "", p.id).run();
     return bad();
   }
-  if (p.status !== "active") return json({ ok: false, error: "This partner account is paused. Contact WorkerPool." }, 403);
+  if (p.status !== "active" && p.status !== "pending") return json({ ok: false, error: p.status === "declined" ? "This partner application wasn't approved. Contact WorkerPool at info@workerpool.ca." : "This partner account is paused. Contact WorkerPool at info@workerpool.ca." }, 403);
   await env.DB.prepare(`UPDATE partners SET fail_count = 0, locked_until = '', last_login = ?1 WHERE id = ?2`).bind(now.toISOString(), p.id).run();
   return withCookie({ ok: true }, await createPartnerSession(env, p.id));
 }
@@ -337,9 +341,14 @@ async function admin({ request, env }, route, m) {
   const p = await env.DB.prepare(`SELECT * FROM partners WHERE id = ?1`).bind(str(b.id, 60)).first();
   if (!p) return json({ ok: false, error: "Partner not found." }, 404);
   if (route === "status") {
-    const st = b.status === "suspended" ? "suspended" : b.status === "active" ? "active" : p.status;
+    const st = ["active", "suspended", "declined"].includes(b.status) ? b.status : p.status;
     await env.DB.prepare(`UPDATE partners SET status = ?1, admin_note = ?2 WHERE id = ?3`).bind(st, typeof b.note === "string" ? b.note.slice(0, 3000) : p.admin_note, p.id).run();
-    if (st === "suspended") await env.DB.prepare(`DELETE FROM partner_sessions WHERE partner_id = ?1`).bind(p.id).run();
+    if (st !== "active") await env.DB.prepare(`DELETE FROM partner_sessions WHERE partner_id = ?1`).bind(p.id).run();
+    const first = String(p.contact || "").split(" ")[0] || "there";
+    if (p.status === "pending" && st === "active") await sendEmail(env, p.email, "Your WorkerPool partner account is approved",
+      `Hi ${first},\n\nGood news: ${p.firm} is approved as a WorkerPool intake partner. Sign in here: ${site(env)}/partners/\n\n1. Buy form credits (Temporary residence and Permanent residence forms are priced separately).\n2. Create a personal link for each client and send it by email or WhatsApp. Each link uses one credit.\n3. Your client fills the form and uploads documents. You get an email when they submit.\n4. Open the form in your portal to view every answer and document, and download everything as one ZIP.\n\nWorkerPool`);
+    if (p.status === "pending" && st === "declined" && b.notify !== false) await sendEmail(env, p.email, "Your WorkerPool partner application",
+      `Hi ${first},\n\nThank you for applying for a WorkerPool partner account for ${p.firm}. We weren't able to approve it at this time${typeof b.reason === "string" && b.reason.trim() ? `:\n\n${b.reason.trim().slice(0, 1000)}` : "."}\n\nIf you think this is a mistake, reply to this email.\n\nWorkerPool`);
     return json({ ok: true });
   }
   if (route === "grant") {
