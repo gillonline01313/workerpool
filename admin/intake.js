@@ -105,7 +105,7 @@
     const k = S.pick, e = C.catalogEntry(k);
     if (!e) return "";
     const where = `${e.cat.label.replace(" applications", "")} · ${e.group.label}`;
-    if (!C.FORMS[k]) return `<div class="wpa-card"><h3>${esc(e.form.name)}</h3><p class="ik-note" style="margin:0">${esc(where)}. This intake form isn't built yet. Visitor visa (TRV) from outside Canada is ready now; the others will be added one by one.</p></div>`;
+    if (!C.FORMS[k]) return `<div class="wpa-card"><h3>${esc(e.form.name)}</h3><p class="ik-note" style="margin:0">${esc(where)}. This intake form isn't built yet. Forms with a green dot are ready to send.</p></div>`;
     const f = C.FORMS[k], made = S.made && S.made.f === k ? S.made : null;
     const invites = ((S.list && S.list.invites) || []).filter((v) => v.form_key === k);
     const wa = (u) => `https://wa.me/?text=${encodeURIComponent(`Please fill your ${f.name} form here: ${u}`)}`;

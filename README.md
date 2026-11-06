@@ -18,7 +18,7 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `functions/api/profile.js` | Saves a candidate's questionnaire as they go |
 | `functions/api/resume.js` | Resume upload and removal (private R2 storage) |
 | `intake/` | Client intake forms (`/intake/?f=trv-out` or a personal link `/intake/?i=CODE`): the client creates an account or signs in, fills the form (saves as they go) and uploads each document, then submits. They can reopen a submitted form to make changes |
-| `assets/intake-config.js` | Intake form catalog (Temporary: Outside / Inside Canada; Permanent) and each form's questions, conditions and document list. Shared by the client page, the admin tab and the server. Add a form to `FORMS` to switch on its link |
+| `assets/intake-config.js` | Intake form catalog (Temporary: Outside / Inside Canada; Permanent) and each form's questions, conditions and document list. Shared by the client page, the admin tab and the server. Ready now: Visitor visa (TRV) outside Canada, and all ten Inside Canada forms (visitor record, TRV from inside Canada, study permit extension, work permit extension or new employer, PGWP, spousal OWP, BOWP, vulnerable worker OWP, restoration, TRP). Inside Canada forms share the status, permits and trips sections. Add a form to `FORMS` and set `ready: 1` to switch on its link |
 | `functions/api/intake/[[path]].js` | Intake API: client routes (start, save, upload, submit, reopen) and admin routes under `/api/intake/admin/` (links, list, open, files, status, delete) |
 | `admin/intake.js` | Admin **Intake forms** tab |
 | `b2b/` | B2B Data Entry client portal: application type, information sheet, document checklist |
