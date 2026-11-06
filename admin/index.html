@@ -234,6 +234,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
       <button type="button" data-t="intake" aria-pressed="false" id="inTab">Intake forms</button>
+      <button type="button" data-t="partners" aria-pressed="false">Partners</button>
       <button type="button" data-t="b2b" aria-pressed="false">B2B applications</button>
       <button type="button" data-t="students" aria-pressed="false" id="stuTab">Student Pool</button>
       <button type="button" data-t="study" aria-pressed="false">Study options</button>
@@ -274,6 +275,7 @@ async function load(){
   try{
     if(tab==="chat"){ await chatList(); render(); return; }
     if(tab==="intake"){ if(window.WPIntake) await window.WPIntake.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">Intake forms didn't load. Refresh the page.</div>`; return; }
+    if(tab==="partners"){ if(window.WPPartners) await window.WPPartners.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">Partners didn't load. Refresh the page.</div>`; return; }
     if(tab==="mail"){ if(!data.mail||ml.reload){ ml.reload=false; data.mail=await chatFetch("mail"); mailInit(); render(); } else if(!$("#mlForm")) render(); return; }
     if(tab==="analytics"&&anView==="signups") data.signups=await api("signups?days="+days);
     else if(tab==="analytics"&&anView==="questionnaire") data.quest=await api("questionnaire?days="+days);
@@ -378,7 +380,7 @@ function controls(){
   } else if(tab==="mail"){
     c.innerHTML=`<button class="dl" type="button" id="mlRefresh">Refresh list</button>`;
     $("#mlRefresh").onclick=()=>{ ml.reload=true; load(); };
-  } else if(tab==="intake"){
+  } else if(tab==="intake"||tab==="partners"){
     c.innerHTML="";
   } else if(tab==="chat"){
     c.innerHTML=`<span class="chat-live"><i id="chatDot"></i><span id="chatHrs"></span></span>`; chatStatus();
@@ -498,7 +500,7 @@ const place=v=>v.city?`${v.city}, ${v.country||"?"}`:(v.country||(v.tz&&v.tz.spl
 
 function render(){
   const body=$("#wpaBody");
-  if(tab==="intake") return;
+  if(tab==="intake"||tab==="partners") return;
   if(tab==="interest") return renderInterest(body);
   if(tab==="submissions") return renderSubs(body);
   if(tab==="b2b") return renderB2B(body);
@@ -1600,6 +1602,7 @@ document.addEventListener("click",async e=>{
 if(KEY) start();
 })();
 </script>
-<script src="/admin/intake.js?v=2"></script>
+<script src="/admin/intake.js?v=3"></script>
+<script src="/admin/partners.js?v=1"></script>
 </body>
 </html>

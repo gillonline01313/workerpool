@@ -123,7 +123,7 @@ footer a{color:var(--muted)}
 <footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents. We are not immigration representatives and do not give immigration advice. Your information is kept private and is used only to prepare your file. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
 <datalist id="countries"></datalist>
 <script type="module">
-import { FORMS, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName, CONSENT_TEXT, KEEP_TEXT, KEEP_DAYS } from "/assets/intake-config.js?v=2";
+import { FORMS, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName, CONSENT_TEXT, KEEP_TEXT, KEEP_DAYS, partnerConsent } from "/assets/intake-config.js?v=3";
 
 const $ = (s, r = document) => r.querySelector(s);
 const view = $("#view");
@@ -184,12 +184,12 @@ function authView(mode = "signup", notice = "") {
   view.innerHTML = `<section class="hero">
     <div><span class="eyebrow">Secure client intake</span>
       <h1>${esc(title)}</h1>
-      <p class="lede">${hi}this secure form collects the information and documents we need to prepare your application.</p>
+      <p class="lede">${hi}this secure form collects the information and documents ${linkInfo && linkInfo.firm ? `${esc(linkInfo.firm)} needs to prepare your application. WorkerPool collects it securely on their behalf` : "we need to prepare your application"}.</p>
       <ul class="points">
         <li>Create an account first, so your answers are saved and only you can see them.</li>
         <li>Your answers save automatically. Stop any time and come back on any device.</li>
         <li>Upload each document in its own place. PDF, JPG, PNG, DOC or DOCX, up to 10 MB each.</li>
-        <li>When everything is complete, press Submit and our team is notified.</li>
+        <li>When everything is complete, press Submit and ${linkInfo && linkInfo.firm ? esc(linkInfo.firm) + " is" : "our team is"} notified.</li>
       </ul></div>
     <div class="card">${box}</div></section>`;
   if (mode === "forgot") {
@@ -226,17 +226,18 @@ async function list(auto) {
   const r = await api("/api/intake/mine");
   me = r.j.user || me; header();
   const rows = (r.j.rows || []).filter((x) => FORMS[x.form_key]);
-  const forThis = link.form ? rows.filter((x) => x.form_key === link.form) : [];
+  const single = !!(linkInfo && linkInfo.single);   // a partner firm's link opens exactly one form
+  const forThis = single ? rows.filter((x) => x.invite_code === link.code) : link.form ? rows.filter((x) => x.form_key === link.form) : [];
   if (auto && link.form && !forThis.length) return start(false);
-  if (auto && link.form && forThis.length === 1 && forThis[0].status !== "submitted") return open(forThis[0].id);
+  if (auto && link.form && forThis.length === 1 && (single || forThis[0].status !== "submitted")) return open(forThis[0].id);
   view.innerHTML = `<div class="stack">
     <div><span class="eyebrow">Signed in as ${esc(me.email)}</span><h1>Your forms</h1></div>
     ${rows.length ? rows.map((x) => `<div class="app"><div><b>${esc(FORMS[x.form_key].name)}</b>
-        <span>${x.name ? "Applicant: " + esc(x.name) + " · " : ""}${x.status === "submitted" ? "Submitted " + day(x.submitted) : x.progress + "% complete · last saved " + day(x.updated)}</span></div>
+        <span>${x.firm ? "For " + esc(x.firm) + " · " : ""}${x.name ? "Applicant: " + esc(x.name) + " · " : ""}${x.status === "submitted" ? "Submitted " + day(x.submitted) : x.progress + "% complete · last saved " + day(x.updated)}</span></div>
         <div style="display:flex;gap:8px;align-items:center"><span class="pill ${x.status === "submitted" ? "sub" : ""}">${x.status === "submitted" ? "Submitted" : x.status === "editing" ? "Making changes" : "In progress"}</span>
         <button class="btn sm" data-open="${x.id}">${x.status === "submitted" ? "View" : "Continue"}</button></div></div>`).join("")
       : `<div class="card"><p style="margin:0">You don't have any forms yet. Open the link we sent you to start one.</p></div>`}
-    ${link.form && FORMS[link.form] ? `<div class="card"><h2>Applying for more than one person?</h2><p style="margin:0" class="saved">Each person needs their own form (for example your spouse or each child). Start one for each family member applying.</p>
+    ${link.form && FORMS[link.form] && !single ? `<div class="card"><h2>Applying for more than one person?</h2><p style="margin:0" class="saved">Each person needs their own form (for example your spouse or each child). Start one for each family member applying.</p>
       <div><button class="btn ghost" id="another">Start a ${esc(FORMS[link.form].name)} form for another person</button></div></div>` : ""}
   </div>`;
   view.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => open(b.dataset.open));
@@ -244,7 +245,7 @@ async function list(auto) {
 }
 async function start(other) {
   const r = await api("/api/intake/start", { method: "POST", body: JSON.stringify({ f: link.form, i: link.code, other }) });
-  if (!r.ok) { view.innerHTML = `<div class="card"><p class="err">${esc(r.j.error || "Couldn't start the form.")}</p></div>`; return; }
+  if (!r.ok) { view.innerHTML = `<div class="card"><p class="err">${esc(r.j.error || "Couldn't start the form.")}</p><div><button class="btn ghost sm" id="toMine" type="button">See my forms</button></div></div>`; $("#toMine").onclick = () => { linkInfo = null; link = { code: "", form: "" }; list(); }; return; }
   open(r.j.id);
 }
 
@@ -313,7 +314,14 @@ function draw() {
         <div class="stack" id="docList">${form.docs.map(docHtml).join("")}</div></div></details>
       <div class="card" id="finish"><h2>Review and submit</h2>
         <div id="missWrap"></div>
-        <div class="consent" id="consentBox">
+        ${cur.firm ? `<div class="consent" id="consentBox">
+          <h3>Your consent before submitting</h3>
+          <ul>
+            <li>This form was sent to you by <b>${esc(cur.firm)}</b>. WorkerPool collects it securely on their behalf and shares your answers and documents with ${esc(cur.firm)} only.</li>
+            <li>${esc(cur.firm)} downloads your complete file, and your uploaded documents are then permanently deleted from WorkerPool.</li>
+          </ul>
+          <label class="cb"><input type="checkbox" id="cConsent"><span>${esc(partnerConsent(cur.firm))}<span class="req" aria-hidden="true">*</span></span></label>
+        </div>` : `<div class="consent" id="consentBox">
           <h3>Your consent before submitting</h3>
           <p style="margin:0;font-size:.9rem">Please read how we handle your documents:</p>
           <ul>
@@ -326,8 +334,8 @@ function draw() {
             <label class="opt"><input type="radio" name="cKeep" value="yes"><span>${esc(KEEP_TEXT[1])}</span></label>
             <label class="opt"><input type="radio" name="cKeep" value="no"><span>${esc(KEEP_TEXT[0])}</span></label>
           </fieldset>
-        </div>
-        <div class="actions"><span class="saved">You can come back and finish later. Your answers are saved.</span><button class="btn" type="button" id="submit">Submit to WorkerPool</button></div>
+        </div>`}
+        <div class="actions"><span class="saved">You can come back and finish later. Your answers are saved.</span><button class="btn" type="button" id="submit">${cur.firm ? "Submit to " + esc(cur.firm) : "Submit to WorkerPool"}</button></div>
         <div class="err" id="subErr"></div></div>
     </form>`;
   const ff = $("#ff");
@@ -367,7 +375,7 @@ function refresh() {
   $("#missWrap").innerHTML = miss.length ? `<div class="note warn"><b>${miss.length} item${miss.length > 1 ? "s" : ""} still needed before you can submit:</b><ul class="miss">${miss.slice(0, 40).map((x) => `<li>${esc(x)}</li>`).join("")}${miss.length > 40 ? `<li>…and ${miss.length - 40} more</li>` : ""}</ul></div>` : `<div class="note">Everything required is complete. Check your answers, then submit.</div>`;
   window.__miss = miss.length; gate();
 }
-const keepPick = () => { const r = document.querySelector('input[name="cKeep"]:checked'); return r ? r.value : ""; };
+const keepPick = () => { if (cur && cur.firm) return "partner"; const r = document.querySelector('input[name="cKeep"]:checked'); return r ? r.value : ""; };
 function gate() {
   const c = $("#cConsent"), b = $("#submit"); if (!c || !b) return;
   b.disabled = !!window.__miss || !c.checked || !keepPick();
@@ -448,16 +456,18 @@ async function submit() {
   const b = $("#submit"), err = $("#subErr"); err.textContent = "";
   await flush(); if (dirty) { err.textContent = "Your latest answers aren't saved yet. Check your connection and try again."; return; }
   if (!$("#cConsent").checked || !keepPick()) { err.textContent = "Give your consent and choose whether we should save your complete file."; return; }
-  const keep = keepPick();
-  if (!confirm(`Submit this form now?\n\nYou agree that WorkerPool will permanently destroy your uploaded documents once your file is complete and share the complete file with you.\n\nSave a copy with WorkerPool: ${keep === "yes" ? "Yes" : "No"}`)) return;
+  const keep = keepPick(), label = b.textContent;
+  if (!confirm(cur.firm ? `Submit this form now?\n\nYour answers and documents will be shared with ${cur.firm}.` : `Submit this form now?\n\nYou agree that WorkerPool will permanently destroy your uploaded documents once your file is complete and share the complete file with you.\n\nSave a copy with WorkerPool: ${keep === "yes" ? "Yes" : "No"}`)) return;
   b.disabled = true; b.textContent = "Submitting…";
-  const r = await api("/api/intake/submit", { method: "POST", body: JSON.stringify({ id: cur.id, consent: true, keep }) });
-  if (!r.ok) { b.disabled = false; b.textContent = "Submit to WorkerPool"; err.textContent = r.j.error || "Couldn't submit. Try again."; return; }
+  const r = await api("/api/intake/submit", { method: "POST", body: JSON.stringify({ id: cur.id, consent: true, keep: cur.firm ? undefined : keep }) });
+  if (!r.ok) { b.disabled = false; b.textContent = label; err.textContent = r.j.error || "Couldn't submit. Try again."; return; }
   cur.status = "submitted"; cur.submitted = cur.submitted || new Date().toISOString(); cur.consent_at = new Date().toISOString(); cur.keep_file = keep === "yes" ? 1 : 0; done(true);
 }
 
 /* ---------- submitted ---------- */
 function fileCard() {
+  if (cur.firm) return `<div class="card"><h2>Shared with ${esc(cur.firm)}</h2><p style="margin:0">Your answers and documents were shared securely with ${esc(cur.firm)}. Contact them directly with any questions about your application.</p>
+    ${cur.consent_at ? `<p class="saved" style="margin:0">Consent given ${day(cur.consent_at)}.</p>` : ""}</div>`;
   const keep = cur.keep_file ? `<b>Saved with WorkerPool:</b> yes. Your complete file stays in your account for future reference.`
     : `<b>Saved with WorkerPool:</b> no. ${cur.final_expires ? `Your complete file will be removed on ${day(cur.final_expires)}. Download your copy before then.` : `Your complete file will be removed ${KEEP_DAYS} days after we share it.`}`;
   const file = cur.final_ready
@@ -479,11 +489,11 @@ function done(just) {
   const files = form.docs.filter((d) => docs.some((x) => x.doc_key === d.k)).map((d) => `<div><b>${esc(d.l)}</b><div class="files" style="margin-top:6px">${docs.filter((x) => x.doc_key === d.k).map((x) => `<div class="file"><span>${esc(x.name)} · ${kb(x.size)}</span><a class="linkbtn" href="/api/intake/doc?id=${x.id}" target="_blank" rel="noopener">View</a></div>`).join("")}</div></div>`).join("");
   view.innerHTML = `<div class="stack">
     <div><span class="eyebrow">Submitted ${day(cur.submitted)}</span><h1>${esc(form.name)}</h1>${applicantName(data) ? `<p class="lede">Applicant: ${esc(applicantName(data))}</p>` : ""}</div>
-    ${just ? `<div class="note"><b>Thank you. Your form was submitted.</b> We emailed you a confirmation, and our team will contact you if anything else is needed.</div>` : ""}
+    ${just ? `<div class="note"><b>Thank you. Your form was submitted.</b> We emailed you a confirmation, and ${cur.firm ? esc(cur.firm) + " will" : "our team will"} contact you if anything else is needed.</div>` : ""}
     ${fileCard()}
     ${cur.docs_destroyed_at ? "" : `<div class="card"><div class="actions"><span>Need to fix something or add a document?</span><button class="btn ghost sm" id="reopen" type="button">Make changes</button></div><div class="err" id="roErr" style="min-height:0"></div></div>`}
     <div>${blocks}</div>
-    <div class="card"><h2>Documents (${docs.length})</h2>${cur.docs_destroyed_at ? `<p style="margin:0">As you agreed, the documents you uploaded were permanently destroyed on ${day(cur.docs_destroyed_at)}. They are all inside your complete file.</p>` : files || `<p class="saved" style="margin:0">No files.</p>`}</div>
+    <div class="card"><h2>Documents (${docs.length})</h2>${cur.docs_destroyed_at ? `<p style="margin:0">As you agreed, the documents you uploaded were permanently ${cur.firm ? `deleted from WorkerPool on ${day(cur.docs_destroyed_at)}, after ${esc(cur.firm)} received your complete file.` : `destroyed on ${day(cur.docs_destroyed_at)}. They are all inside your complete file.`}</p>` : files || `<p class="saved" style="margin:0">No files.</p>`}</div>
     <div><button class="btn ghost" id="back" type="button">Back to my forms</button></div></div>`;
   $("#back").onclick = () => { cur = null; list(); };
   view.querySelectorAll("[data-keep]").forEach((b) => b.onclick = async () => {
@@ -495,7 +505,7 @@ function done(just) {
     cur.keep_file = k === "yes" ? 1 : 0; cur.final_expires = r.j.final_expires; done();
   });
   const ro = $("#reopen"); if (ro) ro.onclick = async () => {
-    if (!confirm("Reopen this form to make changes? Our team will wait until you submit it again.")) return;
+    if (!confirm(`Reopen this form to make changes? ${cur.firm || "Our team"} will wait until you submit it again.`)) return;
     const r = await api("/api/intake/reopen", { method: "POST", body: JSON.stringify({ id: cur.id }) });
     if (!r.ok) { $("#roErr").textContent = r.j.error || "Couldn't reopen it."; return; }
     cur.status = "editing"; draw();

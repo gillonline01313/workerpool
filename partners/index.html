@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Intake forms for RCICs and law firms · WorkerPool partners</title>
+<meta name="description" content="Secure client intake forms for Regulated Canadian Immigration Consultants and immigration law firms. Send a link, your client fills the form and uploads documents, you view and download everything. Pay per form.">
+<link rel="canonical" href="https://workerpool.ca/partners/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%2324514b'/%3E%3Ccircle cx='10' cy='12' r='2.4' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2.4' fill='white' opacity='.75'/%3E%3Ccircle cx='20' cy='12' r='2.4' fill='white' opacity='.5'/%3E%3Cpath d='M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#f1f4f5;--surface:#fff;--fg:#1a2629;--muted:#59686c;--line:#d2dbdd;--field:#f7f9fa;
+  --accent:#24514b;--accent-2:#3f7a72;--accent-soft:#dbe9e5;--accent-fg:#fff;--warn:#9a5b1e;--warn-soft:#f6ebdc;--ok:#2f7a4f;--red:#b3412e;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;--body:"Figtree","Segoe UI",system-ui,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#111718;--surface:#1b2426;--fg:#e3eaeb;--muted:#97a6a8;--line:#2c3a3d;--field:#162022;
+  --accent:#8cc4ba;--accent-2:#7fbcb2;--accent-soft:#203230;--accent-fg:#0f2220;--warn:#e3b27c;--warn-soft:#33281b;--ok:#7fcf9e;--red:#ec8f7c;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55;padding-top:env(safe-area-inset-top,0px)}
+.in{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{border-bottom:1px solid var(--line);background:var(--surface)}
+.nav{display:flex;align-items:center;gap:14px;min-height:62px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+.logo b{font-family:var(--display);font-weight:700;font-size:1.1rem}
+.logo small{display:block;font-size:.72rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.who{margin-left:auto;display:flex;gap:12px;align-items:center;font-size:.88rem;color:var(--muted);flex-wrap:wrap}
+main{padding-block:26px 64px}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.015em;text-wrap:balance}
+h1{font-size:clamp(1.7rem,4.4vw,2.5rem);line-height:1.1}
+h2{font-size:1.25rem}h3{font-size:1.02rem}
+.lede{color:var(--muted);max-width:62ch;margin:10px 0 0}
+.eyebrow{font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--accent-2)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.grid{grid-template-columns:1fr}.card{padding:16px}}
+.f{display:flex;flex-direction:column;gap:5px;min-width:0}.f.full{grid-column:1/-1}
+label,.lab{font-size:.86rem;font-weight:600}
+.help{font-size:.8rem;color:var(--muted)}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:10px;padding:9px 12px;width:100%;min-width:0}
+textarea{min-height:70px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--accent-2);outline-offset:1px}
+.cb{display:flex;gap:10px;align-items:flex-start;font-weight:500;font-size:.86rem;cursor:pointer}
+.cb input{width:19px;height:19px;flex:none;margin-top:2px;accent-color:var(--accent)}
+.btn{font:inherit;font-weight:600;padding:10px 18px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn.red{background:transparent;color:var(--red);border-color:var(--red)}
+.btn.sm{padding:6px 13px;font-size:.84rem}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+a{color:var(--accent-2)}
+.linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--accent-2);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.err{color:var(--warn);font-size:.88rem;min-height:1.2em}
+.note{background:var(--accent-soft);border-radius:12px;padding:12px 14px;font-size:.9rem}
+.note.warn{background:var(--warn-soft)}
+.muted{color:var(--muted);font-size:.85rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sp{justify-content:space-between}
+.tabs{display:flex;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:4px}
+.tabs button{flex:1;font:inherit;font-weight:600;border:0;background:none;color:var(--muted);padding:9px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.nav2{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0}
+.nav2 button{font:inherit;font-weight:600;font-size:.9rem;border:1px solid var(--line);background:var(--surface);color:var(--muted);padding:8px 15px;border-radius:999px;cursor:pointer}
+.nav2 button[aria-pressed="true"]{color:var(--accent-fg);background:var(--accent);border-color:var(--accent)}
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:28px;align-items:start}
+@media (max-width:860px){.hero{grid-template-columns:1fr}}
+.points{display:flex;flex-direction:column;gap:10px;margin:18px 0 0;padding:0;list-style:none}
+.points li{display:flex;gap:10px;color:var(--muted)}
+.points li::before{content:"";flex:none;width:8px;height:8px;border-radius:2px;background:var(--accent-2);margin-top:.55em}
+.prices{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+.price{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:16px}
+.price b{font-family:var(--display);font-size:1.9rem;display:block;line-height:1.1}
+.price span{font-size:.85rem;color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.credits{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-size:.8rem;font-weight:700;padding:4px 11px;border-radius:999px;background:var(--accent-soft);color:var(--fg)}
+.chip.zero{background:var(--warn-soft)}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.tbl table{min-width:640px}
+th{text-align:left;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:9px 10px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--accent-soft)}
+tr.new td{background:color-mix(in srgb,var(--accent-2) 12%,transparent);font-weight:600}
+tr.new td:first-child{box-shadow:inset 4px 0 0 var(--accent-2)}
+.pill{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.new{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.pill.sub{background:var(--accent-soft);color:var(--fg);border-color:transparent}
+.pill.edit{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.meter{width:70px;height:7px;border-radius:4px;background:var(--line);overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
+.meter i{display:block;height:100%;background:var(--accent-2)}
+.seg{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface);flex-wrap:wrap}
+.seg button{font:inherit;font-size:.82rem;font-weight:600;border:0;background:none;color:var(--muted);padding:6px 12px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.cats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:820px){.cats{grid-template-columns:1fr}}
+.grp small{display:block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:6px 0 5px}
+.forms{display:flex;flex-wrap:wrap;gap:6px}
+.fbtn{font:inherit;font-size:.84rem;font-weight:600;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;padding:7px 11px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.fbtn.ready::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent-2)}
+.fbtn.soon{color:var(--muted);font-weight:500;cursor:not-allowed}
+.fbtn.soon::after{content:"Soon";font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:0 6px}
+.fbtn[aria-pressed="true"]{border-color:var(--accent-2);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-2)}
+.hl{border:2px solid var(--accent-2);background:var(--accent-soft);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.url{display:flex;gap:8px;flex-wrap:wrap}
+.url input{flex:1;min-width:220px;font-weight:600;background:var(--surface)}
+.sec{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface)}
+.sec h4{margin:0 0 10px;font-family:var(--display);font-size:.98rem}
+dl.ro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:5px 16px;margin:0;font-size:.88rem}
+dl.ro dt{color:var(--muted)}dl.ro dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+@media (max-width:620px){dl.ro{grid-template-columns:1fr}dl.ro dd{margin-bottom:6px}}
+.rep{border-top:1px dashed var(--line);padding-top:8px;margin-top:8px}.rep:first-of-type{border-top:0;margin-top:0;padding-top:0}
+.doc{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:.88rem;flex-wrap:wrap}
+.doc:last-child{border-bottom:0}.doc .n{min-width:0;overflow-wrap:anywhere}
+.qty{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.qty input{width:90px;text-align:center}
+footer{border-top:1px solid var(--line);padding-block:22px 36px;color:var(--muted);font-size:.82rem}
+footer a{color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header><div class="in nav">
+  <a class="logo" href="/"><svg width="34" height="34" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="9" fill="var(--accent)"/><circle cx="10" cy="12" r="2.4" fill="var(--accent-fg)"/><circle cx="15" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".75"/><circle cx="20" cy="12" r="2.4" fill="var(--accent-fg)" opacity=".5"/><path d="M7 19c2.6 2 5.4 2 8 0s5.4-2 8 0" fill="none" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round"/></svg>
+    <span><b>WorkerPool</b><small>Partner intake forms</small></span></a>
+  <div class="who" id="who" hidden><span id="whoFirm" style="font-weight:600;color:var(--fg)"></span><span class="credits" id="whoCredits"></span><button class="linkbtn" id="logout" type="button">Sign out</button></div>
+</div></header>
+<main class="in" id="view"><div class="card"><p class="muted" style="margin:0">Loading…</p></div></main>
+<footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents for licensed representatives. We are not immigration representatives and do not give immigration advice. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
+<script type="module">
+import { FORMS, sectionOn, fieldOn, when as cond, applicantName } from "/assets/intake-config.js?v=3";
+
+const $ = (s, r = document) => r.querySelector(s);
+const view = $("#view");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const kb = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round((n || 0) / 1024)) + " KB";
+const when = (t) => t ? new Date(t).toLocaleString("en-CA", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "–";
+const money = (c) => "$" + ((c || 0) / 100).toFixed(2);
+const KL = { tr: "Temporary residence", pr: "Permanent residence" };
+const STATUS = [["new", "New"], ["reviewing", "Reviewing"], ["need-info", "Waiting for client"], ["in-progress", "Preparing application"], ["done", "Done"]];
+const stLabel = (k) => (STATUS.find((s) => s[0] === k) || [0, k || "New"])[1];
+const KINDS = [["rcic", "Regulated Canadian Immigration Consultant (RCIC)"], ["lawyer", "Lawyer"], ["paralegal", "Paralegal (Law Society of Ontario)"], ["notary", "Notary (Quebec)"], ["firm", "Immigration law or consulting firm"]];
+const PROV = ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan", "Northwest Territories", "Nunavut", "Yukon", "Outside Canada"];
+
+let ME = null, D = null, tab = "forms", S = { filter: "new", q: "", pick: null, made: null, item: null };
+const qs = new URLSearchParams(location.search);
+
+async function api(path, opts = {}) {
+  const r = await fetch("/api/partners/" + path, { ...opts, headers: { "Content-Type": "application/json", ...(opts.headers || {}) } });
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (r.status === 401 && !/^(login|signup|forgot|reset|prices|paid)/.test(path)) { ME = null; header(); authView("login", "Your session ended. Sign in again."); throw new Error("auth"); }
+  return { ok: r.ok && j.ok !== false, status: r.status, j };
+}
+async function copy(text, btn) {
+  try { await navigator.clipboard.writeText(text); } catch (e) { const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); }
+  if (btn) { const o = btn.textContent; btn.textContent = "Copied ✓"; setTimeout(() => btn.textContent = o, 1600); }
+}
+function header() {
+  $("#who").hidden = !ME;
+  if (!ME) return;
+  $("#whoFirm").textContent = ME.partner.firm;
+  const c = ME.partner.credits;
+  $("#whoCredits").innerHTML = `<span class="chip${c.tr ? "" : " zero"}" title="Temporary residence form credits">TR ${c.tr}</span>${ME.ready.pr || c.pr ? `<span class="chip${c.pr ? "" : " zero"}" title="Permanent residence form credits">PR ${c.pr}</span>` : ""}`;
+}
+$("#logout").onclick = async () => { await fetch("/api/partners/logout", { method: "POST" }).catch(() => {}); ME = null; header(); authView("login"); };
+
+/* ---------- start ---------- */
+async function boot() {
+  if (qs.get("reset")) return resetView(qs.get("reset"));
+  const r = await api("me").catch(() => ({ ok: false, j: {} }));
+  if (!r.ok) {
+    if (r.status === 403) { view.innerHTML = `<div class="card"><h2>Account paused</h2><p style="margin:0">${esc(r.j.error)}</p></div>`; return; }
+    return authView(qs.get("paid") ? "login" : "signup", qs.get("paid") ? "Sign in to see your new credits." : "");
+  }
+  ME = r.j; header();
+  if (qs.get("paid")) {
+    const p = await api("paid?session_id=" + encodeURIComponent(qs.get("paid")));
+    history.replaceState(null, "", location.pathname);
+    await refreshMe();
+    tab = "credits";
+    S.flash = p.ok ? `Payment received. ${[p.j.added.tr && `${p.j.added.tr} Temporary residence`, p.j.added.pr && `${p.j.added.pr} Permanent residence`].filter(Boolean).join(" and ")} form credit${(p.j.added.tr + p.j.added.pr) === 1 ? "" : "s"} added.` : (p.j.error || "We couldn't confirm the payment yet. Refresh in a minute.");
+  } else if (qs.get("cancelled")) { history.replaceState(null, "", location.pathname); tab = "credits"; S.flash = "Payment cancelled. No charge was made."; }
+  dash();
+}
+async function refreshMe() { const r = await api("me"); if (r.ok) { ME = r.j; header(); } }
+
+/* ---------- sign up / sign in ---------- */
+async function authView(mode = "signup", notice = "") {
+  let pr = { tr: 1000, pr: 2000 }, ready = { tr: true, pr: false }, terms = "";
+  try { const r = await api("prices"); if (r.ok) { pr = r.j.prices; ready = r.j.ready; terms = r.j.terms; } } catch (e) {}
+  const box = mode === "forgot" ? `<h2>Reset your password</h2><p class="muted" style="margin:0">We'll email you a link to choose a new password.</p>
+      <form id="fF" class="stack" novalidate><div class="f"><label for="fE">Email</label><input id="fE" type="email" autocomplete="email"></div><div class="err" id="aErr"></div><button class="btn" type="submit">Send reset link</button></form>
+      <button class="linkbtn" id="back" type="button">Back to sign in</button>` : `
+    <div class="tabs" role="tablist"><button type="button" role="tab" id="tS" aria-selected="${mode === "signup"}">Create partner account</button><button type="button" role="tab" id="tL" aria-selected="${mode === "login"}">Sign in</button></div>
+    ${notice ? `<div class="note">${esc(notice)}</div>` : ""}
+    <form id="aF" class="stack" novalidate>
+      ${mode === "signup" ? `<div class="grid">
+        <div class="f full"><label for="aFirm">Firm or practice name</label><input id="aFirm" autocomplete="organization"></div>
+        <div class="f full"><label for="aKind">You are a</label><select id="aKind"><option value="">Choose…</option>${KINDS.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("")}</select></div>
+        <div class="f"><label for="aLic" id="aLicL">Licence number</label><input id="aLic" placeholder="e.g. R712345"></div>
+        <div class="f"><label for="aContact">Contact person</label><input id="aContact" autocomplete="name"></div>
+        <div class="f"><label for="aEmail">Work email</label><input id="aEmail" type="email" autocomplete="email"></div>
+        <div class="f"><label for="aPhone">Phone</label><input id="aPhone" type="tel" autocomplete="tel"></div>
+        <div class="f"><label for="aCity">City</label><input id="aCity" autocomplete="address-level2"></div>
+        <div class="f"><label for="aProv">Province</label><select id="aProv"><option value="">Choose…</option>${PROV.map((p) => `<option>${p}</option>`).join("")}</select></div>
+        <div class="f full"><label for="aWeb">Website (optional)</label><input id="aWeb" type="url" placeholder="https://"></div>
+        <div class="f full"><label for="aPass">Password</label><input id="aPass" type="password" autocomplete="new-password" placeholder="At least 10 characters"></div>
+        <div class="f full"><label class="cb"><input type="checkbox" id="aAgree"><span id="aTerms"></span></label></div></div>`
+      : `<div class="f"><label for="aEmail">Work email</label><input id="aEmail" type="email" autocomplete="email"></div>
+        <div class="f"><label for="aPass">Password</label><input id="aPass" type="password" autocomplete="current-password"></div>`}
+      <div class="err" id="aErr"></div>
+      <button class="btn" type="submit">${mode === "signup" ? "Create account" : "Sign in"}</button>
+      ${mode === "login" ? `<button class="linkbtn" id="forgot" type="button" style="align-self:flex-start">Forgot your password?</button>` : ""}
+    </form>`;
+  view.innerHTML = `<section class="hero">
+    <div><span class="eyebrow">For RCICs and immigration law firms</span>
+      <h1>Client intake forms your clients actually finish</h1>
+      <p class="lede">Send each client a secure link. They create an account, answer IRCC-based questions that adapt to their situation, and upload every document in its own place. You get an email when they submit, then view and download everything in one place.</p>
+      <ul class="points">
+        <li>Forms follow IRCC's own application forms and document checklists. Questions and the document list change with each answer.</li>
+        <li>Submit stays locked until every required answer and document is in, so you don't chase missing items.</li>
+        <li>View every answer and document, print or save a PDF, and download one ZIP with an answers summary and every document in numbered folders.</li>
+        <li>Your clients see your firm's name on the form. Only your firm sees their file. No subscription: pay per form.</li>
+      </ul>
+      <div class="prices">
+        <div class="price"><b>${money(pr.tr)}</b><span>per Temporary residence intake form (visitor visas, study and work permits, extensions, PGWP, open work permits, restoration and more)</span></div>
+        <div class="price"><b>${money(pr.pr)}</b><span>per Permanent residence intake form${ready.pr ? "" : " (coming soon)"}</span></div>
+      </div>
+      <p class="muted">Prices in Canadian dollars. One form credit = one personal client link. A link you turn off before the client starts it gives the credit back.</p></div>
+    <div class="card">${box}</div></section>`;
+  if (mode === "forgot") {
+    $("#back").onclick = () => authView("login");
+    $("#fF").onsubmit = async (e) => { e.preventDefault(); const email = $("#fE").value.trim();
+      if (!/^\S+@\S+\.\S+$/.test(email)) return $("#aErr").textContent = "Enter a valid email address.";
+      await api("forgot", { method: "POST", body: JSON.stringify({ email }) }).catch(() => {});
+      $("#fF").outerHTML = `<div class="note">If a partner account uses ${esc(email)}, a reset link is on its way.</div>`; };
+    return;
+  }
+  $("#tS").onclick = () => authView("signup"); $("#tL").onclick = () => authView("login");
+  const fg = $("#forgot"); if (fg) fg.onclick = () => authView("forgot");
+  if (mode === "signup") {
+    $("#aTerms").textContent = terms || "I accept the WorkerPool partner terms.";
+    $("#aKind").onchange = () => { const k = $("#aKind").value; $("#aLicL").textContent = k === "rcic" ? "CICC licence number" : k === "firm" ? "Licence number of your RCIC or lawyer" : "Law society / licence number"; $("#aLic").placeholder = k === "rcic" || k === "firm" ? "e.g. R712345" : "Member number"; };
+  }
+  $("#aF").onsubmit = async (e) => {
+    e.preventDefault();
+    const err = (m) => $("#aErr").textContent = m, v = (id) => ($("#" + id) || {}).value?.trim() || "";
+    const b = { email: v("aEmail").toLowerCase(), password: $("#aPass").value };
+    if (!/^\S+@\S+\.\S+$/.test(b.email)) return err("Enter a valid email address.");
+    if (mode === "signup") {
+      Object.assign(b, { firm: v("aFirm"), kind: v("aKind"), licence: v("aLic"), contact: v("aContact"), phone: v("aPhone"), city: v("aCity"), province: v("aProv"), website: v("aWeb"), agree: $("#aAgree").checked });
+      if (!b.firm) return err("Enter your firm or practice name.");
+      if (!b.kind) return err("Choose what kind of representative you are.");
+      if (!b.licence) return err("Enter your licence number.");
+      if (!b.contact) return err("Enter the contact person's name.");
+      if (b.phone.replace(/\D/g, "").length < 7) return err("Enter a phone number.");
+      if (b.password.length < 10) return err("Password needs at least 10 characters.");
+      if (!b.agree) return err("Read and accept the partner terms to continue.");
+    } else if (!b.password) return err("Enter your password.");
+    const btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
+    const r = await api(mode, { method: "POST", body: JSON.stringify(b) }).catch(() => ({ ok: false, j: {} }));
+    if (!r.ok) { btn.disabled = false; return err(r.j.error || "Something went wrong. Try again."); }
+    if (mode === "signup") { tab = "credits"; S.flash = "Welcome! Buy form credits, then create a link for your first client under Send a form."; }
+    boot();
+  };
+}
+
+function resetView(token) {
+  view.innerHTML = `<div class="card" style="max-width:460px;margin:0 auto"><h2>Choose a new password</h2>
+    <form id="rF" class="stack" novalidate><div class="f"><label for="rP">New password</label><input id="rP" type="password" autocomplete="new-password" placeholder="At least 10 characters"></div>
+    <div class="err" id="rErr"></div><button class="btn" type="submit">Save password</button></form></div>`;
+  $("#rF").onsubmit = async (e) => { e.preventDefault();
+    const r = await api("reset", { method: "POST", body: JSON.stringify({ token, password: $("#rP").value }) });
+    if (!r.ok) return $("#rErr").textContent = r.j.error || "Couldn't save it.";
+    history.replaceState(null, "", location.pathname); authView("login", "Password saved. Sign in with your new password."); };
+}
+
+/* ---------- dashboard ---------- */
+async function dash() {
+  const r = await api("dash"); if (!r.ok) { view.innerHTML = `<div class="card"><p class="err">${esc(r.j.error || "Couldn't load your dashboard.")}</p></div>`; return; }
+  D = r.j; ME.partner = D.partner; header();
+  const R = D.rows, newN = R.filter((x) => x.status === "submitted" && !x.partner_seen).length;
+  view.innerHTML = `<div><span class="eyebrow">${esc(ME.partner.kind_label)} · ${esc(ME.partner.licence)}</span><h1>${esc(ME.partner.firm)}</h1></div>
+    <div class="nav2" role="tablist">
+      ${[["forms", `Client forms${newN ? ` (${newN} new)` : ""}`], ["send", "Send a form"], ["credits", "Credits & billing"], ["account", "Account"]].map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${tab === k}">${l}</button>`).join("")}</div>
+    ${S.flash ? `<div class="note" style="margin-bottom:14px">${esc(S.flash)}</div>` : ""}
+    <div id="pane"></div>`;
+  S.flash = "";
+  view.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => { tab = b.dataset.tab; S.item = null; dash(); });
+  ({ forms: formsPane, send: sendPane, credits: creditsPane, account: accountPane })[tab]();
+}
+
+/* ---- client forms ---- */
+function formsPane() {
+  const R = D.rows, q = S.q.trim().toLowerCase(), pane = $("#pane");
+  const n = { new: R.filter((x) => x.status === "submitted" && !x.partner_seen).length, submitted: R.filter((x) => x.submitted).length, progress: R.filter((x) => !x.submitted).length, all: R.length };
+  const L = R.filter((x) => {
+    const isNew = x.status === "submitted" && !x.partner_seen;
+    if (S.filter === "new" && !isNew) return false;
+    if (S.filter === "submitted" && !x.submitted) return false;
+    if (S.filter === "progress" && x.submitted) return false;
+    return !q || [x.name, x.acct_name, x.acct_email, x.acct_phone, x.invite_label, (FORMS[x.form_key] || {}).name, stLabel(x.partner_status)].some((v) => String(v || "").toLowerCase().includes(q));
+  });
+  if (!R.length) { pane.innerHTML = `<div class="card"><h2>No client forms yet</h2><p style="margin:0">Create a personal link for a client under <b>Send a form</b>. Forms your clients start and submit appear here, and you get an email for each submission.</p><div><button class="btn" id="goSend" type="button">Send a form</button></div></div>`; $("#goSend").onclick = () => { tab = "send"; dash(); }; return; }
+  pane.innerHTML = `<div class="stack"><div class="row sp"><div class="seg">${[["new", `New (${n.new})`], ["submitted", `Submitted (${n.submitted})`], ["progress", `Still filling (${n.progress})`], ["all", `All (${n.all})`]].map(([v, l]) => `<button type="button" data-f="${v}" aria-pressed="${S.filter === v}">${l}</button>`).join("")}</div>
+      <input id="q" type="search" placeholder="Search client, email, form…" value="${esc(S.q)}" style="max-width:260px"></div>
+    ${L.length ? `<div class="tbl"><table><thead><tr><th>Status</th><th>Client</th><th>Form</th><th>Progress</th><th>Files</th><th>Submitted</th></tr></thead><tbody>
+      ${L.map((x) => { const isNew = x.status === "submitted" && !x.partner_seen;
+        const badge = isNew ? `<span class="pill new">${x.resubmitted ? "Updated" : "New"}</span>` : x.status === "submitted" ? `<span class="pill sub">${esc(stLabel(x.partner_status))}</span>` : x.status === "editing" ? `<span class="pill edit">Client editing</span>` : `<span class="pill">Filling</span>`;
+        return `<tr class="${x.submitted ? "click" : ""}${isNew ? " new" : ""}" ${x.submitted ? `data-open="${x.id}" tabindex="0"` : `title="You can open it once your client submits"`}><td>${badge}</td>
+          <td>${esc(x.name || x.invite_label || "(name not entered)")}<br><span class="muted">${esc(x.acct_email)} · ${esc(x.acct_phone)}</span></td>
+          <td>${esc((FORMS[x.form_key] || {}).name || x.form_key)}</td><td><span class="meter"><i style="width:${x.progress || 0}%"></i></span>${x.progress || 0}%</td>
+          <td>${x.docs_destroyed_at ? `<span class="muted">Deleted</span>` : x.files}</td><td>${x.submitted ? when(x.resubmitted || x.submitted) : `<span class="muted">Last saved ${when(x.updated)}</span>`}</td></tr>`; }).join("")}
+    </tbody></table></div>` : `<div class="card"><p class="muted" style="margin:0">${S.filter === "new" ? "No new submissions. New and updated forms appear here, highlighted, until you open them." : "Nothing here."}</p></div>`}</div>`;
+  pane.querySelectorAll("[data-f]").forEach((b) => b.onclick = () => { S.filter = b.dataset.f; formsPane(); });
+  const qi = $("#q"); qi.oninput = () => { S.q = qi.value; const p = qi.selectionStart; formsPane(); const n2 = $("#q"); n2.focus(); n2.setSelectionRange(p, p); };
+  pane.querySelectorAll("[data-open]").forEach((tr) => { tr.onclick = () => openItem(tr.dataset.open); tr.onkeydown = (e) => { if (e.key === "Enter") openItem(tr.dataset.open); }; });
+}
+function answers(form, data) {
+  const shown = (v) => v === true ? "Yes" : String(v ?? "").trim();
+  return form.sections.filter((s) => sectionOn(s, data)).map((s) => {
+    const one = (row) => s.fields.filter((f) => f.t !== "h" && fieldOn(f, data, row) && shown((row || {})[f.k])).map((f) => [f.l, shown(row[f.k])]);
+    if (s.rep) return { title: s.title, reps: (Array.isArray(data[s.id]) ? data[s.id] : []).map(one) };
+    return { title: s.title, pairs: one(data[s.id] || {}) };
+  });
+}
+async function openItem(id) {
+  const pane = $("#pane"); pane.innerHTML = `<div class="card"><p class="muted" style="margin:0">Opening…</p></div>`;
+  const r = await api("item?id=" + encodeURIComponent(id));
+  if (!r.ok) { pane.innerHTML = `<div class="card"><p class="err">${esc(r.j.error || "Couldn't open it.")}</p></div>`; return; }
+  S.item = r.j; const x = D.rows.find((y) => y.id === id); if (x && x.status === "submitted") x.partner_seen = x.partner_seen || new Date().toISOString();
+  drawItem();
+}
+function drawItem() {
+  const pane = $("#pane"), { row: r, docs, missing } = S.item, form = FORMS[r.form_key], d = r.data, c = d.contact || {};
+  const A = answers(form, d), name = applicantName(d) || r.invite_label || "(name not entered)";
+  const phone = String(c.phone || r.acct_phone || "").replace(/[^\d+]/g, "");
+  const sec = (s) => `<div class="sec"><h4>${esc(s.title)}</h4>${s.reps ? (s.reps.length ? s.reps.map((p, i) => `<div class="rep"><div class="muted" style="font-weight:700">${i + 1}</div><dl class="ro">${p.map(([l, v]) => `<dt>${esc(l)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></div>`).join("") : `<span class="muted">None</span>`)
+    : (s.pairs.length ? `<dl class="ro">${s.pairs.map(([l, v]) => `<dt>${esc(l)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : `<span class="muted">Nothing entered</span>`)}</div>`;
+  const docRows = form.docs.filter((x) => cond(x.if, d) || docs.some((y) => y.doc_key === x.k)).map((x) => {
+    const f = docs.filter((y) => y.doc_key === x.k);
+    return `<div class="doc"><div class="n"><b>${esc(x.l)}</b>${!f.length ? ` <span class="pill${x.r ? " edit" : ""}">${x.r ? "Missing" : "Not uploaded"}</span>` : ""}
+      ${f.map((y) => `<div class="muted">${esc(y.name)} · ${kb(y.size)} · ${when(y.uploaded)}</div>`).join("")}</div>
+      <div class="row">${f.map((y) => `<button class="btn ghost sm" type="button" data-view="${y.id}">View</button><button class="btn ghost sm" type="button" data-dl="${y.id}" data-name="${esc(y.name)}">Download</button>`).join("")}</div></div>`;
+  }).join("");
+  const stat = r.status === "submitted" ? (r.resubmitted ? `Resubmitted ${when(r.resubmitted)} (first ${when(r.submitted)})` : `Submitted ${when(r.submitted)}`) : "Your client is making changes (not resubmitted yet)";
+  pane.innerHTML = `<div class="stack">
+    <div><button class="btn ghost sm" type="button" id="back">← All client forms</button></div>
+    <div class="card"><div class="row sp" style="align-items:flex-start"><div><span class="muted">${esc(form.name)}</span><h2 style="font-size:1.4rem">${esc(name)}</h2>
+        <div class="muted">${esc(stat)}${r.invite_label ? ` · link: ${esc(r.invite_label)}` : ""}</div>
+        <div style="margin-top:8px;font-size:.9rem">Client account: <b>${esc(r.acct_name)}</b> · <a href="mailto:${esc(r.acct_email)}">${esc(r.acct_email)}</a> · ${phone ? `<a href="tel:${esc(phone)}">${esc(r.acct_phone)}</a> · <a href="https://wa.me/${esc(phone.replace(/^\+/, ""))}" target="_blank" rel="noopener">WhatsApp</a>` : esc(r.acct_phone)}</div></div>
+      <div class="row"><button class="btn" type="button" id="zip"${r.docs_destroyed_at ? "" : ""}>Download complete file (ZIP)</button><button class="btn ghost" type="button" id="print">Print / save PDF</button><button class="btn ghost" type="button" id="copyA">Copy answers</button></div></div>
+      <div class="grid" style="grid-template-columns:220px 1fr auto;align-items:end">
+        <div class="f"><label for="st">Work status</label><select id="st">${STATUS.map(([v, l]) => `<option value="${v}"${(r.partner_status || "new") === v ? " selected" : ""}>${l}</option>`).join("")}</select></div>
+        <div class="f"><label for="notes">Private notes (only your firm sees them)</label><textarea id="notes" rows="2">${esc(r.partner_note || "")}</textarea></div>
+        <div><button class="btn" type="button" id="save">Save</button></div></div><div class="muted" id="msg"></div>
+      ${missing.length ? `<div class="note warn"><b>${missing.length} required item${missing.length > 1 ? "s" : ""} not complete</b><ul style="margin:6px 0 0;padding-left:18px">${missing.slice(0, 40).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+    </div>
+    <div class="card"><h3>Documents (${docs.length} file${docs.length === 1 ? "" : "s"})</h3>${r.docs_destroyed_at ? `<p class="muted" style="margin:0">${r.docs_destroyed_count || 0} uploaded document${r.docs_destroyed_count === 1 ? " was" : "s were"} deleted from WorkerPool on ${when(r.docs_destroyed_at)}. They are in the ZIP you downloaded.</p>` : docRows || `<span class="muted">No documents.</span>`}</div>
+    <div class="card"><h3>Answers</h3>${A.map(sec).join("")}</div>
+    <div class="card"><h3>Manage</h3>
+      ${r.status === "submitted" && !r.docs_destroyed_at ? `<div class="f"><label for="askMsg">Ask your client to make changes (optional message, emailed to them)</label><textarea id="askMsg" rows="2" placeholder="e.g. Please upload a clearer copy of your passport bio page."></textarea></div>
+        <div><button class="btn ghost" type="button" id="unlock">Reopen the form for your client</button></div>` : ""}
+      <div class="row"><button class="btn ghost" type="button" id="unread">Mark as new again</button>
+        ${!r.docs_destroyed_at && docs.length ? `<button class="btn red" type="button" id="destroy" title="${r.partner_downloads ? "" : "Download the complete file first"}">Delete uploaded documents from WorkerPool</button>` : ""}</div>
+      <p class="muted" style="margin:0">${r.partner_downloads ? `You downloaded the complete file ${r.partner_downloads}×.` : "Download the complete file before deleting documents."} The client agreed that WorkerPool deletes their uploaded documents once you have finished with their file.${r.consent_at ? ` Client consent recorded ${when(r.consent_at)}.` : ""}</p></div></div>`;
+  const msg = (t) => $("#msg").textContent = t;
+  $("#back").onclick = () => { S.item = null; dash(); };
+  $("#save").onclick = async () => { const b = { id: r.id, status: $("#st").value, note: $("#notes").value }; const x = await api("status", { method: "POST", body: JSON.stringify(b) }); msg(x.ok ? "Saved ✓" : x.j.error); if (x.ok) { r.partner_status = b.status; r.partner_note = b.note; const y = D.rows.find((z) => z.id === r.id); if (y) y.partner_status = b.status; } };
+  $("#copyA").onclick = (e) => copy(asText(r, form, A, docs, name), e.target);
+  $("#print").onclick = () => printView(r, form, A, docs, name);
+  $("#zip").onclick = async (e) => { const b = e.target; b.disabled = true; b.textContent = "Building the ZIP…";
+    try { const x = await fetch("/api/partners/zip?id=" + encodeURIComponent(r.id)); if (!x.ok) { let j = {}; try { j = await x.json(); } catch (_) {} throw new Error(j.error || "Couldn't build the ZIP."); }
+      const cd = x.headers.get("content-disposition") || "", fn = (cd.match(/filename="([^"]+)"/) || [])[1] || "complete-file.zip";
+      save(await x.blob(), fn); r.partner_downloads = (r.partner_downloads || 0) + 1; }
+    catch (err) { alert(err.message); } b.disabled = false; b.textContent = "Download complete file (ZIP)"; };
+  pane.querySelectorAll("[data-view]").forEach((b) => b.onclick = () => getFile(b.dataset.view, "", true));
+  pane.querySelectorAll("[data-dl]").forEach((b) => b.onclick = () => getFile(b.dataset.dl, b.dataset.name, false));
+  const un = $("#unlock"); if (un) un.onclick = async () => { if (!confirm("Reopen this form so your client can change answers and documents? They get an email, and it comes back here as Updated when they resubmit.")) return;
+    const x = await api("unlock", { method: "POST", body: JSON.stringify({ id: r.id, message: $("#askMsg").value }) }); if (!x.ok) return alert(x.j.error); await dash(); openItem(r.id); };
+  $("#unread").onclick = async () => { await api("unseen", { method: "POST", body: JSON.stringify({ id: r.id }) }); S.item = null; dash(); };
+  const ds = $("#destroy"); if (ds) ds.onclick = async () => {
+    if (!r.partner_downloads) return alert("Download the complete file (ZIP) first, so you have every document before they are deleted.");
+    if (!confirm(`Permanently delete all ${docs.length} uploaded documents for ${name} from WorkerPool? The answers stay. Your client is told by email. This can't be undone.`)) return;
+    if (prompt("Type DELETE to confirm") !== "DELETE") return;
+    const x = await api("destroy", { method: "POST", body: JSON.stringify({ id: r.id }) }); if (!x.ok) return alert(x.j.error); openItem(r.id); };
+}
+function save(blob, name) { const url = URL.createObjectURL(blob), a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 120000); }
+async function getFile(id, name, viewIt) {
+  const w = viewIt ? window.open("", "_blank") : null;
+  const r = await fetch(`/api/partners/doc?id=${encodeURIComponent(id)}${viewIt ? "&view=1" : ""}`);
+  if (!r.ok) { if (w) w.close(); let j = {}; try { j = await r.json(); } catch (e) {} return alert(j.error || "Couldn't open the file."); }
+  const blob = await r.blob();
+  if (w) w.location.href = URL.createObjectURL(blob); else save(blob, name || "document");
+}
+function asText(r, form, A, docs, name) {
+  const out = [form.name, `Applicant: ${name}`, `Client account: ${r.acct_name} · ${r.acct_email} · ${r.acct_phone}`, `Submitted: ${when(r.submitted)}`, ""];
+  A.forEach((s) => { out.push(s.title.toUpperCase()); if (s.reps) (s.reps.length ? s.reps : [[["", "None"]]]).forEach((p, i) => { out.push(`  ${i + 1}.`); p.forEach(([l, v]) => out.push(`     ${l}: ${v}`)); }); else s.pairs.forEach(([l, v]) => out.push(`  ${l}: ${v}`)); out.push(""); });
+  out.push("DOCUMENTS"); form.docs.forEach((d) => { const f = docs.filter((x) => x.doc_key === d.k); if (f.length) out.push(`  ${d.l}: ${f.map((x) => x.name).join(", ")}`); });
+  return out.join("\n");
+}
+function printView(r, form, A, docs, name) {
+  const w = window.open("", "_blank"); if (!w) return alert("Allow pop-ups to print.");
+  const tbl = (p) => `<table>${p.map(([l, v]) => `<tr><th>${esc(l)}</th><td>${esc(v)}</td></tr>`).join("")}</table>`;
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)} – ${esc(form.name)}</title><style>
+    body{font:13px/1.45 system-ui,sans-serif;color:#111;margin:28px}h1{font-size:20px;margin:0}h2{font-size:14px;margin:18px 0 6px;padding-bottom:3px;border-bottom:2px solid #24514b;color:#24514b;text-transform:uppercase;letter-spacing:.04em}
+    table{width:100%;border-collapse:collapse;margin-bottom:6px}th,td{text-align:left;vertical-align:top;padding:4px 6px;border-bottom:1px solid #ddd}th{width:45%;font-weight:500;color:#555}td{white-space:pre-wrap}
+    .n{font-weight:700;margin-top:8px}.m{color:#555}@media print{body{margin:12mm}h2{break-after:avoid}tr{break-inside:avoid}}</style></head><body>
+    <h1>${esc(name)}</h1><div class="m">${esc(form.name)} · Submitted ${esc(when(r.submitted))} · ${esc(ME.partner.firm)} · Client ${esc(r.acct_name)}, ${esc(r.acct_email)}, ${esc(r.acct_phone)}</div>
+    ${A.map((s) => `<h2>${esc(s.title)}</h2>${s.reps ? (s.reps.length ? s.reps.map((p, i) => `<div class="n">${i + 1}.</div>${tbl(p)}`).join("") : "<p>None</p>") : tbl(s.pairs)}`).join("")}
+    <h2>Documents</h2>${tbl(form.docs.filter((d) => docs.some((x) => x.doc_key === d.k)).map((d) => [d.l, docs.filter((x) => x.doc_key === d.k).map((x) => x.name).join("\n")]))}
+    <p class="m">Confidential client information.</p><script>onload=()=>print()<\/script></body></html>`);
+  w.document.close();
+}
+
+/* ---- send a form ---- */
+function sendPane() {
+  const pane = $("#pane"), c = ME.partner.credits, pr = ME.prices;
+  const pick = S.pick && FORMS[S.pick] ? S.pick : null, kindOf = (k) => (ME.catalog.find((cat) => cat.groups.some((g) => g.forms.some((f) => f.key === k))) || {}).kind || "tr";
+  const links = D.links;
+  pane.innerHTML = `<div class="stack">
+    <div class="card"><h2>1. Choose the application</h2><p class="muted" style="margin:0">Forms with a green dot are ready. Each personal client link uses one credit: ${money(pr.tr)} for Temporary residence, ${money(pr.pr)} for Permanent residence.</p>
+      <div class="cats">${ME.catalog.map((cat) => `<div class="card" style="padding:14px;gap:8px"><div class="row sp"><h3>${esc(cat.label)}</h3><span class="chip${c[cat.kind] ? "" : " zero"}">${c[cat.kind]} credit${c[cat.kind] === 1 ? "" : "s"} · ${money(pr[cat.kind])} each</span></div>
+        ${cat.groups.map((g) => `<div class="grp"><small>${esc(g.label)}</small><div class="forms">${g.forms.map((f) => `<button type="button" class="fbtn ${ME.forms.includes(f.key) ? "ready" : "soon"}" ${ME.forms.includes(f.key) ? `data-pick="${f.key}"` : "disabled"} aria-pressed="${pick === f.key}">${esc(f.name)}</button>`).join("")}</div></div>`).join("")}</div>`).join("")}</div></div>
+    ${pick ? `<div class="hl" id="mk"><span class="muted">${esc(KL[kindOf(pick)])} · uses 1 credit (you have ${c[kindOf(pick)]})</span><h2>2. ${esc(FORMS[pick].name)}: personal link for your client</h2>
+      ${c[kindOf(pick)] ? `<div class="grid">
+        <div class="f"><label for="lName">Client name</label><input id="lName" placeholder="e.g. Jaspreet Kaur"></div>
+        <div class="f"><label for="lEmail">Client email (optional)</label><input id="lEmail" type="email" placeholder="client@email.com"></div>
+        <div class="f full"><label for="lNote">Private note (only your firm sees it)</label><input id="lNote" placeholder="e.g. file number"></div></div>
+        <div class="row"><button class="btn" type="button" id="mk1">Create link</button><button class="btn ghost" type="button" id="mk2">Create &amp; email it to the client</button></div><div class="err" id="mkErr"></div>`
+      : `<div class="note warn">You have no ${esc(KL[kindOf(pick)])} credits left. <button class="linkbtn" id="toBuy" type="button">Buy credits</button></div>`}
+      ${S.made ? `<div class="card" style="gap:8px"><b>Link for ${esc(S.made.label)}${S.made.emailed ? " · emailed ✓" : ""}</b>
+        <div class="url"><input readonly id="made" value="${esc(S.made.link)}"><button class="btn" type="button" data-cp="${esc(S.made.link)}">Copy link</button>
+        <a class="btn ghost" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Please fill your ${FORMS[S.made.f].name} form for ${ME.partner.firm} here: ${S.made.link}`)}">WhatsApp</a></div>
+        <span class="muted">The link opens one form for one client. Your firm's name is shown on it.</span></div>` : ""}</div>` : ""}
+    <div class="card"><h2>Your client links (${links.length})</h2>
+      ${links.length ? `<div class="tbl"><table><thead><tr><th>Client</th><th>Form</th><th>Created</th><th>Status</th><th></th></tr></thead><tbody>
+        ${links.map((v) => `<tr><td><b>${esc(v.label || "–")}</b>${v.email ? `<br><span class="muted">${esc(v.email)}</span>` : ""}${v.note ? `<br><span class="muted">${esc(v.note)}</span>` : ""}</td>
+          <td>${esc((FORMS[v.form_key] || {}).name || v.form_key)}</td><td>${when(v.created)}</td>
+          <td>${v.archived ? (v.refunded ? "Turned off · credit returned" : "Turned off") : v.done ? "Submitted" : v.started ? "Client is filling it" : v.opens ? `Opened ${v.opens}× · last ${when(v.last_open)}` : "Not opened yet"}</td>
+          <td style="white-space:nowrap">${v.archived ? "" : `<button class="btn ghost sm" type="button" data-cp="${esc(location.origin + "/intake/?i=" + v.code)}">Copy</button> <button class="btn ghost sm" type="button" data-off="${esc(v.code)}" data-started="${v.started}">Turn off</button>`}</td></tr>`).join("")}
+      </tbody></table></div>` : `<p class="muted" style="margin:0">No links yet.</p>`}</div></div>`;
+  pane.querySelectorAll("[data-pick]").forEach((b) => b.onclick = () => { S.pick = b.dataset.pick; S.made = null; sendPane(); $("#mk").scrollIntoView({ behavior: "smooth", block: "nearest" }); });
+  pane.querySelectorAll("[data-cp]").forEach((b) => b.onclick = () => copy(b.dataset.cp, b));
+  const tb = $("#toBuy"); if (tb) tb.onclick = () => { tab = "credits"; dash(); };
+  const mk = (send) => async () => {
+    const label = $("#lName").value.trim(), email = $("#lEmail").value.trim(), err = $("#mkErr");
+    if (!label) return err.textContent = "Enter your client's name.";
+    if (send && !email) return err.textContent = "Add the client's email to send it.";
+    const r = await api("link", { method: "POST", body: JSON.stringify({ f: pick, label, email, note: $("#lNote").value.trim(), send }) });
+    if (!r.ok) return err.textContent = r.j.error || "Couldn't create the link.";
+    S.made = { f: pick, label, link: r.j.link, emailed: r.j.emailed }; ME.partner.credits = r.j.credits; header();
+    const d2 = await api("dash"); if (d2.ok) D = d2.j; sendPane(); const m = $("#made"); if (m) { m.select(); copy(m.value); }
+    if (send && !r.j.emailed) $("#mk").insertAdjacentHTML("beforeend", `<div class="err">Link created, but the email couldn't be sent. Copy the link instead.</div>`);
+  };
+  const m1 = $("#mk1"), m2 = $("#mk2"); if (m1) m1.onclick = mk(false); if (m2) m2.onclick = mk(true);
+  pane.querySelectorAll("[data-off]").forEach((b) => b.onclick = async () => {
+    if (!confirm(+b.dataset.started ? "Turn off this link? Your client can't open it any more. The form they started stays, and the credit isn't returned." : "Turn off this link? Nobody has started the form yet, so the credit goes back to your account.")) return;
+    const r = await api("link-off", { method: "POST", body: JSON.stringify({ code: b.dataset.off }) }); if (!r.ok) return alert(r.j.error);
+    ME.partner.credits = r.j.credits; header(); const d2 = await api("dash"); if (d2.ok) D = d2.j; sendPane(); });
+}
+
+/* ---- credits ---- */
+function creditsPane() {
+  const pane = $("#pane"), pr = ME.prices, c = ME.partner.credits;
+  pane.innerHTML = `<div class="stack">
+    <div class="card"><h2>Buy form credits</h2><p class="muted" style="margin:0">One credit = one personal client link. Credits don't expire. Prices in Canadian dollars${ME.payments ? "; you pay securely with Stripe and get a receipt by email" : ""}.</p>
+      ${ME.payments ? `<div>
+        <div class="qty"><div><b>Temporary residence forms</b><div class="muted">${money(pr.tr)} each · you have ${c.tr}</div></div><input id="qTr" type="number" min="0" max="200" value="${c.tr ? 0 : 5}" aria-label="Temporary residence forms"><b id="sTr"></b></div>
+        <div class="qty"><div><b>Permanent residence forms</b><div class="muted">${money(pr.pr)} each · you have ${c.pr}${ME.ready.pr ? "" : " · coming soon"}</div></div><input id="qPr" type="number" min="0" max="200" value="0" ${ME.ready.pr ? "" : "disabled"} aria-label="Permanent residence forms"><b id="sPr"></b></div>
+        <div class="row sp" style="margin-top:12px"><b style="font-size:1.1rem">Total <span id="tot"></span></b><button class="btn" type="button" id="pay">Pay with card</button></div><div class="err" id="payErr"></div></div>`
+      : `<div class="note">Online payment isn't switched on yet. Email ${esc("info@workerpool.ca")} to add credits to your account.</div>`}</div>
+    <div class="card"><h2>Credit history</h2>${D.ledger.length ? `<div class="tbl"><table><thead><tr><th>Date</th><th>Change</th><th>Details</th></tr></thead><tbody>
+      ${D.ledger.map((x) => `<tr><td>${when(x.created)}</td><td><b>${x.delta > 0 ? "+" : ""}${x.delta}</b> ${x.kind === "pr" ? "Permanent" : "Temporary"}</td><td>${esc(x.reason || "")}${x.amount ? ` · ${money(x.amount)}` : ""}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted" style="margin:0">No credits yet.</p>`}</div></div>`;
+  if (!ME.payments) return;
+  const calc = () => { const t = Math.max(0, +$("#qTr").value || 0), p = Math.max(0, +$("#qPr").value || 0); $("#sTr").textContent = money(t * pr.tr); $("#sPr").textContent = money(p * pr.pr); $("#tot").textContent = money(t * pr.tr + p * pr.pr); $("#pay").disabled = !(t + p); };
+  $("#qTr").oninput = calc; $("#qPr").oninput = calc; calc();
+  $("#pay").onclick = async (e) => { e.target.disabled = true; e.target.textContent = "Opening secure checkout…";
+    const r = await api("checkout", { method: "POST", body: JSON.stringify({ tr: +$("#qTr").value || 0, pr: +$("#qPr").value || 0 }) });
+    if (!r.ok) { e.target.disabled = false; e.target.textContent = "Pay with card"; return $("#payErr").textContent = r.j.error || "Couldn't open checkout."; }
+    location.href = r.j.url; };
+}
+
+/* ---- account ---- */
+function accountPane() {
+  const p = ME.partner, pane = $("#pane");
+  pane.innerHTML = `<div class="card" style="max-width:640px"><h2>Account</h2>
+    <dl class="ro"><dt>Firm</dt><dd>${esc(p.firm)}</dd><dt>Type</dt><dd>${esc(p.kind_label)}</dd><dt>Licence</dt><dd>${esc(p.licence)}</dd><dt>Sign-in email</dt><dd>${esc(p.email)}</dd><dt>Partner since</dt><dd>${when(p.created)}</dd></dl>
+    <p class="muted" style="margin:0">To change the firm name, licence or sign-in email, email info@workerpool.ca.</p>
+    <div class="grid"><div class="f"><label for="pC">Contact person</label><input id="pC" value="${esc(p.contact)}"></div><div class="f"><label for="pP">Phone</label><input id="pP" value="${esc(p.phone)}"></div>
+      <div class="f full"><label for="pW">Website</label><input id="pW" value="${esc(p.website || "")}"></div>
+      <div class="f"><label for="pCur">Current password (to change it)</label><input id="pCur" type="password" autocomplete="current-password"></div><div class="f"><label for="pNew">New password</label><input id="pNew" type="password" autocomplete="new-password" placeholder="At least 10 characters"></div></div>
+    <div class="row"><button class="btn" type="button" id="pSave">Save</button><span class="muted" id="pMsg"></span></div></div>`;
+  $("#pSave").onclick = async () => {
+    const b = { contact: $("#pC").value, phone: $("#pP").value, website: $("#pW").value };
+    if ($("#pNew").value) { b.password = $("#pNew").value; b.current = $("#pCur").value; }
+    const r = await api("profile", { method: "POST", body: JSON.stringify(b) });
+    $("#pMsg").textContent = r.ok ? "Saved ✓" : r.j.error; if (r.ok) { $("#pCur").value = ""; $("#pNew").value = ""; await refreshMe(); }
+  };
+}
+
+boot().catch((e) => { if (e.message !== "auth") view.innerHTML = `<div class="card"><p class="err">Couldn't load the page. Refresh to try again.</p></div>`; });
+</script>
+</body>
+</html>
