@@ -76,6 +76,24 @@ Under **Client forms**, submitted forms show highlighted as **New** (or **Update
 
 The TRV form follows IRCC's Application for Visitor Visa (IMM 5257), Schedule 1 (IMM 5257B), the Family Information form (IMM 5707 / IMM 5645) and the online visitor visa document checklist. Tables (`intakes`, `intake_docs`, `intake_invites`) are created automatically; files go to the private `RESUMES` R2 bucket under `intake/`. When you change `assets/intake-config.js` or `admin/intake.js`, bump the `?v=` on their imports (`intake/index.html`, `admin/index.html`, `admin/intake.js`).
 
+## Hosting on Cloudflare only (no GitHub)
+
+The site no longer needs GitHub. `node deploy/build.mjs` (needs esbuild) makes:
+- **`dist.zip`**: the public website plus one compiled `_worker.js` that does everything the `functions/` folder does (same URLs, same handlers, `_headers` and `_redirects` applied). Server code, build scripts, schemas, this README and the Android signing key are never included.
+- **`cron/dist/worker.js`**: the scheduled jobs (Latest draws 3× a day, flight alerts every 3 hours) as one file for a separate Worker.
+
+**One-time move** (Cloudflare dashboard):
+1. Workers & Pages → Create → Pages → **Upload assets** (Direct Upload) → project name e.g. `workerpool-site` → upload `dist.zip` → Deploy.
+2. New project → Settings → **Bindings**: D1 database `DB` = `workerpool-db`; R2 bucket `RESUMES` = `workerpool-resumes`; Workers AI `AI`.
+3. Settings → **Variables and Secrets**: add the same ones the old project has. Secrets can't be read back from the old project, so take each value from where it comes from: `ADMIN_KEY` (yours), `ADMIN_EMAIL`, `SITE_URL` = `https://workerpool.ca`, `RESEND_API_KEY` and `RESEND_WEBHOOK_SECRET` (Resend), `STRIPE_SECRET_KEY` (+ `STRIPE_TAX`), `MAIL_FROM`, `REPLY_TO`, `BULK_FROM`, `MAIL_ADDRESS`, `TP_TOKEN`/`TP_MARKER`/`TP_MARKET` (Travelpayouts), `TELEGRAM_BOT_TOKEN`, `GOOGLE_PLAY_SERVICE_ACCOUNT`, `ANDROID_CERT_SHA256`, `SCANNER_SECRET` and `MAIL_SECRET` (only if you set them before; use the same values, or existing scanner links and unsubscribe links stop working), `SCANNER_FREE`, `CARE_TEAM`. `GITHUB_TOKEN` is no longer used.
+4. Deployments → **Create deployment** → upload `dist.zip` again (bindings and secrets only apply to new deployments). Test on `workerpool-site.pages.dev`.
+5. Old project → Custom domains → remove `workerpool.ca` and `www.workerpool.ca`; new project → Custom domains → add both.
+6. Scheduled jobs: Workers & Pages → Create → **Worker** → name `workerpool-cron` → Deploy → **Edit code** → replace everything with `cron/dist/worker.js` → Deploy. Settings → Bindings → D1 `DB` = `workerpool-db`; Variables: `ADMIN_KEY` (lets `https://workerpool-cron.<you>.workers.dev/?run=draws&batch=0&key=…` run a batch now). Settings → Triggers → **Cron Triggers**: `2,7,12,17,22,27 * * * *` (draws; runs only at 8, 14 and 20 h Edmonton time, one batch of sources every 5 minutes) and `17 */3 * * *` (flight alerts).
+
+**Every later update:** run `node deploy/build.mjs`, then the site project → Create deployment → upload `dist.zip`. Change the scheduled jobs by pasting the new `cron/dist/worker.js`.
+
+**What moved off GitHub Actions:** Latest draws are read inside Cloudflare (`scripts/draws/core.mjs`, used by `functions/_drawstore.js`) and kept in D1 (`site_data`, created automatically); the site reads that first and falls back to `data/draws.json`. Saskatchewan publishes its results as a PDF, which Cloudflare can't read: add Saskatchewan draws by hand (or run `node scripts/draws/fetch.mjs` on a computer with `pdftotext`, then redeploy). The **Median wage data** (`scripts/wages/build.mjs`) changes about once a year: run it on a computer and redeploy when ESDC publishes new wages. Free Cloudflare plans allow only 10 ms of processing per request; if draw refreshes fail with a CPU-limit error, the Workers Paid plan (US$5/month) removes that limit.
+
 ## Partner intake forms for RCICs and law firms (/partners/)
 
 Licensed representatives (RCICs, lawyers, Ontario paralegals, Quebec notaries, or firms employing them) create their own account at `/partners/` with their firm name, licence number and contact details, and accept the partner terms. **Every new firm needs your approval.** The firm can sign in but only sees "Waiting for approval" until you approve it: no credits, no payments, no links. `ADMIN_EMAIL` gets an "Approve new intake partner" email for each application, and admin → **Partners** shows the count on the tab with the firm marked *Needs approval* (check RCIC licences on the CICC public register at college-ic.ca, lawyers on their law society's directory). Open the firm and press **Approve firm** (they're emailed and can start) or **Decline** (optional reason, emailed to them; they can't sign in). Pause an approved firm any time.
@@ -193,13 +211,13 @@ Emails go through Resend (`RESEND_API_KEY`) from `info@workerpool.ca`, and repli
 
 ## Latest draws: refreshing by hand
 
-The reader (`scripts/draws/fetch.mjs`, run by `.github/workflows/draws.yml`) checks official pages at 8 am, 2 pm and 8 pm Mountain time. When a source fails (for example a government server timing out), the admin **Latest draws** tab shows it in red with its error:
+The reader (`scripts/draws/core.mjs`, run by the `workerpool-cron` Worker; see "Hosting on Cloudflare only") checks official pages at 8 am, 2 pm and 8 pm Edmonton time. When a source fails (for example a government server timing out), the admin **Latest draws** tab shows it in red with its error:
 
 - **↻ Refresh now** re-reads every source. **↻ Retry failed sources** (or *retry* next to one source, or **↻ Refresh** on the Sources view) re-reads only those; every other source keeps its last result. The tab shows progress and reloads by itself when the site has published the new scores, usually 2–4 minutes later.
 - Pages that block automated readers (PEI, NL, Yukon, North Bay, Brandon) can't be refreshed automatically. Their **+ add** / **+ Add draw** buttons open the draw form already filled in with the province, program and official link, so you only type the date, stream, invitations and score.
-- From GitHub you can do the same: Actions → Latest draws → Run workflow, with source ids such as `sk,ee` (empty = all).
+- **↻ Refresh now** reads the pages right away inside Cloudflare, a few sources at a time, and shows each result.
 
-Needs the `GITHUB_TOKEN` secret above.
+No GitHub token needed any more.
 
 ## Study options matcher (Student Pool)
 

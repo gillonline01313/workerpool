@@ -368,7 +368,7 @@ function controls(){
     c.querySelectorAll('[data-seg="nf"] button').forEach(b=>b.onclick=()=>{ newsF=b.dataset.v; newsEdit=null; controls(); render(); });
     $("#nwAdd").onclick=()=>{ newsEdit={}; render(); };
   } else if(tab==="draws"){
-    c.innerHTML=seg("df",[["all","All"],["edited","Edited"],["manual","Added by hand"],["hidden","Hidden"],["sources","Sources"]],drF)+`<input id="drQ" type="search" placeholder="Search program or stream" value="${esc(drQ)}" style="font:inherit;font-size:.85rem;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);min-width:200px"><button class="dl" type="button" id="drAdd">+ Add draw</button><button class="dl" type="button" id="drRefresh" title="Read every official page again now">↻ Refresh now</button><a class="dl" href="https://github.com/gillonline01313/workerpool/actions/workflows/draws.yml" target="_blank" rel="noopener" style="text-decoration:none" title="Fallback: run the reader on GitHub">Run on GitHub ↗</a>`;
+    c.innerHTML=seg("df",[["all","All"],["edited","Edited"],["manual","Added by hand"],["hidden","Hidden"],["sources","Sources"]],drF)+`<input id="drQ" type="search" placeholder="Search program or stream" value="${esc(drQ)}" style="font:inherit;font-size:.85rem;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);min-width:200px"><button class="dl" type="button" id="drAdd">+ Add draw</button><button class="dl" type="button" id="drRefresh" title="Read every official page again now">↻ Refresh now</button>`;
     c.querySelectorAll('[data-seg="df"] button').forEach(b=>b.onclick=()=>{ drF=b.dataset.v; drEdit=null; controls(); render(); });
     $("#drQ").oninput=e=>{ drQ=e.target.value; render(); };
     $("#drAdd").onclick=()=>{ drEdit={date:new Date().toLocaleDateString("en-CA",{timeZone:"America/Edmonton"})}; render(); };
@@ -1109,7 +1109,7 @@ function renderDraws(body){
     else if(b.dataset.dr==="hide") act("draws-hide",{id:d.id},d.origin==="manual"?"Delete this draw for good?":"Hide this draw from the home page? It stays hidden after future updates; you can restore it from the Hidden filter.");
     else act("draws-reset",{id:d.id}); });
 }
-/* "Refresh now": re-runs the official-page reader on GitHub for all sources or the ones picked, then waits for the
+/* "Refresh now": re-reads the official pages inside Cloudflare for all sources or the ones picked (functions/_drawstore.js). Was: GitHub, then waits for the
    site to publish the new data (about 2–4 minutes) and reloads this list. Needs the GITHUB_TOKEN secret in Cloudflare. */
 let drRun=null, drLooked=false;
 const drLive=r=>r&&/^(queued|running|deploying)$/.test(r.state);
@@ -1131,47 +1131,28 @@ function drBanner(){
     <small style="display:block">${r.msg}${r.url?` · <a href="${esc(r.url)}" target="_blank" rel="noopener">details ↗</a>`:""}</small></div>
     <div class="nw-btns">${drLive(r)?"":`${r.state==="failed"?`<button class="dl" type="button" data-rf="${esc(r.ids.join(","))}">Try again</button>`:""}<button class="dl" type="button" id="drRunX">Dismiss</button>`}</div></div>`;
 }
-async function drRefresh(ids){
-  if(drLive(drRun)) return alert("A refresh is already running. It usually takes 2–4 minutes.");
+async function drRefresh(ids){ // reads the official pages inside Cloudflare, a few sources per request
+  if(drLive(drRun)) return alert("A refresh is already running.");
   const b=$("#drRefresh"); if(b) b.disabled=true;
-  try{ const j=await newsPost("draws-refresh",{sources:ids||[]}); drRun={at:j.at,ids:j.sources||[],state:"queued",msg:"Starting the reader…"}; if(tab==="draws"&&!drEdit) render(); drRun.timer=setTimeout(drPoll,8000); }
-  catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); alert(x.message); }
-  finally{ if(b) b.disabled=false; }
-}
-async function drResume(){ // a refresh started earlier (another tab, or before a page reload) is still going
-  try{ const j=await drGet("draws-refresh"); const run=(j.runs||[]).find(x=>x.event==="workflow_dispatch"&&x.status!=="completed");
-    if(run&&!drRun){ const m=/refresh (.+)$/.exec(run.name||""), ids=m&&m[1]!=="all"?m[1].split(","):[];
-      drRun={at:run.created,ids,state:"running",msg:"Reading the official pages…",url:run.url}; if(tab==="draws"&&!drEdit) render(); drRun.timer=setTimeout(drPoll,8000); } }catch(x){}
-}
-async function drPoll(){
-  const r=drRun; if(!r) return; clearTimeout(r.timer);
-  const since=new Date(r.at).getTime();
+  const r=drRun={at:new Date().toISOString(),ids:ids||[],state:"running",msg:"Reading the official pages…"}; if(tab==="draws"&&!drEdit) render();
   try{
-    if(r.state==="queued"||r.state==="running"){
-      const j=await drGet("draws-refresh");
-      const run=(j.runs||[]).filter(x=>x.event==="workflow_dispatch"&&new Date(x.created).getTime()>=since-90000).pop();
-      if(run){ r.url=run.url;
-        if(run.status!=="completed"){ r.state="running"; r.msg=run.status==="queued"?"Waiting for GitHub to start (another update may be running first)…":"Reading the official pages…"; }
-        else if(run.conclusion==="success"){ r.state="deploying"; r.doneAt=Date.now(); r.msg="Finished reading. Publishing to the site (about 1–2 minutes)…"; }
-        else { r.state="failed"; r.msg="The refresh didn't finish ("+esc(run.conclusion||"failed")+"). Open the details to see why, or try again."; }
-      } else if(Date.now()-since>4*60000){ r.state="failed"; r.msg="GitHub didn't start the refresh. Try again, or use “Run on GitHub ↗”."; }
+    const info=await newsPost("draws-refresh",{sources:[]}), all=ids&&ids.length?ids:(info.all||[]), size=info.batch||6, got=[];
+    for(let i=0;i<all.length;i+=size){
+      r.msg=`Reading ${Math.min(i+size,all.length)} of ${all.length} source${all.length>1?"s":""}…`; if(tab==="draws"&&!drEdit) render();
+      try{ const j=await newsPost("draws-refresh",{sources:all.slice(i,i+size)}); got.push(...(j.sources||[])); }
+      catch(x){ if(x.message==="auth") throw x; all.slice(i,i+size).forEach(id=>got.push({id,program:id,ok:false,error:x.message})); }
     }
-    if(r.state==="deploying"){
-      const d=await drGet("draws"), want=r.ids.length?r.ids:(d.sources||[]).filter(s=>!s.manual).map(s=>s.id);
-      const got=(d.sources||[]).filter(s=>want.includes(s.id));
-      if(got.length&&got.every(s=>new Date(s.checked).getTime()>=since-5000)){
-        data.draws=d; r.state="done";
-        const bad=got.filter(s=>!s.ok), good=got.filter(s=>s.ok);
-        r.msg=(r.ids.length?got.map(s=>`${s.ok?"✅":"⚠️"} ${esc(s.program)}: ${s.ok?(s.watch?"page checked":s.found+" draws read"):esc(s.error||"still couldn't be read")}`).join(" · ")
-          :`${good.length} sources read, ${bad.length} failed${bad.length?": "+bad.map(s=>esc(s.program)).join(", "):""}.`)
-          +(bad.length?" If the page is down, enter the draw by hand with “+ Add draw”.":" The home page now shows the latest scores.");
-        if(bad.length) r.state="failed";
-      } else if(Date.now()-r.doneAt>6*60000){ r.state="done"; r.msg="The reader finished, but the site hasn't published the new data yet. It normally appears within a few minutes: reload this tab later."; }
-    }
-  }catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); }
-  if(drRun===r&&drLive(r)) r.timer=setTimeout(drPoll,r.state==="deploying"?15000:10000);
+    data.draws=await drGet("draws");
+    const bad=got.filter(s=>!s.ok), good=got.filter(s=>s.ok);
+    r.msg=(r.ids.length?got.map(s=>`${s.ok?"✅":"⚠️"} ${esc(s.program)}: ${s.ok?(s.watch?"page checked":s.found+" draws read"):esc(s.error||"couldn't be read")}`).join(" · ")
+      :`${good.length} sources read, ${bad.length} failed${bad.length?": "+bad.map(s=>esc(s.program)).join(", "):""}.`)
+      +(bad.length?" If the page is down, enter the draw by hand with “+ Add draw”.":" The home page now shows the latest scores.");
+    r.state=bad.length?"failed":"done";
+  }catch(x){ if(x.message==="auth") return lock("That admin key isn't right."); r.state="failed"; r.msg=esc(x.message); }
+  finally{ if(b) b.disabled=false; }
   if(tab==="draws"&&!drEdit) render();
 }
+async function drResume(){}   // refreshes now finish inside the request; nothing to resume after a reload
 function drawForm(body){
   const r=drEdit, isNew=!r.id;
   body.innerHTML=`<div class="wpa-card wide"><h3>${isNew?"Add a draw by hand":"Edit draw"}</h3>${!isNew&&r.origin!=="manual"?`<p style="color:var(--muted);font-size:.85rem;margin:4px 0 0">Your version replaces what the official page says on the home page, and stays through future updates. Use “Use official” later to undo.</p>`:""}

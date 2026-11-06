@@ -5,6 +5,10 @@ export const JUR = { CA: "Federal", BC: "British Columbia", AB: "Alberta", SK: "
 export const FIELDS = ["jur", "program", "date", "stream", "invites", "score", "scoreLabel", "note", "source", "pinned"];
 
 export async function autoDraws(request, env) {
+  try { // the copy kept fresh inside Cloudflare (see _drawstore.js), when there is one
+    const r = await env.DB.prepare(`SELECT v FROM site_data WHERE k = 'draws'`).first();
+    if (r && r.v) return JSON.parse(r.v);
+  } catch {}
   try {
     const r = await env.ASSETS.fetch(new URL("/data/draws.json", request.url));
     if (r.ok) return await r.json();
