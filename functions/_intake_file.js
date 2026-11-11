@@ -103,7 +103,7 @@ export async function buildCompleteFile(env, row, docs, acct) {
   const B = [
     { t: "title", a: name },
     { t: "sub", a: `${form.name} - complete submitted file prepared by WorkerPool on ${when(new Date().toISOString())} (Edmonton time). Submitted ${when(row.resubmitted || row.submitted)}; Account: ${acct.name}, ${acct.email}, ${acct.phone}.` },
-    { t: "p", a: "Keep this file for your records. It contains the answers you gave and every document you uploaded. Uploaded documents are destroyed from WorkerPool once your file is complete." },
+    { t: "p", a: row.partner_firm ? `Prepared for ${row.partner_firm}. It contains every answer the client gave and every document they uploaded. Confidential client information.` : "Keep this file for your records. It contains the answers you gave and every document you uploaded. Uploaded documents are destroyed from WorkerPool once your file is complete." },
   ];
   for (const s of form.sections) {
     if (!sectionOn(s, data)) continue;
@@ -122,7 +122,8 @@ export async function buildCompleteFile(env, row, docs, acct) {
   });
   B.push({ t: "h", a: "Consent recorded" });
   B.push({ t: "kv", a: "Consent given", b: `${when(row.consent_at)}` });
-  B.push({ t: "kv", a: "Keep a copy with WorkerPool", b: row.keep_file ? "Yes - the client asked WorkerPool to keep this complete file" : `No - removed from WorkerPool ${KEEP_DAYS} days after it is shared` });
+  if (row.partner_firm) B.push({ t: "kv", a: "Shared with", b: `${row.partner_firm} (the client's representative)` });
+  else B.push({ t: "kv", a: "Keep a copy with WorkerPool", b: row.keep_file ? "Yes - the client asked WorkerPool to keep this complete file" : `No - removed from WorkerPool ${KEEP_DAYS} days after it is shared` });
   const out = [{ name: `00 Application summary - ${safe(name)}.pdf`, data: summaryPdf(B) }];
   for (const f of files) {
     const obj = await env.RESUMES.get(f.doc.r2_key); if (!obj) continue;

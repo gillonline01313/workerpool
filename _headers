@@ -6,6 +6,8 @@
 /admin/*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
+/partners/*
+  Cache-Control: no-cache
 /intake/*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-cache

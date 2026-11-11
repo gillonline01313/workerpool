@@ -1332,6 +1332,8 @@ export const FORMS = Object.fromEntries([TRV_OUT, SUPERVISA_OUT, ETA, TRANSIT_OU
 export const CONSENT_V = "2026-11-03";
 export const KEEP_DAYS = 30;
 export const CONSENT_TEXT = "I give my consent to WorkerPool to use the information and documents in this form only to prepare my application. I understand that once my file is complete, the WorkerPool team will permanently destroy all the documents I uploaded, and will share the complete submitted file (my answers and all my documents) with me for my future reference.";
+// Forms sent by a partner firm (an RCIC or law firm using WorkerPool intake links for its own clients).
+export const partnerConsent = (firm) => `I give my consent to WorkerPool, a data processing company collecting this form on behalf of ${firm}, to share the information and documents in this form with ${firm} so that ${firm} can prepare my application. Only ${firm} and the WorkerPool team can see them. ${firm} downloads my complete file from WorkerPool, and my uploaded documents are permanently deleted from WorkerPool when ${firm} has finished with my file or when I ask.`;
 export const KEEP_TEXT = {
   1: "Yes, save my complete file with WorkerPool for future reference. It stays in my WorkerPool account until I ask for it to be removed.",
   0: `No, don't save it. Remove my complete file from WorkerPool ${KEEP_DAYS} days after it is shared with me (I will download my own copy).`,

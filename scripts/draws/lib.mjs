@@ -19,15 +19,17 @@ export function isOfficial(url) {
 }
 
 const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 WorkerPoolDraws/1.0 (+https://workerpool.ca)";
+// Retries: 4 tries on the command line; Cloudflare sets fewer, so a run stays inside its per-request fetch limit.
+export const NET = { tries: 4, wait: 4000, timeout: 45000 };
 export async function get(url) {
   if (!isOfficial(url)) throw new Error("Not an approved government source: " + url);
   let res;
-  for (let attempt = 1; attempt <= 4; attempt++) {
+  for (let attempt = 1; attempt <= NET.tries; attempt++) {
     try {
-      res = await fetch(url, { headers: { "user-agent": UA, accept: "text/html,application/json;q=0.9,*/*;q=0.8", "accept-language": "en-CA,en;q=0.9" }, redirect: "follow", signal: AbortSignal.timeout(45000) });
+      res = await fetch(url, { headers: { "user-agent": UA, accept: "text/html,application/json;q=0.9,*/*;q=0.8", "accept-language": "en-CA,en;q=0.9" }, redirect: "follow", signal: AbortSignal.timeout(NET.timeout) });
       if (res.status < 500) break;
-    } catch (e) { if (attempt === 4) throw e; }
-    await new Promise((r) => setTimeout(r, 4000 * attempt));
+    } catch (e) { if (attempt === NET.tries) throw e; }
+    if (attempt < NET.tries) await new Promise((r) => setTimeout(r, NET.wait * attempt));
   }
   if (!isOfficial(res.url)) throw new Error("Redirected away from an approved government source: " + res.url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -38,16 +40,16 @@ export async function get(url) {
 export async function getBuffer(url) {
   if (!isOfficial(url)) throw new Error("Not an approved government source: " + url);
   let res;
-  for (let attempt = 1; attempt <= 4; attempt++) { // government file servers time out now and then (HTTP 522)
+  for (let attempt = 1; attempt <= NET.tries; attempt++) { // government file servers time out now and then (HTTP 522)
     try {
       res = await fetch(url, { headers: { "user-agent": UA, accept: "application/pdf,*/*;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(60000) });
       if (res.status < 500) break;
-    } catch (e) { if (attempt === 4) throw e; }
-    await new Promise((r) => setTimeout(r, 5000 * attempt));
+    } catch (e) { if (attempt === NET.tries) throw e; }
+    if (attempt < NET.tries) await new Promise((r) => setTimeout(r, NET.wait * attempt));
   }
   if (!isOfficial(res.url)) throw new Error("Redirected away from an approved government source: " + res.url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return Buffer.from(await res.arrayBuffer());
+  return new Uint8Array(await res.arrayBuffer());
 }
 
 const ENT = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", ndash: "–", mdash: "—", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", eacute: "é", egrave: "è", agrave: "à", ccedil: "ç", ocirc: "ô", hellip: "…" };
@@ -134,3 +136,22 @@ export function score(s) {
   return m ? Number(m[1]) : null;
 }
 export const col = (head, ...words) => head.findIndex((h) => words.some((w) => (w instanceof RegExp ? w.test(h) : h.toLowerCase().includes(w))));
+
+// SHA-1 (hex) without node:crypto, so the reader also runs inside Cloudflare. Used for short stable ids only.
+export function sha1(str) {
+  const b = new TextEncoder().encode(String(str)), l = b.length, n = ((l + 8) >> 6) + 1, w = new Uint32Array(n * 16);
+  for (let i = 0; i < l; i++) w[i >> 2] |= b[i] << (24 - (i % 4) * 8);
+  w[l >> 2] |= 0x80 << (24 - (l % 4) * 8); w[n * 16 - 1] = l * 8;
+  let h0 = 0x67452301, h1 = 0xefcdab89, h2 = 0x98badcfe, h3 = 0x10325476, h4 = 0xc3d2e1f0; const x = new Uint32Array(80);
+  for (let i = 0; i < w.length; i += 16) {
+    for (let t = 0; t < 80; t++) x[t] = t < 16 ? w[i + t] : ((v) => (v << 1) | (v >>> 31))(x[t - 3] ^ x[t - 8] ^ x[t - 14] ^ x[t - 16]);
+    let a = h0, bb = h1, c = h2, d = h3, e = h4;
+    for (let t = 0; t < 80; t++) {
+      const f = t < 20 ? (bb & c) | (~bb & d) : t < 40 ? bb ^ c ^ d : t < 60 ? (bb & c) | (bb & d) | (c & d) : bb ^ c ^ d;
+      const k = t < 20 ? 0x5a827999 : t < 40 ? 0x6ed9eba1 : t < 60 ? 0x8f1bbcdc : 0xca62c1d6;
+      const tmp = (((a << 5) | (a >>> 27)) + f + e + k + x[t]) >>> 0; e = d; d = c; c = (bb << 30) | (bb >>> 2); bb = a; a = tmp;
+    }
+    h0 = (h0 + a) >>> 0; h1 = (h1 + bb) >>> 0; h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0; h4 = (h4 + e) >>> 0;
+  }
+  return [h0, h1, h2, h3, h4].map((v) => v.toString(16).padStart(8, "0")).join("");
+}

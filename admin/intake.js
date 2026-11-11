@@ -72,7 +72,7 @@
     return j;
   }
   const post = (path, b) => call(path, { method: "POST", body: JSON.stringify(b) });
-  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=2"); return C; }
+  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=3"); return C; }
   const site = () => location.origin;
   const genLink = (k) => `${site()}/intake/?f=${encodeURIComponent(k)}`;
   const formName = (k) => (C.FORMS[k] && C.FORMS[k].name) || ((C.catalogEntry(k) || {}).form || {}).name || k;
@@ -137,22 +137,23 @@
       if (S.filter === "new" && !isNew) return false;
       if (S.filter === "submitted" && r.status !== "submitted") return false;
       if (S.filter === "progress" && r.status === "submitted") return false;
+      if (S.filter === "partner" && !r.partner_id) return false;
       if (!q) return true;
-      return [r.name, r.acct_name, r.acct_email, r.acct_phone, r.email, r.phone, formName(r.form_key), r.invite_label, stLabel(r.admin_status)].some((x) => String(x || "").toLowerCase().includes(q));
+      return [r.name, r.acct_name, r.acct_email, r.acct_phone, r.email, r.phone, formName(r.form_key), r.invite_label, stLabel(r.admin_status), r.partner_firm].some((x) => String(x || "").toLowerCase().includes(q));
     });
   }
   function listHtml() {
     const R = (S.list && S.list.rows) || [];
-    const n = { new: R.filter((r) => r.status === "submitted" && !r.admin_seen).length, submitted: R.filter((r) => r.status === "submitted").length, progress: R.filter((r) => r.status !== "submitted").length, all: R.length };
+    const n = { new: R.filter((r) => r.status === "submitted" && !r.admin_seen).length, submitted: R.filter((r) => r.status === "submitted").length, progress: R.filter((r) => r.status !== "submitted").length, partner: R.filter((r) => r.partner_id).length, all: R.length };
     const L = rows();
-    const segs = [["new", `New (${n.new})`], ["submitted", `Submitted (${n.submitted})`], ["progress", `Still filling (${n.progress})`], ["all", `All (${n.all})`]];
+    const segs = [["new", `New (${n.new})`], ["submitted", `Submitted (${n.submitted})`], ["progress", `Still filling (${n.progress})`], ["partner", `Partner firms (${n.partner})`], ["all", `All (${n.all})`]];
     return `<div class="wpa-card wide"><div class="ik-top"><h3>Client forms</h3>
       <div class="ik-acts"><div class="wpa-seg">${segs.map(([v, l]) => `<button type="button" data-f="${v}" aria-pressed="${S.filter === v}">${l}</button>`).join("")}</div>
       <input id="ikQ" class="ik-in" type="search" placeholder="Search name, email, phone, form…" value="${esc(S.q)}" style="width:240px"></div></div>
       ${L.length ? `<div class="wpa-tbl"><table><thead><tr><th>Status</th><th>Applicant</th><th>Form</th><th>Account</th><th>Progress</th><th>Files</th><th>Submitted</th></tr></thead><tbody>
         ${L.map((r) => { const isNew = r.status === "submitted" && !r.admin_seen;
           const badge = isNew ? `<span class="ik-badge new">${r.resubmitted ? "Updated" : "New"}</span>` : r.status === "submitted" ? `<span class="ik-badge sub">${esc(stLabel(r.admin_status))}</span>` : r.status === "editing" ? `<span class="ik-badge edit">Client editing</span>` : `<span class="ik-badge">Filling</span>`;
-          return `<tr class="ik-row${isNew ? " new" : ""}" data-open="${r.id}" tabindex="0"><td>${badge}</td><td>${esc(r.name || "(name not entered)")}${r.invite_label ? `<br><span class="ik-note">Link: ${esc(r.invite_label)}</span>` : ""}</td>
+          return `<tr class="ik-row${isNew ? " new" : ""}" data-open="${r.id}" tabindex="0"><td>${badge}</td><td>${esc(r.name || "(name not entered)")}${r.partner_id ? `<br><span class="ik-badge sub" title="Sent by a partner firm">Partner: ${esc(r.partner_firm || "firm")}</span>` : ""}${r.invite_label ? `<br><span class="ik-note">Link: ${esc(r.invite_label)}</span>` : ""}</td>
             <td>${esc(formName(r.form_key))}</td><td>${esc(r.acct_name)}<br><span class="ik-note">${esc(r.acct_email)} · ${esc(r.acct_phone)}</span></td>
             <td><span class="ik-meter"><i style="width:${r.progress || 0}%"></i></span>${r.progress || 0}%</td><td>${r.files}</td><td>${r.submitted ? when(r.resubmitted || r.submitted) : `<span class="ik-note">Last saved ${when(r.updated)}</span>`}</td></tr>`; }).join("")}
       </tbody></table></div>` : `<div class="wpa-empty">${S.filter === "new" ? "No new submissions. Forms clients submit appear here, highlighted, until you open them." : "Nothing here yet."}</div>`}</div>`;
@@ -227,9 +228,10 @@
       <div><button class="dl" type="button" id="ikBack">← All intake forms</button></div>
       <div class="wpa-card wide"><div class="ik-top"><div><small class="ik-note">${esc(form.name)}</small><h3 style="font-size:1.3rem">${esc(name)}</h3>
           <div class="ik-note">${esc(stat)}${r.invite_label ? ` · personal link: ${esc(r.invite_label)}` : ""}</div>
+          ${r.partner_id ? `<div style="margin-top:6px"><span class="ik-badge sub">Partner form</span> Sent by <b>${esc(r.partner_firm || "a partner firm")}</b>${r.partner_licence ? ` · ${esc(r.partner_licence)}` : ""}${r.partner_email ? ` · <a href="mailto:${esc(r.partner_email)}">${esc(r.partner_email)}</a>` : ""} · firm's status: ${esc(stLabel(r.partner_status || "new"))}${r.partner_downloads ? ` · firm downloaded the ZIP ${r.partner_downloads}×` : ""}</div>` : ""}
           <div style="margin-top:8px;font-size:.88rem">Account: <b>${esc(r.acct_name)}</b> · <a href="mailto:${esc(r.acct_email)}">${esc(r.acct_email)}</a> · ${phone ? `<a href="tel:${esc(phone)}">${esc(r.acct_phone)}</a> · <a href="https://wa.me/${esc(phone.replace(/^\+/, ""))}" target="_blank" rel="noopener">WhatsApp</a>` : esc(r.acct_phone)}
           ${c.email && c.email !== r.acct_email ? `<br>Applicant email: <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ""}${c.phone && c.phone !== r.acct_phone ? ` · Applicant phone: ${esc(c.phone)}` : ""}</div></div>
-        <div class="ik-acts"><button class="ik-btn" type="button" id="ikAll">Download all files (${docs.length})</button><button class="ik-btn g" type="button" id="ikPrint">Print / save PDF</button><button class="ik-btn g" type="button" id="ikCopy">Copy answers</button></div></div>
+        <div class="ik-acts"><button class="ik-btn" type="button" id="ikZip">Download complete ZIP</button><button class="ik-btn g" type="button" id="ikAll">Download all files (${docs.length})</button><button class="ik-btn g" type="button" id="ikPrint">Print / save PDF</button><button class="ik-btn g" type="button" id="ikCopy">Copy answers</button></div></div>
         <div class="ik-inv" style="grid-template-columns:220px 1fr auto">
           <label>Work status<select class="ik-in" id="ikSt">${STATUS.map(([v, l]) => `<option value="${v}"${r.admin_status === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>
           <label>Private notes<textarea class="ik-in" id="ikNotes" rows="2" placeholder="Only you see this">${esc(r.admin_note || "")}</textarea></label>
@@ -249,6 +251,10 @@
     $("#ikSave").onclick = async () => { try { await post("status", { id: r.id, status: $("#ikSt").value, note: $("#ikNotes").value }); r.admin_status = $("#ikSt").value; r.admin_note = $("#ikNotes").value; msg("Saved ✓"); } catch (e) { msg(e.message); } };
     $("#ikCopy").onclick = (e) => copy(asText(r, form, A, docs), e.target);
     $("#ikPrint").onclick = () => printView(r, form, A, docs, name);
+    $("#ikZip").onclick = async (e) => { const b = e.target; b.disabled = true; b.textContent = "Building the ZIP…";
+      try { const x = await fetch("/api/intake/admin/zip?id=" + encodeURIComponent(r.id), { headers: { "x-admin-key": KEY } }); if (!x.ok) { let j = {}; try { j = await x.json(); } catch (_) {} throw new Error(j.error || "Couldn't build the ZIP."); }
+        const cd = x.headers.get("content-disposition") || "", fn = (cd.match(/filename="([^"]+)"/) || [])[1] || "complete-file.zip"; const url = URL.createObjectURL(await x.blob()); const a = document.createElement("a"); a.href = url; a.download = fn; a.click(); setTimeout(() => URL.revokeObjectURL(url), 60000); }
+      catch (err) { alert(err.message); } b.disabled = false; b.textContent = "Download complete ZIP"; };
     $("#ikAll").onclick = async (e) => { const b = e.target; b.disabled = true; for (let i = 0; i < docs.length; i++) { b.textContent = `Downloading ${i + 1} of ${docs.length}…`; await getFile(docs[i].id, prefix(form, docs[i]) + docs[i].name, false).catch(() => {}); await new Promise((ok) => setTimeout(ok, 400)); } b.textContent = `Download all files (${docs.length})`; b.disabled = false; };
     body.querySelectorAll("[data-view]").forEach((b) => b.onclick = () => getFile(b.dataset.view, b.dataset.name, true).catch((e) => alert(e.message)));
     body.querySelectorAll("[data-dl]").forEach((b) => b.onclick = () => getFile(b.dataset.dl, b.dataset.name, false).catch((e) => alert(e.message)));
@@ -260,9 +266,9 @@
     };
     const fd = $("#ikFinalDl"); if (fd) fd.onclick = async () => { fd.disabled = true; try { const x = await fetch("/api/intake/admin/final?id=" + encodeURIComponent(r.id), { headers: { "x-admin-key": KEY } }); if (!x.ok) throw new Error("Couldn't download it."); const url = URL.createObjectURL(await x.blob()); const a = document.createElement("a"); a.href = url; a.download = r.final_name || "complete-file.zip"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 60000); } catch (e) { alert(e.message); } fd.disabled = false; };
     const ds = $("#ikDestroy"); if (ds) ds.onclick = async () => {
-      if (!confirm(`Permanently destroy all ${docs.length} uploaded documents for ${name}? The client consented to this. Their complete file is ${r.keep_file ? "kept (they asked WorkerPool to save it)" : "kept only until " + when(r.final_expires)}.`)) return;
+      if (!confirm(r.partner_id ? `Permanently delete all ${docs.length} uploaded documents for ${name}? ${r.partner_downloads ? "The firm has downloaded the ZIP." : "The firm has NOT downloaded the ZIP yet."}` : `Permanently destroy all ${docs.length} uploaded documents for ${name}? The client consented to this. Their complete file is ${r.keep_file ? "kept (they asked WorkerPool to save it)" : "kept only until " + when(r.final_expires)}.`)) return;
       if (prompt("Type DESTROY to confirm") !== "DESTROY") return;
-      ds.disabled = true; try { const j = await post("destroy", { id: r.id }); alert(`${j.destroyed} documents destroyed. The client was told by email.`); openItem(r.id); } catch (e) { ds.disabled = false; alert(e.message); }
+      ds.disabled = true; try { const j = await post("destroy", { id: r.id }); alert(`${j.destroyed} documents destroyed.${r.partner_id ? "" : " The client was told by email."}`); openItem(r.id); } catch (e) { ds.disabled = false; alert(e.message); }
     };
     const u = $("#ikUnlock"); if (u) u.onclick = async () => { if (!confirm("Unlock this form so the client can change answers and documents? It returns here as Updated when they resubmit.")) return; await post("unlock", { id: r.id }); openItem(r.id); };
     $("#ikUnread").onclick = async () => { await post("unseen", { id: r.id }); back(); };
@@ -270,6 +276,13 @@
   }
   function lifeCard(r, docs) {
     if (r.status !== "submitted" && !r.consent_at) return "";
+    if (r.partner_id) return `<div class="wpa-card wide"><h3>Consent and documents (partner form)</h3>
+      <dl class="ik-dl"><dt>Client consent</dt><dd>${r.consent_at ? `✓ Given ${when(r.consent_at)} (shared with ${esc(r.partner_firm || "the firm")})` : "Not given"}</dd>
+        <dt>Firm downloaded the complete ZIP</dt><dd>${r.partner_downloads ? `${r.partner_downloads}×` : "Not yet"}</dd>
+        <dt>Uploaded documents deleted</dt><dd>${r.docs_destroyed_at ? `✓ ${when(r.docs_destroyed_at)} (${r.docs_destroyed_count} files)` : "Not yet"}</dd></dl>
+      ${r.consent_text ? `<details><summary class="ik-note" style="cursor:pointer">Exact consent wording the client agreed to</summary><p class="ik-note" style="white-space:pre-wrap">${esc(r.consent_text)}</p></details>` : ""}
+      <div class="ik-acts">${!r.docs_destroyed_at && docs.length ? `<button class="ik-btn red" type="button" id="ikDestroy">Delete uploaded documents (${docs.length})</button>` : ""}</div>
+      <p class="ik-note" style="margin:0">The firm downloads the complete file from its partner portal and can delete the documents once it has the ZIP. You keep master access to everything until then.</p></div>`;
     const keep = r.keep_file == null ? "–" : r.keep_file ? "<b>Yes</b> – keep the complete file in their account" : `<b>No</b> – remove the complete file ${r.final_expires ? "on " + when(r.final_expires) : "30 days after it's shared"}`;
     const step1 = r.final_key ? `✓ Shared ${when(r.final_at)} · ${kb(r.final_size)} · downloaded by client ${r.final_downloads || 0}×` : r.final_at ? `Shared ${when(r.final_at)}; since removed (client chose not to keep it)` : "Not yet";
     const step2 = r.docs_destroyed_at ? `✓ Destroyed ${when(r.docs_destroyed_at)} (${r.docs_destroyed_count} files)` : "Not yet";
