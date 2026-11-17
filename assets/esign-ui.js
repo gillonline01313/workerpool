@@ -44,7 +44,9 @@
 .es-drop.over{border-color:var(--accent);background:var(--accent-soft)}
 .es-rc{display:grid;grid-template-columns:14px 130px 1fr 1.2fr 64px 120px 34px;gap:8px;align-items:center}
 .es-rc .dot{width:14px;height:14px;border-radius:4px}
-@media (max-width:820px){.es-rc{grid-template-columns:14px 1fr 1fr;}.es-rc .wide{grid-column:2/-1}}
+.es-rc>*{min-width:0;width:100%}.es-rc .dot{width:14px}
+@media (max-width:820px){.es-rc{grid-template-columns:14px 70px 1fr 40px;grid-template-areas:"dot role role del" ". name name name" ". email email email" ". ord acc acc";padding-bottom:10px;border-bottom:1px solid var(--line)}
+.es-rc .dot{grid-area:dot}.es-rc [data-k=role]{grid-area:role}.es-rc [data-k=name]{grid-area:name}.es-rc [data-k=email]{grid-area:email}.es-rc [data-k=ord]{grid-area:ord}.es-rc [data-k=access]{grid-area:acc}.es-rc [data-del]{grid-area:del;justify-content:center}}
 .es-build{display:grid;grid-template-columns:210px 1fr;gap:14px;align-items:start}
 @media (max-width:820px){.es-build{grid-template-columns:1fr}}
 .es-pal{position:sticky;top:10px;display:flex;flex-direction:column;gap:8px}
@@ -275,7 +277,7 @@
         <select class="es-in" data-k="role"><option value="signer">Needs to sign</option><option value="cc">Receives a copy</option></select>
         <input class="es-in" data-k="name" placeholder="Full name" value="${esc(r.name)}" maxlength="120">
         <input class="es-in" data-k="email" type="email" placeholder="Email" value="${esc(r.email)}" maxlength="160">
-        <input class="es-in" data-k="ord" type="number" min="1" max="20" title="Signing order" value="${r.ord || i + 1}" ${B.seq ? "" : "disabled"} style="${B.seq ? "" : "opacity:.4"}">
+        <input class="es-in" data-k="ord" type="number" min="1" max="20" title="Signing order" aria-label="Signing order" value="${r.ord || i + 1}" ${B.seq ? "" : "disabled"} style="${B.seq ? "" : "opacity:.4"}">
         <input class="es-in wide" data-k="access" placeholder="${r.has_access ? "Access code set (type to change)" : "Access code (optional)"}" maxlength="40" value="${r.access ? esc(r.access) : ""}" ${r.role === "cc" ? "disabled style='opacity:.4'" : ""}>
         <button class="es-btn g sm" type="button" data-del title="Remove" aria-label="Remove recipient">✕</button></div>`).join("");
       box.querySelectorAll(".es-rc").forEach((row) => {
