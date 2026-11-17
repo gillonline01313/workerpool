@@ -205,7 +205,7 @@ const css = `
 .at-note{font-size:.8rem;color:var(--muted);margin:0}
 `;
 const SW = { hidden: "#b3412e", zw: "#e0703f", bidi: "#8a4fbf", space: "#f2c94c", homo: "#f6b0b0", left: "#f6b0b0", typo: "#cfe3ff" };
-const S = { text: "", on: Object.fromEntries(Object.entries(KINDS).map(([k, v]) => [k, !!v[2]])), res: null, out: "", name: "" };
+const S = { text: "", on: Object.fromEntries(Object.entries(KINDS).map(([k, v]) => [k, !!v[2]])), res: null, out: "", name: "", file: null, fres: null, busy: false, opt: { hide: true, meta: true, creds: true } };
 let ROOT = null, timer = 0;
 
 function badge(f, t) {
@@ -224,36 +224,91 @@ function hlHtml(t, F) {
 function render() {
   const R = ROOT.querySelector("#atRes");
   const t = S.text;
-  if (!t.trim()) { R.innerHTML = ""; return; }
+  if (!t.trim() && !S.file) { R.innerHTML = ""; return; }
   const { F, review } = S.res;
   S.out = clean(t, F, S.on);
   const by = {};
   for (const f of F) { (by[f.k] ||= {}); (by[f.k][f.n] ||= 0); by[f.k][f.n]++; }
   const cnt = (k) => F.filter((f) => f.k === k).length;
-  const serious = cnt("hidden") + cnt("zw") + cnt("bidi") + cnt("homo") + cnt("left");
+  const fm = fileMarks(S.file);
+  const serious = cnt("hidden") + cnt("zw") + cnt("bidi") + cnt("homo") + cnt("left") + fm;
   const hidden = F.filter((f) => f.k === "hidden" && f.extra);
   const after = scan(S.out).F.filter((f) => S.on[f.k]).length;
-  const v = serious ? `<div class="at-v bad"><span style="font-size:1.4rem">⚠️</span><div><b>${serious} hidden mark${serious > 1 ? "s" : ""} found</b><br>${cnt("hidden") ? "Includes hidden text. " : ""}${cnt("left") ? "Includes chatbot citation or tracking leftovers. " : ""}${cnt("homo") ? "Includes look-alike letters. " : ""}The cleaned copy below has them removed.</div></div>`
+  const v = serious ? `<div class="at-v bad"><span style="font-size:1.4rem">⚠️</span><div><b>${serious} hidden mark${serious > 1 ? "s" : ""} found</b><br>${cnt("hidden") ? "Includes hidden text. " : ""}${cnt("left") ? "Includes chatbot citation or tracking leftovers. " : ""}${cnt("homo") ? "Includes look-alike letters. " : ""}${fm ? "Includes marks inside the file itself (see the file card). " : ""}${S.file && S.file.type !== "text" ? "Clean the file below to download a fixed copy." : "The cleaned copy below has them removed."}</div></div>`
     : cnt("space") || cnt("typo") ? `<div class="at-v mid"><span style="font-size:1.4rem">🟡</span><div><b>No hidden marks</b><br>Only special spaces or AI-style typography, which also come from Word and Google Docs.</div></div>`
       : `<div class="at-v ok"><span style="font-size:1.4rem">✅</span><div><b>Clean: no hidden marks found</b><br>No invisible characters, look-alike letters or chatbot leftovers.</div></div>`;
   R.innerHTML = `${v}
   ${hidden.length ? `<div class="at-card"><h3>Hidden message${hidden.length > 1 ? "s" : ""} decoded</h3>${hidden.map((f) => `<div class="at-hid">${esc(f.extra)}</div>`).join("")}<p class="at-note">These were invisible in the text. Removed in the cleaned copy.</p></div>` : ""}
+  ${S.file && S.file.type !== "text" ? fileCard() : ""}
   <div class="at-card at-k"><h3>What was found</h3><p class="sub">Tick what the cleaned copy should fix. Hover any highlight below for details.</p>
     <table class="at-t"><thead><tr><th>Fix</th><th>Type</th><th class="n">Found</th></tr></thead><tbody>
     ${Object.entries(KINDS).map(([k, [l, d]]) => `<tr><td><input type="checkbox" data-on="${k}"${S.on[k] ? " checked" : ""} aria-label="Fix ${esc(l)}"></td><td><span class="at-sw" style="background:${SW[k]}"></span><b>${esc(l)}</b><small>${esc(d)}</small>${by[k] ? `<small>${Object.entries(by[k]).map(([n, c]) => `${esc(n)} ×${c}`).join(" · ")}</small>` : ""}</td><td class="n">${cnt(k) || "—"}</td></tr>`).join("")}
     <tr><td></td><td><span class="at-sw" style="background:transparent;border:1px solid var(--muted)"></span><b>Review by hand</b><small>Chatbot phrases and [placeholders]. Never changed automatically.</small>${review.length ? `<small>${review.map((r) => `“${esc(r.txt)}” (line ${r.line})`).join(" · ")}</small>` : ""}</td><td class="n">${review.length || "—"}</td></tr>
     </tbody></table></div>
   <div class="at-card"><h3>Highlighted text</h3><div class="at-hl">${hlHtml(t, F)}</div></div>
-  <div class="at-card"><h3>Cleaned copy</h3><p class="sub">${after ? `${after} mark${after > 1 ? "s" : ""} still left (rerun to check)` : "Re-checked: 0 marks left for the fixes you ticked."} Wording is unchanged.</p>
+  <div class="at-card"><h3>Cleaned text</h3><p class="sub">${after ? `${after} mark${after > 1 ? "s" : ""} still left (rerun to check)` : "Re-checked: 0 marks left for the fixes you ticked."} Wording is unchanged.</p>
     <textarea id="atOut" readonly>${esc(S.out)}</textarea>
     <div class="at-row"><button class="at-b p" type="button" id="atCopy">Copy cleaned text</button><button class="at-b" type="button" id="atDl">Download .txt</button><button class="at-b" type="button" id="atUse">Use as new input</button><span id="atMsg" class="at-note"></span></div></div>
   <p class="at-note">Statistical watermarks (such as Google SynthID) are hidden in word choice, not characters. No tool can see them without the AI company's key, and this check doesn't rewrite wording. Read AI-drafted text yourself before it goes into an application.</p>`;
-  R.querySelectorAll("[data-on]").forEach((cb) => (cb.onchange = () => { S.on[cb.dataset.on] = cb.checked; render(); }));
+  R.querySelectorAll("[data-on]").forEach((cb) => (cb.onchange = () => { S.on[cb.dataset.on] = cb.checked; S.fres = null; render(); }));
+  R.querySelectorAll("[data-opt]").forEach((cb) => (cb.onchange = () => { S.opt[cb.dataset.opt] = cb.checked; S.fres = null; render(); }));
+  const fb = R.querySelector("#atFileGo"); if (fb) fb.onclick = cleanFile;
+  const fd = R.querySelector("#atFileDl"); if (fd) fd.onclick = () => S.fres && saveBlob(S.fres.blob, S.fres.fname);
   R.querySelector("#atCopy").onclick = async () => { const m = R.querySelector("#atMsg"); try { await navigator.clipboard.writeText(S.out); m.textContent = "Copied."; } catch (e) { const o = R.querySelector("#atOut"); o.select(); document.execCommand("copy"); m.textContent = "Copied."; } };
   R.querySelector("#atDl").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([S.out], { type: "text/plain;charset=utf-8" })); a.download = (S.name ? S.name.replace(/\.[^.]+$/, "") : "text") + "-cleaned.txt"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
-  R.querySelector("#atUse").onclick = () => { ROOT.querySelector("#atIn").value = S.out; setText(S.out); };
+  R.querySelector("#atUse").onclick = () => { S.file = null; S.fres = null; ROOT.querySelector("#atIn").value = S.out; setText(S.out); };
 }
-function setText(t) { S.text = t; S.res = t.trim() ? scan(t) : null; render(); }
+/* ---------------- whole-file cleaning (.docx / .pdf), see ai-text-files.js ---------------- */
+const fileMarks = (f) => !f || f.type === "text" ? 0 : (f.hidden || []).length + (f.meta || []).filter((m) => m.ai).length + (f.c2pa ? 1 : 0) + (f.layer ? f.layer.count : 0);
+function saveBlob(blob, name) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+function fileCard() {
+  const f = S.file, ext = f.type, cb = (k, label) => `<label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:.88rem"><input type="checkbox" data-opt="${k}"${S.opt[k] ? " checked" : ""}><span>${label}</span></label>`;
+  const items = [];
+  if (ext === "docx") {
+    items.push(f.hidden.length ? `<div><b>⚠️ ${f.hidden.length} piece${f.hidden.length > 1 ? "s" : ""} of hidden-formatted text</b> (can't be seen in Word, but AI checkers, ATS systems and copy-paste read it)<div class="at-hid" style="margin-top:6px">${f.hidden.slice(0, 8).map((h) => `“${esc(h.text.slice(0, 120))}” <small>(${h.why})</small>`).join("<br>")}${f.hidden.length > 8 ? `<br>…and ${f.hidden.length - 8} more` : ""}</div>${cb("hide", "Remove hidden-formatted text")}</div>` : `<div>✅ No hidden-formatted text.</div>`);
+    if (f.white.length) items.push(`<div><b>🟡 White text:</b> ${f.white.slice(0, 5).map((t) => `“${esc(t.slice(0, 60))}”`).join(", ")}${f.white.length > 5 ? "…" : ""} <small>(may be invisible on a white page; check by hand)</small></div>`);
+  }
+  if (ext === "pdf") {
+    const ly = f.layer || { found: {}, hidden: [], count: 0 };
+    items.push(ly.count ? `<div><b>⚠️ ${ly.count} hidden mark${ly.count > 1 ? "s" : ""} in the PDF's text layer</b> (not visible on the page, but copy-paste and AI checkers read them): ${Object.entries(ly.found).map(([n, c]) => `${esc(n)} ×${c}`).join(" · ")}${ly.hidden.filter(Boolean).length ? `<div class="at-hid" style="margin-top:6px">Hidden text: ${ly.hidden.filter(Boolean).map((h) => `“${esc(h)}”`).join(", ")}</div>` : ""}<small style="display:block;color:var(--muted)">Removed when you clean the file, using the Invisible characters / Hidden text / Unusual spaces / Look-alike letters ticks below.</small></div>` : `<div>✅ No hidden marks in the PDF's text layer.</div>`);
+    items.push(f.c2pa ? `<div><b>⚠️ Content Credentials (C2PA) found.</b> This is the industry "made with AI" label some tools embed.${cb("creds", "Remove Content Credentials")}</div>` : `<div>✅ No Content Credentials (C2PA).</div>`);
+    if (f.invisible.length) items.push(`<div><b>🟡 Invisible text layer</b> on page${f.invisible.length > 1 ? "s" : ""} ${f.invisible.join(", ")}. Normal for scanned PDFs (it's the searchable text); in other PDFs it can hide text. Check by hand.</div>`);
+    if (f.signed) items.push(`<div><b>⚠️ This PDF is digitally signed.</b> Any change, including cleaning, will break the signature.</div>`);
+  }
+  const ai = f.meta.filter((m) => m.ai);
+  items.push(`<div><b>${ai.length ? "⚠️ AI-tool traces in the document details" : "Document details"}</b>${f.meta.length ? `<table class="at-t" style="margin-top:4px"><tbody>${f.meta.slice(0, 14).map((m) => `<tr><td style="width:34%">${esc(m.k)}</td><td>${m.ai ? "⚠️ " : ""}${esc(String(m.v).slice(0, 140))}</td></tr>`).join("")}</tbody></table>` : `<small> none</small>`}${cb("meta", ext === "pdf" ? "Clear author, creator, producer and XMP details" : "Clear author, last-modified-by, description and keywords")}</div>`);
+  if (ext === "pdf") items.push(`<p class="at-note">In a PDF, invisible characters are removed from the page and look-alike letters and special spaces are fixed in the text layer, without changing how the pages look. Visible text (em dashes, citation markers, wording) can't be edited inside a PDF: fix those in the original and export again.</p>`);
+  const r = S.fres;
+  const res = r ? (r.err ? `<div class="at-v bad"><div><b>Couldn't clean the file</b><br>${esc(r.err)}</div></div>`
+    : `<div class="at-v ${r.left ? "mid" : "ok"}"><span style="font-size:1.4rem">${r.left ? "🟡" : "✅"}</span><div><b>Cleaned ${esc(r.fname)}</b><br>${esc(r.summary)}<br>Re-checked the new file: ${r.left ? `${r.left} mark${r.left > 1 ? "s" : ""} still found (${esc(r.leftWhy)})` : "no marks left for the fixes you ticked"}.</div></div>
+      <div class="at-row"><button class="at-b p" type="button" id="atFileDl">Download ${esc(r.fname)}</button><span class="at-note">Downloaded automatically. Open it and check it before sending.</span></div>`) : "";
+  return `<div class="at-card"><h3>📄 ${esc(f.name)}</h3><p class="sub">Finds and removes hidden marks inside the file itself, keeps its layout and formatting, then re-checks the new file.</p>${items.join("")}
+    <div class="at-row"><button class="at-b p" type="button" id="atFileGo"${S.busy ? " disabled" : ""}>${S.busy ? "Cleaning…" : `Clean & download .${ext}`}</button><span class="at-note">Uses the fix ticks in “What was found” below.</span></div>${res}</div>`;
+}
+async function cleanFile() {
+  const f = S.file; if (!f || S.busy) return;
+  S.busy = true; S.fres = null; render();
+  try {
+    const en = { ...S.on }; if (f.type === "pdf") { en.left = false; en.typo = false; }
+    const r = await window.WPAiFiles.clean(f, en, { ...S.opt, creds: S.opt.creds });
+    const fname = f.name.replace(/\.[^.]+$/, "") + "-cleaned." + r.ext;
+    const g = await window.WPAiFiles.open(new File([r.blob], fname));
+    const kinds = Object.keys(en).filter((k) => en[k]), left = window.WPAiText.core.scan(g.text).F.filter((x) => kinds.includes(x.k));
+    const why = [];
+    const ll = g.layer ? Object.entries(g.layer.found).length && g.layer.count : 0;
+    if (left.length) why.push(`${left.length} in the text`); if (ll) why.push(`${ll} in the PDF text layer`);
+    const lh = S.opt.hide ? (g.hidden || []).length : 0, lm = S.opt.meta ? (g.meta || []).filter((m) => m.ai).length : 0, lc = S.opt.creds && g.c2pa ? 1 : 0;
+    if (lh) why.push(`${lh} hidden-formatted`); if (lm) why.push(`${lm} in document details`); if (lc) why.push("Content Credentials");
+    const sum = [];
+    if (f.type === "docx") { sum.push(`${r.fixed - r.removedHidden} text fix${r.fixed - r.removedHidden === 1 ? "" : "es"}`); if (r.removedHidden) sum.push(`${r.removedHidden} hidden-formatted piece${r.removedHidden > 1 ? "s" : ""} removed`); if (r.metaCleared) sum.push(`${r.metaCleared} document detail${r.metaCleared > 1 ? "s" : ""} cleared`); }
+    else if (f.type === "pdf") { sum.push(`${r.dropped} invisible character${r.dropped === 1 ? "" : "s"} removed`, `${r.remapped} letter/space fix${r.remapped === 1 ? "" : "es"} in the text layer`); if (r.metaCleared) sum.push(`${r.metaCleared} document detail${r.metaCleared > 1 ? "s" : ""} cleared`); if (r.credentials) sum.push(`${r.credentials} Content Credentials item${r.credentials > 1 ? "s" : ""} removed`); }
+    else sum.push("text cleaned");
+    S.fres = { blob: r.blob, fname, summary: sum.join(" · ") + ".", left: left.length + lh + lm + lc + ll, leftWhy: why.join(", ") };
+    saveBlob(r.blob, fname);
+  } catch (e) { console.error(e); S.fres = { err: e.message || String(e) }; }
+  S.busy = false; render();
+}
+function setText(t) { S.text = t; S.res = scan(t); render(); }
 
 function mount(body) {
   ROOT = document.createElement("div"); ROOT.className = "at";
@@ -261,29 +316,33 @@ function mount(body) {
   <div class="at-priv"><span>🔒</span><div><b>Confidential.</b> This check runs entirely in this browser tab: nothing you paste or load is saved, logged or sent anywhere, and it's gone when you lock the console.</div></div>
   <div class="at-card"><h3>AI text check</h3><p class="sub">Paste text, or load a .txt or .docx, to find the hidden marks AI tools and copy-paste leave behind (invisible characters, hidden text, look-alike letters, chatbot citation markers), then copy a cleaned version.</p>
     <textarea id="atIn" placeholder="Paste a cover letter, letter of explanation, email or any text here…" spellcheck="false"></textarea>
-    <div class="at-row"><button class="at-b p" type="button" id="atGo">Check text</button><label class="at-b" style="display:inline-block">Load .txt / .docx<input type="file" id="atFile" accept=".txt,.md,.csv,.html,.htm,.json,.docx,text/plain" hidden></label><button class="at-b" type="button" id="atEx">Try an example</button><button class="at-b" type="button" id="atClr">Clear</button><span class="at-note" id="atFmsg"></span></div>
-    <p class="at-note">Loading a .docx checks its text; the cleaned copy comes back as plain text to paste into your document.</p></div>
+    <div class="at-row"><button class="at-b p" type="button" id="atGo">Check text</button><label class="at-b" style="display:inline-block">Upload .docx / .pdf / .txt<input type="file" id="atFile" accept=".docx,.pdf,.txt,.md,.csv,.html,.htm,.json,.doc,application/pdf,text/plain" hidden></label><button class="at-b" type="button" id="atEx">Try an example</button><button class="at-b" type="button" id="atClr">Clear</button><span class="at-note" id="atFmsg"></span></div>
+    <p class="at-note">Upload a Word (.docx) or PDF file to check it and download a cleaned copy of the same file, with its layout kept. Old .doc files: save as .docx in Word first.</p></div>
   <div id="atRes" class="at"></div>`;
   body.innerHTML = ""; body.appendChild(ROOT);
   const In = ROOT.querySelector("#atIn");
   In.value = S.text;
-  In.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => setText(In.value), 350); });
+  In.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => { if (S.file && In.value !== S.file.text) { S.file = null; S.fres = null; ROOT.querySelector("#atFmsg").textContent = "Text edited, so the loaded file is unlinked. Load the file again to clean the file itself."; } setText(In.value); }, 350); });
   ROOT.querySelector("#atGo").onclick = () => setText(In.value);
-  ROOT.querySelector("#atClr").onclick = () => { In.value = ""; S.name = ""; ROOT.querySelector("#atFmsg").textContent = ""; setText(""); };
+  ROOT.querySelector("#atClr").onclick = () => { In.value = ""; S.name = ""; S.file = null; S.fres = null; ROOT.querySelector("#atFmsg").textContent = ""; setText(""); };
   ROOT.querySelector("#atEx").onclick = () => {
     const tag = [..."generated-by-ai"].map((c) => String.fromCodePoint(0xE0000 + c.charCodeAt(0))).join("");
     In.value = `Dear Hiring Manager,\n\nI am writing to apply for the Cook position at your restaurant.​ I have five years of experience in busy kitchens — including two years as a line cook in Surrey.${tag}\n\nI am a quick learner, reliаble and comfortable working evenings and weekends. My last employer described me as a team player [1](https://example.com/ref?utm_source=chatgpt.com) citeturn0search0.\n\nI hope this helps! Please contact me at [Your Phone Number].\n\nSincerely,\n[Your Name]`;
-    S.name = ""; setText(In.value);
+    S.name = ""; S.file = null; S.fres = null; setText(In.value);
   };
   ROOT.querySelector("#atFile").onchange = async (e) => {
     const f = e.target.files[0], m = ROOT.querySelector("#atFmsg"); e.target.value = "";
     if (!f) return;
-    if (f.size > 15 * 1024 * 1024) { m.textContent = "That file is over 15 MB."; return; }
+    if (f.size > 40 * 1024 * 1024) { m.textContent = "That file is over 40 MB."; return; }
     m.textContent = "Reading " + f.name + "…";
     try {
-      const t = /\.docx$/i.test(f.name) ? await docxText(await f.arrayBuffer()) : await f.text();
-      In.value = t; S.name = f.name; m.textContent = "Loaded " + f.name + "."; setText(t);
-    } catch (err) { m.textContent = "Couldn't read " + f.name + ": " + err.message; }
+      if (!window.WPAiFiles) throw new Error("the file module didn't load; refresh the page");
+      const o = await window.WPAiFiles.open(f);
+      S.file = o.type === "text" ? null : o; S.fres = null; S.name = f.name;
+      In.value = o.text; m.textContent = "Loaded " + f.name + "."; setText(o.text);
+      if (!o.text.trim() && o.type === "pdf") m.textContent = "Loaded " + f.name + ". No text layer found (a scanned PDF?): only the file details can be checked.";
+      if (!o.text.trim()) render();
+    } catch (err) { console.error(err); S.file = null; S.fres = null; render(); m.textContent = "Couldn't read " + f.name + ": " + err.message; }
   };
   if (S.text) setText(S.text);
 }
@@ -292,6 +351,6 @@ async function load(key, body) {
   if (ROOT) { body.innerHTML = ""; body.appendChild(ROOT); return; }
   mount(body);
 }
-function leave() { ROOT = null; S.text = ""; S.res = null; S.out = ""; S.name = ""; } // on lock: forget the text
-window.WPAiText = { load, leave, _test: { scan, clean, docxText } };
+function leave() { ROOT = null; S.text = ""; S.res = null; S.out = ""; S.name = ""; S.file = null; S.fres = null; } // on lock: forget the text
+window.WPAiText = { load, leave, core: { scan, clean, ZW, BIDI, SP, HG, isLetter }, _test: { scan, clean } };
 })();
