@@ -231,6 +231,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="draws" aria-pressed="false">Latest draws</button>
       <button type="button" data-t="news" aria-pressed="false">Hot &amp; New</button>
       <button type="button" data-t="scanner" aria-pressed="false">Scanner passes</button>
+      <button type="button" data-t="pscan" aria-pressed="false">Profile scanner</button>
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
       <button type="button" data-t="intake" aria-pressed="false" id="inTab">Intake forms</button>
@@ -275,6 +276,7 @@ async function load(){
   try{
     if(tab==="chat"){ await chatList(); render(); return; }
     if(tab==="intake"){ if(window.WPIntake) await window.WPIntake.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">Intake forms didn't load. Refresh the page.</div>`; return; }
+    if(tab==="pscan"){ if(window.WPScan) await window.WPScan.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">Profile scanner didn't load. Refresh the page.</div>`; return; }
     if(tab==="partners"){ if(window.WPPartners) await window.WPPartners.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">Partners didn't load. Refresh the page.</div>`; return; }
     if(tab==="mail"){ if(!data.mail||ml.reload){ ml.reload=false; data.mail=await chatFetch("mail"); mailInit(); render(); } else if(!$("#mlForm")) render(); return; }
     if(tab==="analytics"&&anView==="signups") data.signups=await api("signups?days="+days);
@@ -310,7 +312,7 @@ async function load(){
     $("#wpaBody").innerHTML=`<div class="wpa-empty">Couldn't load data: ${esc(e.message)}</div>`;
   }
 }
-function lock(msg){ KEY=""; try{sessionStorage.removeItem("wp_admin");}catch(e){} $("#app").hidden=true; $("#gate").hidden=false; $("#gErr").textContent=msg||""; }
+function lock(msg){ KEY=""; if(window.WPScan) window.WPScan.leave(); try{sessionStorage.removeItem("wp_admin");}catch(e){} $("#app").hidden=true; $("#gate").hidden=false; $("#gErr").textContent=msg||""; }
 $("#gate").onsubmit=e=>{ e.preventDefault(); KEY=$("#key").value.trim(); if(!KEY) return; try{sessionStorage.setItem("wp_admin",KEY);}catch(x){} start(); };
 $("#out").onclick=()=>lock("");
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; newsEdit=null; drEdit=null; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
@@ -380,7 +382,7 @@ function controls(){
   } else if(tab==="mail"){
     c.innerHTML=`<button class="dl" type="button" id="mlRefresh">Refresh list</button>`;
     $("#mlRefresh").onclick=()=>{ ml.reload=true; load(); };
-  } else if(tab==="intake"||tab==="partners"){
+  } else if(tab==="intake"||tab==="partners"||tab==="pscan"){
     c.innerHTML="";
   } else if(tab==="chat"){
     c.innerHTML=`<span class="chat-live"><i id="chatDot"></i><span id="chatHrs"></span></span>`; chatStatus();
@@ -500,7 +502,7 @@ const place=v=>v.city?`${v.city}, ${v.country||"?"}`:(v.country||(v.tz&&v.tz.spl
 
 function render(){
   const body=$("#wpaBody");
-  if(tab==="intake"||tab==="partners") return;
+  if(tab==="intake"||tab==="partners"||tab==="pscan") return;
   if(tab==="interest") return renderInterest(body);
   if(tab==="submissions") return renderSubs(body);
   if(tab==="b2b") return renderB2B(body);
@@ -1585,5 +1587,6 @@ if(KEY) start();
 </script>
 <script src="/admin/intake.js?v=3"></script>
 <script src="/admin/partners.js?v=2"></script>
+<script src="/admin/profile-scan.js?v=1"></script>
 </body>
 </html>

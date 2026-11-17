@@ -204,6 +204,8 @@ function restore() {
 window.WPCalc = {
   H,
   define(spec) {
+    // Headless use (admin Profile scanner): hand the spec over instead of drawing a form.
+    if (typeof window.WPCalcHeadless === "function") { window.WPCalcHeadless(spec); return; }
     SPEC = spec; KEY = "wp_calc_" + spec.id;
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", render); else render();
   },
