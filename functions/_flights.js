@@ -117,7 +117,7 @@ export async function search(env, q, opts = {}) {
   const key = new Request(`https://workerpool.ca/__flights/search?v=2&f=${q.from}&t=${q.to}&d=${q.depart}&r=${q.ret || ""}&h=${hubCount}&m=${env.TP_MARKET || ""}`);
   if (cache) { const hit = await cache.match(key).catch(() => null); if (hit) return hit.json(); }
   const out = await searchFresh(env, q, hubCount);
-  if (cache) await cache.put(key, new Response(JSON.stringify(out), { headers: { "content-type": "application/json", "cache-control": "max-age=" + SEARCH_TTL } })).catch(() => {});
+  if (cache && out.cheapest) await cache.put(key, new Response(JSON.stringify(out), { headers: { "content-type": "application/json", "cache-control": "max-age=" + SEARCH_TTL } })).catch(() => {});
   return out;
 }
 async function searchFresh(env, q, hubCount) {
@@ -155,7 +155,8 @@ async function searchFresh(env, q, hubCount) {
     .filter((c) => c.date.startsWith(month) && c.price > 0).sort((a, b) => a.date.localeCompare(b.date));
   const sorted = cal.map((c) => c.price).sort((a, b) => a - b);
   const typical = sorted.length ? sorted[Math.floor(sorted.length / 2)] : null;
-  const cheapDays = cal.filter((c) => c.date !== depart && Math.abs(dayDiff(depart, c.date)) <= 3 && best && c.price < best.price)
+  // with no fare on the chosen date, look up to a week either side instead
+  const cheapDays = cal.filter((c) => c.date !== depart && Math.abs(dayDiff(depart, c.date)) <= (best ? 3 : 7) && (!best || c.price < best.price))
     .sort((a, b) => a.price - b.price).slice(0, 3)
     .map((c) => ({ kind: "day", date: c.date, ret: c.ret, price: c.price, save: best ? best.price - c.price : null, book: bookLink(env, { from, to, depart: c.date, ret: c.ret }) }));
 
@@ -205,6 +206,7 @@ async function searchFresh(env, q, hubCount) {
   const cheapest = options.reduce((m, o) => (!m || o.price < m.price ? o : m), null);
   return {
     q: { from, to, depart, ret: ret || null }, currency: CUR.toUpperCase(),
+    live: bookLink(env, { from, to, depart, ret }), // live search on Aviasales (with the partner marker)
     places: { from: po, to: pd }, hubsChecked: hubs.map((h) => h[0]),
     best, cheapest, typical,
     deal: cheapest && typical ? Math.round(100 - (100 * cheapest.price) / typical) : null, // % under the month's typical price

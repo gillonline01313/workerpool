@@ -137,7 +137,8 @@
     var q = r.q, c = r.cheapest, h = "";
     var title = esc(q.from) + " → " + esc(q.to) + " · " + esc(nice(q.depart)) + (q.ret ? " – " + esc(nice(q.ret)) : " · one way");
     if (!c) {
-      h += '<div class="empty">No recent fares for ' + title + '. Aviasales only lists fares people searched in the last 48 hours, so try a nearby date or a bigger city (e.g. YTO for all Toronto airports), or set an alert below and we\'ll tell you when fares show up.</div>';
+      h += '<div class="empty">No recent fares for ' + title + '. Aviasales only lists fares people searched in the last 48 hours, so try a nearby date or a bigger city (e.g. YTO for all Toronto airports), or set an alert below and we\'ll tell you when fares show up.' +
+        (r.live ? '<div style="margin-top:12px"><a class="btn" href="' + esc(r.live) + '" target="_blank" rel="noopener sponsored" data-track="Live search">Search live prices for these dates ↗</a></div>' : "") + '</div>';
     } else {
       var book = c.book || (c.legs && c.legs[0].book);
       h += '<div class="hero-deal"><div><small>Cheapest way to fly · ' + title + '</small><div class="p">' + money(c.price) + "<span>" + esc(r.currency) + (q.ret ? " return" : "") + "</span></div><p>" + esc(how(c)) + "</p>" +
