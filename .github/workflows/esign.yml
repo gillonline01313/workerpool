@@ -14,4 +14,5 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Send due reminders and expire overdue envelopes
-        run: curl -s -m 120 -X POST https://workerpool.ca/api/esign/tick -H "user-agent: WorkerPool eSign tick"
+        run: |
+          curl -s -m 120 -X POST https://workerpool.ca/api/esign/tick -H "user-agent: WorkerPool eSign tick"
