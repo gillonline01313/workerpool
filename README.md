@@ -45,6 +45,9 @@ Website for **workerpool.ca**: free candidate profiles for temporary residents i
 | `functions/api/forum.js` | Forum API: read topics, join with a username, start topics, reply, report, remove own posts. Rate limits: 5 topics and 30 posts an hour per member |
 | `news/` | All updates page (`/news/`), linked from the ticker |
 | `express-entry-2026/` | Express Entry November 2026 guide: choosing a NOC, high-wage NOC checker (IRCC list, 186 NOCs), experience and job offer points, calculator. NOC list is in the page's script (`const NOC`) |
+| `esign/`, `esign/sign/`, `esign/verify/` | **WorkerPool eSign**: subscriber portal (`/esign/`), signing page for signers (`/esign/sign/?t=…`), public verification page (`/esign/verify/`) |
+| `functions/_esign.js`, `functions/api/esign/[[path]].js` | eSign tables, audit-trail hash chain, PDF stamping and Certificate of Completion (pdf-lib, vendored in `functions/_vendor/`), emails, plans/offers/subscriptions (Stripe) |
+| `assets/esign-ui.js`, `admin/esign.js`, `assets/esign.css` | Sender screens (envelope list, builder with drag-and-drop fields, detail/audit view) shared by admin and the portal; admin **eSign** tab (Envelopes, Plans & offers, Subscribers). PDF pages are drawn with pdf.js (`assets/vendor/pdfjs/`) |
 | `privacy/`, `terms/`, `reset/` | Privacy policy, terms of use, password reset page |
 | `schema.sql` | All database tables (`schema-accounts.sql` adds just the account tables) |
 
@@ -173,6 +176,22 @@ Setup (Cloudflare → Pages → Settings → Variables and secrets):
 - **Receiving** (admin@, hello@, privacy@workerpool.ca): Cloudflare → workerpool.ca → Email → Email Routing. Forward each address to your own inbox. Also add **noreply@workerpool.ca** (or turn on the catch-all) so any reply sent straight to that address still reaches you instead of bouncing.
 - **Sending** (password resets, new-lead alerts): a free Resend account. Add workerpool.ca in Resend, add the DNS records it shows to Cloudflare, then create an API key.
 
+## eSign (admin → eSign, /esign/)
+
+Send any PDF (or JPG/PNG; several files are joined into one) to one or more people for electronic signature.
+
+**Sending.** Admin → eSign → **+ New envelope**: upload the document, add recipients (*Needs to sign* or *Receives a copy*), optionally tick **Set signing order** and give a signer an **access code** (tell it to them by phone/text), write a message, set expiry and reminder days, then pick a field (Signature, Initials, Date signed, Full name, Email, Text, Checkbox) and click the page to place it. Drag to move, corner to resize, Delete to remove. Drafts save automatically. **Send for signature** checks every signer has a Signature field.
+
+**Signing.** Each signer gets a personal link. They agree to the Electronic Record and Signature Disclosure, enter the access code if one was set, confirm a 6-digit code emailed to them, then fill their fields and adopt a signature (typed in a script style or drawn). They can decline with a reason. With signing order, the next signer is emailed only after the previous one signs.
+
+**Proof.** Every action (created, sent, opened, code sent, identity confirmed, disclosure accepted, signed, reminders, declines, voids) is stored with time, IP, approximate location and browser in `esign_events`; each event's SHA-256 includes the previous one, so any edit breaks the chain (shown in admin and on the verify page). When the last signer finishes, the fields are stamped onto the original PDF, every page gets *WorkerPool eSign Envelope ID*, a **Certificate of Completion** (summary, document hashes, each signer's signature, authentication, IP, times, full audit trail, the disclosure) is appended, the SHA-256 of the result is recorded and sealed (HMAC), and everyone, including copies and the sender, gets the signed PDF by email. Anyone can check a copy at `/esign/verify/` (the file is hashed in the browser, never uploaded). Note: this is an electronic signature with a tamper-evident audit trail; it is not a certificate-based (PKI/Adobe-trusted) digital signature.
+
+**Managing.** The envelope view shows each recipient's progress with Resend, plus Remind everyone, Void (links stop working), Copy to new draft, Delete, and downloads of the signed PDF, the certificate and the original. Reminders and expiry run with the 3-hourly scheduled job (`/api/esign/tick`; also checked when a signer opens an expired link).
+
+**Subscriptions (others using eSign).** People sign in at `/esign/` with a normal WorkerPool account and choose a plan. Admin → eSign → **Plans & offers**: plans (price CAD monthly/yearly, envelopes per period or unlimited, free trial days — 30 = first month free — and whether a card is needed when the trial starts), and offers: promo codes or **automatic** offers (free months, percent off for N months, or free access), with plan, max uses and last day. **Subscribers** lists everyone with status and usage; **Give free access** grants access to an account email until a date, with no Stripe. Trials apply once per account. Paid plans use Stripe Checkout subscriptions with `STRIPE_SECRET_KEY` (status is re-read from Stripe every 6 hours, no webhook needed); for **Manage billing** turn on the Customer portal in Stripe → Settings → Billing → Customer portal. Admin has no limits. Admin sees every subscriber's envelopes under Envelopes → *Sent by subscribers* (master view).
+
+**Settings.** Uses `DB`, the `RESUMES` R2 bucket (files under `esign/`), `RESEND_API_KEY`. Optional: `ESIGN_SECRET` (secret for signing links and the seal; falls back to `ADMIN_KEY` — set it so changing the admin key doesn't break open links), `ESIGN_SENDER_NAME` (default "WorkerPool") and `ESIGN_SENDER_EMAIL` (default `ADMIN_EMAIL`) for envelopes sent by admin. Building the signed PDF needs more CPU than the Workers Free plan allows on long documents: if an envelope shows "Final PDF failed", move the project to Workers Paid and press **Rebuild signed PDF**. Tables are created automatically.
+
 ## Settings (Pages project → Settings → Variables and Secrets)
 
 | Name | Type | Value |
@@ -188,6 +207,7 @@ Setup (Cloudflare → Pages → Settings → Variables and secrets):
 | `RESEND_WEBHOOK_SECRET` | Secret | Signing secret (`whsec_…`) of the Resend webhook, for delivery receipts on emails from the Email tab |
 | `GITHUB_TOKEN` | Secret | Lets **Latest draws → ↻ Refresh now** re-run the draw reader on demand. A fine-grained GitHub token (GitHub → Settings → Developer settings → Fine-grained tokens) for the `workerpool` repository only, with **Actions: Read and write**. Without it, use “Run on GitHub ↗” |
 | `MAIL_ADDRESS` | Text | Optional but recommended. Business mailing address shown in the email footer (Canada's anti-spam law, CASL) |
+| `ESIGN_SECRET` | Secret | Optional. Long random value for eSign signing links and document seals (defaults to `ADMIN_KEY`) |
 | `SITE_URL` | Text | `https://workerpool.ca` |
 
 Redeploy after changing settings.

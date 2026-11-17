@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Review and sign · WorkerPool eSign</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%2324514b'/%3E%3Cpath d='M7 20c3-6 5-9 7-9s-1 8 2 8 3-5 7-5' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&family=Dancing+Script:wght@600&family=Great+Vibes&family=Caveat:wght@600&family=Homemade+Apple&display=swap">
+<link rel="stylesheet" href="/assets/esign.css?v=1">
+<style>
+.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.bar .in{display:flex;gap:10px;align-items:center;min-height:56px;flex-wrap:wrap;padding-block:8px}
+.bar .t{font-weight:600;font-size:.92rem;flex:1;min-width:140px}
+.pages{display:flex;flex-direction:column;gap:16px;align-items:center;padding:18px 0}
+.es-page{position:relative;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.25);width:100%;max-width:880px}
+.es-page canvas{display:block;width:100%;height:auto}
+.es-page .pn{position:absolute;right:0;top:-18px;font-size:.7rem;color:var(--muted)}
+.fl{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:3px;font:600 12px/1.1 system-ui,sans-serif;color:#1b2628;overflow:visible}
+.fl.todo{background:rgba(255,214,102,.85);border:1.5px dashed #b07b00;cursor:pointer}
+.fl.todo.req::after{content:"*";position:absolute;right:-9px;top:-6px;color:#c0392b;font-size:15px;font-weight:700}
+.fl.done{background:rgba(220,235,231,.35);border:1px solid rgba(36,81,75,.35)}
+.fl.cur{outline:3px solid #1b4fd6;outline-offset:2px}
+.fl img{max-width:100%;max-height:100%;display:block}
+.fl input[type=text]{width:100%;height:100%;border:0;border-radius:2px;padding:0 3px;font:13px system-ui,sans-serif;background:rgba(255,255,255,.85);color:#111}
+.fl input[type=checkbox]{width:100%;height:100%;margin:0;accent-color:#24514b;cursor:pointer}
+.fl .auto{font:12px system-ui,sans-serif;color:#111;white-space:nowrap;overflow:hidden;padding:0 2px;width:100%}
+.tip{position:absolute;left:-8px;transform:translateX(-100%);background:var(--sign);color:#1b2628;font:700 11px system-ui,sans-serif;padding:4px 8px;border-radius:4px;white-space:nowrap;pointer-events:none}
+.tip::after{content:"";position:absolute;right:-6px;top:50%;margin-top:-6px;border:6px solid transparent;border-left-color:var(--sign);border-right:0}
+@media (max-width:700px){.tip{display:none}}
+.modal{position:fixed;inset:0;background:rgba(10,20,20,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:12px}
+.modal>div{background:var(--surface);border-radius:14px;max-width:640px;width:100%;max-height:94vh;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.tabs{display:flex;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:4px}
+.tabs button{flex:1;font:inherit;font-weight:600;border:0;background:none;color:var(--muted);padding:8px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.styles{display:flex;flex-direction:column;gap:8px}
+.styles label{display:grid;grid-template-columns:22px 1fr 90px;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;background:#fff;color:#14213d}
+.styles label:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.styles .s1{font-size:30px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.styles .s2{font-size:24px;white-space:nowrap;overflow:hidden}
+.pad{position:relative;border:1px solid var(--line);border-radius:10px;background:#fff;touch-action:none}
+.pad canvas{display:block;width:100%;height:100%;cursor:crosshair}
+.pad .base{position:absolute;left:8%;right:8%;bottom:26%;border-bottom:1px solid #c8d0d2;pointer-events:none}
+.pad .clr{position:absolute;right:8px;top:6px;font-size:.78rem}
+.disc{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:.84rem;background:var(--field)}
+.disc h4{margin:10px 0 4px;font-size:.88rem}.disc p{margin:0 0 6px}
+.prog{font-size:.82rem;color:var(--muted);white-space:nowrap}
+</style>
+</head>
+<body>
+<header class="top"><div class="in nav">
+  <a class="logo" href="/esign/verify/" target="_blank" rel="noopener"><svg width="32" height="32" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="9" fill="var(--accent)"/><path d="M7 20c3-6 5-9 7-9s-1 8 2 8 3-5 7-5" fill="none" stroke="var(--accent-fg)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span><b>WorkerPool eSign</b><small>Secure electronic signature</small></span></a>
+  <span class="who shield">🔒 Encrypted connection · every action is recorded</span>
+</div></header>
+<div class="bar" id="bar" hidden><div class="in">
+  <span class="t" id="barT"></span><span class="prog" id="prog"></span>
+  <button class="btn sign sm" type="button" id="next">Start</button>
+  <button class="btn sm" type="button" id="finish" disabled>Finish</button>
+  <select id="more" aria-label="Other actions" style="width:auto;padding:6px 10px;font-size:.84rem"><option value="">Other actions</option><option value="dl">Download to review</option><option value="decline">Decline to sign</option><option value="disc">Read the disclosure</option></select>
+</div></div>
+<main class="in" id="view"><div class="card narrow"><p class="muted" style="margin:0">Loading…</p></div></main>
+<footer><div class="in">WorkerPool eSign is operated by WorkerPool, an Alberta-based data processing company, for the sender of this document. Questions about the document itself go to the sender. · <a href="/esign/verify/">Verify a signed document</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></div></footer>
+<script src="/assets/esign-ui.js?v=1"></script>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s), view = $("#view");
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const T = new URLSearchParams(location.search).get("t") || "";
+  history.replaceState(null, "", location.pathname + "?t=" + encodeURIComponent(T)); // keep the link out of other query strings
+  let S = ""; try { S = sessionStorage.getItem("es_s_" + T) || ""; } catch (e) {}
+  let I = null, sig = null, init = null, kind = "drawn", typed = "", vals = {}, F = [], pagesEl = [];
+  const TZ = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return ""; } })();
+  const today = () => new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+
+  async function api(path, body) {
+    const r = await fetch("/api/esign/s/" + path + (body ? "" : (path.includes("?") ? "&" : "?") + "t=" + encodeURIComponent(T) + (S ? "&s=" + encodeURIComponent(S) : "")),
+      { method: body ? "POST" : "GET", headers: { "content-type": "application/json" }, body: body ? JSON.stringify({ t: T, s: S, ...body }) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) { const e = new Error(j.error || "Something went wrong. Try again."); e.status = r.status; throw e; }
+    return j;
+  }
+  const msg = (title, text, extra = "") => { $("#bar").hidden = true; view.innerHTML = `<div class="card narrow"><h2>${esc(title)}</h2><p class="muted" style="margin:0">${text}</p>${extra}</div>`; };
+  const finalBtn = () => I && I.envelope.has_final ? `<div class="row"><a class="btn" href="/api/esign/s/final?t=${encodeURIComponent(T)}">Download the signed document</a><a class="btn ghost" href="/api/esign/s/final?t=${encodeURIComponent(T)}&view=1" target="_blank" rel="noopener">View</a></div>` : "";
+
+  async function start() {
+    if (!T) return msg("This link is incomplete", "Open the full link from your email.");
+    try { I = await api("info"); }
+    catch (e) { return msg("We can't open this document", esc(e.message)); }
+    const E = I.envelope, me = I.me;
+    document.title = `${E.title} · WorkerPool eSign`;
+    if (I.ended) return msg(E.status === "voided" ? "This document was voided" : E.status === "declined" ? "Signing has stopped" : "This request has ended", esc(I.ended));
+    if (me.role === "cc") return msg(E.status === "completed" ? "The document is complete" : "You'll get a copy", E.status === "completed" ? `Everyone has signed <b>${esc(E.title)}</b>.` : `${esc(E.from)} added you to receive a copy of <b>${esc(E.title)}</b>. We'll email it to you when everyone has signed.`, finalBtn());
+    if (me.status === "signed") return msg(E.status === "completed" ? "The document is complete" : "You've signed", E.status === "completed" ? `Everyone has signed <b>${esc(E.title)}</b>. A copy with its Certificate of Completion was emailed to you.` : `Thanks, ${esc(me.name.split(" ")[0])}. You'll get the completed document by email when everyone has signed.`, finalBtn());
+    if (me.status === "declined") return msg("You declined this document", "The sender has been told.");
+    if (I.waiting_for.length) return msg("It isn't your turn yet", `${esc(I.waiting_for.join(", "))} need${I.waiting_for.length > 1 ? "" : "s"} to sign first. We'll email you when it's your turn.`);
+    if (me.verified) return signing();
+    intro();
+  }
+
+  function discHtml() { return `<div class="disc">${I.disclosure.map(([h, t]) => t ? `${h ? `<h4>${esc(h)}</h4>` : ""}<p>${esc(t)}</p>` : `<h4 style="font-size:1rem;margin-top:0">${esc(h)}</h4>`).join("")}<p class="muted">Version ${esc(I.disclosure_v)}</p></div>`; }
+  function intro() {
+    const E = I.envelope, me = I.me;
+    view.innerHTML = `<div class="card narrow">
+      <span class="eyebrow">Please review and sign</span>
+      <h1 style="font-size:1.6rem">${esc(E.title)}</h1>
+      <div class="muted">From <b style="color:var(--fg)">${esc(E.from)}</b>${E.from_email ? ` (${esc(E.from_email)})` : ""} · ${E.pages} page${E.pages > 1 ? "s" : ""}${E.expires_at ? ` · please sign by ${new Date(E.expires_at).toLocaleDateString("en-CA", { month: "long", day: "numeric", year: "numeric" })}` : ""}</div>
+      ${E.message ? `<div class="note">${esc(E.message).replace(/\n/g, "<br>")}</div>` : ""}
+      <div>Hello <b>${esc(me.name)}</b>. To keep this document private, we'll send a one-time code to <b>${esc(me.email)}</b> before you can open it.</div>
+      <label class="cb"><input type="checkbox" id="agree"> <span>I agree to use electronic records and signatures. <button class="linkbtn" type="button" id="readD">Read the Electronic Record and Signature Disclosure</button></span></label>
+      <div id="dBox" hidden>${discHtml()}</div>
+      ${me.needs_access ? `<div class="f"><label for="acc">Access code</label><input id="acc" autocomplete="off" maxlength="40" style="max-width:260px"><span class="help">The sender gave you this code separately (by phone, text or in person). It isn't in the email.</span></div>` : ""}
+      <div class="err" id="err"></div>
+      <div class="row"><button class="btn sign" type="button" id="go">Continue</button><button class="linkbtn" type="button" id="dec">Decline to sign</button></div></div>`;
+    $("#readD").onclick = () => { $("#dBox").hidden = !$("#dBox").hidden; };
+    $("#dec").onclick = () => declineModal(true);
+    $("#go").onclick = async () => {
+      $("#err").textContent = "";
+      if (!$("#agree").checked) { $("#err").textContent = "Tick the box to agree to use electronic records and signatures."; return; }
+      $("#go").disabled = true;
+      try { const j = await api("start", { access: $("#acc") ? $("#acc").value : undefined }); codeStep(j.email); }
+      catch (e) { $("#err").textContent = e.message; $("#go").disabled = false; }
+    };
+  }
+  function codeStep(email) {
+    view.innerHTML = `<div class="card narrow"><span class="eyebrow">Confirm it's you</span><h2>Enter the code we emailed you</h2>
+      <p class="muted" style="margin:0">We sent a 6-digit code to <b style="color:var(--fg)">${esc(email)}</b>. It works for 10 minutes. Check spam if you don't see it.</p>
+      <input class="code" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*">
+      <div class="err" id="err"></div>
+      <div class="row"><button class="btn sign" type="button" id="ok">Open the document</button><button class="linkbtn" type="button" id="again">Send a new code</button></div></div>`;
+    const go = async () => {
+      $("#err").textContent = ""; $("#ok").disabled = true;
+      try { const j = await api("verify", { code: $("#code").value }); S = j.s; try { sessionStorage.setItem("es_s_" + T, S); } catch (e) {}
+        await api("consent", {}); I = await api("info"); signing(); }
+      catch (e) { $("#err").textContent = e.message; $("#ok").disabled = false; }
+    };
+    $("#ok").onclick = go; $("#code").focus();
+    $("#code").oninput = (e) => { e.target.value = e.target.value.replace(/\D/g, ""); if (e.target.value.length === 6) go(); };
+    $("#again").onclick = async () => { try { const j = await api("start", { access: undefined }); $("#err").textContent = "A new code is on its way to " + j.email + "."; } catch (e) { $("#err").textContent = e.message; } };
+  }
+
+  /* ---------- signing ---------- */
+  async function signing() {
+    const E = I.envelope;
+    F = I.fields.filter((f) => f.mine).sort((a, b) => a.page - b.page || a.y - b.y || a.x - b.x);
+    for (const f of F) if (f.type === "checkbox" && vals[f.id] === undefined) vals[f.id] = false;
+    $("#bar").hidden = false; $("#barT").textContent = E.title;
+    view.innerHTML = `<div class="row sp" style="margin-bottom:6px"><span class="muted">Fill in the highlighted fields, then press <b>Finish</b>. Fields marked * are required.</span><span class="muted">${esc(E.pages)} pages</span></div><div class="pages" id="pages"><div class="muted">Loading the document…</div></div>`;
+    try {
+      const r = await fetch(`/api/esign/s/doc?t=${encodeURIComponent(T)}&s=${encodeURIComponent(S)}`);
+      if (r.status === 401) { S = ""; try { sessionStorage.removeItem("es_s_" + T); } catch (e) {} I.me.verified = false; return intro(); }
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "The document couldn't be loaded.");
+      pagesEl = await window.WPEsign.renderPdf($("#pages"), await r.arrayBuffer(), $("#pages").clientWidth);
+    } catch (e) { $("#pages").innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+    drawFields(); progress();
+    $("#next").onclick = nextField;
+    $("#finish").onclick = finish;
+    $("#more").onchange = (e) => { const v = e.target.value; e.target.value = "";
+      if (v === "dl") window.open(`/api/esign/s/doc?t=${encodeURIComponent(T)}&s=${encodeURIComponent(S)}`, "_blank", "noopener");
+      if (v === "decline") declineModal(false);
+      if (v === "disc") modal(`<h3>Electronic Record and Signature Disclosure</h3>${discHtml()}<div class="row"><button class="btn" type="button" data-close>Close</button></div>`); };
+  }
+  const isDone = (f) => f.type === "signature" ? !!sig : f.type === "initials" ? !!init : f.type === "text" ? !!String(vals[f.id] || "").trim() : f.type === "checkbox" ? !!vals[f.id] : true;
+  const needs = (f) => ["signature", "initials"].includes(f.type) || (["text", "checkbox"].includes(f.type) && f.required);
+  function drawFields() {
+    pagesEl.forEach((p) => p.querySelectorAll(".fl").forEach((n) => n.remove()));
+    for (const f of F) {
+      const p = pagesEl[f.page]; if (!p) continue;
+      const n = document.createElement("div"); n.dataset.id = f.id;
+      const done = isDone(f);
+      n.className = "fl " + (done && !["text", "checkbox"].includes(f.type) ? "done" : ["date", "name", "email"].includes(f.type) ? "done" : "todo") + (needs(f) ? " req" : "");
+      Object.assign(n.style, { left: f.x * 100 + "%", top: f.y * 100 + "%", width: f.w * 100 + "%", height: f.h * 100 + "%" });
+      if (f.type === "signature" || f.type === "initials") {
+        const img = f.type === "signature" ? sig : init;
+        n.innerHTML = img ? `<img alt="Your ${f.type}" src="${img}">` : `<span>${f.type === "signature" ? "Sign ✍" : "Initial"}</span>`;
+        n.tabIndex = 0; n.setAttribute("role", "button"); n.setAttribute("aria-label", f.type === "signature" ? "Sign here" : "Initial here");
+        n.onclick = () => { if (!(f.type === "signature" ? sig : init)) adopt(f); else { if (f.type === "signature") sig = null; else init = null; adopt(f); } };
+        n.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); n.click(); } };
+      } else if (f.type === "date") n.innerHTML = `<span class="auto">${esc(today())}</span>`;
+      else if (f.type === "name") n.innerHTML = `<span class="auto">${esc(I.me.name)}</span>`;
+      else if (f.type === "email") n.innerHTML = `<span class="auto">${esc(I.me.email)}</span>`;
+      else if (f.type === "text") { n.innerHTML = `<input type="text" maxlength="300" aria-label="${esc(f.label || "Text")}" placeholder="${esc(f.label || "")}">`; const i = n.querySelector("input"); i.value = vals[f.id] || ""; i.oninput = () => { vals[f.id] = i.value; n.classList.toggle("todo", !i.value.trim()); progress(); }; }
+      else if (f.type === "checkbox") { n.innerHTML = `<input type="checkbox" aria-label="${esc(f.label || "Checkbox")}">`; const i = n.querySelector("input"); i.checked = !!vals[f.id]; i.onchange = () => { vals[f.id] = i.checked; progress(); }; }
+      p.appendChild(n);
+    }
+  }
+  function progress() {
+    const req = F.filter(needs), left = req.filter((f) => !isDone(f)).length;
+    $("#prog").textContent = left ? `${left} required field${left > 1 ? "s" : ""} left` : "All required fields done";
+    $("#finish").disabled = !!left; $("#finish").classList.toggle("sign", !left);
+    $("#next").textContent = left ? (req.length === left ? "Start" : "Next") : "Review";
+    $("#next").classList.toggle("ghost", !left);
+  }
+  let cursor = -1;
+  function nextField() {
+    pagesEl.forEach((p) => p.querySelectorAll(".fl.cur,.tip").forEach((n) => { n.classList.remove("cur"); if (n.classList.contains("tip")) n.remove(); }));
+    const order = F.filter(needs), todo = order.filter((f) => !isDone(f));
+    const list = todo.length ? todo : order; if (!list.length) return;
+    cursor = (cursor + 1) % list.length;
+    const f = todo.length ? todo[0] : list[cursor], n = document.querySelector(`.fl[data-id="${f.id}"]`); if (!n) return;
+    n.classList.add("cur"); const tip = document.createElement("span"); tip.className = "tip"; tip.textContent = f.type === "signature" ? "Sign" : f.type === "initials" ? "Initial" : "Fill in"; tip.style.top = "0"; n.appendChild(tip);
+    n.scrollIntoView({ behavior: "smooth", block: "center" });
+    const inp = n.querySelector("input"); if (inp) setTimeout(() => inp.focus({ preventScroll: true }), 350);
+    else if (todo.length && (f.type === "signature" || f.type === "initials")) setTimeout(() => adopt(f), 450);
+  }
+  function modal(html, bind) {
+    const m = document.createElement("div"); m.className = "modal"; m.innerHTML = `<div role="dialog" aria-modal="true">${html}</div>`;
+    document.body.appendChild(m); const close = () => m.remove();
+    m.querySelectorAll("[data-close]").forEach((b) => b.onclick = close);
+    m.addEventListener("click", (e) => { if (e.target === m) close(); });
+    if (bind) bind(m, close); return m;
+  }
+
+  /* ---------- adopt a signature ---------- */
+  const FONTS = ["Dancing Script", "Great Vibes", "Caveat", "Homemade Apple"];
+  const initialsOf = (n) => String(n || "").trim().split(/\s+/).filter(Boolean).map((w) => w[0].toUpperCase()).slice(0, 3).join("");
+  function trim(canvas, pad = 8) {
+    const c = canvas.getContext("2d"), { width: w, height: h } = canvas, d = c.getImageData(0, 0, w, h).data;
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 12) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+    const o = document.createElement("canvas"); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+    o.getContext("2d").drawImage(canvas, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+    return o.toDataURL("image/png");
+  }
+  async function typedPng(text, font, size, w, h) {
+    try { await document.fonts.load(`${size}px "${font}"`); } catch (e) {}
+    const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d");
+    let s = size; x.font = `${s}px "${font}"`; while (x.measureText(text).width > w - 30 && s > 16) { s -= 2; x.font = `${s}px "${font}"`; }
+    x.fillStyle = "#14213d"; x.textBaseline = "middle"; x.fillText(text, 15, h / 2 + 4);
+    return trim(c, 10);
+  }
+  function pad(el) {
+    const c = el.querySelector("canvas"), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const size = () => { const r = el.getBoundingClientRect(); c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); const x = c.getContext("2d"); x.scale(dpr, dpr); x.lineCap = "round"; x.lineJoin = "round"; x.strokeStyle = "#14213d"; x.lineWidth = 2.6; };
+    size(); let drawing = false, last = null, inked = false;
+    const pos = (e) => { const r = c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    c.onpointerdown = (e) => { e.preventDefault(); c.setPointerCapture(e.pointerId); drawing = true; last = pos(e); const x = c.getContext("2d"); x.beginPath(); x.arc(last[0], last[1], 1.2, 0, 7); x.fillStyle = "#14213d"; x.fill(); inked = true; };
+    c.onpointermove = (e) => { if (!drawing) return; const p = pos(e), x = c.getContext("2d"); x.beginPath(); x.moveTo(last[0], last[1]); x.lineTo(p[0], p[1]); x.stroke(); last = p; inked = true; };
+    c.onpointerup = c.onpointercancel = () => { drawing = false; };
+    el.querySelector(".clr").onclick = () => { c.getContext("2d").clearRect(0, 0, c.width, c.height); inked = false; };
+    return { png: () => inked ? trim(c, 8) : null };
+  }
+  function adopt(target) {
+    const needInit = F.some((f) => f.type === "initials"), needSig = F.some((f) => f.type === "signature");
+    modal(`<h3>Adopt your signature</h3>
+      <div class="grid"><div class="f"><label for="aN">Full name</label><input id="aN" maxlength="80" value="${esc(I.me.name)}"></div>
+        ${needInit ? `<div class="f"><label for="aI">Initials</label><input id="aI" maxlength="5" value="${esc(initialsOf(I.me.name))}"></div>` : ""}</div>
+      <div class="tabs" role="tablist"><button type="button" role="tab" data-tab="type" aria-selected="true">Choose a style</button><button type="button" role="tab" data-tab="draw" aria-selected="false">Draw</button></div>
+      <div id="tType"><div class="styles" id="styles"></div></div>
+      <div id="tDraw" hidden><div class="stack">
+        ${needSig ? `<div><div class="lab" style="margin-bottom:4px">Draw your signature</div><div class="pad" id="pS" style="height:150px"><canvas></canvas><span class="base"></span><button class="linkbtn clr" type="button">Clear</button></div></div>` : ""}
+        ${needInit ? `<div><div class="lab" style="margin-bottom:4px">Draw your initials</div><div class="pad" id="pI" style="height:110px;max-width:240px"><canvas></canvas><span class="base"></span><button class="linkbtn clr" type="button">Clear</button></div></div>` : ""}
+        <span class="help">Use your finger, a stylus or the mouse.</span></div></div>
+      <p class="help" style="margin:0">By selecting <b>Adopt and sign</b>, I agree that this signature and these initials are the electronic representation of my signature and initials for all purposes when I use them on documents, including legally binding contracts, just the same as a pen-and-paper signature.</p>
+      <div class="err" id="aErr"></div>
+      <div class="row"><button class="btn sign" type="button" id="aGo">Adopt and sign</button><button class="btn ghost" type="button" data-close>Cancel</button></div>`, (m, close) => {
+      let mode = "type", pads = null;
+      const drawStyles = () => {
+        const n = m.querySelector("#aN").value.trim() || I.me.name, ini = m.querySelector("#aI") ? m.querySelector("#aI").value.trim() : "";
+        const sel = (m.querySelector('input[name="st"]:checked') || {}).value || "0";
+        m.querySelector("#styles").innerHTML = FONTS.map((f, i) => `<label><input type="radio" name="st" value="${i}" ${String(i) === sel ? "checked" : ""}><span class="s1" style="font-family:'${f}'">${esc(n)}</span><span class="s2" style="font-family:'${f}'">${esc(ini)}</span></label>`).join("");
+      };
+      drawStyles();
+      m.querySelector("#aN").oninput = drawStyles; if (m.querySelector("#aI")) m.querySelector("#aI").oninput = drawStyles;
+      m.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => {
+        mode = b.dataset.tab; m.querySelectorAll("[data-tab]").forEach((x) => x.setAttribute("aria-selected", x === b));
+        m.querySelector("#tType").hidden = mode !== "type"; m.querySelector("#tDraw").hidden = mode !== "draw";
+        if (mode === "draw" && !pads) pads = { s: m.querySelector("#pS") ? pad(m.querySelector("#pS")) : null, i: m.querySelector("#pI") ? pad(m.querySelector("#pI")) : null };
+      });
+      m.querySelector("#aGo").onclick = async () => {
+        const err = m.querySelector("#aErr"); err.textContent = "";
+        const name = m.querySelector("#aN").value.trim(), ini = m.querySelector("#aI") ? m.querySelector("#aI").value.trim() : "";
+        if (!name) { err.textContent = "Enter your full name."; return; }
+        let s = null, i = null;
+        if (mode === "type") {
+          const font = FONTS[+((m.querySelector('input[name="st"]:checked') || {}).value || 0)];
+          if (needSig) s = await typedPng(name, font, 76, 900, 170);
+          if (needInit) { if (!ini) { err.textContent = "Enter your initials."; return; } i = await typedPng(ini, font, 70, 320, 150); }
+          kind = "typed"; typed = name;
+        } else {
+          if (needSig) { s = pads.s.png(); if (!s) { err.textContent = "Draw your signature."; return; } }
+          if (needInit) { i = pads.i.png(); if (!i) { err.textContent = "Draw your initials."; return; } }
+          kind = "drawn"; typed = "";
+        }
+        sig = s; init = i; close(); drawFields(); progress();
+        const nx = F.filter(needs).find((f) => !isDone(f)); if (nx) setTimeout(nextField, 250);
+      };
+    });
+  }
+
+  /* ---------- finish / decline ---------- */
+  async function finish() {
+    const left = F.filter(needs).filter((f) => !isDone(f));
+    if (left.length) { nextField(); return; }
+    modal(`<h3>Finish signing?</h3><p class="muted" style="margin:0">Your signature${F.some((f) => f.type === "initials") ? ", initials" : ""} and entries will be added to <b>${esc(I.envelope.title)}</b>. You can't change them after this.</p>
+      <div class="err" id="fErr"></div><div class="row"><button class="btn sign" type="button" id="fGo">Finish</button><button class="btn ghost" type="button" data-close>Go back</button></div>`, (m, close) => {
+      m.querySelector("#fGo").onclick = async () => {
+        m.querySelector("#fGo").disabled = true; m.querySelector("#fGo").textContent = "Signing…";
+        try {
+          const j = await api("sign", { consent: true, values: vals, sig, init, kind, typed, tz: TZ });
+          close(); try { sessionStorage.removeItem("es_s_" + T); } catch (e) {}
+          I.envelope.has_final = !!j.final;
+          msg(j.completed ? "Done! Everyone has signed" : "You're done signing", j.completed ? `<b>${esc(I.envelope.title)}</b> is complete. The signed document and its Certificate of Completion are on their way to everyone by email.` : `Thanks, ${esc(I.me.name.split(" ")[0])}. We'll email you the completed document when everyone has signed. You can close this page.`, j.final ? finalBtn() : "");
+          window.scrollTo(0, 0);
+        } catch (e) { m.querySelector("#fErr").textContent = e.message; m.querySelector("#fGo").disabled = false; m.querySelector("#fGo").textContent = "Finish"; }
+      };
+    });
+  }
+  function declineModal(beforeVerify) {
+    modal(`<h3>Decline to sign</h3><p class="muted" style="margin:0">Signing stops for everyone and ${esc(I.envelope.from)} is told why. You can't undo this.</p>
+      ${beforeVerify ? `<p class="muted" style="margin:0">First we need to confirm it's you: continue with the one-time code, then choose <b>Other actions → Decline to sign</b>.</p><div class="row"><button class="btn ghost" type="button" data-close>OK</button></div>` :
+      `<textarea id="dR" maxlength="500" placeholder="Reason for declining (required)"></textarea><div class="err" id="dErr"></div><div class="row"><button class="btn red" type="button" id="dGo">Decline</button><button class="btn ghost" type="button" data-close>Cancel</button></div>`}`, (m, close) => {
+      if (beforeVerify) return;
+      m.querySelector("#dGo").onclick = async () => {
+        try { await api("decline", { reason: m.querySelector("#dR").value }); close(); msg("You declined this document", "The sender has been told. You can close this page."); }
+        catch (e) { m.querySelector("#dErr").textContent = e.message; }
+      };
+    });
+  }
+  window.addEventListener("beforeunload", (e) => { if (!$("#bar").hidden && (sig || init || Object.values(vals).some(Boolean))) { e.preventDefault(); e.returnValue = ""; } });
+  start();
+})();
+</script>
+</body>
+</html>

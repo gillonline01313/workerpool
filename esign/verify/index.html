@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Verify a signed document · WorkerPool eSign</title>
+<meta name="description" content="Check that a PDF signed with WorkerPool eSign is genuine and hasn't been changed since it was signed. The file never leaves your device.">
+<link rel="canonical" href="https://workerpool.ca/esign/verify/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%2324514b'/%3E%3Cpath d='M7 20c3-6 5-9 7-9s-1 8 2 8 3-5 7-5' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/assets/esign.css?v=1">
+<style>.drop{border:2px dashed var(--line);border-radius:14px;padding:30px 16px;text-align:center;color:var(--muted);cursor:pointer}.drop.over{border-color:var(--accent-2);background:var(--accent-soft)}</style>
+</head>
+<body>
+<header class="top"><div class="in nav">
+  <a class="logo" href="/esign/"><svg width="32" height="32" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="9" fill="var(--accent)"/><path d="M7 20c3-6 5-9 7-9s-1 8 2 8 3-5 7-5" fill="none" stroke="var(--accent-fg)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span><b>WorkerPool eSign</b><small>Verify a document</small></span></a>
+</div></header>
+<main class="in"><div class="stack narrow">
+  <div><span class="eyebrow">Is this copy genuine?</span><h1>Verify a signed document</h1>
+  <p class="lede">Choose the signed PDF. Your device works out its digital fingerprint (SHA-256) and we check it against our records. The file itself is never uploaded.</p></div>
+  <div class="card">
+    <div class="drop" id="drop" tabindex="0">Drop the signed PDF here, or <u>choose a file</u><input type="file" id="file" accept="application/pdf,.pdf" hidden></div>
+    <div class="row"><span class="muted">Or check an envelope ID:</span><input id="eid" placeholder="e.g. 3F2A9C1B-…" style="max-width:340px"><button class="btn sm" type="button" id="chk">Check</button></div>
+    <div id="out" aria-live="polite"></div>
+  </div>
+  <p class="muted">Every page of a document signed with WorkerPool eSign shows its envelope ID at the top, and the last pages are its Certificate of Completion. A match below means the file is exactly the one we produced when the last person signed: not a single byte has changed.</p>
+</div></main>
+<footer><div class="in">WorkerPool eSign · <a href="/esign/">Send documents for signature</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></div></footer>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s), out = $("#out");
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const when = (t) => t ? new Date(t).toLocaleString("en-CA", { dateStyle: "long", timeStyle: "short" }) : "–";
+  async function check(body, label) {
+    out.innerHTML = `<p class="muted">Checking…</p>`;
+    try {
+      const r = await fetch("/api/esign/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || "Check failed");
+      if (!j.match) { out.innerHTML = `<div class="ok-big"><span class="tick bad">✕</span><div><h3>No match</h3><p class="muted" style="margin:4px 0 0">${body.sha ? `We have no record of ${esc(label)}. If it was signed with WorkerPool eSign, it has been changed since (even re-saving or printing to PDF changes the fingerprint). Ask the sender for the original signed copy.` : "We have no envelope with that ID."}</p>${body.sha ? `<p class="mono">SHA-256 ${esc(body.sha)}</p>` : ""}</div></div>`; return; }
+      const e = j.envelope;
+      if (j.kind === "id") { out.innerHTML = `<div class="ok-big"><span class="tick">✓</span><div><h3>Envelope found</h3><p class="muted" style="margin:4px 0 0">Status: <b>${esc(e.status)}</b> · ${e.signers} signer${e.signers > 1 ? "s" : ""} · sent ${when(e.sent_at)}${e.completed_at ? ` · completed ${when(e.completed_at)}` : ""}.</p><p class="muted">To confirm a copy hasn't been changed, check the PDF file itself above.</p></div></div>`; return; }
+      const head = j.kind === "signed" ? "Genuine and unchanged" : j.kind === "certificate" ? "Genuine Certificate of Completion" : "This is the original, unsigned document";
+      out.innerHTML = `<div class="ok-big"><span class="tick">✓</span><div class="stack" style="gap:8px"><h3>${head}</h3>
+        <p class="muted" style="margin:0">${j.kind === "original" ? "It matches the document as it was sent for signature, before anyone signed." : `${esc(label)} is exactly the file WorkerPool eSign produced when the envelope was completed.`}</p>
+        <div><b>${esc(e.title)}</b><br><span class="muted">Envelope ID ${esc(e.id)} · from ${esc(e.from)} · ${e.pages} pages · sent ${when(e.sent_at)}${e.completed_at ? ` · completed ${when(e.completed_at)}` : ""}</span></div>
+        <div>${j.signers.map((s) => `<div>✍ <b>${esc(s.name)}</b> <span class="muted">${s.signed_at ? "signed " + when(s.signed_at) : esc(s.status)}</span></div>`).join("")}</div>
+        <div class="muted">Audit trail: ${j.chain ? `✓ intact (${j.events} recorded events)` : "<b style='color:var(--red)'>⚠ altered</b>"}${j.seal === null ? "" : ` · Seal: ${j.seal ? "✓ valid" : "<b style='color:var(--red)'>⚠ not valid</b>"}`}</div>
+        <p class="mono" style="margin:0">SHA-256 ${esc(body.sha)}</p></div></div>`;
+    } catch (err) { out.innerHTML = `<p class="err">${esc(err.message)}</p>`; }
+  }
+  async function file(f) {
+    if (!f) return;
+    if (!crypto.subtle) { out.innerHTML = `<p class="err">This browser can't compute file fingerprints. Try another browser.</p>`; return; }
+    out.innerHTML = `<p class="muted">Reading ${esc(f.name)}…</p>`;
+    const h = await crypto.subtle.digest("SHA-256", await f.arrayBuffer());
+    const sha = [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    check({ sha }, `“${f.name}”`);
+  }
+  const d = $("#drop"), inp = $("#file");
+  d.onclick = () => inp.click(); d.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inp.click(); } };
+  d.ondragover = (e) => { e.preventDefault(); d.classList.add("over"); }; d.ondragleave = () => d.classList.remove("over");
+  d.ondrop = (e) => { e.preventDefault(); d.classList.remove("over"); file(e.dataTransfer.files[0]); };
+  inp.onchange = () => file(inp.files[0]);
+  $("#chk").onclick = () => { const v = $("#eid").value.trim(); if (v) check({ id: v }); };
+  const q = new URLSearchParams(location.search).get("id"); if (q) { $("#eid").value = q; check({ id: q }); }
+})();
+</script>
+</body>
+</html>

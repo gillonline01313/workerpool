@@ -2,6 +2,7 @@
 //   • Latest draws: 8 am, 2 pm and 8 pm Edmonton time, read in batches 5 minutes apart (each batch stays inside
 //     Cloudflare's per-run fetch limit). Result goes to D1 (site_data), which the site reads first.
 //   • Flight alerts: every 3 hours, asks the site to check saved flight alerts (/api/flights/check).
+//     The same run sends eSign reminders and expires overdue envelopes (/api/esign/tick).
 // Setup (one time): Workers & Pages → Create → Worker → name it workerpool-cron → Deploy → Edit code → paste
 // cron/dist/worker.js → Deploy. Settings → Bindings → D1 database: DB = workerpool-db. Settings → Triggers →
 // Cron Triggers: add the two schedules below. Optional variable SITE_URL (default https://workerpool.ca).
@@ -26,6 +27,11 @@ async function drawsBatch(env, when, force) {
   const r = await refreshDraws(env2, request, ids, { full: last });
   return { batch, ids, ok: r.ok, results: (r.sources || []).map((s) => `${s.id}: ${s.ok ? "ok" : s.error}`) };
 }
+// eSign reminders and expiry ride along with the 3-hourly job
+async function esignTick(env) {
+  const r = await fetch(site(env) + "/api/esign/tick", { method: "POST", headers: { "user-agent": "WorkerPool eSign tick" } });
+  return { status: r.status, body: (await r.text()).slice(0, 200) };
+}
 async function flights(env) {
   const r = await fetch(site(env) + "/api/flights/check", { method: "POST", headers: { "user-agent": "WorkerPool flight alerts" } });
   return { status: r.status, body: (await r.text()).slice(0, 300) };
@@ -33,7 +39,7 @@ async function flights(env) {
 
 export default {
   async scheduled(event, env, ctx) {
-    const job = event.cron === "17 */3 * * *" ? flights(env) : drawsBatch(env, event.scheduledTime);
+    const job = event.cron === "17 */3 * * *" ? Promise.all([flights(env), esignTick(env).catch((e) => ({ esign: String(e) }))]) : drawsBatch(env, event.scheduledTime);
     ctx.waitUntil(job.then((r) => console.log(event.cron, JSON.stringify(r)), (e) => console.error(event.cron, e && e.stack || e)));
   },
   // Visiting the Worker's own address shows what it does; ?run=draws&batch=0&key=ADMIN_KEY runs a batch now (for testing).

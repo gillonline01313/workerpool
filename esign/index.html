@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WorkerPool eSign · Send documents for electronic signature</title>
+<meta name="description" content="Upload a PDF, add signers, place signature fields and send. Email code identity check, tamper-evident audit trail and a Certificate of Completion with every signed document. Made in Alberta.">
+<link rel="canonical" href="https://workerpool.ca/esign/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%2324514b'/%3E%3Cpath d='M7 20c3-6 5-9 7-9s-1 8 2 8 3-5 7-5' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/assets/esign.css?v=1">
+<style>
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:28px;align-items:start}@media (max-width:860px){.hero{grid-template-columns:1fr}}
+.points{display:flex;flex-direction:column;gap:10px;margin:18px 0 0;padding:0;list-style:none}
+.points li{display:flex;gap:10px;color:var(--muted)}.points li::before{content:"";flex:none;width:8px;height:8px;border-radius:2px;background:var(--accent-2);margin-top:.55em}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.plan{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:18px;display:flex;flex-direction:column;gap:10px}
+.plan b.p{font-family:var(--display);font-size:1.9rem;line-height:1.1}
+.plan .offer{font-size:.78rem;font-weight:700;background:var(--sign);color:#1b2628;border-radius:999px;padding:3px 10px;align-self:flex-start}
+.tabs{display:flex;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:4px}
+.tabs button{flex:1;font:inherit;font-weight:600;border:0;background:none;color:var(--muted);padding:9px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.card.acct{flex-direction:row;display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.chip{font-size:.8rem;font-weight:700;padding:4px 11px;border-radius:999px;background:var(--accent-soft);color:var(--fg)}.chip.warn{background:var(--warn-soft)}
+</style>
+</head>
+<body>
+<header class="top"><div class="in nav">
+  <a class="logo" href="/esign/"><svg width="32" height="32" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="9" fill="var(--accent)"/><path d="M7 20c3-6 5-9 7-9s-1 8 2 8 3-5 7-5" fill="none" stroke="var(--accent-fg)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span><b>WorkerPool eSign</b><small>Electronic signatures</small></span></a>
+  <div class="who" id="who" hidden><span id="whoName" style="font-weight:600;color:var(--fg)"></span><a href="/esign/verify/">Verify a document</a><button class="linkbtn" id="logout" type="button">Sign out</button></div>
+</div></header>
+<main class="in" id="view"><div class="card"><p class="muted" style="margin:0">Loading…</p></div></main>
+<footer><div class="in">WorkerPool eSign is a service of WorkerPool, an Alberta-based data processing company. Electronic signatures are recognized in Canada under PIPEDA Part 2 and provincial electronic transactions laws; some documents (for example wills, some land transfers and powers of attorney) may still need wet ink. Check what your document needs. · <a href="/esign/verify/">Verify a document</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></div></footer>
+<script src="/assets/esign-ui.js?v=1"></script>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s), view = $("#view");
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const day = (t) => t ? new Date(t).toLocaleDateString("en-CA", { month: "long", day: "numeric", year: "numeric" }) : "";
+  let M = null, ui = null, chosenPlan = null;
+  async function j(url, body) {
+    const r = await fetch(url, { method: body ? "POST" : "GET", headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin" });
+    const x = await r.json().catch(() => ({}));
+    if (!r.ok || !x.ok) throw new Error(x.error || "Something went wrong. Try again.");
+    return x;
+  }
+  async function boot() {
+    const p = new URLSearchParams(location.search);
+    if (p.get("paid")) {
+      view.innerHTML = `<div class="card narrow"><p class="muted" style="margin:0">Confirming your subscription…</p></div>`;
+      try { await j("/api/esign/app/paid?session_id=" + encodeURIComponent(p.get("paid"))); } catch (e) { alert(e.message); }
+      history.replaceState(null, "", "/esign/");
+    }
+    if (p.get("cancelled")) history.replaceState(null, "", "/esign/");
+    try { M = await j("/api/esign/app/me"); } catch (e) { view.innerHTML = `<div class="card"><p class="err">${esc(e.message)}</p></div>`; return; }
+    if (M.user) { $("#who").hidden = false; $("#whoName").textContent = M.user.name || M.user.email; }
+    if (!M.user) return landing();
+    if (!M.access.ok) return pricing(M.access.reason);
+    app();
+  }
+  $("#logout").onclick = async () => { await fetch("/api/auth/logout", { method: "POST" }); location.href = "/esign/"; };
+
+  function planCards(action) {
+    return `<div class="plans">${M.plans.map((p) => `<div class="plan"><div class="row sp"><h3>${esc(p.name)}</h3>${M.offers[p.id] ? `<span class="offer">${esc(M.offers[p.id])}</span>` : p.text.trial ? `<span class="offer">${esc(p.text.trial)}</span>` : ""}</div>
+      <div><b class="p">${esc(p.text.price.replace(/\/.*/, ""))}</b> <span class="muted">${p.price_cents ? (p.interval === "year" ? "per year" : "per month") : ""} CAD</span></div>
+      <div class="muted">${esc(p.blurb || "")}</div><div>✓ ${esc(p.text.envelopes)}<br>✓ Unlimited signers per envelope<br>✓ Audit trail and Certificate of Completion</div>
+      ${action ? `<button class="btn" type="button" data-plan="${esc(p.id)}">${p.text.trial || M.offers[p.id] ? "Start free" : p.price_cents ? "Subscribe" : "Get started"}</button>` : ""}</div>`).join("") || `<p class="muted">Plans are coming soon.</p>`}</div>`;
+  }
+  function landing() {
+    view.innerHTML = `<div class="stack" style="gap:28px"><div class="hero"><div>
+      <span class="eyebrow">WorkerPool eSign</span><h1>Get documents signed online, with proof that holds up</h1>
+      <p class="lede">Upload a PDF, add your signers, drop signature fields where they go and send. Signers sign on any phone or computer, no account needed.</p>
+      <ul class="points">
+        <li>Each signer confirms a one-time code sent to their email before they can open the document; add an access code for a second check</li>
+        <li>Signing order, reminders, expiry dates, decline with a reason, and copies for people who don't sign</li>
+        <li>Every view, code, signature and IP address is recorded in a tamper-evident audit trail</li>
+        <li>The signed PDF carries its envelope ID on every page and a Certificate of Completion, emailed to everyone</li>
+        <li>Anyone can confirm a copy is genuine and unchanged at workerpool.ca/esign/verify/</li></ul></div>
+      <div class="card" id="auth"></div></div>
+      <div class="stack"><h2>Plans</h2>${planCards(false)}${M.open ? "" : `<p class="note warn">New subscriptions are paused right now.</p>`}</div></div>`;
+    authCard("signup");
+  }
+  function authCard(mode) {
+    const a = $("#auth");
+    a.innerHTML = `<div class="tabs" role="tablist"><button type="button" data-m="signup" aria-selected="${mode === "signup"}">Create account</button><button type="button" data-m="login" aria-selected="${mode === "login"}">Sign in</button></div>
+      <form id="af" class="stack" style="gap:10px">
+        ${mode === "signup" ? `<div class="f"><label for="aN">Full name</label><input id="aN" required maxlength="120" autocomplete="name"></div>
+        <div class="f"><label for="aP">Phone</label><input id="aP" required maxlength="40" autocomplete="tel" inputmode="tel"></div>` : ""}
+        <div class="f"><label for="aE">Email</label><input id="aE" type="email" required maxlength="120" autocomplete="email"></div>
+        <div class="f"><label for="aW">Password</label><input id="aW" type="password" required minlength="8" autocomplete="${mode === "signup" ? "new-password" : "current-password"}">${mode === "signup" ? `<span class="help">At least 8 characters. This is your WorkerPool account; it works across workerpool.ca.</span>` : ""}</div>
+        <div class="err" id="aErr"></div>
+        <div class="row"><button class="btn" type="submit">${mode === "signup" ? "Create account" : "Sign in"}</button>${mode === "login" ? `<button class="linkbtn" type="button" id="forgot">Forgot password?</button>` : ""}</div>
+        ${mode === "signup" ? `<p class="help" style="margin:0">By creating an account you agree to the <a href="/terms/">terms</a> and <a href="/privacy/">privacy policy</a>.</p>` : ""}</form>`;
+    a.querySelectorAll("[data-m]").forEach((b) => b.onclick = () => authCard(b.dataset.m));
+    $("#af").onsubmit = async (e) => {
+      e.preventDefault(); $("#aErr").textContent = "";
+      try {
+        if (mode === "signup") await j("/api/auth/signup", { name: $("#aN").value, phone: $("#aP").value, email: $("#aE").value, password: $("#aW").value });
+        else await j("/api/auth/login", { email: $("#aE").value, password: $("#aW").value });
+        boot();
+      } catch (x) { $("#aErr").textContent = x.message; }
+    };
+    if ($("#forgot")) $("#forgot").onclick = async () => { const em = $("#aE").value.trim(); if (!em) { $("#aErr").textContent = "Enter your email first."; return; }
+      try { await j("/api/auth/forgot", { email: em }); $("#aErr").textContent = "If that email has an account, a reset link is on its way."; } catch (x) { $("#aErr").textContent = x.message; } };
+  }
+  function pricing(reason, note) {
+    const A = M.access, sub = A && A.sub;
+    view.innerHTML = `<div class="stack">
+      <div><span class="eyebrow">Choose a plan</span><h1>Start sending documents for signature</h1>
+        ${note ? `<p class="note warn" style="margin-top:12px">${esc(note)}</p>` : sub ? `<p class="note warn" style="margin-top:12px">${esc(reason)}</p>` : `<p class="lede">Pick a plan. You can cancel any time from this page.</p>`}</div>
+      ${planCards(true)}
+      <div class="card" id="co" hidden><h3 id="coT"></h3>
+        <div class="row"><input id="code" placeholder="Promo code (optional)" maxlength="32" style="max-width:220px;text-transform:uppercase"><button class="btn ghost sm" type="button" id="codeChk">Apply</button></div>
+        <div id="sum" class="note"></div><div class="err" id="coErr"></div>
+        <div class="row"><button class="btn" type="button" id="coGo">Continue</button><span class="muted">${M.stripe ? "Payments are handled securely by Stripe." : ""}</span></div></div>
+      ${sub ? `<div class="row">${sub.stripe ? `<button class="btn ghost sm" type="button" id="bill">Manage billing</button>` : ""}<button class="btn ghost sm" type="button" id="mine">Open documents I already sent</button></div>` : ""}</div>`;
+    view.querySelectorAll("[data-plan]").forEach((b) => b.onclick = () => choose(b.dataset.plan));
+    if ($("#bill")) $("#bill").onclick = portal;
+    if ($("#mine")) $("#mine").onclick = app;
+    if (!M.open) { view.querySelectorAll("[data-plan]").forEach((b) => b.disabled = true); $("#co").insertAdjacentHTML("beforebegin", `<p class="note warn">New subscriptions are paused right now. Contact info@workerpool.ca.</p>`); }
+  }
+  async function choose(id) {
+    chosenPlan = M.plans.find((p) => p.id === id);
+    $("#co").hidden = false; $("#coT").textContent = `${chosenPlan.name} plan`; $("#coErr").textContent = "";
+    await summary();
+    $("#codeChk").onclick = summary;
+    $("#coGo").onclick = async () => {
+      $("#coGo").disabled = true; $("#coErr").textContent = "";
+      try { const r = await j("/api/esign/app/checkout", { plan: chosenPlan.id, code: $("#code").value });
+        if (r.url) location.href = r.url; else boot(); }
+      catch (x) { $("#coErr").textContent = x.message; $("#coGo").disabled = false; }
+    };
+    $("#co").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  async function summary() {
+    $("#coErr").textContent = "";
+    try { const r = await j("/api/esign/app/promo-check", { plan: chosenPlan.id, code: $("#code").value }); $("#sum").textContent = r.summary; }
+    catch (x) { $("#coErr").textContent = x.message; }
+  }
+  async function portal() { try { const r = await j("/api/esign/app/portal", {}); location.href = r.url; } catch (x) { alert(x.message); } }
+
+  function acctBar(A) {
+    const s = A.sub, p = A.plan;
+    const st = s.status === "trialing" ? `Free trial until ${day(s.trial_end)}` : s.status === "comp" ? (s.comp_until ? `Free access until ${day(s.comp_until + "T12:00:00")}` : "Free access") : s.status === "free" ? "Free plan" : s.cancel_at_end ? `Ends ${day(s.period_end)}` : s.period_end ? `Renews ${day(s.period_end)}` : "Active";
+    return `<div class="card acct"><div class="row"><span class="chip">${esc(p ? p.name : "Plan")}</span><span class="chip ${s.cancel_at_end ? "warn" : ""}">${esc(st)}</span>
+      <span class="muted">${A.limit ? `${A.used} of ${A.limit} envelopes used this period` : `${A.used} envelope${A.used === 1 ? "" : "s"} sent this period · unlimited`}</span></div>
+      <div class="row">${s.stripe ? `<button class="btn ghost sm" type="button" id="bill">Manage billing</button>${s.cancel_at_end ? `<button class="btn sm" type="button" id="resume">Keep my subscription</button>` : `<button class="linkbtn" type="button" id="cancel">Cancel subscription</button>`}` : ""}</div></div>`;
+  }
+  function app() {
+    view.innerHTML = `<div class="stack"><div id="acct">${acctBar(M.access)}</div><div id="es"></div></div>`;
+    bindAcct();
+    ui = window.WPEsign.mount($("#es"), { base: "/api/esign/app/", headers: {}, admin: false, me: M.user,
+      onNeedPlan: (m) => pricing("", m), onAccess: (a) => { M.access = a; $("#acct").innerHTML = acctBar(a); bindAcct(); } });
+  }
+  function bindAcct() {
+    if ($("#bill")) $("#bill").onclick = portal;
+    if ($("#cancel")) $("#cancel").onclick = async () => { if (!confirm("Cancel your subscription? You keep access until the end of the period you've paid for, and you can still download everything you've sent.")) return; try { await j("/api/esign/app/cancel", {}); boot(); } catch (x) { alert(x.message); } };
+    if ($("#resume")) $("#resume").onclick = async () => { try { await j("/api/esign/app/resume", {}); boot(); } catch (x) { alert(x.message); } };
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
