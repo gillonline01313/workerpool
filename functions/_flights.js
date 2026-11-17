@@ -37,13 +37,16 @@ export function hubsBetween(o, d, max = 10, skip = []) {
     .sort((a, b) => a.extra - b.extra).slice(0, max).map((x) => x.h);
 }
 
-/* ---------- Travelpayouts calls (cached 30 minutes at the edge) ---------- */
-async function tp(env, path, params, ttl = 1800) {
+/* ---------- Travelpayouts calls ----------
+   Cloudflare's free plan allows 50 subrequests per request, and every fetch AND every Cache API read or
+   write counts. So inside a search, price calls go straight to the API (1 subrequest each) and the whole
+   search result is cached once instead (see search()). */
+async function tp(env, path, params, ttl = 1800, useCache = true) {
   const u = new URL(API + path);
   for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== null && v !== "") u.searchParams.set(k, v);
   if (env.TP_MARKET && !u.searchParams.has("market")) u.searchParams.set("market", env.TP_MARKET);
   const cacheKey = new Request(u.toString());
-  const cache = typeof caches !== "undefined" ? caches.default : null;
+  const cache = useCache && typeof caches !== "undefined" ? caches.default : null;
   if (cache) { const hit = await cache.match(cacheKey); if (hit) return hit.json(); }
   u.searchParams.set("token", env.TP_TOKEN);
   const r = await fetch(u, { headers: { "Accept-Encoding": "gzip, deflate", "X-Access-Token": env.TP_TOKEN } });
@@ -105,25 +108,37 @@ const flight = (env, f, extra = {}) => ({
 
 /* ---------- the search ---------- */
 // q = { from, to, depart: YYYY-MM-DD, ret?: YYYY-MM-DD }
-export async function search(env, q, { hubs: hubCount = 10 } = {}) {
+// Whole results are cached for 30 minutes (2 subrequests). A fresh search uses at most:
+// 2 place lookups x 3 + 5 route calls + 2 per hub (10 hubs) = 31, well under the 50 limit.
+const SEARCH_TTL = 1800;
+export async function search(env, q, opts = {}) {
+  const hubCount = Math.min(10, opts.hubs || 10);
+  const cache = typeof caches !== "undefined" ? caches.default : null;
+  const key = new Request(`https://workerpool.ca/__flights/search?v=2&f=${q.from}&t=${q.to}&d=${q.depart}&r=${q.ret || ""}&h=${hubCount}&m=${env.TP_MARKET || ""}`);
+  if (cache) { const hit = await cache.match(key).catch(() => null); if (hit) return hit.json(); }
+  const out = await searchFresh(env, q, hubCount);
+  if (cache) await cache.put(key, new Response(JSON.stringify(out), { headers: { "content-type": "application/json", "cache-control": "max-age=" + SEARCH_TTL } })).catch(() => {});
+  return out;
+}
+async function searchFresh(env, q, hubCount) {
   const { from, to, depart, ret } = q;
   const month = depart.slice(0, 7);
   const [po, pd] = await Promise.all([place(from), place(to)]);
 
   const base = { currency: CUR, origin: from, destination: to };
   const calls = {
-    exact: tp(env, "/aviasales/v3/prices_for_dates", { ...base, departure_at: depart, return_at: ret || "", one_way: ret ? "false" : "true", sorting: "price", limit: 30 }),
-    month: tp(env, "/aviasales/v3/grouped_prices", { ...base, group_by: "departure_at", departure_at: month, ...(ret ? { min_trip_duration: Math.max(1, dayDiff(depart, ret) - 3), max_trip_duration: dayDiff(depart, ret) + 3 } : {}) }),
-    nearby: tp(env, "/v2/prices/nearest-places-matrix", { ...base, depart_date: month, return_date: ret ? ret.slice(0, 7) : "", flexibility: 3, distance: 6, limit: 12, show_to_affiliates: "true" }),
+    exact: tp(env, "/aviasales/v3/prices_for_dates", { ...base, departure_at: depart, return_at: ret || "", one_way: ret ? "false" : "true", sorting: "price", limit: 30 }, 1800, false),
+    month: tp(env, "/aviasales/v3/grouped_prices", { ...base, group_by: "departure_at", departure_at: month, ...(ret ? { min_trip_duration: Math.max(1, dayDiff(depart, ret) - 3), max_trip_duration: dayDiff(depart, ret) + 3 } : {}) }, 1800, false),
+    nearby: tp(env, "/v2/prices/nearest-places-matrix", { ...base, depart_date: month, return_date: ret ? ret.slice(0, 7) : "", flexibility: 3, distance: 6, limit: 12, show_to_affiliates: "true" }, 1800, false),
   };
   if (ret) {
-    calls.owOut = tp(env, "/aviasales/v3/prices_for_dates", { ...base, departure_at: depart, one_way: "true", sorting: "price", limit: 30 });
-    calls.owBack = tp(env, "/aviasales/v3/prices_for_dates", { currency: CUR, origin: to, destination: from, departure_at: ret, one_way: "true", sorting: "price", limit: 30 });
+    calls.owOut = tp(env, "/aviasales/v3/prices_for_dates", { ...base, departure_at: depart, one_way: "true", sorting: "price", limit: 30 }, 1800, false);
+    calls.owBack = tp(env, "/aviasales/v3/prices_for_dates", { currency: CUR, origin: to, destination: from, departure_at: ret, one_way: "true", sorting: "price", limit: 30 }, 1800, false);
   }
   const hubs = po && pd && po.lat != null && pd.lat != null ? hubsBetween([po.lat, po.lon], [pd.lat, pd.lon], hubCount, [from, to]) : [];
   for (const h of hubs) {
-    calls["l1_" + h[0]] = tp(env, "/aviasales/v3/prices_for_dates", { currency: CUR, origin: from, destination: h[0], departure_at: depart, one_way: "true", sorting: "price", limit: 30 });
-    calls["l2_" + h[0]] = tp(env, "/aviasales/v3/prices_for_dates", { currency: CUR, origin: h[0], destination: to, departure_at: month, one_way: "true", sorting: "price", limit: 300 });
+    calls["l1_" + h[0]] = tp(env, "/aviasales/v3/prices_for_dates", { currency: CUR, origin: from, destination: h[0], departure_at: depart, one_way: "true", sorting: "price", limit: 30 }, 1800, false);
+    calls["l2_" + h[0]] = tp(env, "/aviasales/v3/prices_for_dates", { currency: CUR, origin: h[0], destination: to, departure_at: month, one_way: "true", sorting: "price", limit: 300 }, 1800, false);
   }
   const keys = Object.keys(calls);
   const got = await Promise.all(keys.map((k) => safe(calls[k])));
