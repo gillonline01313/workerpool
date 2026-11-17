@@ -1,0 +1,17 @@
+# WorkerPool eSign: sends automatic reminders to signers who haven't signed yet and expires overdue envelopes.
+# Runs every 3 hours. The tick endpoint only does what is due, so it's safe to run by hand.
+name: eSign reminders
+on:
+  schedule:
+    - cron: "47 */3 * * *"
+  workflow_dispatch:
+concurrency:
+  group: esign-tick
+  cancel-in-progress: false
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send due reminders and expire overdue envelopes
+        run: curl -s -m 120 -X POST https://workerpool.ca/api/esign/tick -H "user-agent: WorkerPool eSign tick"
