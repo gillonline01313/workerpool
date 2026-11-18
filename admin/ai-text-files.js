@@ -180,12 +180,12 @@ async function openPdf(buf, name) {
   for (const [k, v] of Object.entries((md.info || {}).Custom || {})) meta.push({ k: "Custom: " + k, v: String(v?.name ?? v), ai: true });
   const raw = latin1(bytes);
   const xmp = md.metadata ? String(md.metadata.getRaw?.() || "") : "";
-  const c2pa = /c2pa|contentauth|jumbf/i.test(raw) || /c2pa/i.test(xmp);
   if (xmp && AIHINT.test(xmp)) meta.push({ k: "XMP metadata", v: (xmp.match(AIHINT) || [""])[0] + "…", ai: true });
   try { await task.destroy(); } catch (e) {}
-  let layer = { found: {}, hidden: [] };
-  try { const L = await pdflib(); layer = await walkPdf(await L.PDFDocument.load(buf, { updateMetadata: false }), L, ALLON, false); } catch (e) { console.warn("text layer check skipped", e); }
-  const text = pages.map((t, i) => (pages.length > 1 ? `[Page ${i + 1}]\n` : "") + t.replace(/\n+$/, "")).join("\n\n");
+  let layer = { found: {}, hidden: [] }, c2pa = { n: 0, where: {} };
+  try { const L = await pdflib(), pd = await L.PDFDocument.load(buf, { updateMetadata: false }); layer = await walkPdf(pd, L, ALLON, false); c2pa = credsPdf(pd, L, false); }
+  catch (e) { console.warn("text layer check skipped", e); }
+  const text = pages.map((t, i) => (pages.length > 1 ? `[Page ${i + 1}]\n` : "") + t.replace(/[\uE000-\uF8FF\u{F0000}-\u{10FFFF}\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/gu, "").replace(/\n+$/, "")).join("\n\n");
   return { type: "pdf", name, buf, text, meta, invisible, c2pa, signed: /\/ByteRange\s*\[/.test(raw), hasXmp: !!xmp, layer: { found: layer.found, hidden: layer.hidden, count: Object.values(layer.found).reduce((a, b) => a + b, 0) } };
 }
 
@@ -371,6 +371,55 @@ async function walkPdf(pdf, L, en, apply) {
   }
   return st;
 }
+/* C2PA "Content Credentials": look in the places they can live and say exactly where. Removable: the PDF's own
+   manifest (associated / embedded files), XMP that mentions it, and JUMBF/XMP segments inside embedded JPEG images
+   (AI image tools and some cameras/phones label pictures this way). apply=true removes them. */
+const C2RE = /c2pa|contentauth|jumbf/i;
+function stripJpeg(u) { // drop APP11 (JUMBF / C2PA) and APP1 XMP segments that mention C2PA; image pixels are untouched
+  if (u[0] !== 0xFF || u[1] !== 0xD8) return null;
+  const keep = [u.subarray(0, 2)]; let i = 2, cut = 0;
+  while (i + 4 <= u.length && u[i] === 0xFF) {
+    const m = u[i + 1];
+    if (m === 0xDA || m === 0xD9) break; // start of image data: copy the rest as is
+    if (m === 0x01 || (m >= 0xD0 && m <= 0xD7) || m === 0xFF) { keep.push(u.subarray(i, i + 2)); i += 2; continue; }
+    const len = (u[i + 2] << 8) | u[i + 3], seg = u.subarray(i, i + 2 + len);
+    const txt = m === 0xEB || m === 0xE1 ? latin1(seg.subarray(4, Math.min(seg.length, 200000))) : "";
+    if ((m === 0xEB && /jumb|jumd|c2pa/i.test(txt)) || (m === 0xE1 && /c2pa|contentauth/i.test(txt))) cut++; else keep.push(seg);
+    i += 2 + len;
+  }
+  if (!cut) return null;
+  keep.push(u.subarray(i));
+  const out = new Uint8Array(keep.reduce((a, c) => a + c.length, 0)); let o = 0; for (const c of keep) { out.set(c, o); o += c.length; }
+  return { out, cut };
+}
+function credsPdf(pdf, L, apply) {
+  const { PDFName, PDFDict, PDFArray, PDFRawStream, PDFRef, decodePDFRawStream } = L, ctx = pdf.context, look = (x) => (x instanceof PDFRef ? ctx.lookup(x) : x);
+  const where = {}, add = (w) => (where[w] = (where[w] || 0) + 1);
+  const txtOf = (o) => { try { return o instanceof PDFRawStream ? latin1(decodePDFRawStream(o).decode()) : ""; } catch (e) { return ""; } };
+  const isC2 = (fs) => { if (!(fs instanceof PDFDict)) return false; const f = look(look(fs.get(PDFName.of("EF")))?.get?.(PDFName.of("F"))); return C2RE.test([fs.get(PDFName.of("F")), fs.get(PDFName.of("UF")), fs.get(PDFName.of("AFRelationship")), fs.get(PDFName.of("Desc")), f?.dict?.get?.(PDFName.of("Subtype"))].map((x) => String(look(x)?.decodeText?.() ?? x ?? "")).join(" ")); };
+  const af = look(pdf.catalog.get(PDFName.of("AF")));
+  if (af instanceof PDFArray) { const keep = af.asArray().filter((x) => !isC2(look(x))); const n = af.size() - keep.length; for (let k = 0; k < n; k++) add("PDF manifest (associated file)"); if (apply && n) { if (keep.length) pdf.catalog.set(PDFName.of("AF"), ctx.obj(keep)); else pdf.catalog.delete(PDFName.of("AF")); } }
+  const names = look(pdf.catalog.get(PDFName.of("Names"))), ef = names instanceof PDFDict ? look(names.get(PDFName.of("EmbeddedFiles"))) : null, arr = ef instanceof PDFDict ? look(ef.get(PDFName.of("Names"))) : null;
+  if (arr instanceof PDFArray) {
+    const items = arr.asArray(), keep = [];
+    for (let i = 0; i + 1 < items.length; i += 2) { if (isC2(look(items[i + 1])) || C2RE.test(String(look(items[i])?.decodeText?.() ?? ""))) add("PDF manifest (embedded file)"); else keep.push(items[i], items[i + 1]); }
+    if (apply && keep.length !== items.length) ef.set(PDFName.of("Names"), ctx.obj(keep));
+  }
+  const cx = look(pdf.catalog.get(PDFName.of("Metadata")));
+  if (cx && /c2pa|contentauth/i.test(txtOf(cx))) { add("Document XMP metadata"); if (apply) pdf.catalog.delete(PDFName.of("Metadata")); }
+  for (const [ref, o] of ctx.enumerateIndirectObjects()) {
+    if (!(o instanceof PDFRawStream) || String(o.dict.get(PDFName.of("Subtype"))) !== "/Image") continue;
+    const md = look(o.dict.get(PDFName.of("Metadata")));
+    if (md && /c2pa|contentauth/i.test(txtOf(md))) { add("Image XMP metadata"); if (apply) o.dict.delete(PDFName.of("Metadata")); }
+    const flt = look(o.dict.get(PDFName.of("Filter"))), fl = flt instanceof PDFArray ? flt.asArray().map(String) : [String(flt)];
+    if (fl.length !== 1 || fl[0] !== "/DCTDecode") continue;
+    const st = stripJpeg(o.contents);
+    if (!st) continue;
+    add("Label inside an embedded image (JPEG)");
+    if (apply) ctx.assign(ref, PDFRawStream.of(o.dict, st.out));
+  }
+  return { n: Object.values(where).reduce((a, b) => a + b, 0), where };
+}
 const ALLON = { hidden: true, zw: true, bidi: true, space: true, homo: true, left: false, typo: false };
 async function cleanPdf(f, en, opt) {
   const L = await pdflib(), { PDFDocument, PDFName, PDFDict, PDFArray, PDFRef } = L;
@@ -383,16 +432,7 @@ async function cleanPdf(f, en, opt) {
     if (infoDict instanceof PDFDict) for (const k of [...infoDict.keys()]) { const n = String(k).slice(1); if (!/^(Title|CreationDate|ModDate|Trapped)$/.test(n)) { infoDict.delete(k); metaCleared++; } else if (n === "Title" && AIHINT.test(String(look(infoDict.get(k))?.decodeText?.() ?? ""))) { infoDict.delete(k); metaCleared++; } }
     if (pdf.catalog.has(PDFName.of("Metadata"))) { pdf.catalog.delete(PDFName.of("Metadata")); metaCleared++; }
   }
-  if (opt.creds) { // C2PA Content Credentials: associated files and embedded manifests
-    const af = look(pdf.catalog.get(PDFName.of("AF")));
-    if (af instanceof PDFArray) { pdf.catalog.delete(PDFName.of("AF")); credentials += af.size(); }
-    const names = look(pdf.catalog.get(PDFName.of("Names"))), ef = names instanceof PDFDict ? look(names.get(PDFName.of("EmbeddedFiles"))) : null, arr = ef instanceof PDFDict ? look(ef.get(PDFName.of("Names"))) : null;
-    if (arr instanceof PDFArray) {
-      const items = arr.asArray(), keep = [];
-      for (let i = 0; i + 1 < items.length; i += 2) { const nm = String(look(items[i])?.decodeText?.() ?? ""), fs = look(items[i + 1]); const sub = fs instanceof PDFDict ? String(look(look(fs.get(PDFName.of("EF")))?.get?.(PDFName.of("F")))?.dict?.get?.(PDFName.of("Subtype")) ?? "") : ""; if (/c2pa|manifest|jumbf/i.test(nm + sub + String(fs?.get?.(PDFName.of("AFRelationship")) ?? ""))) credentials++; else keep.push(items[i], items[i + 1]); }
-      if (keep.length !== items.length) ef.set(PDFName.of("Names"), ctx.obj(keep));
-    }
-  }
+  if (opt.creds) credentials = credsPdf(pdf, L, true).n;
   const out = await pdf.save({ updateFieldAppearances: false });
   return { blob: new Blob([out], { type: "application/pdf" }), fixed: dropped + remapped, dropped, remapped, metaCleared, credentials, ext: "pdf" };
 }
