@@ -259,7 +259,7 @@ function render() {
   R.querySelector("#atUse").onclick = () => { S.file = null; S.fres = null; ROOT.querySelector("#atIn").value = S.out; setText(S.out); };
 }
 /* ---------------- whole-file cleaning (.docx / .pdf), see ai-text-files.js ---------------- */
-const fileMarks = (f) => !f || f.type === "text" ? 0 : (f.hidden || []).length + (f.meta || []).filter((m) => m.ai).length + (f.c2pa ? 1 : 0) + (f.layer ? f.layer.count : 0);
+const fileMarks = (f) => !f || f.type === "text" ? 0 : (f.hidden || []).length + (f.meta || []).filter((m) => m.ai).length + (f.c2pa ? f.c2pa.n : 0) + (f.layer ? f.layer.count : 0);
 function saveBlob(blob, name) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
 function fileCard() {
   const f = S.file, ext = f.type, cb = (k, label) => `<label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:.88rem"><input type="checkbox" data-opt="${k}"${S.opt[k] ? " checked" : ""}><span>${label}</span></label>`;
@@ -271,7 +271,7 @@ function fileCard() {
   if (ext === "pdf") {
     const ly = f.layer || { found: {}, hidden: [], count: 0 };
     items.push(ly.count ? `<div><b>⚠️ ${ly.count} hidden mark${ly.count > 1 ? "s" : ""} in the PDF's text layer</b> (not visible on the page, but copy-paste and AI checkers read them): ${Object.entries(ly.found).map(([n, c]) => `${esc(n)} ×${c}`).join(" · ")}${ly.hidden.filter(Boolean).length ? `<div class="at-hid" style="margin-top:6px">Hidden text: ${ly.hidden.filter(Boolean).map((h) => `“${esc(h)}”`).join(", ")}</div>` : ""}<small style="display:block;color:var(--muted)">Removed when you clean the file, using the Invisible characters / Hidden text / Unusual spaces / Look-alike letters ticks below.</small></div>` : `<div>✅ No hidden marks in the PDF's text layer.</div>`);
-    items.push(f.c2pa ? `<div><b>⚠️ Content Credentials (C2PA) found.</b> This is the industry "made with AI" label some tools embed.${cb("creds", "Remove Content Credentials")}</div>` : `<div>✅ No Content Credentials (C2PA).</div>`);
+    items.push(f.c2pa.n ? `<div><b>⚠️ Content Credentials (C2PA) found:</b> ${Object.entries(f.c2pa.where).map(([w, c]) => `${esc(w)} ×${c}`).join(" · ")}. This is the industry label some AI tools, apps and cameras embed. Removing it from images doesn't change how they look.${cb("creds", "Remove Content Credentials")}</div>` : `<div>✅ No Content Credentials (C2PA).</div>`);
     if (f.invisible.length) items.push(`<div><b>🟡 Invisible text layer</b> on page${f.invisible.length > 1 ? "s" : ""} ${f.invisible.join(", ")}. Normal for scanned PDFs (it's the searchable text); in other PDFs it can hide text. Check by hand.</div>`);
     if (f.signed) items.push(`<div><b>⚠️ This PDF is digitally signed.</b> Any change, including cleaning, will break the signature.</div>`);
   }
@@ -291,14 +291,16 @@ async function cleanFile() {
   try {
     const en = { ...S.on }; if (f.type === "pdf") { en.left = false; en.typo = false; }
     const r = await window.WPAiFiles.clean(f, en, { ...S.opt, creds: S.opt.creds });
-    const fname = f.name.replace(/\.[^.]+$/, "") + "-cleaned." + r.ext;
+    let base = f.name.replace(/\.[^.]+$/, ""), prev;
+    do { prev = base; base = base.replace(/\s*\(\d+\)$/, "").replace(/-cleaned$/i, ""); } while (base !== prev); // re-cleaning: no "-cleaned (1)-cleaned"
+    const fname = base + "-cleaned." + r.ext;
     const g = await window.WPAiFiles.open(new File([r.blob], fname));
     const kinds = Object.keys(en).filter((k) => en[k]), left = window.WPAiText.core.scan(g.text).F.filter((x) => kinds.includes(x.k));
     const why = [];
     const ll = g.layer ? Object.entries(g.layer.found).length && g.layer.count : 0;
     if (left.length) why.push(`${left.length} in the text`); if (ll) why.push(`${ll} in the PDF text layer`);
-    const lh = S.opt.hide ? (g.hidden || []).length : 0, lm = S.opt.meta ? (g.meta || []).filter((m) => m.ai).length : 0, lc = S.opt.creds && g.c2pa ? 1 : 0;
-    if (lh) why.push(`${lh} hidden-formatted`); if (lm) why.push(`${lm} in document details`); if (lc) why.push("Content Credentials");
+    const lh = S.opt.hide ? (g.hidden || []).length : 0, lm = S.opt.meta ? (g.meta || []).filter((m) => m.ai).length : 0, lc = S.opt.creds && g.c2pa ? g.c2pa.n : 0;
+    if (lh) why.push(`${lh} hidden-formatted`); if (lm) why.push(`${lm} in document details`); if (lc) why.push(`${lc} Content Credentials`);
     const sum = [];
     if (f.type === "docx") { sum.push(`${r.fixed - r.removedHidden} text fix${r.fixed - r.removedHidden === 1 ? "" : "es"}`); if (r.removedHidden) sum.push(`${r.removedHidden} hidden-formatted piece${r.removedHidden > 1 ? "s" : ""} removed`); if (r.metaCleared) sum.push(`${r.metaCleared} document detail${r.metaCleared > 1 ? "s" : ""} cleared`); }
     else if (f.type === "pdf") { sum.push(`${r.dropped} invisible character${r.dropped === 1 ? "" : "s"} removed`, `${r.remapped} letter/space fix${r.remapped === 1 ? "" : "es"} in the text layer`); if (r.metaCleared) sum.push(`${r.metaCleared} document detail${r.metaCleared > 1 ? "s" : ""} cleared`); if (r.credentials) sum.push(`${r.credentials} Content Credentials item${r.credentials > 1 ? "s" : ""} removed`); }
