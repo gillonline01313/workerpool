@@ -59,6 +59,12 @@ export const CATALOG = [
       { key: "hc", name: "Humanitarian and compassionate (H&C)" },
     ]},
   ]},
+  { key: "citizenship", label: "Citizenship applications", groups: [
+    { key: "grant", label: "Grant of citizenship (permanent residents)", forms: [
+      { key: "cit-adult", name: "Citizenship – adult (18 and over)", ready: 1 },
+      { key: "cit-minor", name: "Citizenship – minor (under 18)", ready: 1 },
+    ]},
+  ]},
 ];
 export function catalogEntry(key) {
   for (const c of CATALOG) for (const g of c.groups) { const f = g.forms.find((x) => x.key === key); if (f) return { cat: c, group: g, form: f }; }
@@ -1325,7 +1331,205 @@ const TRP_OUT = {
   ], D_WORK, D_TRAVEL, D_FAMILY, D_BACK, D_OTHER),
 };
 
-export const FORMS = Object.fromEntries([TRV_OUT, SUPERVISA_OUT, ETA, TRANSIT_OUT, SP_OUT, WP_LMIA_OUT, WP_EXEMPT_OUT, SOWP_OUT, IEC_OUT, TRP_OUT, VR_IN, TRV_IN, SP_EXT, WP_EXT, PGWP, SOWP_IN, BOWP, VOWP, RESTORE, TRP_IN].map((f) => [f.key, f]));
+/* =====================================================================================================
+   CITIZENSHIP. Grant of Canadian citizenship for permanent residents: adults 18+ (CIT 0002) and minors under 18
+   (CIT 0003). Physical presence follows IRCC's rule: 1,095 days in Canada in the 5 years before signing, where each
+   day as a temporary resident or protected person before PR counts as half a day (up to 365 days). Language proof is
+   asked only for ages 18 to 54; the citizenship test is for ages 18 to 54 too.
+   ===================================================================================================== */
+const CIT_ABOUT = (minor) => ({ id: "about", title: "About this application", fields: [
+  { k: "for_whom", l: "Who are you filling this form for?", t: "s", r: 1, o: minor ? ["My child", "A child in my legal care"] : ["Myself", "My spouse or partner", "My parent", "Another family member", "Someone else"] },
+  { k: "filler_name", l: "Your full name (the person filling this form)", t: "t", r: 1, if: minor ? "" : "about.for_whom!=Myself" },
+  { k: "filler_rel", l: "Your relationship to the applicant", t: "t", r: 1, if: minor ? "" : "about.for_whom!=Myself" },
+  { k: "method", l: "How will the application be sent?", t: "s", r: 1, o: ["Online (IRCC citizenship portal)", "Paper application by mail", "Not sure – advise me"] },
+  { k: "together", l: "Are other family members applying for citizenship at the same time?", t: "yn", r: 1 },
+  { k: "together_names", l: "Names and relationship of each family member applying", t: "ta", r: 1, if: "about.together=Yes", full: 1 },
+  { k: "uci", l: "UCI (client ID) number", t: "t", r: 1, h: "On the PR card (ID No.) and on the Confirmation of Permanent Residence (COPR)." },
+  { k: "applied_before", l: "Has the applicant applied for Canadian citizenship before?", t: "yn", r: 1 },
+  { k: "applied_details", l: "Year, application number and result", t: "t", r: 1, if: "about.applied_before=Yes", full: 1 },
+  { k: "service_lang", l: "Language for IRCC to contact the applicant", t: "s", r: 1, o: ["English", "French"] },
+  { k: "source", l: "How did you hear about us?", t: "t" },
+]});
+const CIT_PERSONAL = { id: "personal", title: "Personal details", intro: "Exactly as written on the permanent resident card or COPR, unless the name was legally changed since.", fields: [
+  { k: "family_name", l: "Family name (surname)", t: "t", r: 1 },
+  { k: "given_names", l: "Given names", t: "t" },
+  { k: "name_change", l: "Has the name changed since becoming a permanent resident (marriage, divorce, legal change)?", t: "yn", r: 1, full: 1 },
+  { k: "name_on_pr", l: "Name as it appears on the PR card or COPR", t: "t", r: 1, if: "personal.name_change=Yes" },
+  { k: "cert_name", l: "Name to print on the citizenship certificate, if different from above", t: "t", h: "It must match a legal identity document." },
+  { k: "other_names_yn", l: "Has the applicant ever used any other name (birth name, maiden name, nickname, spelling change)?", t: "yn", r: 1 },
+  { k: "other_names", l: "All other names used", t: "t", r: 1, if: "personal.other_names_yn=Yes", full: 1 },
+  { k: "sex", l: "Sex (as on the PR document)", t: "s", r: 1, o: ["Female", "Male", "Another gender (X)"] },
+  { k: "dob", l: "Date of birth", t: "d", r: 1 },
+  { k: "birth_city", l: "City or town of birth", t: "t", r: 1 },
+  { k: "birth_country", l: "Country of birth", t: "c", r: 1 },
+  { k: "citizenship", l: "Current country of citizenship", t: "c", r: 1 },
+  { k: "dual_yn", l: "Is the applicant a citizen of any other country?", t: "yn", r: 1 },
+  { k: "dual", l: "Other citizenship(s)", t: "t", r: 1, if: "personal.dual_yn=Yes" },
+  { k: "height", l: "Height (cm)", t: "n", r: 1 },
+  { k: "eye", l: "Eye colour", t: "s", r: 1, o: ["Black", "Brown", "Hazel", "Blue", "Green", "Grey", "Other"] },
+  { k: "marital", l: "Marital status", t: "s", r: 1, o: ["Single", "Married", "Common-law", "Separated", "Divorced", "Widowed"] },
+]};
+const CIT_PR = { id: "pr", title: "Permanent resident status", intro: "Copy these from the Confirmation of Permanent Residence (COPR / IMM 5292 / IMM 5688), Record of Landing (IMM 1000) and PR card.", fields: [
+  { k: "pr_date", l: "Date the applicant became a permanent resident", t: "d", r: 1 },
+  { k: "pr_place", l: "Where PR was granted (city, airport or IRCC office)", t: "t", r: 1 },
+  { k: "pr_doc", l: "PR document held", t: "s", r: 1, o: ["COPR (IMM 5292 / IMM 5688)", "Record of Landing (IMM 1000)", "Only the PR card"] },
+  { k: "pr_category", l: "Immigration category (e.g. Express Entry CEC, PNP, spouse, refugee)", t: "t" },
+  { k: "card_yn", l: "Does the applicant have a PR card?", t: "yn", r: 1 },
+  { k: "card_no", l: "PR card number", t: "t", if: "pr.card_yn=Yes" },
+  { k: "card_expiry", l: "PR card expiry date", t: "d", if: "pr.card_yn=Yes", h: "An expired card is OK for citizenship; the applicant must still have PR status." },
+  { k: "pre_pr_yn", l: "Did the applicant live in Canada as a visitor, student, worker or protected person before becoming a PR (within the last 5 years)?", t: "yn", r: 1, full: 1, h: "Each such day counts as half a day toward citizenship, up to 365 days." },
+  { k: "pre_pr_from", l: "Temporary status in Canada from", t: "d", r: 1, if: "pr.pre_pr_yn=Yes" },
+  { k: "pre_pr_to", l: "Temporary status in Canada to (day before PR)", t: "d", r: 1, if: "pr.pre_pr_yn=Yes" },
+  { k: "pre_pr_type", l: "Type of status (e.g. work permit, study permit, protected person)", t: "t", r: 1, if: "pr.pre_pr_yn=Yes" },
+  { k: "prtd", l: "Has the applicant ever been reported for not meeting PR residency, or held a travel document (PRTD) application?", t: "yn", r: 1, full: 1 },
+  { k: "prtd_details", l: "Give details", t: "ta", r: 1, if: "pr.prtd=Yes", full: 1 },
+  { k: "conditions", l: "Were any conditions put on the PR status (e.g. conditional PR for spouses)?", t: "yn", r: 1, full: 1 },
+  { k: "conditions_details", l: "Give details", t: "ta", r: 1, if: "pr.conditions=Yes", full: 1 },
+]};
+const CIT_PRESENCE = { id: "presence", title: "Physical presence in Canada", intro: "The applicant needs at least 1,095 days in Canada in the 5 years before signing the application. We will run IRCC's physical presence calculator from your answers and the trips you list below.", fields: [
+  { k: "sign_date", l: "Planned date to sign and submit the application", t: "d", r: 1 },
+  { k: "calc_done", l: "Have you already used IRCC's online physical presence calculator?", t: "yn", r: 1 },
+  { k: "calc_days", l: "Days in Canada it showed (eligibility total)", t: "n", r: 1, if: "presence.calc_done=Yes" },
+  { k: "absent_yn", l: "Has the applicant left Canada even for one day in the last 5 years (including day trips to the US)?", t: "yn", r: 1, full: 1 },
+  { k: "caf", l: "Is the applicant (or their spouse) a member of the Canadian Armed Forces, or a federal / provincial Crown servant posted outside Canada?", t: "yn", r: 1, full: 1, h: "Time abroad in these roles may count as time in Canada." },
+  { k: "caf_details", l: "Give details: role, posting and dates", t: "ta", r: 1, if: "presence.caf=Yes", full: 1 },
+  { k: "in_canada", l: "Will the applicant be in Canada when the application is sent?", t: "yn", r: 1 },
+]};
+const CIT_ABSENCES = { id: "absences", title: "Every trip outside Canada (last 5 years)", if: "presence.absent_yn=Yes", intro: "List every absence, newest first, including short trips and cross-border shopping. Match the passport stamps and the CBSA / US travel history.", rep: { min: 1, max: 60, add: "Add a trip" }, fields: [
+  { k: "from", l: "Left Canada on", t: "d", r: 1 },
+  { k: "to", l: "Returned to Canada on", t: "d", r: 1 },
+  { k: "country", l: "Destination country", t: "c", r: 1 },
+  { k: "reason", l: "Reason", t: "s", r: 1, o: ["Vacation", "Visiting family", "Work or business", "Study", "Medical", "Family emergency", "Other"] },
+  { k: "notes", l: "Notes", t: "t" },
+]};
+const CIT_ADDRESSES = { id: "addresses", title: "Addresses (last 5 years)", intro: "Every address from today back 5 years, newest first, with no gaps — inside and outside Canada.", rep: { min: 1, max: 20, add: "Add an address" }, fields: [
+  { k: "from", l: "From", t: "d", r: 1 },
+  { k: "to", l: "To (leave blank if current)", t: "d" },
+  { k: "address", l: "Street address and unit", t: "t", r: 1, full: 1 },
+  { k: "city", l: "City or town", t: "t", r: 1 },
+  { k: "province", l: "Province or state", t: "t", r: 1 },
+  { k: "postal", l: "Postal code", t: "t" },
+  { k: "country", l: "Country", t: "c", r: 1 },
+]};
+const CIT_ACTIVITY = { id: "activity", title: "Work and education history (last 5 years)", intro: "Everything from today back 5 years, newest first, with no gaps: jobs, self-employment, studies, homemaking, unemployment, retirement or volunteering.", rep: { min: 1, max: 25, add: "Add another period" }, fields: [
+  { k: "from", l: "From", t: "d", r: 1 },
+  { k: "to", l: "To (leave blank if current)", t: "d" },
+  { k: "type", l: "Activity", t: "s", r: 1, o: ["Employed", "Self-employed", "Studying", "Unemployed", "Homemaker", "Retired", "Volunteer", "Other"] },
+  { k: "title", l: "Job title or program of study", t: "t" },
+  { k: "org", l: "Employer, business or school name", t: "t" },
+  { k: "city", l: "City", t: "t", r: 1 },
+  { k: "country", l: "Country", t: "c", r: 1 },
+]};
+const CIT_TAX = { id: "tax", title: "Income taxes", intro: "An adult must have filed Canadian income taxes for at least 3 years in the 5-year period, if required to under the Income Tax Act.", fields: [
+  { k: "sin", l: "Social Insurance Number (SIN)", t: "t", r: 1, h: "Collected only to fill the application; shown to the processing team only." },
+  { k: "years", l: "Tax years filed in the last 5 years (e.g. 2021, 2022, 2023, 2024, 2025)", t: "t", r: 1, full: 1 },
+  { k: "not_filed", l: "Is there any year in the last 5 years you did not file?", t: "yn", r: 1 },
+  { k: "not_filed_why", l: "Which years and why (e.g. no income, not required, outside Canada)", t: "ta", r: 1, if: "tax.not_filed=Yes", full: 1 },
+  { k: "cra_consent", l: "Do you agree that IRCC may check your tax filing with the Canada Revenue Agency (asked on the IRCC form)?", t: "yn", r: 1, full: 1 },
+]};
+const CIT_LANG = { id: "language", title: "Language proof (ages 18 to 54)", intro: "Applicants aged 18 to 54 on the signing date must show English or French at CLB / NCLC level 4 or higher in speaking and listening. Skip if 55 or older.", fields: [
+  { k: "age_band", l: "Will the applicant be 18 to 54 on the signing date?", t: "yn", r: 1 },
+  { k: "proof", l: "Language proof the applicant will give", t: "s", r: 1, if: "language.age_band=Yes", o: ["CELPIP General or CELPIP General LS", "IELTS General Training", "PTE Core", "TEF Canada / TCF Canada", "Diploma or degree studied in English or French (in Canada or abroad)", "LINC / CLIC certificate at CLB 4 or higher", "Earlier IRCC language proof (e.g. from PR application)", "Don't have proof yet"] },
+  { k: "test_date", l: "Test date", t: "d", if: "language.proof=CELPIP General or CELPIP General LS|IELTS General Training|PTE Core|TEF Canada / TCF Canada" },
+  { k: "scores", l: "Speaking and listening scores", t: "t", if: "language.proof=CELPIP General or CELPIP General LS|IELTS General Training|PTE Core|TEF Canada / TCF Canada" },
+  { k: "school", l: "School, program and years studied", t: "t", if: "language.proof=Diploma or degree studied in English or French (in Canada or abroad)", full: 1 },
+  { k: "test_lang", l: "Language for the citizenship test and interview", t: "s", r: 1, if: "language.age_band=Yes", o: ["English", "French"] },
+]};
+const CIT_PROHIB = { id: "prohib", title: "Prohibitions and background", intro: "These are IRCC's own questions. Answer Yes if it applies in any country, even if the matter was closed or pardoned. A wrong answer can lead to refusal or a 5-year bar.", fields: [
+  { k: "charged_now", l: "Is the applicant now charged with, on trial for, or appealing an offence in Canada or outside Canada?", t: "yn", r: 1, full: 1 },
+  { k: "charged_now_details", l: "Give details: what, where, when and the outcome", t: "ta", r: 1, if: "prohib.charged_now=Yes", full: 1 },
+  { k: "convicted4", l: "In the last 4 years, was the applicant convicted of an offence in Canada or outside Canada (including traffic offences such as impaired driving)?", t: "yn", r: 1, full: 1 },
+  { k: "convicted4_details", l: "Give details: what, where, when and the outcome", t: "ta", r: 1, if: "prohib.convicted4=Yes", full: 1 },
+  { k: "sentence", l: "Is the applicant now serving a sentence, on probation or on parole, in Canada or outside Canada?", t: "yn", r: 1, full: 1 },
+  { k: "sentence_details", l: "Give details: what, where, when and the outcome", t: "ta", r: 1, if: "prohib.sentence=Yes", full: 1 },
+  { k: "prison", l: "Has the applicant been in prison, on probation or on parole in the last 4 years?", t: "yn", r: 1, full: 1 },
+  { k: "prison_details", l: "Give details: what, where, when and the outcome", t: "ta", r: 1, if: "prohib.prison=Yes", full: 1 },
+  { k: "removal", l: "Is the applicant under a removal order (asked by Canadian officials to leave Canada)?", t: "yn", r: 1, full: 1 },
+  { k: "removal_details", l: "Give details: what, where, when and the outcome", t: "ta", r: 1, if: "prohib.removal=Yes", full: 1 },
+  { k: "inadmiss", l: "Is the applicant the subject of an inadmissibility report, or under investigation for war crimes, crimes against humanity, security or organized crime?", t: "yn", r: 1, full: 1 },
+  { k: "inadmiss_details", l: "Give details: what, where, when and the outcome", t: "ta", r: 1, if: "prohib.inadmiss=Yes", full: 1 },
+  { k: "revoked", l: "Has the applicant's Canadian citizenship ever been revoked, or been refused because of misrepresentation in the last 5 years?", t: "yn", r: 1, full: 1 },
+  { k: "revoked_details", l: "Give details: what, where, when and the outcome", t: "ta", r: 1, if: "prohib.revoked=Yes", full: 1 },
+  { k: "lived_abroad", l: "Since age 18, has the applicant lived 183 days or more in a row in another country in the last 4 years?", t: "yn", r: 1, full: 1, h: "Police certificates may be needed from those countries." },
+  { k: "abroad_countries", l: "Which countries and dates", t: "ta", r: 1, if: "prohib.lived_abroad=Yes", full: 1 },
+]};
+const CIT_EXTRA = { id: "cit_extra", title: "Test, ceremony and other choices", fields: [
+  { k: "accommodation", l: "Does the applicant need any accommodation for the test, interview or ceremony (disability, medical, hearing, vision)?", t: "yn", r: 1, full: 1 },
+  { k: "accommodation_details", l: "What is needed", t: "ta", r: 1, if: "cit_extra.accommodation=Yes", full: 1 },
+  { k: "oath", l: "Preference at the ceremony", t: "s", r: 1, o: ["Swear the oath", "Make a solemn affirmation", "No preference"] },
+  { k: "virtual", l: "Ceremony format preferred", t: "s", r: 1, o: ["Virtual (online)", "In person", "Either"] },
+  { k: "elections", l: "Do you agree to IRCC sharing your name, address, sex and date of birth with Elections Canada to add you to the National Register of Electors (adults only)?", t: "yn", r: 1, full: 1 },
+]};
+const CIT_CONTACT = { ...CONTACT_IN, fields: CONTACT_IN.fields.filter((f) => f.k !== "home_addr") };
+const CIT_END = [ref("extra"), ref("declare")];
+
+const D_CIT_ID = [
+  { k: "pr_doc", l: "Confirmation of Permanent Residence (COPR) or Record of Landing (IMM 1000), both sides", r: 1, if: "pr.pr_doc=COPR (IMM 5292 / IMM 5688)|Record of Landing (IMM 1000)" },
+  { k: "pr_card", l: "PR card, front and back", r: 1, if: "pr.card_yn=Yes" },
+  { k: "passports", l: "Every passport and travel document held in the last 5 years: bio page and every page with a stamp or visa", r: 1, h: "Include expired passports. IRCC checks the stamps against the trips you listed." },
+  { k: "ids", l: "Two pieces of personal ID, one with a photo (driver's licence, provincial health card, provincial ID)", r: 1, h: "Must show the applicant's name and date of birth." },
+  { k: "photo", l: "Citizenship photos", r: 1, h: "Digital photo for online applications; two printed citizenship-spec photos for paper. We will check the specs." },
+  { k: "name_proof", l: "Legal name change documents (marriage certificate, divorce decree, name change certificate)", r: 1, if: "personal.name_change=Yes" },
+  { k: "pre_pr", l: "Permits or visitor records for the time in Canada before PR", r: 1, if: "pr.pre_pr_yn=Yes" },
+  { k: "calculator", l: "Physical presence calculator printout, if you already have one", if: "presence.calc_done=Yes" },
+  { k: "travel_history", l: "Travel history records (CBSA / US CBP I-94 travel history), if you have them", if: "presence.absent_yn=Yes" },
+  { k: "caf_proof", l: "Proof of Canadian Armed Forces or Crown service abroad", r: 1, if: "presence.caf=Yes" },
+];
+const D_CIT_BACK = [
+  { k: "court", l: "Court records, charges, sentence and proof the sentence was completed", r: 1, if: "prohib.charged_now=Yes" },
+  { k: "court4", l: "Court records for any conviction in the last 4 years", r: 1, if: "prohib.convicted4=Yes" },
+  { k: "probation", l: "Probation or parole papers", r: 1, if: "prohib.sentence=Yes" },
+  { k: "removal_docs", l: "Removal order or CBSA / IRCC letters", r: 1, if: "prohib.removal=Yes" },
+  { ...D_POLICE, l: "Police certificates from every country lived in 183+ days in a row in the last 4 years", if: "prohib.lived_abroad=Yes" },
+];
+
+/* ---------- Citizenship – adult (18+), CIT 0002 ---------- */
+const CIT_ADULT = {
+  key: "cit-adult",
+  name: "Canadian citizenship – adult (18 and over)",
+  intro: "This form collects everything needed to prepare an application for Canadian citizenship for an adult permanent resident (CIT 0002) and the supporting documents: PR status, physical presence (1,095 days in the last 5 years), addresses, work and education, taxes, language proof and IRCC's prohibition questions. Answer truthfully and completely. Wrong or missing information can lead to refusal or a finding of misrepresentation.",
+  sections: [CIT_ABOUT(false), CIT_PERSONAL, CIT_PR, CIT_PRESENCE, CIT_ABSENCES, CIT_CONTACT, CIT_ADDRESSES, CIT_ACTIVITY, CIT_TAX, CIT_LANG, CIT_PROHIB, CIT_EXTRA, ...CIT_END],
+  docs: docsOf(D_CIT_ID, [
+    { k: "lang_proof", l: "Language proof: test result, diploma / transcript, or LINC / CLIC certificate", r: 1, if: "language.age_band=Yes&language.proof!=Don't have proof yet" },
+    { k: "noa", l: "Notices of Assessment (NOA) from CRA for the years filed", h: "Not required by IRCC, but helps us check the tax years." },
+  ], D_CIT_BACK, D_OTHER),
+};
+
+/* ---------- Citizenship – minor (under 18), CIT 0003 ---------- */
+const CIT_MINOR = {
+  key: "cit-minor",
+  name: "Canadian citizenship – minor (under 18)",
+  intro: "This form collects what is needed to apply for Canadian citizenship for a child under 18 who is a permanent resident (CIT 0003). A parent or legal guardian fills it. The child doesn't need 1,095 days, language proof or the test, but a parent must be a Canadian citizen or apply at the same time.",
+  sections: [
+    CIT_ABOUT(true), CIT_PERSONAL, CIT_PR,
+    { id: "parents", title: "Parents and guardians", fields: [
+      { k: "p1_name", l: "Parent 1 full name", t: "t", r: 1 },
+      { k: "p1_status", l: "Parent 1 status", t: "s", r: 1, o: ["Canadian citizen", "Applying for citizenship at the same time", "Permanent resident (not applying)", "Not in Canada / other"] },
+      { k: "p1_uci", l: "Parent 1 UCI or citizenship certificate number", t: "t" },
+      { k: "p2_name", l: "Parent 2 full name", t: "t" },
+      { k: "p2_status", l: "Parent 2 status", t: "s", o: ["Canadian citizen", "Applying for citizenship at the same time", "Permanent resident (not applying)", "Not in Canada / other", "Deceased"] },
+      { k: "p2_uci", l: "Parent 2 UCI or citizenship certificate number", t: "t" },
+      { k: "guardian_yn", l: "Is the person applying for the child a legal guardian rather than a parent?", t: "yn", r: 1, full: 1 },
+      { k: "custody_yn", l: "Is there a custody order or agreement for the child?", t: "yn", r: 1 },
+    ]},
+    { id: "presence", title: "Time in Canada", fields: [
+      { k: "absent_yn", l: "Has the child left Canada in the last 5 years?", t: "yn", r: 1, full: 1 },
+      { k: "in_canada", l: "Will the child be in Canada when the application is sent?", t: "yn", r: 1 },
+    ]},
+    CIT_ABSENCES, CIT_CONTACT, CIT_ADDRESSES,
+    { ...CIT_PROHIB, fields: CIT_PROHIB.fields.filter((f) => !/^lived_abroad|^abroad_countries/.test(f.k)) },
+    { id: "cit_extra", title: "Ceremony", intro: "Children 14 and over take the oath at the ceremony.", fields: CIT_EXTRA.fields.filter((f) => /^accommodation|^virtual/.test(f.k)) },
+    ...CIT_END,
+  ],
+  docs: docsOf(D_CIT_ID.filter((d) => !["calculator", "caf_proof"].includes(d.k)).map((d) => d.k === "ids" ? { ...d, l: "One piece of the child's ID (health card, school record or birth certificate)" } : d), [
+    { k: "birth_cert", l: "Child's birth certificate naming the parents", r: 1 },
+    { k: "parent_cit", l: "Proof the parent is a Canadian citizen (citizenship certificate or Canadian passport), unless applying together", r: 1, if: "parents.p1_status=Canadian citizen" },
+    { k: "guardian", l: "Proof of legal guardianship", r: 1, if: "parents.guardian_yn=Yes" },
+    { k: "custody", l: "Custody order or agreement", r: 1, if: "parents.custody_yn=Yes" },
+  ], D_CIT_BACK.filter((d) => d.k !== "police"), D_OTHER),
+};
+
+export const FORMS = Object.fromEntries([TRV_OUT, SUPERVISA_OUT, ETA, TRANSIT_OUT, SP_OUT, WP_LMIA_OUT, WP_EXEMPT_OUT, SOWP_OUT, IEC_OUT, TRP_OUT, VR_IN, TRV_IN, SP_EXT, WP_EXT, PGWP, SOWP_IN, BOWP, VOWP, RESTORE, TRP_IN, CIT_ADULT, CIT_MINOR].map((f) => [f.key, f]));
 
 /* ---------- consent shown before every submission (stored word for word with the submission) ----------
    Bump CONSENT_V when the wording changes. KEEP_DAYS must match functions/_intake_file.js. */

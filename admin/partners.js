@@ -46,8 +46,8 @@
           <span>${D.stripe ? "Stripe payments: on" : "<b style='color:#b3412e'>Stripe payments: off</b> (set STRIPE_SECRET_KEY; until then add credits by hand)"}</span></div>
         <form id="ptPrice" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
           <label style="display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted)">Temporary residence form ($ CAD)<input class="ik-in" id="ptTr" type="number" step="0.01" min="0.5" value="${(D.prices.tr / 100).toFixed(2)}" style="width:150px"></label>
-          <label style="display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted)">Permanent residence form ($ CAD)<input class="ik-in" id="ptPr" type="number" step="0.01" min="0.5" value="${(D.prices.pr / 100).toFixed(2)}" style="width:150px"></label>
-          <button class="ik-btn" type="submit">Save prices</button><span class="ik-note" id="ptPriceMsg">New purchases use these prices. ${D.ready.pr ? "" : "Permanent residence forms aren't built yet, so firms can't buy them yet."}</span></form></div>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted)">Permanent residence & citizenship form ($ CAD)<input class="ik-in" id="ptPr" type="number" step="0.01" min="0.5" value="${(D.prices.pr / 100).toFixed(2)}" style="width:150px"></label>
+          <button class="ik-btn" type="submit">Save prices</button><span class="ik-note" id="ptPriceMsg">New purchases use these prices. ${D.ready.pr ? "" : "Permanent residence and citizenship forms aren't built yet, so firms can't buy them yet."}</span></form></div>
       <div class="wpa-card wide"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h3>Firms</h3>
         <input id="ptQ" class="ik-in" type="search" placeholder="Search firm, contact, email, licence…" value="${esc(q)}" style="width:260px"></div>
         ${L.length ? `<div class="wpa-tbl"><table><thead><tr><th>Firm</th><th>Contact</th><th>Status</th><th>Credits left</th><th>Links</th><th>Forms</th><th>Paid</th><th>Joined</th></tr></thead><tbody>
@@ -70,7 +70,7 @@
     return `<div style="display:flex;flex-direction:column;gap:12px;padding:6px 0">
       <div class="ik-note">${[p.website ? `<a href="${esc(/^https?:/.test(p.website) ? p.website : "https://" + p.website)}" target="_blank" rel="noopener">${esc(p.website)}</a>` : "", esc([p.city, p.province].filter(Boolean).join(", ")), reg].filter(Boolean).join(" · ")}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
-        <label style="display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted)">Credits<select class="ik-in" id="ptK"><option value="tr">Temporary residence</option><option value="pr">Permanent residence</option></select></label>
+        <label style="display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted)">Credits<select class="ik-in" id="ptK"><option value="tr">Temporary residence</option><option value="pr">Permanent residence & citizenship</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted)">Add (or −remove)<input class="ik-in" id="ptN" type="number" value="1" style="width:110px"></label>
         <label style="display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted);flex:1;min-width:180px">Reason (shown to the firm)<input class="ik-in" id="ptWhy" placeholder="e.g. paid by e-Transfer, free trial"></label>
         <button class="ik-btn" type="button" id="ptGrant">Update credits</button></div>

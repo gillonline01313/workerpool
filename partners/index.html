@@ -126,7 +126,7 @@ footer a{color:var(--muted)}
 <main class="in" id="view"><div class="card"><p class="muted" style="margin:0">Loading…</p></div></main>
 <footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents for licensed representatives. We are not immigration representatives and do not give immigration advice. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
 <script type="module">
-import { FORMS, sectionOn, fieldOn, when as cond, applicantName } from "/assets/intake-config.js?v=3";
+import { FORMS, sectionOn, fieldOn, when as cond, applicantName } from "/assets/intake-config.js?v=4";
 
 const $ = (s, r = document) => r.querySelector(s);
 const view = $("#view");
@@ -134,7 +134,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const kb = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round((n || 0) / 1024)) + " KB";
 const when = (t) => t ? new Date(t).toLocaleString("en-CA", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "–";
 const money = (c) => "$" + ((c || 0) / 100).toFixed(2);
-const KL = { tr: "Temporary residence", pr: "Permanent residence" };
+const KL = { tr: "Temporary residence", pr: "Permanent residence & citizenship" };
 const STATUS = [["new", "New"], ["reviewing", "Reviewing"], ["need-info", "Waiting for client"], ["in-progress", "Preparing application"], ["done", "Done"]];
 const stLabel = (k) => (STATUS.find((s) => s[0] === k) || [0, k || "New"])[1];
 const KINDS = [["rcic", "Regulated Canadian Immigration Consultant (RCIC)"], ["lawyer", "Lawyer"], ["paralegal", "Paralegal (Law Society of Ontario)"], ["notary", "Notary (Quebec)"], ["firm", "Immigration law or consulting firm"]];
@@ -159,7 +159,7 @@ function header() {
   $("#whoFirm").textContent = ME.partner.firm;
   if (ME.pending) { $("#whoCredits").innerHTML = `<span class="chip zero">Waiting for approval</span>`; return; }
   const c = ME.partner.credits;
-  $("#whoCredits").innerHTML = `<span class="chip${c.tr ? "" : " zero"}" title="Temporary residence form credits">TR ${c.tr}</span>${ME.ready.pr || c.pr ? `<span class="chip${c.pr ? "" : " zero"}" title="Permanent residence form credits">PR ${c.pr}</span>` : ""}`;
+  $("#whoCredits").innerHTML = `<span class="chip${c.tr ? "" : " zero"}" title="Temporary residence form credits">TR ${c.tr}</span>${ME.ready.pr || c.pr ? `<span class="chip${c.pr ? "" : " zero"}" title="Permanent residence & citizenship form credits">PR ${c.pr}</span>` : ""}`;
 }
 $("#logout").onclick = async () => { await fetch("/api/partners/logout", { method: "POST" }).catch(() => {}); ME = null; header(); authView("login"); };
 
@@ -178,7 +178,7 @@ async function boot() {
     history.replaceState(null, "", location.pathname);
     await refreshMe();
     tab = "credits";
-    S.flash = p.ok ? `Payment received. ${[p.j.added.tr && `${p.j.added.tr} Temporary residence`, p.j.added.pr && `${p.j.added.pr} Permanent residence`].filter(Boolean).join(" and ")} form credit${(p.j.added.tr + p.j.added.pr) === 1 ? "" : "s"} added.` : (p.j.error || "We couldn't confirm the payment yet. Refresh in a minute.");
+    S.flash = p.ok ? `Payment received. ${[p.j.added.tr && `${p.j.added.tr} Temporary residence`, p.j.added.pr && `${p.j.added.pr} Permanent residence & citizenship`].filter(Boolean).join(" and ")} form credit${(p.j.added.tr + p.j.added.pr) === 1 ? "" : "s"} added.` : (p.j.error || "We couldn't confirm the payment yet. Refresh in a minute.");
   } else if (qs.get("cancelled")) { history.replaceState(null, "", location.pathname); tab = "credits"; S.flash = "Payment cancelled. No charge was made."; }
   dash();
 }
@@ -224,7 +224,7 @@ async function authView(mode = "signup", notice = "") {
       </ul>
       <div class="prices">
         <div class="price"><b>${money(pr.tr)}</b><span>per Temporary residence intake form (visitor visas, study and work permits, extensions, PGWP, open work permits, restoration and more)</span></div>
-        <div class="price"><b>${money(pr.pr)}</b><span>per Permanent residence intake form${ready.pr ? "" : " (coming soon)"}</span></div>
+        <div class="price"><b>${money(pr.pr)}</b><span>per Permanent residence or citizenship intake form${ready.pr ? "" : " (coming soon)"}</span></div>
       </div>
       <p class="muted">Prices in Canadian dollars. One form credit = one personal client link. A link you turn off before the client starts it gives the credit back.</p></div>
     <div class="card">${box}</div></section>`;
@@ -428,7 +428,7 @@ function sendPane() {
   const pick = S.pick && FORMS[S.pick] ? S.pick : null, kindOf = (k) => (ME.catalog.find((cat) => cat.groups.some((g) => g.forms.some((f) => f.key === k))) || {}).kind || "tr";
   const links = D.links;
   pane.innerHTML = `<div class="stack">
-    <div class="card"><h2>1. Choose the application</h2><p class="muted" style="margin:0">Forms with a green dot are ready. Each personal client link uses one credit: ${money(pr.tr)} for Temporary residence, ${money(pr.pr)} for Permanent residence.</p>
+    <div class="card"><h2>1. Choose the application</h2><p class="muted" style="margin:0">Forms with a green dot are ready. Each personal client link uses one credit: ${money(pr.tr)} for Temporary residence, ${money(pr.pr)} for Permanent residence and citizenship.</p>
       <div class="cats">${ME.catalog.map((cat) => `<div class="card" style="padding:14px;gap:8px"><div class="row sp"><h3>${esc(cat.label)}</h3><span class="chip${c[cat.kind] ? "" : " zero"}">${c[cat.kind]} credit${c[cat.kind] === 1 ? "" : "s"} · ${money(pr[cat.kind])} each</span></div>
         ${cat.groups.map((g) => `<div class="grp"><small>${esc(g.label)}</small><div class="forms">${g.forms.map((f) => `<button type="button" class="fbtn ${ME.forms.includes(f.key) ? "ready" : "soon"}" ${ME.forms.includes(f.key) ? `data-pick="${f.key}"` : "disabled"} aria-pressed="${pick === f.key}">${esc(f.name)}</button>`).join("")}</div></div>`).join("")}</div>`).join("")}</div></div>
     ${pick ? `<div class="hl" id="mk"><span class="muted">${esc(KL[kindOf(pick)])} · uses 1 credit (you have ${c[kindOf(pick)]})</span><h2>2. ${esc(FORMS[pick].name)}: personal link for your client</h2>
@@ -476,7 +476,7 @@ function creditsPane() {
     <div class="card"><h2>Buy form credits</h2><p class="muted" style="margin:0">One credit = one personal client link. Credits don't expire. Prices in Canadian dollars${ME.payments ? "; you pay securely with Stripe and get a receipt by email" : ""}.</p>
       ${ME.payments ? `<div>
         <div class="qty"><div><b>Temporary residence forms</b><div class="muted">${money(pr.tr)} each · you have ${c.tr}</div></div><input id="qTr" type="number" min="0" max="200" value="${c.tr ? 0 : 5}" aria-label="Temporary residence forms"><b id="sTr"></b></div>
-        <div class="qty"><div><b>Permanent residence forms</b><div class="muted">${money(pr.pr)} each · you have ${c.pr}${ME.ready.pr ? "" : " · coming soon"}</div></div><input id="qPr" type="number" min="0" max="200" value="0" ${ME.ready.pr ? "" : "disabled"} aria-label="Permanent residence forms"><b id="sPr"></b></div>
+        <div class="qty"><div><b>Permanent residence & citizenship forms</b><div class="muted">${money(pr.pr)} each · you have ${c.pr}${ME.ready.pr ? "" : " · coming soon"}</div></div><input id="qPr" type="number" min="0" max="200" value="0" ${ME.ready.pr ? "" : "disabled"} aria-label="Permanent residence and citizenship forms"><b id="sPr"></b></div>
         <div class="row sp" style="margin-top:12px"><b style="font-size:1.1rem">Total <span id="tot"></span></b><button class="btn" type="button" id="pay">Pay with card</button></div><div class="err" id="payErr"></div></div>`
       : `<div class="note">Online payment isn't switched on yet. Email ${esc("info@workerpool.ca")} to add credits to your account.</div>`}</div>
     <div class="card"><h2>Credit history</h2>${D.ledger.length ? `<div class="tbl"><table><thead><tr><th>Date</th><th>Change</th><th>Details</th></tr></thead><tbody>

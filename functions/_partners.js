@@ -8,14 +8,15 @@ import { CATALOG, catalogEntry } from "../assets/intake-config.js";
 import { randomToken, sha256hex } from "./_lib.js";
 
 export const PRICE_DEFAULT = { tr: 1000, pr: 2000 };   // cents CAD per intake form: $10 Temporary, $20 Permanent
-export const KIND_LABEL = { tr: "Temporary residence", pr: "Permanent residence" };
+export const KIND_LABEL = { tr: "Temporary residence", pr: "Permanent residence and citizenship" };
 export const MAX_QTY = 200;                            // credits of one kind in a single purchase
 const COOKIE = "wp_p", SESSION_DAYS = 30;
 
-// Which price applies to a form: Permanent residence catalog → "pr", everything else → "tr".
+// Which price applies to a form: Permanent residence and Citizenship catalogs → "pr" ($20), everything else → "tr".
+const PR_CATS = ["permanent", "citizenship"];
 export function kindOf(formKey) {
   const e = catalogEntry(formKey);
-  return e && e.cat.key === "permanent" ? "pr" : "tr";
+  return e && PR_CATS.includes(e.cat.key) ? "pr" : "tr";
 }
 export const money = (c) => "$" + (c / 100).toFixed(2);
 
@@ -104,7 +105,7 @@ export async function addCredits(env, partnerId, kind, delta, reason, ref = null
 }
 
 // Forms a partner can send, grouped like the admin catalog, with the price kind of each.
-export const partnerCatalog = () => CATALOG.map((c) => ({ key: c.key, label: c.label, kind: c.key === "permanent" ? "pr" : "tr",
+export const partnerCatalog = () => CATALOG.map((c) => ({ key: c.key, label: c.label, kind: PR_CATS.includes(c.key) ? "pr" : "tr",
   groups: c.groups.map((g) => ({ label: g.label, forms: g.forms.map((f) => ({ key: f.key, name: f.name })) })) }));
 
 export const PARTNER_TERMS_V = "2026-11-06";
