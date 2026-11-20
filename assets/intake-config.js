@@ -33,11 +33,13 @@ export const CATALOG = [
       { key: "trv-in", name: "Visitor visa (TRV) from inside Canada", ready: 1 },
       { key: "sp-ext", name: "Study permit extension", ready: 1 },
       { key: "wp-ext", name: "Work permit extension or new employer", ready: 1 },
+      { key: "wp-renew", name: "Work permit extension (regular)", ready: 1 },
       { key: "pgwp", name: "Post-graduation work permit (PGWP)", ready: 1 },
       { key: "sowp-in", name: "Spousal open work permit (inside Canada)", ready: 1 },
       { key: "bowp", name: "Bridging open work permit (BOWP)", ready: 1 },
       { key: "vowp", name: "Open work permit for vulnerable workers", ready: 1 },
       { key: "restore", name: "Restoration of status", ready: 1 },
+      { key: "restore-wp", name: "Restoration of worker status with work permit", ready: 1 },
       { key: "trp-in", name: "Temporary resident permit (inside Canada)", ready: 1 },
     ]},
   ]},
@@ -894,6 +896,122 @@ const RESTORE = {
   ], D_FAMILY, D_BACK, D_OTHER),
 };
 
+/* ---------- Work permit extension – regular, same basis (IMM 5710) ---------- */
+const WP_RENEW = {
+  key: "wp-renew",
+  name: "Work permit extension (regular)",
+  intro: "This form collects everything needed to extend your current work permit from inside Canada (IMM 5710 and the Family Information form) and the supporting documents. Use it when you are staying with the same employer, or extending an open work permit. Apply before your current permit expires so you keep maintained status and can keep working under the same conditions while IRCC decides. Answer every question truthfully and completely.",
+  sections: [
+    ...IN_HEAD(),
+    { id: "now", title: "Your current job", fields: [
+      { k: "permit_kind", l: "Type of work permit you hold now", t: "s", r: 1, o: ["Employer-specific (LMIA)", "Employer-specific (LMIA-exempt, e.g. C10, C16, A75)", "Employer-specific (provincial nominee support)", "Spousal open work permit", "Post-graduation work permit (PGWP)", "Bridging open work permit (BOWP)", "Other open work permit", "Not sure"] },
+      { k: "working", l: "Are you working now?", t: "yn", r: 1 },
+      { k: "employer", l: "Current employer (legal business name)", t: "t", r: 1, if: "now.working=Yes" },
+      { k: "title", l: "Job title", t: "t", r: 1, if: "now.working=Yes" },
+      { k: "noc", l: "NOC code, if you know it", t: "t", if: "now.working=Yes" },
+      { k: "since", l: "Working there since", t: "d", r: 1, if: "now.working=Yes" },
+      { k: "wage", l: "Current wage (per hour or per year)", t: "t", r: 1, if: "now.working=Yes" },
+      { k: "hours", l: "Hours per week", t: "n", if: "now.working=Yes" },
+      { k: "location", l: "City and province where you work", t: "t", r: 1, if: "now.working=Yes" },
+      { k: "matches", l: "Has your work always matched the conditions on your permit (employer, job, location, wage)?", t: "yn", r: 1, full: 1 },
+      { k: "matches_details", l: "Explain what was different", t: "ta", r: 1, if: "now.matches=No", full: 1 },
+      { k: "gaps", l: "Have you had any period without work while on this permit?", t: "yn", r: 1 },
+      { k: "gaps_details", l: "Dates and reason", t: "ta", r: 1, if: "now.gaps=Yes", full: 1 },
+      { k: "pr_yn", l: "Have you applied for permanent residence or a provincial nomination?", t: "yn", r: 1 },
+      { k: "pr_details", l: "Program, application or file number, and stage", t: "t", r: 1, if: "now.pr_yn=Yes", full: 1 },
+    ]},
+    { id: "ext", title: "The extension", fields: [
+      { k: "basis", l: "What is the extension based on?", t: "s", r: 1, o: ["New LMIA from the same employer", "New LMIA-exempt offer from the same employer (employer portal offer number)", "Provincial nomination or work permit support letter", "Spouse or partner's permit or study (spousal open work permit)", "PR application in process (bridging)", "Other", "Not sure"] },
+      { k: "basis_other", l: "Describe the basis", t: "t", r: 1, if: "ext.basis=Other", full: 1 },
+      { k: "lmia_no", l: "LMIA number", t: "t", r: 1, if: "ext.basis=New LMIA from the same employer", h: "The 7 to 9 digit number on the positive LMIA letter." },
+      { k: "lmia_end", l: "LMIA employment end date", t: "d", if: "ext.basis=New LMIA from the same employer" },
+      { k: "offer_no", l: "Offer of employment number", t: "t", r: 1, if: "ext.basis=New LMIA-exempt offer from the same employer (employer portal offer number)", h: "Starts with A followed by 7 digits. The employer gets it from the IRCC Employer Portal." },
+      { k: "exempt_code", l: "Exemption code, if you know it (e.g. C10, C16, A75)", t: "t", if: "ext.basis=New LMIA-exempt offer from the same employer (employer portal offer number)|Provincial nomination or work permit support letter" },
+      { k: "pnp_file", l: "Province and nomination or file number", t: "t", r: 1, if: "ext.basis=Provincial nomination or work permit support letter", full: 1 },
+      { k: "spouse_name", l: "Spouse or partner's full name", t: "t", r: 1, if: "ext.basis=Spouse or partner's permit or study (spousal open work permit)" },
+      { k: "spouse_status", l: "Spouse or partner's permit type, number and expiry", t: "t", r: 1, if: "ext.basis=Spouse or partner's permit or study (spousal open work permit)", full: 1 },
+      { k: "spouse_job", l: "Spouse or partner's job title, employer and NOC (or school and program)", t: "t", r: 1, if: "ext.basis=Spouse or partner's permit or study (spousal open work permit)", full: 1 },
+      { k: "changes", l: "Will anything change in the job (title, duties, wage, hours, location)?", t: "yn", r: 1, if: "now.working=Yes", full: 1 },
+      { k: "changes_details", l: "What will change", t: "ta", r: 1, if: "ext.changes=Yes", full: 1 },
+      { k: "start", l: "Date the extended permit should start", t: "d", h: "Usually the day after your current permit expires." },
+      { k: "duration", l: "Length of extension requested", t: "t", r: 1, h: "For example 2 years, or until the LMIA end date." },
+      { k: "licence", l: "Does the job need a licence or certificate (e.g. Red Seal, nursing, driving class)?", t: "yn", r: 1 },
+      { k: "licence_details", l: "Licence or certificate, number and expiry", t: "t", r: 1, if: "ext.licence=Yes" },
+    ]},
+    ...TAIL, ...END,
+  ],
+  docs: docsOf(D_ID, D_STATUS, [
+    { k: "lmia", l: "Positive LMIA letter and Annex A", r: 1, if: "ext.basis=New LMIA from the same employer" },
+    { k: "offer_confirm", l: "Employer Portal offer of employment confirmation (shows the A-number and fee paid)", r: 1, if: "ext.basis=New LMIA-exempt offer from the same employer (employer portal offer number)" },
+    { k: "offer", l: "Signed job offer or employment contract for the extension period", r: 1, if: "ext.basis=New LMIA from the same employer|New LMIA-exempt offer from the same employer (employer portal offer number)|Provincial nomination or work permit support letter" },
+    { k: "nomination", l: "Provincial nomination letter and work permit support letter", r: 1, if: "ext.basis=Provincial nomination or work permit support letter" },
+    { k: "spouse_docs", l: "Spouse or partner's permit, job letter and 3 recent pay stubs (or enrolment letter)", r: 1, if: "ext.basis=Spouse or partner's permit or study (spousal open work permit)" },
+    { k: "pr_aor", l: "PR acknowledgment of receipt (AOR) or completeness check letter", r: 1, if: "ext.basis=PR application in process (bridging)" },
+    { k: "emp_letter", l: "Current employment letter (job title, start date, wage, hours, duties)", r: 1, if: "now.working=Yes", h: "On company letterhead, signed, dated in the last 30 days." },
+    { k: "pay", l: "Recent pay stubs (last 3 months) and T4s for every year on this permit", r: 1, if: "now.working=Yes" },
+    { k: "resume", l: "Resume (CV)", r: 1 },
+    { k: "licence", l: "Licence or certificate for the job", r: 1, if: "ext.licence=Yes" },
+    { k: "language", l: "English or French test results", if: "language.test_yn=Yes" },
+    { k: "pr_proof", l: "PR or nomination acknowledgment letter", if: "now.pr_yn=Yes" },
+  ], D_FAMILY, D_BACK, D_OTHER),
+};
+
+/* ---------- Restoration of worker status with a new work permit (IMM 5710) ---------- */
+const RESTORE_WP = {
+  key: "restore-wp",
+  name: "Restoration of worker status with work permit",
+  intro: "If your work permit expired in the last 90 days (or your extension was refused), you may be able to restore your status as a worker and get a new work permit in the same application (IMM 5710 and the Family Information form). This form collects everything needed and the supporting documents. Do not work while your status is expired, even for the same employer, until IRCC restores your status and issues the new permit. Answer every question truthfully and completely.",
+  sections: [
+    ...IN_HEAD(),
+    { id: "lost", title: "How your worker status expired", fields: [
+      { k: "last_permit", l: "Type of the work permit that expired", t: "s", r: 1, o: ["Employer-specific (LMIA)", "Employer-specific (LMIA-exempt, e.g. C10, C16, A75)", "Employer-specific (provincial nominee support)", "Spousal open work permit", "Post-graduation work permit (PGWP)", "Bridging open work permit (BOWP)", "Other open work permit", "Not sure"] },
+      { k: "last_no", l: "Number of the permit that expired", t: "t", r: 1, h: "Top right of the permit, e.g. U123456789." },
+      { k: "last_employer", l: "Employer named on that permit (if any)", t: "t" },
+      { k: "expired_on", l: "Date your work permit expired (or the date of the refusal letter)", t: "d", r: 1, h: "Restoration must be applied for within 90 days of this date." },
+      { k: "why", l: "Why did it expire?", t: "s", r: 1, o: ["Extension application was refused", "Application was returned as incomplete", "I didn't apply in time", "LMIA or job offer wasn't ready in time", "Other"] },
+      { k: "refused_app", l: "Application number and the reason given in the refusal or return letter", t: "ta", r: 1, if: "lost.why=Extension application was refused|Application was returned as incomplete", full: 1 },
+      { k: "refusal_date", l: "Date of the refusal or return letter", t: "d", r: 1, if: "lost.why=Extension application was refused|Application was returned as incomplete" },
+      { k: "explain", l: "Explain what happened in your own words", t: "ta", r: 1, full: 1, h: "Dates, what you applied for, and why it didn't go through. We use this for the explanation letter." },
+      { k: "stopped_on", l: "Last day you worked", t: "d", r: 1 },
+      { k: "worked_after", l: "Have you worked at all since your status expired (or since the refusal)?", t: "yn", r: 1, full: 1 },
+      { k: "worked_details", l: "Where, dates and hours", t: "ta", r: 1, if: "lost.worked_after=Yes", full: 1 },
+      { k: "kept", l: "While your permit was valid, did your work always match its conditions (employer, job, location)?", t: "yn", r: 1, full: 1 },
+      { k: "kept_details", l: "Explain what was different", t: "ta", r: 1, if: "lost.kept=No", full: 1 },
+      { k: "earlier_restore", l: "Have you applied for restoration of status before?", t: "yn", r: 1 },
+      { k: "earlier_details", l: "When, and what was the result?", t: "t", r: 1, if: "lost.earlier_restore=Yes", full: 1 },
+    ]},
+    JOB("job", "The new work permit"),
+    { id: "support", title: "Supporting yourself while you wait", intro: "You cannot work until your status is restored, so IRCC wants to see how you will pay your living costs.", fields: [
+      { k: "funds", l: "Money available to you now (CAD)", t: "n", r: 1 },
+      { k: "monthly", l: "Your monthly living costs (rent, food, bills) in CAD", t: "n", r: 1 },
+      { k: "helper_yn", l: "Is someone else supporting you (spouse, relative, friend)?", t: "yn", r: 1 },
+      { k: "helper", l: "Their name, relationship, status in Canada and how they help", t: "ta", r: 1, if: "support.helper_yn=Yes", full: 1 },
+    ]},
+    ...TAIL, ...END,
+  ],
+  docs: docsOf(D_ID, D_STATUS, [
+    { k: "expired_doc", l: "The work permit that expired", r: 1 },
+    { k: "refusal", l: "Refusal or return letter", r: 1, if: "lost.why=Extension application was refused|Application was returned as incomplete" },
+    { k: "refused_app", l: "Copy of the refused or returned application (forms and submission confirmation)", if: "lost.why=Extension application was refused|Application was returned as incomplete" },
+    { k: "explanation", l: "Your letter explaining why your status expired and why it should be restored", h: "We can write this from your answers." },
+    { k: "lmia", l: "Positive LMIA letter and Annex A", r: 1, if: "job.basis=LMIA" },
+    { k: "offer_confirm", l: "Employer Portal offer of employment confirmation (shows the A-number and fee paid)", r: 1, if: "job.basis=LMIA-exempt job offer (employer portal offer number)" },
+    { k: "nomination", l: "Provincial nomination letter and work permit support letter", r: 1, if: "job.basis=Provincial nomination (employer-specific)" },
+    { k: "offer", l: "Signed job offer or employment contract", r: 1, if: "job.basis!=Open work permit" },
+    { k: "owp_basis", l: "Documents for the open work permit (spouse's permit and job letter, PR AOR, or graduation letter)", r: 1, if: "job.basis=Open work permit" },
+    { k: "caq", l: "Quebec acceptance certificate (CAQ)", r: 1, if: "job.province=Quebec" },
+    { k: "resume", l: "Resume (CV)", r: 1 },
+    { k: "education", l: "Education certificates and transcripts", if: "job.basis!=Open work permit" },
+    { k: "experience", l: "Experience letters for the kind of work in the new job", if: "job.basis!=Open work permit", h: "On letterhead with job title, dates, hours, duties and salary." },
+    { k: "licence", l: "Licence or certificate for the job", r: 1, if: "job.licence=Yes" },
+    { k: "pay", l: "Pay stubs and T4s from your Canadian jobs (shows you worked within your permit)", r: 1 },
+    { k: "roe", l: "Record of Employment (ROE) or a letter from your last employer confirming your last day of work" },
+    { k: "language", l: "English or French test results", if: "language.test_yn=Yes" },
+  ], D_MONEY, [
+    { k: "helper", l: "Supporter's letter, status proof and bank statement", r: 1, if: "support.helper_yn=Yes" },
+  ], D_FAMILY, D_BACK, D_OTHER),
+};
+
 /* ---------- Temporary resident permit inside Canada (IMM 5708) ---------- */
 const TRP_IN = {
   key: "trp-in",
@@ -1529,7 +1647,7 @@ const CIT_MINOR = {
   ], D_CIT_BACK.filter((d) => d.k !== "police"), D_OTHER),
 };
 
-export const FORMS = Object.fromEntries([TRV_OUT, SUPERVISA_OUT, ETA, TRANSIT_OUT, SP_OUT, WP_LMIA_OUT, WP_EXEMPT_OUT, SOWP_OUT, IEC_OUT, TRP_OUT, VR_IN, TRV_IN, SP_EXT, WP_EXT, PGWP, SOWP_IN, BOWP, VOWP, RESTORE, TRP_IN, CIT_ADULT, CIT_MINOR].map((f) => [f.key, f]));
+export const FORMS = Object.fromEntries([TRV_OUT, SUPERVISA_OUT, ETA, TRANSIT_OUT, SP_OUT, WP_LMIA_OUT, WP_EXEMPT_OUT, SOWP_OUT, IEC_OUT, TRP_OUT, VR_IN, TRV_IN, SP_EXT, WP_EXT, WP_RENEW, PGWP, SOWP_IN, BOWP, VOWP, RESTORE, RESTORE_WP, TRP_IN, CIT_ADULT, CIT_MINOR].map((f) => [f.key, f]));
 
 /* ---------- consent shown before every submission (stored word for word with the submission) ----------
    Bump CONSENT_V when the wording changes. KEEP_DAYS must match functions/_intake_file.js. */
