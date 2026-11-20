@@ -47,6 +47,7 @@ export const SECTIONS = {
     ["entry_date", "Date you first entered Canada", "d", 1],
     ["entry_place", "Place of first entry (airport or border crossing)", "t", 1],
     ["last_entry", "Date of most recent entry", "d"],
+    ["last_entry_place", "Place of most recent entry (airport or border crossing)", "t"],
     ["cur_status", "Current status", "s", 1, ["Worker", "Student", "Visitor", "Maintained status", "Status expired (restoration)", "Other"]],
     ["cur_doc_no", "Current permit or visitor record number", "t"],
     ["cur_expiry", "Current status expiry date", "d", 1],
