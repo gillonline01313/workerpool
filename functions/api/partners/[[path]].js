@@ -13,14 +13,14 @@
 //   POST status { id, status, note } · unlock { id } · destroy { id } · profile { contact, phone, website, password? }
 // Admin routes (x-admin-key) under /api/partners/admin/: list, ledger, status, grant, prices.
 import { json, readJson, str, isEmail, sendEmail, hashPassword, checkPassword, randomToken, sha256hex } from "../../_lib.js";
-import { FORMS, missing, applicantName } from "../../../assets/intake-config.js";
+import { FORMS, upgradeIntake, missing, applicantName } from "../../../assets/intake-config.js";
 import { buildCompleteFile } from "../../_intake_file.js";
 import { stripe } from "../../_scanpass.js";
 import { ensureIntake, getPartner, createPartnerSession, partnerCookie, partnerToken, addCredits, prices, kindOf, money,
   KIND_LABEL, MAX_QTY, partnerCatalog, PARTNER_TERMS, PARTNER_TERMS_V } from "../../_partners.js";
 
 const site = (env) => env.SITE_URL || "https://workerpool.ca";
-const parse = (s) => { try { return JSON.parse(s || "{}"); } catch { return {}; } };
+const parse = (s) => { try { return upgradeIntake(JSON.parse(s || "{}")); } catch { return {}; } };
 const KINDS = { rcic: "Regulated Canadian Immigration Consultant (RCIC)", lawyer: "Lawyer", notary: "Notary (Quebec)", paralegal: "Paralegal (Law Society of Ontario)", firm: "Immigration law or consulting firm" };
 const P_STATUS = ["new", "reviewing", "need-info", "in-progress", "done"];
 const MAX_FAILS = 5, LOCK_MIN = 15;

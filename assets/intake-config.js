@@ -423,12 +423,36 @@ const CONTACT_IN = { id: "contact", title: "Contact details", fields: [
   { k: "home_addr", l: "Address in your home country (if you still have one)", t: "ta", full: 1 },
 ]};
 
-const STATUS_IN = (title = "Your status in Canada now") => ({ id: "status", title, intro: "Copy these from the permit or visitor record you hold now, and from the stamp in your passport.", fields: [
+/* First and most recent entry to Canada (IMM 5708 / 5709 / 5710 "Coming into Canada"). Its own section so it is
+   never missed. Older answers kept these keys under "status"; upgradeIntake() below moves them here. */
+const ENTRY_STATUS = ["Visitor", "Student", "Worker", "Temporary resident permit holder", "Refugee claimant", "Other"];
+const ENTRY_DOC = ["Work permit", "Study permit", "Visitor record", "Temporary resident permit", "Passport stamp only", "No stamp or document"];
+const ENTRY_VIA = ["Visitor visa (TRV)", "eTA", "No visa or eTA needed (e.g. US citizen or green card)", "Other"];
+const ENTRY_IN = { id: "entry", title: "Entry to Canada: first and most recent", intro: "Check the stamps in your passport, your boarding passes and the permits you were given at the airport or border.", fields: [
+  { k: "first_h", l: "First entry to Canada", t: "h" },
   { k: "first_entry", l: "Date you first entered Canada", t: "d", r: 1 },
-  { k: "first_place", l: "Place of first entry (airport or land border)", t: "t", r: 1 },
-  { k: "first_purpose", l: "Purpose of that first entry", t: "s", r: 1, o: ["Visit", "Study", "Work", "Other"] },
-  { k: "last_entry", l: "Date of your most recent entry", t: "d", r: 1 },
-  { k: "last_place", l: "Place of most recent entry", t: "t", r: 1 },
+  { k: "first_place", l: "Place of first entry (airport or land border)", t: "t", r: 1, h: "Example: Vancouver International Airport (YVR), or Peace Arch land border." },
+  { k: "first_purpose", l: "Purpose of that first entry", t: "s", r: 1, o: ["Visit", "Study", "Work", "Join family", "Other"] },
+  { k: "first_purpose_other", l: "Describe the purpose", t: "t", r: 1, if: "entry.first_purpose=Other" },
+  { k: "first_via", l: "Travelled in on", t: "s", r: 1, o: ENTRY_VIA },
+  { k: "first_status", l: "Status given at the border on that first entry", t: "s", r: 1, o: ENTRY_STATUS },
+  { k: "first_doc", l: "Document given at the border on that first entry", t: "s", r: 1, o: ENTRY_DOC },
+  { k: "first_doc_no", l: "Number of that document", t: "t", if: "entry.first_doc=Work permit|Study permit|Visitor record|Temporary resident permit" },
+  { k: "first_with", l: "Who travelled with you (names and relationship), if anyone", t: "t", full: 1 },
+  { k: "exits_yn", l: "Have you left Canada and come back since you first arrived?", t: "yn", r: 1, full: 1, h: "Even a short trip to the US counts." },
+  { k: "last_h", l: "Most recent entry to Canada", t: "h", if: "entry.exits_yn=Yes" },
+  { k: "last_entry", l: "Date of your most recent entry", t: "d", r: 1, if: "entry.exits_yn=Yes" },
+  { k: "last_place", l: "Place of most recent entry (airport or land border)", t: "t", r: 1, if: "entry.exits_yn=Yes" },
+  { k: "last_purpose", l: "Purpose of your most recent entry", t: "s", r: 1, if: "entry.exits_yn=Yes", o: ["Visit", "Study", "Work", "Returning to my job or studies", "Join family", "Other"] },
+  { k: "last_purpose_other", l: "Describe the purpose", t: "t", r: 1, if: "entry.last_purpose=Other" },
+  { k: "last_via", l: "Travelled in on", t: "s", r: 1, if: "entry.exits_yn=Yes", o: ENTRY_VIA },
+  { k: "last_status", l: "Status given at the border on your most recent entry", t: "s", r: 1, if: "entry.exits_yn=Yes", o: ENTRY_STATUS },
+  { k: "last_doc", l: "Document given at the border on your most recent entry", t: "s", r: 1, if: "entry.exits_yn=Yes", o: [...ENTRY_DOC, "Same permit I already had"] },
+  { k: "last_issue", l: "Anything unusual at the border on that entry (secondary inspection, refused entry, permit changed)?", t: "yn", r: 1, if: "entry.exits_yn=Yes", full: 1 },
+  { k: "last_issue_details", l: "Give details", t: "ta", r: 1, if: "entry.last_issue=Yes", full: 1 },
+]};
+
+const STATUS_IN = (title = "Your status in Canada now") => ({ id: "status", title, intro: "Copy these from the permit or visitor record you hold now, and from the stamp in your passport.", fields: [
   { k: "current", l: "Current status in Canada", t: "s", r: 1, o: ["Visitor", "Worker", "Student", "Temporary resident permit holder", "Maintained status (waiting on an extension I applied for)", "Status has expired", "Other"] },
   { k: "current_other", l: "Describe your status", t: "t", r: 1, if: "status.current=Other" },
   { k: "doc_type", l: "Document you hold now", t: "s", r: 1, o: ["Work permit", "Study permit", "Visitor record", "Temporary resident permit", "Passport entry stamp only", "No stamp or document"] },
@@ -441,7 +465,6 @@ const STATUS_IN = (title = "Your status in Canada now") => ({ id: "status", titl
   { k: "visa_yn", l: "Is there a Canadian visitor visa (counterfoil sticker) in your passport?", t: "yn", r: 1 },
   { k: "visa_expiry", l: "Visitor visa expiry date", t: "d", r: 1, if: "status.visa_yn=Yes" },
   { k: "prev_yn", l: "Have you held any other Canadian permit or visitor record before the one you hold now?", t: "yn", r: 1, full: 1 },
-  { k: "exits_yn", l: "Have you left Canada and come back since you first arrived?", t: "yn", r: 1, full: 1 },
 ]});
 const PERMITS = { id: "permits", title: "Earlier Canadian permits and visitor records", if: "status.prev_yn=Yes", rep: { min: 1, max: 12, add: "Add a permit" }, fields: [
   { k: "type", l: "Type", t: "s", r: 1, o: ["Work permit", "Study permit", "Visitor record", "Temporary resident permit", "Co-op work permit", "Post-graduation work permit", "Open work permit"] },
@@ -450,13 +473,13 @@ const PERMITS = { id: "permits", title: "Earlier Canadian permits and visitor re
   { k: "to", l: "Valid to", t: "d", r: 1 },
   { k: "where", l: "Employer or school named on it (if any)", t: "t" },
 ]};
-const EXITS = { id: "exits", title: "Trips outside Canada since you first arrived", if: "status.exits_yn=Yes", rep: { min: 1, max: 30, add: "Add a trip" }, fields: [
+const EXITS = { id: "exits", title: "Trips outside Canada since you first arrived", if: "entry.exits_yn=Yes", rep: { min: 1, max: 30, add: "Add a trip" }, fields: [
   { k: "country", l: "Country", t: "c", r: 1 },
   { k: "from", l: "Left Canada on", t: "d", r: 1 },
   { k: "to", l: "Returned on", t: "d", r: 1 },
   { k: "purpose", l: "Purpose", t: "t" },
 ]};
-const IN_HEAD = (extra) => [ABOUT_IN(extra), ref("personal"), STATUS_IN(), PERMITS, EXITS, ref("marital"), ref("language"), ref("passport"), CONTACT_IN];
+const IN_HEAD = (extra) => [ABOUT_IN(extra), ref("personal"), ENTRY_IN, EXITS, STATUS_IN(), PERMITS, ref("marital"), ref("language"), ref("passport"), CONTACT_IN];
 
 const D_ID = [
   { k: "passport", l: "Passport: bio page and every page with a stamp, visa or marking", r: 1, h: "Scan in colour. A single PDF is best." },
@@ -466,7 +489,8 @@ const D_ID = [
 ];
 const D_STATUS = [
   { k: "status_doc", l: "Your current permit or visitor record (both sides if it has two)", r: 1, if: "status.doc_type=Work permit|Study permit|Visitor record|Temporary resident permit" },
-  { k: "entry_stamp", l: "Passport page with your most recent Canadian entry stamp", if: "status.doc_type=Passport entry stamp only|No stamp or document" },
+  { k: "first_stamp", l: "Passport page with your first Canadian entry stamp, and the permit or visitor record you were given that day", h: "Add your boarding pass or e-ticket if the stamp is missing or hard to read." },
+  { k: "entry_stamp", l: "Passport page with your most recent Canadian entry stamp (if CBSA stamped it)", if: "entry.exits_yn=Yes" },
   { k: "prev_permits", l: "Earlier Canadian permits and visitor records", r: 1, if: "status.prev_yn=Yes" },
   { k: "maint_proof", l: "Proof of the application still in process (IRCC submission confirmation or AOR)", r: 1, if: "status.maintained=Yes" },
   { k: "visa", l: "Canadian visitor visa (counterfoil page)", if: "status.visa_yn=Yes" },
@@ -1504,6 +1528,16 @@ const CIT_PR = { id: "pr", title: "Permanent resident status", intro: "Copy thes
   { k: "conditions", l: "Were any conditions put on the PR status (e.g. conditional PR for spouses)?", t: "yn", r: 1, full: 1 },
   { k: "conditions_details", l: "Give details", t: "ta", r: 1, if: "pr.conditions=Yes", full: 1 },
 ]};
+const CIT_ENTRY = { id: "entry", title: "Entry to Canada: first and most recent", intro: "Check the passport stamps, the COPR and any permits or visitor records the applicant was given at the border.", fields: [
+  { k: "first_h", l: "First entry to Canada", t: "h" },
+  { k: "first_entry", l: "Date the applicant first entered Canada", t: "d", r: 1, h: "The very first time, even if it was a visit years before becoming a PR." },
+  { k: "first_place", l: "Place of first entry (airport or land border)", t: "t", r: 1 },
+  { k: "first_status", l: "Status on that first entry", t: "s", r: 1, o: ["Landed as a permanent resident", "Visitor", "Student", "Worker", "Refugee claimant or protected person", "Other"] },
+  { k: "first_status_other", l: "Describe the status", t: "t", r: 1, if: "entry.first_status=Other" },
+  { k: "last_h", l: "Most recent entry to Canada", t: "h" },
+  { k: "last_entry", l: "Date of the most recent entry", t: "d", r: 1, h: "Same as the first entry if the applicant has never left Canada." },
+  { k: "last_place", l: "Place of most recent entry", t: "t", r: 1 },
+]};
 const CIT_PRESENCE = { id: "presence", title: "Physical presence in Canada", intro: "The applicant needs at least 1,095 days in Canada in the 5 years before signing the application. We will run IRCC's physical presence calculator from your answers and the trips you list below.", fields: [
   { k: "sign_date", l: "Planned date to sign and submit the application", t: "d", r: 1 },
   { k: "calc_done", l: "Have you already used IRCC's online physical presence calculator?", t: "yn", r: 1 },
@@ -1606,7 +1640,7 @@ const CIT_ADULT = {
   key: "cit-adult",
   name: "Canadian citizenship – adult (18 and over)",
   intro: "This form collects everything needed to prepare an application for Canadian citizenship for an adult permanent resident (CIT 0002) and the supporting documents: PR status, physical presence (1,095 days in the last 5 years), addresses, work and education, taxes, language proof and IRCC's prohibition questions. Answer truthfully and completely. Wrong or missing information can lead to refusal or a finding of misrepresentation.",
-  sections: [CIT_ABOUT(false), CIT_PERSONAL, CIT_PR, CIT_PRESENCE, CIT_ABSENCES, CIT_CONTACT, CIT_ADDRESSES, CIT_ACTIVITY, CIT_TAX, CIT_LANG, CIT_PROHIB, CIT_EXTRA, ...CIT_END],
+  sections: [CIT_ABOUT(false), CIT_PERSONAL, CIT_PR, CIT_ENTRY, CIT_PRESENCE, CIT_ABSENCES, CIT_CONTACT, CIT_ADDRESSES, CIT_ACTIVITY, CIT_TAX, CIT_LANG, CIT_PROHIB, CIT_EXTRA, ...CIT_END],
   docs: docsOf(D_CIT_ID, [
     { k: "lang_proof", l: "Language proof: test result, diploma / transcript, or LINC / CLIC certificate", r: 1, if: "language.age_band=Yes&language.proof!=Don't have proof yet" },
     { k: "noa", l: "Notices of Assessment (NOA) from CRA for the years filed", h: "Not required by IRCC, but helps us check the tax years." },
@@ -1619,7 +1653,7 @@ const CIT_MINOR = {
   name: "Canadian citizenship – minor (under 18)",
   intro: "This form collects what is needed to apply for Canadian citizenship for a child under 18 who is a permanent resident (CIT 0003). A parent or legal guardian fills it. The child doesn't need 1,095 days, language proof or the test, but a parent must be a Canadian citizen or apply at the same time.",
   sections: [
-    CIT_ABOUT(true), CIT_PERSONAL, CIT_PR,
+    CIT_ABOUT(true), CIT_PERSONAL, CIT_PR, CIT_ENTRY,
     { id: "parents", title: "Parents and guardians", fields: [
       { k: "p1_name", l: "Parent 1 full name", t: "t", r: 1 },
       { k: "p1_status", l: "Parent 1 status", t: "s", r: 1, o: ["Canadian citizen", "Applying for citizenship at the same time", "Permanent resident (not applying)", "Not in Canada / other"] },
@@ -1719,6 +1753,16 @@ export function progress(form, data, docKeys) {
   }
   for (const d of form.docs) if (d.r && when(d.if, data)) { need++; if (docKeys.has(d.k)) have++; }
   return need ? Math.round((have / need) * 100) : 100;
+}
+// Older inside-Canada answers kept the entry questions in "status"; move them to the "entry" section. Safe to run twice.
+const MOVED_TO_ENTRY = ["first_entry", "first_place", "first_purpose", "last_entry", "last_place", "exits_yn"];
+export function upgradeIntake(data) {
+  const st = data && data.status;
+  if (!st || typeof st !== "object" || Array.isArray(st)) return data;
+  const e = data.entry && typeof data.entry === "object" && !Array.isArray(data.entry) ? data.entry : (data.entry = {});
+  for (const k of MOVED_TO_ENTRY) if (k in st) { if (e[k] == null || e[k] === "") e[k] = st[k]; delete st[k]; }
+  if (!Object.keys(e).length) delete data.entry;
+  return data;
 }
 export function applicantName(data) {
   const p = (data && data.personal) || {};

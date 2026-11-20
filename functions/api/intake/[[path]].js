@@ -2,14 +2,14 @@
 // the admin (x-admin-key) creates links, sees every intake and opens the answers and files.
 // Tables are created automatically. Files live privately in the RESUMES R2 bucket under intake/.
 import { json, readJson, str, isEmail, getUser, sendEmail, randomToken, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
-import { FORMS, missing, progress, applicantName, CONSENT_V, CONSENT_TEXT, KEEP_TEXT, partnerConsent } from "../../../assets/intake-config.js";
+import { FORMS, upgradeIntake, missing, progress, applicantName, CONSENT_V, CONSENT_TEXT, KEEP_TEXT, partnerConsent } from "../../../assets/intake-config.js";
 import { buildCompleteFile, KEEP_DAYS } from "../../_intake_file.js";
 import { ensureIntake } from "../../_partners.js";
 
 const MAX_FILES = 150, MAX_PER_DOC = 20;
 const ensure = ensureIntake;   // creates every intake, link and partner table and column
 const site = (env) => env.SITE_URL || "https://workerpool.ca";
-const parse = (s) => { try { return JSON.parse(s || "{}"); } catch { return {}; } };
+const parse = (s) => { try { return upgradeIntake(JSON.parse(s || "{}")); } catch { return {}; } };
 function same(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
   let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0;
@@ -113,6 +113,7 @@ async function client({ request, env }, route, m) {
     const a = await mine(env, u, b.id);
     if (!a) return json({ ok: false, error: "Form not found." }, 404);
     if (a.status === "submitted") return json({ ok: false, error: "This form was already submitted. Press Make changes to edit it." }, 409);
+    upgradeIntake(b.data);
     const form = FORMS[a.form_key];
     const pct = form ? progress(form, b.data, await docKeys(env, a.id)) : 0;
     await env.DB.prepare(`UPDATE intakes SET data = ?1, progress = ?2, updated = ?3 WHERE id = ?4`).bind(JSON.stringify(b.data), pct, new Date().toISOString(), a.id).run();
