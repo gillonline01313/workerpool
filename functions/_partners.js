@@ -61,6 +61,13 @@ export async function ensureIntake(env) {
     // partner firms: who owns the form, and the firm's own work status, notes and downloads
     "partner_id TEXT", "partner_seen TEXT", "partner_status TEXT DEFAULT 'new'", "partner_note TEXT", "partner_downloads INTEGER DEFAULT 0"]);
   await add("intake_invites", ["partner_id TEXT", "price_kind TEXT", "price_cents INTEGER", "refunded INTEGER DEFAULT 0"]);
+  // form versions (empty = version 1) and document requests from the team
+  await add("intakes", ["form_v INTEGER", "req_new TEXT"]);
+  await add("intake_docs", ["req_id TEXT"]);
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS intake_requests (id TEXT PRIMARY KEY, intake_id TEXT NOT NULL, token TEXT NOT NULL, items TEXT, message TEXT,
+    status TEXT DEFAULT 'open', created TEXT, expires TEXT, emailed TEXT, opens INTEGER DEFAULT 0, last_open TEXT, sent_back TEXT, done_at TEXT)`).run();
+  await env.DB.prepare(`CREATE INDEX IF NOT EXISTS intake_requests_intake ON intake_requests (intake_id)`).run();
+  await env.DB.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS intake_requests_token ON intake_requests (token)`).run();
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS intakes_partner ON intakes (partner_id)`).run();
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS intake_invites_partner ON intake_invites (partner_id)`).run();
   await ensurePartners(env);

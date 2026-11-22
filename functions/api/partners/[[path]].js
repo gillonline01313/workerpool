@@ -14,6 +14,7 @@
 // Admin routes (x-admin-key) under /api/partners/admin/: list, ledger, status, grant, prices.
 import { json, readJson, str, isEmail, sendEmail, hashPassword, checkPassword, randomToken, sha256hex } from "../../_lib.js";
 import { FORMS, upgradeIntake, missing, applicantName } from "../../../assets/intake-config.js";
+import { intakeForm } from "../../_intake_req.js";
 import { buildCompleteFile } from "../../_intake_file.js";
 import { stripe } from "../../_scanpass.js";
 import { ensureIntake, getPartner, createPartnerSession, partnerCookie, partnerToken, addCredits, prices, kindOf, money,
@@ -186,20 +187,20 @@ async function partner({ request, env }, route, m) {
     FROM intakes i JOIN users u ON u.id = i.user_id LEFT JOIN intake_invites v ON v.code = i.invite_code WHERE i.id = ?1 AND i.partner_id = ?2`).bind(str(id || b.id, 60), p.id).first();
   if (!r) return json({ ok: false, error: "Form not found." }, 404);
   if (!r.submitted) return json({ ok: false, error: "Your client hasn't submitted this form yet. You can open it once they do." }, 409);
-  const form = FORMS[r.form_key];
+  const { form, extra } = await intakeForm(env, r);
   if (route === "item" && m === "GET") {
     const docs = await env.DB.prepare(`SELECT id, doc_key, name, size, type, uploaded FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(r.id).all();
     if (r.status === "submitted" && !r.partner_seen) await env.DB.prepare(`UPDATE intakes SET partner_seen = ?1 WHERE id = ?2`).bind(new Date().toISOString(), r.id).run();
-    const row = { id: r.id, form_key: r.form_key, status: r.status, data: parse(r.data), progress: r.progress, created: r.created, updated: r.updated, submitted: r.submitted, resubmitted: r.resubmitted,
+    const row = { id: r.id, form_key: r.form_key, form_v: r.form_v || 1, status: r.status, data: parse(r.data), progress: r.progress, created: r.created, updated: r.updated, submitted: r.submitted, resubmitted: r.resubmitted,
       consent_at: r.consent_at, consent_text: r.consent_text, partner_status: r.partner_status, partner_note: r.partner_note, partner_downloads: r.partner_downloads,
       docs_destroyed_at: r.docs_destroyed_at, docs_destroyed_count: r.docs_destroyed_count, acct_name: r.acct_name, acct_email: r.acct_email, acct_phone: r.acct_phone, invite_label: r.invite_label };
     const have = r.docs_destroyed_at ? new Set(form.docs.map((d) => d.k)) : new Set(docs.results.map((d) => d.doc_key));
-    return json({ ok: true, row, docs: docs.results, missing: form ? missing(form, row.data, have) : [] });
+    return json({ ok: true, row, docs: docs.results, extra, missing: form ? missing(form, row.data, have) : [] });
   }
   if (route === "zip" && m === "GET") {
     if (!env.RESUMES) return json({ ok: false, error: "File storage isn't connected." }, 503);
     const docs = (await env.DB.prepare(`SELECT * FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(r.id).all()).results;
-    const built = await buildCompleteFile(env, { ...r, data: parse(r.data), partner_firm: p.firm }, docs, { name: r.acct_name, email: r.acct_email, phone: r.acct_phone });
+    const built = await buildCompleteFile(env, { ...r, data: parse(r.data), partner_firm: p.firm }, docs, { name: r.acct_name, email: r.acct_email, phone: r.acct_phone }, extra);
     await env.DB.prepare(`UPDATE intakes SET partner_downloads = COALESCE(partner_downloads, 0) + 1 WHERE id = ?1`).bind(r.id).run();
     return new Response(built.bytes, { headers: { "content-type": "application/zip", "content-disposition": `attachment; filename="${built.name.replace(/"/g, "")}"`, "cache-control": "private, no-store" } });
   }

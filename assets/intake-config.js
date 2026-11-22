@@ -9,7 +9,15 @@
    repeatable section), "$minor" (applicant under 18 from date of birth). Join with "&" for AND and ";" for OR
    (";" binds tighter: "a=1;b=1&c=1" means (a or b) and c). A tick box (cb) reads as "true" when ticked.
 
-   To add a form: add it to FORMS below and set ready: 1 on its catalog entry. Never change a form key that has intakes. */
+   To add a form: add it to FORMS below and set ready: 1 on its catalog entry. Never change a form key that has intakes.
+
+   Versions: every intake stores the form version it was started on (form_v). Intakes from before versions existed
+   (form_v empty) use the frozen copy in intake-forms-v1.js, so a client part-way through, or a submitted file, never
+   changes under them. This file is the current version (FORM_V). Edit questions freely here for new intakes; when an
+   edit would change what earlier intakes on this version see, copy this file to intake-forms-v<N>.js, raise FORM_V and
+   add it to formOf(). Always look a form up with formOf(intake), never FORMS[key] directly. */
+
+import { FORMS as FORMS_V1 } from "./intake-forms-v1.js";
 
 const YN = ["Yes", "No"];
 export const COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (Democratic Republic)","Congo (Republic)","Costa Rica","Côte d'Ivoire","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hong Kong SAR","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Korea (North)","Korea (South)","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Macao SAR","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Macedonia","Norway","Oman","Pakistan","Palau","Palestinian Authority","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Türkiye","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe","Stateless"];
@@ -1885,6 +1893,31 @@ export const FORMS = Object.fromEntries([TRV_OUT, SUPERVISA_OUT, ETA, TRANSIT_OU
 
 /* ---------- consent shown before every submission (stored word for word with the submission) ----------
    Bump CONSENT_V when the wording changes. KEEP_DAYS must match functions/_intake_file.js. */
+/* ---------- versions and document requests ---------- */
+export const FORM_V = 2;
+// The form an intake uses: its own version, plus any documents the team requested for it (extra).
+export function formOf(row, extra) {
+  if (!row) return null;
+  const k = row.form_key, f = (Number(row.form_v) || 1) >= 2 ? FORMS[k] : FORMS_V1[k] || FORMS[k];
+  if (!f) return null;
+  const add = (extra || []).filter((x) => !f.docs.some((d) => d.k === x.k));
+  return add.length ? { ...f, docs: [...add, ...f.docs] } : f;
+}
+// Document requests the team sent for an intake. Each item is either a document already on the form ({ k }) or a
+// custom document ({ k: "x_…", l, h }). Returns the custom ones as extra document types (required while the request
+// is open) and the keys of every document still being asked for.
+export function requestDocs(reqs, form) {
+  const extra = [], asked = new Set();
+  for (const q of reqs || []) {
+    const open = q.status === "open";
+    for (const it of q.items || []) {
+      if (open) asked.add(it.k);
+      if (it.l && !(form && form.docs.some((d) => d.k === it.k)) && !extra.some((x) => x.k === it.k))
+        extra.push({ k: it.k, l: it.l, h: it.note || "Requested by our team.", r: open ? 1 : 0, req: 1 });
+    }
+  }
+  return { extra, asked };
+}
 export const CONSENT_V = "2026-11-03";
 export const KEEP_DAYS = 30;
 export const CONSENT_TEXT = "I give my consent to WorkerPool to use the information and documents in this form only to prepare my application. I understand that once my file is complete, the WorkerPool team will permanently destroy all the documents I uploaded, and will share the complete submitted file (my answers and all my documents) with me for my future reference.";
@@ -1956,15 +1989,7 @@ export function progress(form, data, docKeys) {
 }
 // Older inside-Canada answers kept the entry questions in "status"; move them to the "entry" section. Safe to run twice.
 const MOVED_TO_ENTRY = ["first_entry", "first_place", "first_purpose", "last_entry", "last_place", "exits_yn"];
-const MOVED_TO_NEED = ["reasons", "until", "funds"];
 export function upgradeIntake(data) {
-  // Older TRP (inside Canada) answers kept the stay questions in "inadm"; move them to "need". Only that form has
-  // both an "inadm" section and these keys without a "visit" section.
-  const ia = data && data.inadm;
-  if (ia && typeof ia === "object" && !data.visit && MOVED_TO_NEED.some((k) => k in ia)) {
-    const nd = data.need && typeof data.need === "object" && !Array.isArray(data.need) ? data.need : (data.need = {});
-    for (const k of MOVED_TO_NEED) if (k in ia) { if (nd[k] == null || nd[k] === "") nd[k] = ia[k]; delete ia[k]; }
-  }
   const st = data && data.status;
   if (!st || typeof st !== "object" || Array.isArray(st)) return data;
   const e = data.entry && typeof data.entry === "object" && !Array.isArray(data.entry) ? data.entry : (data.entry = {});

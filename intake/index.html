@@ -76,6 +76,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{out
 .sec>summary .st.ok{color:var(--ok)}
 .sec .body{padding:0 18px 18px;display:flex;flex-direction:column;gap:14px}
 .sec .intro{margin:0;color:var(--muted);font-size:.9rem}
+.pill.req{background:#f6ebdc;color:#7a4a17;border-color:transparent}
 .rep{border:1px dashed var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
 .rep-h{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .doc{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--field);display:flex;flex-direction:column;gap:10px}
@@ -123,7 +124,7 @@ footer a{color:var(--muted)}
 <footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents. We are not immigration representatives and do not give immigration advice. Your information is kept private and is used only to prepare your file. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
 <datalist id="countries"></datalist>
 <script type="module">
-import { FORMS, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName, CONSENT_TEXT, KEEP_TEXT, KEEP_DAYS, partnerConsent } from "/assets/intake-config.js?v=7";
+import { FORMS, formOf, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName, CONSENT_TEXT, KEEP_TEXT, KEEP_DAYS, partnerConsent } from "/assets/intake-config.js?v=8";
 
 const $ = (s, r = document) => r.querySelector(s);
 const view = $("#view");
@@ -134,7 +135,7 @@ $("#countries").innerHTML = COUNTRIES.map((c) => `<option value="${esc(c)}">`).j
 
 const qs = new URLSearchParams(location.search);
 let link = { code: qs.get("i") || "", form: qs.get("f") || "" }, linkInfo = null, me = null;
-let cur = null, form = null, data = {}, docs = [], saveTimer = null, saving = false, dirty = false;
+let cur = null, form = null, data = {}, docs = [], asked = new Set(), reqs = [], saveTimer = null, saving = false, dirty = false;
 
 async function api(url, opts = {}) {
   const r = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...(opts.headers || {}) } });
@@ -149,6 +150,7 @@ window.addEventListener("beforeunload", (e) => { if (dirty) { flush(); e.prevent
 
 /* ---------- start ---------- */
 async function boot() {
+  if (qs.get("r")) return reqPage(qs.get("r"));
   if (link.code || link.form) {
     const r = await api(`/api/intake/link?${link.code ? "i=" + encodeURIComponent(link.code) : "f=" + encodeURIComponent(link.form)}`);
     if (!r.ok) { view.innerHTML = `<div class="card"><h2>Link not available</h2><p style="margin:0">${esc(r.j.error || "This link doesn't work.")}</p><p class="saved" style="margin:0">If someone sent you this link, ask them for a new one.</p></div>`; return; }
@@ -234,7 +236,7 @@ async function list(auto) {
     <div><span class="eyebrow">Signed in as ${esc(me.email)}</span><h1>Your forms</h1></div>
     ${rows.length ? rows.map((x) => `<div class="app"><div><b>${esc(FORMS[x.form_key].name)}</b>
         <span>${x.firm ? "For " + esc(x.firm) + " · " : ""}${x.name ? "Applicant: " + esc(x.name) + " · " : ""}${x.status === "submitted" ? "Submitted " + day(x.submitted) : x.progress + "% complete · last saved " + day(x.updated)}</span></div>
-        <div style="display:flex;gap:8px;align-items:center"><span class="pill ${x.status === "submitted" ? "sub" : ""}">${x.status === "submitted" ? "Submitted" : x.status === "editing" ? "Making changes" : "In progress"}</span>
+        <div style="display:flex;gap:8px;align-items:center">${x.reqs_open ? `<span class="pill req">Documents requested</span>` : ""}<span class="pill ${x.status === "submitted" ? "sub" : ""}">${x.status === "submitted" ? "Submitted" : x.status === "editing" ? "Making changes" : "In progress"}</span>
         <button class="btn sm" data-open="${x.id}">${x.status === "submitted" ? "View" : "Continue"}</button></div></div>`).join("")
       : `<div class="card"><p style="margin:0">You don't have any forms yet. Open the link we sent you to start one.</p></div>`}
     ${link.form && FORMS[link.form] && !single ? `<div class="card"><h2>Applying for more than one person?</h2><p style="margin:0" class="saved">Each person needs their own form (for example your spouse or each child). Start one for each family member applying.</p>
@@ -254,7 +256,8 @@ async function open(id) {
   view.innerHTML = `<div class="card"><p class="saved" style="margin:0">Opening your form…</p></div>`;
   const r = await api("/api/intake/item?id=" + encodeURIComponent(id));
   if (!r.ok) { view.innerHTML = `<div class="card"><p class="err">${esc(r.j.error || "Couldn't open the form.")}</p></div>`; return; }
-  cur = r.j.row; data = cur.data || {}; docs = r.j.docs || []; form = FORMS[cur.form_key];
+  cur = r.j.row; data = cur.data || {}; docs = r.j.docs || []; form = formOf(cur, r.j.extra); asked = new Set(r.j.asked || []); reqs = r.j.requests || [];
+  if (!form) { view.innerHTML = `<div class="card"><p class="err">This form is no longer available. Contact us.</p></div>`; return; }
   window.scrollTo(0, 0);
   if (cur.status === "submitted") return done();
   draw();
@@ -297,7 +300,7 @@ function docHtml(d) {
   const mine = docs.filter((x) => x.doc_key === d.k);
   return `<div class="doc" data-doc="${d.k}"${d.if ? ` data-if="${esc(d.if)}"` : ""}>
     <div class="doc-h"><div><b>${esc(d.l)}</b>${d.h ? `<div class="help" style="margin-top:3px">${esc(d.h)}</div>` : ""}</div>
-      <span class="tag ${mine.length ? "ok" : d.r ? "need" : ""}">${mine.length ? "✓ Uploaded" : d.r ? "Required" : "Optional"}</span></div>
+      <span class="tag ${mine.length ? "ok" : d.r || asked.has(d.k) ? "need" : ""}">${mine.length ? "✓ Uploaded" : asked.has(d.k) ? "Requested by our team" : d.r ? "Required" : "Optional"}</span></div>
     ${mine.length ? `<div class="files">${mine.map((x) => `<div class="file"><span title="${esc(x.name)}">${esc(x.name)} · ${kb(x.size)}</span><div><a class="linkbtn" href="/api/intake/doc?id=${x.id}" target="_blank" rel="noopener">View</a><button class="linkbtn" type="button" data-rm="${x.id}">Remove</button></div></div>`).join("")}</div>` : ""}
     <label class="btn ghost sm up">Upload file${mine.length ? "s" : ""}<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" data-up="${d.k}"></label>
     <div class="err" data-uperr="${d.k}" style="min-height:0"></div></div>`;
@@ -307,11 +310,12 @@ function draw() {
     <span class="eyebrow">${cur.status === "editing" ? "Making changes to a submitted form" : "Intake form"}</span>
     <h1>${esc(form.name)}</h1>
     <p class="lede">${esc(form.intro)}</p></div>
+    ${reqs.length ? `<div class="note warn" id="reqNote"><b>${esc(cur.firm || "Our team")} asked you for ${[...asked].length} document${[...asked].length === 1 ? "" : "s"}.</b> They are at the top of the Documents section, marked "Requested by our team". ${reqs.filter((q) => q.message).map((q) => `<br>Message: ${esc(q.message)}`).join("")} <button class="linkbtn" type="button" id="toDocs">Go to the documents</button></div>` : ""}
     <div class="bar"><div class="meter" aria-hidden="true"><i id="meter" style="width:0"></i></div><span class="pct" id="pct">0%</span><span class="saved" id="saved">All changes saved</span></div>
     <form id="ff" novalidate>${form.sections.map(secHtml).join("")}
       <details class="sec" data-sec="__docs" open><summary><h2>Documents</h2><span class="st"></span></summary><div class="body">
         <p class="intro">Upload a clear scan or photo of each document. You can add more than one file for any item. The list changes with your answers above.</p>
-        <div class="stack" id="docList">${form.docs.map(docHtml).join("")}</div></div></details>
+        <div class="stack" id="docList">${[...form.docs.filter((d) => asked.has(d.k)), ...form.docs.filter((d) => !asked.has(d.k))].map(docHtml).join("")}</div></div></details>
       <div class="card" id="finish"><h2>Review and submit</h2>
         <div id="missWrap"></div>
         ${cur.firm ? `<div class="consent" id="consentBox">
@@ -344,6 +348,7 @@ function draw() {
   ff.addEventListener("click", onClick);
   ff.addEventListener("change", onFile);
   $("#submit").onclick = submit;
+  const td = $("#toDocs"); if (td) td.onclick = () => { const d = ff.querySelector('[data-sec="__docs"]'); d.open = true; d.scrollIntoView({ behavior: "smooth" }); };
   $("#consentBox").addEventListener("change", gate);
   const firstOpen = form.sections.find((s) => sectionOn(s, data) && secMissing(s).length);
   const el = firstOpen && ff.querySelector(`[data-sec="${firstOpen.id}"]`); if (el) el.open = true;
@@ -490,12 +495,14 @@ function done(just) {
   view.innerHTML = `<div class="stack">
     <div><span class="eyebrow">Submitted ${day(cur.submitted)}</span><h1>${esc(form.name)}</h1>${applicantName(data) ? `<p class="lede">Applicant: ${esc(applicantName(data))}</p>` : ""}</div>
     ${just ? `<div class="note"><b>Thank you. Your form was submitted.</b> We emailed you a confirmation, and ${cur.firm ? esc(cur.firm) + " will" : "our team will"} contact you if anything else is needed.</div>` : ""}
+    ${reqs.map((q) => `<div class="card" data-req="${esc(q.token)}"><p class="saved" style="margin:0">Loading the documents requested…</p></div>`).join("")}
     ${fileCard()}
     ${cur.docs_destroyed_at ? "" : `<div class="card"><div class="actions"><span>Need to fix something or add a document?</span><button class="btn ghost sm" id="reopen" type="button">Make changes</button></div><div class="err" id="roErr" style="min-height:0"></div></div>`}
     <div>${blocks}</div>
     <div class="card"><h2>Documents (${docs.length})</h2>${cur.docs_destroyed_at ? `<p style="margin:0">As you agreed, the documents you uploaded were permanently ${cur.firm ? `deleted from WorkerPool on ${day(cur.docs_destroyed_at)}, after ${esc(cur.firm)} received your complete file.` : `destroyed on ${day(cur.docs_destroyed_at)}. They are all inside your complete file.`}</p>` : files || `<p class="saved" style="margin:0">No files.</p>`}</div>
     <div><button class="btn ghost" id="back" type="button">Back to my forms</button></div></div>`;
   $("#back").onclick = () => { cur = null; list(); };
+  view.querySelectorAll("[data-req]").forEach((el) => reqView(el.dataset.req, el, false));
   view.querySelectorAll("[data-keep]").forEach((b) => b.onclick = async () => {
     const k = b.dataset.keep;
     if (k === "no" && !confirm(`Stop saving your complete file with WorkerPool? ${cur.final_ready ? `It will be removed ${KEEP_DAYS} days from now, so download your copy first.` : `It will be removed ${KEEP_DAYS} days after we share it with you.`}`)) return;
@@ -509,6 +516,63 @@ function done(just) {
     const r = await api("/api/intake/reopen", { method: "POST", body: JSON.stringify({ id: cur.id }) });
     if (!r.ok) { $("#roErr").textContent = r.j.error || "Couldn't reopen it."; return; }
     cur.status = "editing"; draw();
+  };
+}
+/* ---------- document requests from the team (link /intake/?r=TOKEN, no sign-in needed) ---------- */
+async function reqPage(t) {
+  view.innerHTML = `<div class="card" id="reqBox"><p class="saved" style="margin:0">Opening your document request…</p></div>`;
+  reqView(t, $("#reqBox"), true);
+}
+async function reqView(t, el, standalone) {
+  let r; try { const x = await fetch("/api/intake/req?t=" + encodeURIComponent(t)); r = { ok: x.ok, j: await x.json().catch(() => ({})) }; } catch (e) { r = { ok: false, j: { error: "Couldn't load it. Check your connection and refresh." } }; }
+  if (!r.ok || !r.j.ok) { el.innerHTML = `${standalone ? "<h2>Document request</h2>" : ""}<p class="err" style="margin:0">${esc(r.j.error || "This link doesn't work.")}</p>`; return; }
+  const R = r.j, by = R.firm || "our team", n = R.items.filter((it) => it.files.length).length;
+  const item = (it) => `<div class="doc"><div class="doc-h"><div><b>${esc(it.l)}</b>${it.h ? `<div class="help" style="margin-top:3px">${it.note ? "<b>Note:</b> " : ""}${esc(it.h)}</div>` : ""}</div>
+      <span class="tag ${it.files.length ? "ok" : "need"}">${it.files.length ? "✓ Uploaded" : "Needed"}</span></div>
+    ${it.files.length ? `<div class="files">${it.files.map((f) => `<div class="file"><span title="${esc(f.name)}">${esc(f.name)} · ${kb(f.size)}</span>${R.status === "open" ? `<div><button class="linkbtn" type="button" data-rrm="${f.id}">Remove</button></div>` : ""}</div>`).join("")}</div>` : ""}
+    ${R.status === "open" ? `<label class="btn ghost sm up">Upload file${it.files.length ? "s" : ""}<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" data-rup="${esc(it.k)}"></label>` : ""}</div>`;
+  el.innerHTML = `${standalone ? `<span class="eyebrow">Secure document request${R.firm ? " · " + esc(R.firm) : ""}</span><h1 style="margin:4px 0 6px">Documents needed</h1>
+      <p class="lede" style="margin:0 0 12px">${R.applicant ? `Hi ${esc(R.applicant)}, please` : "Please"} upload the documents below for your <b>${esc(R.form)}</b> file. Each one has its own upload button. PDF, JPG, PNG, DOC or DOCX, up to 10 MB each.</p>`
+      : `<h2>Documents requested by ${esc(by)}</h2>`}
+    ${R.message ? `<div class="note"><b>Message from ${esc(by)}:</b> ${esc(R.message)}</div>` : ""}
+    <div class="stack" style="margin-top:12px">${R.items.map(item).join("")}</div>
+    <div class="err" data-rerr style="min-height:0"></div>
+    ${R.status === "open" ? `<div class="actions"><span class="saved">${n}/${R.items.length} uploaded. ${R.sent_back ? `Last sent to ${esc(by)} on ${day(R.sent_back)}.` : `When you've uploaded everything, let ${esc(by)} know.`}</span><button class="btn" type="button" data-rsend>Send to ${esc(by)}</button></div>
+      <p class="saved" style="margin:0">This link works until ${day(R.expires)}. Your documents are stored privately and only ${esc(by)} can see them.${standalone ? ` Already have an account? You can also <a href="/intake/">sign in</a> and upload from your form.` : ""}</p>`
+      : `<div class="note">Thank you. ${esc(by)} has everything for this request.</div>`}`;
+  const err = (m) => { const e = el.querySelector("[data-rerr]"); if (e) e.textContent = m; };
+  el.querySelectorAll("[data-rup]").forEach((inp) => inp.onchange = async () => {
+    const files = [...inp.files]; inp.value = "";
+    for (const f of files) {
+      if (f.size > 10 * 1024 * 1024) { err(`${f.name} is over 10 MB. Compress it or split it.`); continue; }
+      if (!/\.(pdf|jpe?g|png|docx?)$/i.test(f.name)) { err(`${f.name}: upload a PDF, JPG, PNG, DOC or DOCX.`); continue; }
+      err(`Uploading ${f.name}…`);
+      try {
+        const x = await fetch("/api/intake/req-doc", { method: "POST", body: f, headers: { "x-req-token": t, "x-doc-key": inp.dataset.rup, "x-file-name": encodeURIComponent(f.name) } });
+        const j = await x.json().catch(() => ({}));
+        if (!x.ok || !j.ok) { err(j.error || "Upload failed. Try again."); continue; }
+        if (cur && j.doc) docs.push(j.doc);
+      } catch (e) { err("Upload failed. Check your connection and try again."); }
+    }
+    reqView(t, el, standalone);
+  });
+  el.querySelectorAll("[data-rrm]").forEach((b) => b.onclick = async () => {
+    if (!confirm("Remove this file?")) return;
+    const x = await fetch("/api/intake/req-doc?id=" + encodeURIComponent(b.dataset.rrm), { method: "DELETE", headers: { "x-req-token": t } });
+    const j = await x.json().catch(() => ({}));
+    if (!x.ok || !j.ok) return err(j.error || "Couldn't remove it.");
+    if (cur) docs = docs.filter((d) => d.id !== b.dataset.rrm);
+    reqView(t, el, standalone);
+  });
+  const sb = el.querySelector("[data-rsend]"); if (sb) sb.onclick = async () => {
+    sb.disabled = true;
+    const x = await fetch("/api/intake/req-send", { method: "POST", headers: { "x-req-token": t, "Content-Type": "application/json" }, body: "{}" });
+    const j = await x.json().catch(() => ({}));
+    if (!x.ok || !j.ok) { sb.disabled = false; return err(j.error || "Couldn't send it. Try again."); }
+    await reqView(t, el, standalone);
+    const note = document.createElement("div"); note.className = "note";
+    note.innerHTML = j.complete ? `<b>Thank you. ${esc(by)} has been told your documents are ready.</b>` : `<b>Sent.</b> ${esc(by)} was told. ${j.left} document${j.left === 1 ? " is" : "s are"} still not uploaded; you can add ${j.left === 1 ? "it" : "them"} with this same link.`;
+    el.prepend(note);
   };
 }
 boot().catch((e) => { if (e.message !== "auth") view.innerHTML = `<div class="card"><p class="err">Couldn't load the page. Refresh to try again.</p></div>`; });

@@ -72,7 +72,7 @@
     return j;
   }
   const post = (path, b) => call(path, { method: "POST", body: JSON.stringify(b) });
-  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=7"); return C; }
+  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=8"); return C; }
   const site = () => location.origin;
   const genLink = (k) => `${site()}/intake/?f=${encodeURIComponent(k)}`;
   const formName = (k) => (C.FORMS[k] && C.FORMS[k].name) || ((C.catalogEntry(k) || {}).form || {}).name || k;
@@ -133,7 +133,7 @@
   function rows() {
     const R = (S.list && S.list.rows) || [], q = S.q.trim().toLowerCase();
     return R.filter((r) => {
-      const isNew = r.status === "submitted" && !r.admin_seen;
+      const isNew = (r.status === "submitted" && !r.admin_seen) || !!r.req_new;
       if (S.filter === "new" && !isNew) return false;
       if (S.filter === "submitted" && r.status !== "submitted") return false;
       if (S.filter === "progress" && r.status === "submitted") return false;
@@ -144,18 +144,19 @@
   }
   function listHtml() {
     const R = (S.list && S.list.rows) || [];
-    const n = { new: R.filter((r) => r.status === "submitted" && !r.admin_seen).length, submitted: R.filter((r) => r.status === "submitted").length, progress: R.filter((r) => r.status !== "submitted").length, partner: R.filter((r) => r.partner_id).length, all: R.length };
+    const n = { new: R.filter((r) => (r.status === "submitted" && !r.admin_seen) || r.req_new).length, submitted: R.filter((r) => r.status === "submitted").length, progress: R.filter((r) => r.status !== "submitted").length, partner: R.filter((r) => r.partner_id).length, all: R.length };
     const L = rows();
     const segs = [["new", `New (${n.new})`], ["submitted", `Submitted (${n.submitted})`], ["progress", `Still filling (${n.progress})`], ["partner", `Partner firms (${n.partner})`], ["all", `All (${n.all})`]];
     return `<div class="wpa-card wide"><div class="ik-top"><h3>Client forms</h3>
       <div class="ik-acts"><div class="wpa-seg">${segs.map(([v, l]) => `<button type="button" data-f="${v}" aria-pressed="${S.filter === v}">${l}</button>`).join("")}</div>
       <input id="ikQ" class="ik-in" type="search" placeholder="Search name, email, phone, form…" value="${esc(S.q)}" style="width:240px"></div></div>
       ${L.length ? `<div class="wpa-tbl"><table><thead><tr><th>Status</th><th>Applicant</th><th>Form</th><th>Account</th><th>Progress</th><th>Files</th><th>Submitted</th></tr></thead><tbody>
-        ${L.map((r) => { const isNew = r.status === "submitted" && !r.admin_seen;
-          const badge = isNew ? `<span class="ik-badge new">${r.resubmitted ? "Updated" : "New"}</span>` : r.status === "submitted" ? `<span class="ik-badge sub">${esc(stLabel(r.admin_status))}</span>` : r.status === "editing" ? `<span class="ik-badge edit">Client editing</span>` : `<span class="ik-badge">Filling</span>`;
+        ${L.map((r) => { const isNew = (r.status === "submitted" && !r.admin_seen) || !!r.req_new;
+          const fresh = r.status === "submitted" && !r.admin_seen;
+          const badge = (r.req_new ? `<span class="ik-badge new">New documents</span> ` : "") + (fresh ? `<span class="ik-badge new">${r.resubmitted ? "Updated" : "New"}</span>` : r.status === "submitted" ? `<span class="ik-badge sub">${esc(stLabel(r.admin_status))}</span>` : r.status === "editing" ? `<span class="ik-badge edit">Client editing</span>` : `<span class="ik-badge">Filling</span>`);
           return `<tr class="ik-row${isNew ? " new" : ""}" data-open="${r.id}" tabindex="0"><td>${badge}</td><td>${esc(r.name || "(name not entered)")}${r.partner_id ? `<br><span class="ik-badge sub" title="Sent by a partner firm">Partner: ${esc(r.partner_firm || "firm")}</span>` : ""}${r.invite_label ? `<br><span class="ik-note">Link: ${esc(r.invite_label)}</span>` : ""}</td>
             <td>${esc(formName(r.form_key))}</td><td>${esc(r.acct_name)}<br><span class="ik-note">${esc(r.acct_email)} · ${esc(r.acct_phone)}</span></td>
-            <td><span class="ik-meter"><i style="width:${r.progress || 0}%"></i></span>${r.progress || 0}%</td><td>${r.files}</td><td>${r.submitted ? when(r.resubmitted || r.submitted) : `<span class="ik-note">Last saved ${when(r.updated)}</span>`}</td></tr>`; }).join("")}
+            <td><span class="ik-meter"><i style="width:${r.progress || 0}%"></i></span>${r.progress || 0}%</td><td>${r.files}${r.reqs_open ? `<br><span class="ik-badge edit" title="Document request waiting for the client">Requested</span>` : ""}</td><td>${r.submitted ? when(r.resubmitted || r.submitted) : `<span class="ik-note">Last saved ${when(r.updated)}</span>`}</td></tr>`; }).join("")}
       </tbody></table></div>` : `<div class="wpa-empty">${S.filter === "new" ? "No new submissions. Forms clients submit appear here, highlighted, until you open them." : "Nothing here yet."}</div>`}</div>`;
   }
   function draw() {
@@ -204,22 +205,22 @@
     return out.join("\n");
   }
   async function openItem(id) {
-    S.open = id; S.item = null; S.busy = true;
+    S.open = id; S.item = null; S.busy = true; S.reqOpen = false; S.reqMade = null;
     body.innerHTML = `<div class="wpa-empty">Opening…</div>`;
     try { S.item = await call("item?id=" + encodeURIComponent(id)); } catch (e) { S.busy = false; S.open = null; body.innerHTML = `<div class="wpa-empty">Couldn't open it: ${esc(e.message)}</div>`; return; }
     S.busy = false; drawItem(); badge();
     const r = S.list && S.list.rows.find((x) => x.id === id); if (r && !r.admin_seen && r.status === "submitted") r.admin_seen = new Date().toISOString();
   }
   function drawItem() {
-    const { row: r, docs, missing } = S.item, form = C.FORMS[r.form_key];
+    const { row: r, docs, missing } = S.item, form = C.formOf(r, S.item.extra), asked = new Set(S.item.asked || []);
     if (!form) { body.innerHTML = `<div class="wpa-empty">Unknown form ${esc(r.form_key)}.</div>`; return; }
     const A = answers(form, r.data), d = r.data, c = d.contact || {}, name = C.applicantName(d) || "(name not entered)";
     const sec = (s) => `<div class="ik-sec"><h4>${esc(s.title)}</h4>${s.reps ? (s.reps.length ? s.reps.map((p, i) => `<div class="ik-rep"><div class="ik-note" style="font-weight:700;margin-bottom:4px">${i + 1}</div><dl class="ik-dl">${p.map(([l, v]) => `<dt>${esc(l)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></div>`).join("") : `<span class="ik-note">None</span>`)
       : (s.pairs.length ? `<dl class="ik-dl">${s.pairs.map(([l, v]) => `<dt>${esc(l)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : `<span class="ik-note">Nothing entered</span>`)}</div>`;
     const docRows = form.docs.filter((x) => C.when(x.if, d) || docs.some((y) => y.doc_key === x.k)).map((x) => {
       const f = docs.filter((y) => y.doc_key === x.k);
-      return `<div class="ik-doc"><div class="n"><b>${esc(x.l)}</b>${!f.length ? ` <span class="ik-badge${x.r ? " edit" : ""}">${x.r ? "Missing" : "Not uploaded"}</span>` : ""}
-        ${f.map((y) => `<div class="ik-note">${esc(y.name)} · ${kb(y.size)} · ${when(y.uploaded)}</div>`).join("")}</div>
+      return `<div class="ik-doc"><div class="n"><b>${esc(x.l)}</b>${x.req ? ` <span class="ik-badge sub">Custom request</span>` : ""}${asked.has(x.k) ? ` <span class="ik-badge edit">Requested</span>` : ""}${!f.length ? ` <span class="ik-badge${x.r ? " edit" : ""}">${x.r ? "Missing" : "Not uploaded"}</span>` : ""}
+        ${f.map((y) => `<div class="ik-note">${esc(y.name)} · ${kb(y.size)} · ${when(y.uploaded)}${y.req_id ? " · sent through a request link" : ""}</div>`).join("")}</div>
         <div class="ik-acts">${f.map((y) => `<button class="dl" type="button" data-view="${y.id}" data-name="${esc(y.name)}">View</button><button class="dl" type="button" data-dl="${y.id}" data-name="${esc(y.name)}">Download</button>`).join("")}</div></div>`;
     }).join("");
     const stat = r.status === "submitted" ? (r.resubmitted ? `Resubmitted ${when(r.resubmitted)} (first ${when(r.submitted)})` : `Submitted ${when(r.submitted)}`) : r.status === "editing" ? "Client is making changes (not resubmitted yet)" : `Still filling · ${r.progress || 0}% · last saved ${when(r.updated)}`;
@@ -239,6 +240,7 @@
         ${missing.length ? `<div class="ik-miss"><b>${missing.length} required item${missing.length > 1 ? "s" : ""} not complete</b>${r.status === "submitted" ? " (the form rules changed after they submitted)" : ""}<ul>${missing.slice(0, 60).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
       </div>
       ${lifeCard(r, docs)}
+      ${reqCard(r, form, docs)}
       <div class="wpa-card wide"><h3>Documents (${docs.length} file${docs.length === 1 ? "" : "s"})</h3>${r.docs_destroyed_at ? `<span class="ik-note">${r.docs_destroyed_count || 0} uploaded document${r.docs_destroyed_count === 1 ? " was" : "s were"} permanently destroyed on ${when(r.docs_destroyed_at)}.</span>` : docRows || `<span class="ik-note">No documents.</span>`}</div>
       <div class="wpa-card wide"><h3>Answers</h3>${A.map(sec).join("")}</div>
       <div class="wpa-card wide"><h3>Manage</h3><div class="ik-acts">
@@ -272,6 +274,7 @@
     };
     const u = $("#ikUnlock"); if (u) u.onclick = async () => { if (!confirm("Unlock this form so the client can change answers and documents? It returns here as Updated when they resubmit.")) return; await post("unlock", { id: r.id }); openItem(r.id); };
     $("#ikUnread").onclick = async () => { await post("unseen", { id: r.id }); back(); };
+    wireReq(r, form);
     $("#ikDel").onclick = async () => { if (!confirm(`Permanently delete ${name}'s form and all ${docs.length} files? This can't be undone.`)) return; if (prompt('Type DELETE to confirm') !== "DELETE") return; await post("delete", { id: r.id }); back(); };
   }
   function lifeCard(r, docs) {
@@ -300,6 +303,61 @@
         ${r.final_key && !r.docs_destroyed_at && docs.length ? `<button class="ik-btn red" type="button" id="ikDestroy">Destroy uploaded documents (${docs.length})</button>` : ""}
       </div>
       <p class="ik-note" style="margin:0">Order: finish your work, then share the complete file (a ZIP with an answers summary PDF and every document in numbered folders), then destroy the uploaded documents. The client is emailed at each step.</p></div>`;
+  }
+  /* ---------- document requests: ask the client for particular documents with a link of their own ---------- */
+  const RQ = { open: ["Waiting for client", "edit"], done: ["Received", "sub"], expired: ["Link expired", ""], cancelled: ["Withdrawn", ""] };
+  function reqCard(r, form, docs) {
+    const R = S.item.requests || [], d = r.data, label = (it) => it.l || ((form.docs.find((x) => x.k === it.k) || {}).l) || it.k;
+    const sent = (q, it) => docs.filter((y) => y.doc_key === it.k && (y.req_id === q.id || (y.uploaded >= q.created))).length;
+    const pickable = form.docs.filter((x) => !x.req && (C.when(x.if, d) || docs.some((y) => y.doc_key === x.k)));
+    const have = new Set(docs.map((y) => y.doc_key)), email = r.acct_email;
+    const made = S.reqMade && S.reqMade.id === r.id ? S.reqMade : null;
+    const wa = (u) => `https://wa.me/${String((d.contact || {}).phone || r.acct_phone || "").replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Please upload the documents we need for your ${form.name} file here: ${u}`)}`;
+    return `<div class="wpa-card wide"><div class="ik-top"><h3>Document requests</h3><button class="ik-btn" type="button" id="rqNew">${S.reqOpen ? "Close" : "+ Request documents"}</button></div>
+      <p class="ik-note" style="margin:0">Ask the client for particular documents. They get a secure link that opens without signing in and has one upload button per document. Files they send land in this form's documents (and in the complete file). They can also upload them from their form.</p>
+      ${made ? `<div class="ik-link"><strong>Request created${made.emailed ? ` · emailed to ${esc(email)} ✓` : ""}</strong>
+        <div class="ik-url"><input readonly id="rqLink" value="${esc(made.link)}"><button class="ik-btn" type="button" data-copy="rqLink">Copy link</button><a class="ik-btn g" href="${esc(wa(made.link))}" target="_blank" rel="noopener">WhatsApp</a></div></div>` : ""}
+      ${S.reqOpen ? `<div class="ik-sec" id="rqBox"><h4>1. Documents on the form</h4>
+          <div style="max-height:320px;overflow:auto;display:flex;flex-direction:column;gap:6px">${pickable.map((x) => `<div style="display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:start;font-size:.86rem">
+            <input type="checkbox" data-rqk="${esc(x.k)}"${x.r && !have.has(x.k) ? " checked" : ""} style="margin-top:3px"><span>${esc(x.l)} ${have.has(x.k) ? `<span class="ik-badge sub">Has ${docs.filter((y) => y.doc_key === x.k).length}</span>` : x.r ? `<span class="ik-badge edit">Missing</span>` : ""}</span>
+            <span></span><input class="ik-in" data-rqn="${esc(x.k)}" placeholder="Note for the client (optional), e.g. clearer colour scan, all pages" maxlength="300"></div>`).join("")}</div>
+          <h4 style="margin-top:14px">2. Other documents not on the form</h4>
+          <div id="rqOther" style="display:flex;flex-direction:column;gap:6px">${otherRow()}</div>
+          <div><button class="dl" type="button" id="rqAdd">+ Add another document</button></div>
+          <h4 style="margin-top:14px">3. Message and link</h4>
+          <textarea class="ik-in" id="rqMsg" rows="2" maxlength="2000" placeholder="Message to the client (optional), e.g. IRCC asked for these in a procedural fairness letter. Please send by Friday."></textarea>
+          <div class="ik-acts" style="margin-top:8px;align-items:center"><label class="ik-note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="rqSend"${email ? " checked" : " disabled"}> Email the link to ${esc(email || "the client (no email on file)")}</label>
+            <label class="ik-note">Link works for <select class="ik-in" id="rqDays" style="width:auto">${[7, 14, 30, 60, 90].map((n) => `<option${n === 30 ? " selected" : ""}>${n}</option>`).join("")}</select> days</label>
+            <button class="ik-btn" type="button" id="rqGo">Create request</button></div><div class="ik-note" id="rqErr"></div></div>` : ""}
+      ${R.length ? R.map((q) => { const st = RQ[q.status] || [q.status, ""], got = q.items.filter((it) => sent(q, it)).length;
+        return `<div class="ik-sec"><div class="ik-top"><div><span class="ik-badge ${st[1]}">${esc(st[0])}</span> <b>${got}/${q.items.length} received</b>
+            <div class="ik-note">Created ${when(q.created)}${q.status === "open" ? ` · link works until ${when(q.expires)}` : ""} · opened ${q.opens ? q.opens + "×, last " + when(q.last_open) : "not yet"}${q.sent_back ? ` · client pressed Send ${when(q.sent_back)}` : ""}${q.emailed ? ` · emailed ${when(q.emailed)}` : ""}</div></div>
+          <div class="ik-acts">${q.status === "open" ? `<button class="dl" type="button" data-rqcp="${esc(location.origin + "/intake/?r=" + q.token)}">Copy link</button><a class="dl" href="${esc(wa(location.origin + "/intake/?r=" + q.token))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
+            <button class="dl" type="button" data-rqre="${q.id}">${q.status === "open" ? "Email reminder" : "Reopen & email"}</button>${q.status === "open" ? `<button class="dl" type="button" data-rqdone="${q.id}">Mark received</button><button class="dl" type="button" data-rqx="${q.id}">Withdraw</button>` : ""}</div></div>
+          ${q.message ? `<div class="ik-note" style="margin-top:6px">Message: ${esc(q.message)}</div>` : ""}
+          <ul style="margin:8px 0 0;padding-left:18px;font-size:.86rem">${q.items.map((it) => { const n = sent(q, it); return `<li>${n ? "✓" : "○"} ${esc(label(it))}${it.note ? ` <span class="ik-note">(${esc(it.note)})</span>` : ""}${n ? ` <span class="ik-note">· ${n} file${n === 1 ? "" : "s"}</span>` : ""}</li>`; }).join("")}</ul></div>`; }).join("")
+        : `<span class="ik-note">No requests yet.</span>`}</div>`;
+  }
+  const otherRow = () => `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" data-rqo><input class="ik-in" data-rqol placeholder="Document name, e.g. Updated employment letter (2026)" maxlength="200"><input class="ik-in" data-rqon placeholder="Note for the client (optional)" maxlength="300"></div>`;
+  function wireReq(r, form) {
+    const $ = (x) => body.querySelector(x), again = async () => { S.item = await call("item?id=" + encodeURIComponent(r.id)); drawItem(); };
+    $("#rqNew").onclick = () => { S.reqOpen = !S.reqOpen; S.reqMade = null; drawItem(); if (S.reqOpen) { const b = $("#rqBox"); if (b) b.scrollIntoView({ behavior: "smooth", block: "nearest" }); } };
+    const add = $("#rqAdd"); if (add) add.onclick = () => $("#rqOther").insertAdjacentHTML("beforeend", otherRow());
+    const go = $("#rqGo"); if (go) go.onclick = async () => {
+      const items = [...body.querySelectorAll("[data-rqk]:checked")].map((c) => ({ k: c.dataset.rqk, note: (body.querySelector(`[data-rqn="${CSS.escape(c.dataset.rqk)}"]`) || {}).value || "" }));
+      body.querySelectorAll("[data-rqo]").forEach((row) => { const l = row.querySelector("[data-rqol]").value.trim(); if (l) items.push({ l, note: row.querySelector("[data-rqon]").value.trim() }); });
+      if (!items.length) { $("#rqErr").textContent = "Tick at least one document or type the name of another one."; return; }
+      go.disabled = true; go.textContent = "Creating…";
+      try { const j = await post("request", { id: r.id, items, message: $("#rqMsg").value, send: $("#rqSend").checked, days: $("#rqDays").value });
+        S.reqOpen = false; S.reqMade = { id: r.id, link: j.link, emailed: j.emailed }; await again(); const l = $("#rqLink"); if (l) { l.select(); copy(l.value); }
+        if ($("#rqSend") && !j.emailed) alert("Request created, but the email couldn't be sent. Copy the link instead.");
+      } catch (e) { go.disabled = false; go.textContent = "Create request"; $("#rqErr").textContent = e.message; }
+    };
+    body.querySelectorAll("[data-rqcp]").forEach((b) => b.onclick = () => copy(b.dataset.rqcp, b));
+    body.querySelectorAll("#rqLink").forEach(() => body.querySelectorAll('[data-copy="rqLink"]').forEach((b) => b.onclick = () => copy($("#rqLink").value, b)));
+    body.querySelectorAll("[data-rqre]").forEach((b) => b.onclick = async () => { b.disabled = true; try { const j = await post("request-resend", { id: r.id, rid: b.dataset.rqre }); alert(j.emailed ? "Emailed ✓ The link works for another 30 days." : "Reopened, but the email couldn't be sent. Copy the link instead."); await again(); } catch (e) { b.disabled = false; alert(e.message); } });
+    body.querySelectorAll("[data-rqdone]").forEach((b) => b.onclick = async () => { await post("request-done", { id: r.id, rid: b.dataset.rqdone }); again(); });
+    body.querySelectorAll("[data-rqx]").forEach((b) => b.onclick = async () => { if (!confirm("Withdraw this request? The link stops working. Files already sent stay.")) return; await post("request-cancel", { id: r.id, rid: b.dataset.rqx }); again(); });
   }
   const prefix = (form, d) => { const i = form.docs.findIndex((x) => x.k === d.doc_key); return (i >= 0 ? String(i + 1).padStart(2, "0") + "-" + d.doc_key + "-" : ""); };
   async function getFile(id, name, view) {

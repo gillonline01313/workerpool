@@ -2,7 +2,8 @@
 // the admin (x-admin-key) creates links, sees every intake and opens the answers and files.
 // Tables are created automatically. Files live privately in the RESUMES R2 bucket under intake/.
 import { json, readJson, str, isEmail, getUser, sendEmail, randomToken, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
-import { FORMS, upgradeIntake, missing, progress, applicantName, CONSENT_V, CONSENT_TEXT, KEEP_TEXT, partnerConsent } from "../../../assets/intake-config.js";
+import { FORMS, FORM_V, formOf, upgradeIntake, missing, progress, applicantName, CONSENT_V, CONSENT_TEXT, KEEP_TEXT, partnerConsent } from "../../../assets/intake-config.js";
+import { REQ_DAYS, loadRequests, requestByToken, intakeForm, pubRequest } from "../../_intake_req.js";
 import { buildCompleteFile, KEEP_DAYS } from "../../_intake_file.js";
 import { ensureIntake } from "../../_partners.js";
 
@@ -20,7 +21,7 @@ async function docKeys(env, intakeId) {
   return new Set(r.results.map((d) => d.doc_key));
 }
 const mine = (env, u, intakeId) => env.DB.prepare(`SELECT i.*, p.firm AS firm, p.email AS firm_email FROM intakes i LEFT JOIN partners p ON p.id = i.partner_id WHERE i.id = ?1 AND i.user_id = ?2`).bind(intakeId || "", u.id).first();
-const clientRow = (r) => ({ id: r.id, form_key: r.form_key, status: r.status, progress: r.progress, created: r.created, updated: r.updated, submitted: r.submitted, name: applicantName(parse(r.data)),
+const clientRow = (r) => ({ id: r.id, form_key: r.form_key, form_v: r.form_v || 1, status: r.status, progress: r.progress, created: r.created, updated: r.updated, submitted: r.submitted, name: applicantName(parse(r.data)),
   consent_at: r.consent_at, keep_file: r.keep_file, final_at: r.final_at, final_size: r.final_size, final_name: r.final_name, final_expires: r.final_expires, docs_destroyed_at: r.docs_destroyed_at,
   final_ready: !!r.final_key, invite_code: r.invite_code, firm: r.partner_id ? r.firm || "your representative" : "" });
 // A complete file the client didn't ask us to keep is removed after KEEP_DAYS. Runs whenever the admin list or a client's forms load.
@@ -70,13 +71,16 @@ async function client({ request, env }, route, m) {
       firm: inv && inv.partner_id ? inv.firm || "" : "", single: !!(inv && inv.partner_id) });
   }
 
+  if (route.startsWith("req")) { const out = await requestRoutes(env, request, url, route, m); if (out) return out; }
+
   const u = await getUser(request, env);
   if (!u) return json({ ok: false, error: "Sign in to continue." }, 401);
 
   if (route === "mine" && m === "GET") {
     await sweep(env, "AND user_id = ?2", [u.id]);
-    const r = await env.DB.prepare(`SELECT i.*, p.firm AS firm FROM intakes i LEFT JOIN partners p ON p.id = i.partner_id WHERE i.user_id = ?1 ORDER BY i.updated DESC LIMIT 50`).bind(u.id).all();
-    return json({ ok: true, user: { name: u.name, email: u.email, phone: u.phone }, rows: r.results.map(clientRow) });
+    const r = await env.DB.prepare(`SELECT i.*, p.firm AS firm, (SELECT COUNT(*) FROM intake_requests q WHERE q.intake_id = i.id AND q.status = 'open' AND q.expires > ?2) AS reqs_open
+      FROM intakes i LEFT JOIN partners p ON p.id = i.partner_id WHERE i.user_id = ?1 ORDER BY i.updated DESC LIMIT 50`).bind(u.id, new Date().toISOString()).all();
+    return json({ ok: true, user: { name: u.name, email: u.email, phone: u.phone }, rows: r.results.map((x) => ({ ...clientRow(x), reqs_open: x.reqs_open || 0 })) });
   }
   if (route === "start" && m === "POST") {
     const b = await readJson(request, 2000) || {};
@@ -97,15 +101,16 @@ async function client({ request, env }, route, m) {
     const id = crypto.randomUUID(), now = new Date().toISOString();
     const data = { contact: { email: u.email, phone: u.phone } };
     if (!b.other) { const [g, ...rest] = String(u.name || "").trim().split(/\s+/); if (rest.length) data.personal = { given_names: g, family_name: rest.join(" ") }; data.about = { for_whom: "Myself" }; }
-    await env.DB.prepare(`INSERT INTO intakes (id, user_id, form_key, invite_code, status, data, progress, created, updated, partner_id) VALUES (?1, ?2, ?3, ?4, 'draft', ?5, 0, ?6, ?6, ?7)`)
-      .bind(id, u.id, fk, code, JSON.stringify(data), now, partnerId).run();
+    await env.DB.prepare(`INSERT INTO intakes (id, user_id, form_key, invite_code, status, data, progress, created, updated, partner_id, form_v) VALUES (?1, ?2, ?3, ?4, 'draft', ?5, 0, ?6, ?6, ?7, ?8)`)
+      .bind(id, u.id, fk, code, JSON.stringify(data), now, partnerId, FORM_V).run();
     return json({ ok: true, id });
   }
   if (route === "item" && m === "GET") {
     const a = await mine(env, u, url.searchParams.get("id"));
     if (!a) return json({ ok: false, error: "Form not found." }, 404);
     const docs = await env.DB.prepare(`SELECT id, doc_key, name, size, uploaded FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(a.id).all();
-    return json({ ok: true, row: { ...clientRow(a), data: parse(a.data) }, docs: docs.results });
+    const { reqs, extra, asked } = await intakeForm(env, a);
+    return json({ ok: true, row: { ...clientRow(a), data: parse(a.data) }, docs: docs.results, extra, asked: [...asked], requests: reqs.filter((q) => q.status === "open").map(pubRequest) });
   }
   if (route === "item" && m === "PUT") {
     const b = await readJson(request, 400000);
@@ -114,7 +119,7 @@ async function client({ request, env }, route, m) {
     if (!a) return json({ ok: false, error: "Form not found." }, 404);
     if (a.status === "submitted") return json({ ok: false, error: "This form was already submitted. Press Make changes to edit it." }, 409);
     upgradeIntake(b.data);
-    const form = FORMS[a.form_key];
+    const { form } = await intakeForm(env, a);
     const pct = form ? progress(form, b.data, await docKeys(env, a.id)) : 0;
     await env.DB.prepare(`UPDATE intakes SET data = ?1, progress = ?2, updated = ?3 WHERE id = ?4`).bind(JSON.stringify(b.data), pct, new Date().toISOString(), a.id).run();
     return json({ ok: true, progress: pct });
@@ -124,8 +129,9 @@ async function client({ request, env }, route, m) {
     const a = await mine(env, u, request.headers.get("x-intake-id"));
     if (!a) return json({ ok: false, error: "Form not found." }, 404);
     if (a.status === "submitted") return json({ ok: false, error: "This form was already submitted. Press Make changes to add documents." }, 409);
-    const form = FORMS[a.form_key], dk = request.headers.get("x-doc-key") || "";
+    const { form, reqs, asked } = await intakeForm(env, a), dk = request.headers.get("x-doc-key") || "";
     if (!form || !form.docs.some((d) => d.k === dk)) return json({ ok: false, error: "Unknown document type." }, 400);
+    const forReq = asked.has(dk) ? reqs.find((q) => q.status === "open" && q.items.some((it) => it.k === dk)) : null;
     if (parseInt(request.headers.get("content-length") || "0") > FILE_MAX + 1024) return json({ ok: false, error: "That file is over 10 MB." }, 413);
     const name = fileName(request), buf = await request.arrayBuffer();
     const chk = fileCheck(name, buf);
@@ -135,20 +141,20 @@ async function client({ request, env }, route, m) {
     if ((c && c.k) >= MAX_PER_DOC) return json({ ok: false, error: `Up to ${MAX_PER_DOC} files per document. Combine pages into one PDF.` }, 400);
     const docId = crypto.randomUUID(), key = `intake/${u.id}/${a.id}/${docId}.${chk.ext}`, now = new Date().toISOString();
     await env.RESUMES.put(key, buf, { httpMetadata: { contentType: chk.type }, customMetadata: { name, intake: a.id, doc: dk } });
-    await env.DB.prepare(`INSERT INTO intake_docs (id, intake_id, doc_key, name, size, type, r2_key, uploaded) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`)
-      .bind(docId, a.id, dk, name, buf.byteLength, chk.type, key, now).run();
+    await env.DB.prepare(`INSERT INTO intake_docs (id, intake_id, doc_key, name, size, type, r2_key, uploaded, req_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`)
+      .bind(docId, a.id, dk, name, buf.byteLength, chk.type, key, now, forReq ? forReq.id : null).run();
     const pct = progress(form, parse(a.data), await docKeys(env, a.id));
-    await env.DB.prepare(`UPDATE intakes SET progress = ?1, updated = ?2 WHERE id = ?3`).bind(pct, now, a.id).run();
+    await env.DB.prepare(`UPDATE intakes SET progress = ?1, updated = ?2${forReq ? ", req_new = ?2" : ""} WHERE id = ?3`).bind(pct, now, a.id).run();
     return json({ ok: true, doc: { id: docId, doc_key: dk, name, size: buf.byteLength, uploaded: now }, progress: pct });
   }
   if (route === "doc" && m === "DELETE") {
-    const d = await env.DB.prepare(`SELECT d.*, i.status, i.form_key, i.data FROM intake_docs d JOIN intakes i ON i.id = d.intake_id WHERE d.id = ?1 AND i.user_id = ?2`)
+    const d = await env.DB.prepare(`SELECT d.*, i.status, i.form_key, i.form_v, i.data FROM intake_docs d JOIN intakes i ON i.id = d.intake_id WHERE d.id = ?1 AND i.user_id = ?2`)
       .bind(url.searchParams.get("id") || "", u.id).first();
     if (!d) return json({ ok: false, error: "File not found." }, 404);
     if (d.status === "submitted") return json({ ok: false, error: "This form was already submitted. Press Make changes first." }, 409);
     if (env.RESUMES) await env.RESUMES.delete(d.r2_key).catch(() => {});
     await env.DB.prepare(`DELETE FROM intake_docs WHERE id = ?1`).bind(d.id).run();
-    const form = FORMS[d.form_key], pct = form ? progress(form, parse(d.data), await docKeys(env, d.intake_id)) : 0;
+    const { form } = await intakeForm(env, { id: d.intake_id, form_key: d.form_key, form_v: d.form_v }), pct = form ? progress(form, parse(d.data), await docKeys(env, d.intake_id)) : 0;
     await env.DB.prepare(`UPDATE intakes SET progress = ?1, updated = ?2 WHERE id = ?3`).bind(pct, new Date().toISOString(), d.intake_id).run();
     return json({ ok: true, progress: pct });
   }
@@ -164,7 +170,8 @@ async function client({ request, env }, route, m) {
     const a = await mine(env, u, b.id);
     if (!a) return json({ ok: false, error: "Form not found." }, 404);
     if (a.status === "submitted") return json({ ok: true, already: true });
-    const form = FORMS[a.form_key], data = parse(a.data), keys = await docKeys(env, a.id);
+    const { form } = await intakeForm(env, a), data = parse(a.data), keys = await docKeys(env, a.id);
+    if (!form) return json({ ok: false, error: "This form isn't available." }, 400);
     const miss = missing(form, data, keys);
     if (miss.length) return json({ ok: false, error: `Still needed: ${miss[0]}${miss.length > 1 ? ` (and ${miss.length - 1} more)` : ""}.`, missing: miss }, 400);
     if (b.consent !== true) return json({ ok: false, error: "Read the consent and tick the box to agree before submitting." }, 400);
@@ -209,7 +216,7 @@ async function client({ request, env }, route, m) {
     if (a.admin_status === "done") return json({ ok: false, error: "Our team has finished working on this form. Contact us to make a change." }, 409);
     if (a.partner_id && a.partner_status === "done") return json({ ok: false, error: `${a.firm || "Your representative"} has finished working on this form. Contact them to make a change.` }, 409);
     await env.DB.prepare(`UPDATE intakes SET status = 'editing', updated = ?1 WHERE id = ?2`).bind(new Date().toISOString(), a.id).run();
-    const form = FORMS[a.form_key];
+    const form = formOf(a);
     if (a.partner_id && a.firm_email) await sendEmail(env, a.firm_email, `Client reopened their form: ${form ? form.name : a.form_key} – ${applicantName(parse(a.data)) || u.name}`,
       `Your client reopened a submitted intake form to make changes. Hold work on it until they resubmit; you'll get another email when they do.\n\nClient account: ${u.name} (${u.email}, ${u.phone})\n\nPartner portal: ${site(env)}/partners/\n\nWorkerPool`, u.email);
     await sendEmail(env, env.ADMIN_EMAIL, `Intake form reopened for changes: ${form ? form.name : a.form_key} – ${applicantName(parse(a.data)) || u.name}`,
@@ -241,17 +248,18 @@ async function admin({ request, env }, route, m) {
   const url = new URL(request.url);
   if (route === "list" && m === "GET") {
     await sweep(env);
-    const rows = await env.DB.prepare(`SELECT i.id, i.form_key, i.invite_code, i.status, i.data, i.progress, i.created, i.updated, i.submitted, i.resubmitted, i.admin_seen, i.admin_status, i.admin_note, i.keep_file, i.final_at, i.docs_destroyed_at,
+    const rows = await env.DB.prepare(`SELECT i.id, i.form_key, i.form_v, i.req_new, i.invite_code, i.status, i.data, i.progress, i.created, i.updated, i.submitted, i.resubmitted, i.admin_seen, i.admin_status, i.admin_note, i.keep_file, i.final_at, i.docs_destroyed_at,
         u.name AS acct_name, u.email AS acct_email, u.phone AS acct_phone, v.label AS invite_label, i.partner_id, p.firm AS partner_firm, i.partner_status,
-        (SELECT COUNT(*) FROM intake_docs d WHERE d.intake_id = i.id) AS files
-      FROM intakes i JOIN users u ON u.id = i.user_id LEFT JOIN intake_invites v ON v.code = i.invite_code LEFT JOIN partners p ON p.id = i.partner_id ORDER BY COALESCE(i.resubmitted, i.submitted, i.updated) DESC LIMIT 2000`).all();
+        (SELECT COUNT(*) FROM intake_docs d WHERE d.intake_id = i.id) AS files,
+        (SELECT COUNT(*) FROM intake_requests q WHERE q.intake_id = i.id AND q.status = 'open' AND q.expires > ?1) AS reqs_open
+      FROM intakes i JOIN users u ON u.id = i.user_id LEFT JOIN intake_invites v ON v.code = i.invite_code LEFT JOIN partners p ON p.id = i.partner_id ORDER BY COALESCE(i.req_new, i.resubmitted, i.submitted, i.updated) DESC LIMIT 2000`).bind(new Date().toISOString()).all();
     const invites = await env.DB.prepare(`SELECT ${INV_COLS}, (SELECT COUNT(*) FROM intakes i WHERE i.invite_code = v.code) AS started,
         (SELECT COUNT(*) FROM intakes i WHERE i.invite_code = v.code AND i.submitted IS NOT NULL) AS done
       FROM intake_invites v WHERE archived = 0 AND partner_id IS NULL ORDER BY created DESC LIMIT 500`).all();
     return json({ ok: true, rows: rows.results.map((r) => { const d = parse(r.data); delete r.data; return { ...r, name: applicantName(d), phone: (d.contact || {}).phone || "", email: (d.contact || {}).email || "" }; }), invites: invites.results });
   }
   if (route === "count" && m === "GET") {
-    const r = await env.DB.prepare(`SELECT COUNT(*) AS n FROM intakes WHERE status = 'submitted' AND admin_seen IS NULL`).first();
+    const r = await env.DB.prepare(`SELECT COUNT(*) AS n FROM intakes WHERE (status = 'submitted' AND admin_seen IS NULL) OR req_new IS NOT NULL`).first();
     return json({ ok: true, unseen: (r && r.n) || 0 });
   }
   if (route === "item" && m === "GET") {
@@ -260,10 +268,11 @@ async function admin({ request, env }, route, m) {
         p.firm AS partner_firm, p.kind AS partner_kind, p.licence AS partner_licence, p.email AS partner_email, p.phone AS partner_phone
       FROM intakes i JOIN users u ON u.id = i.user_id LEFT JOIN intake_invites v ON v.code = i.invite_code LEFT JOIN partners p ON p.id = i.partner_id WHERE i.id = ?1`).bind(id).first();
     if (!r) return json({ ok: false, error: "Not found." }, 404);
-    const docs = await env.DB.prepare(`SELECT id, doc_key, name, size, type, uploaded FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(id).all();
-    if (r.status === "submitted" && !r.admin_seen) await env.DB.prepare(`UPDATE intakes SET admin_seen = ?1 WHERE id = ?2`).bind(new Date().toISOString(), id).run();
-    const form = FORMS[r.form_key];
-    return json({ ok: true, row: { ...r, data: parse(r.data) }, docs: docs.results, missing: form ? missing(form, parse(r.data), r.docs_destroyed_at ? new Set(form.docs.map((d) => d.k)) : new Set(docs.results.map((d) => d.doc_key))) : [] });
+    const docs = await env.DB.prepare(`SELECT id, doc_key, name, size, type, uploaded, req_id FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(id).all();
+    if ((r.status === "submitted" && !r.admin_seen) || r.req_new) await env.DB.prepare(`UPDATE intakes SET admin_seen = COALESCE(admin_seen, ?1), req_new = NULL WHERE id = ?2`).bind(new Date().toISOString(), id).run();
+    const { form, reqs, extra, asked } = await intakeForm(env, r);
+    return json({ ok: true, row: { ...r, data: parse(r.data) }, docs: docs.results, extra, asked: [...asked], requests: reqs.map(pubRequest),
+      missing: form ? missing(form, parse(r.data), r.docs_destroyed_at ? new Set(form.docs.map((d) => d.k)) : new Set(docs.results.map((d) => d.doc_key))) : [] });
   }
   if (route === "doc" && m === "GET") {
     const d = await env.DB.prepare(`SELECT * FROM intake_docs WHERE id = ?1`).bind(url.searchParams.get("id") || "").first();
@@ -286,7 +295,7 @@ async function admin({ request, env }, route, m) {
     if (!r || !env.RESUMES) return json({ ok: false, error: "Not found." }, 404);
     const docs = (await env.DB.prepare(`SELECT * FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(r.id).all()).results;
     let built;
-    try { built = await buildCompleteFile(env, { ...r, data: parse(r.data) }, docs, { name: r.acct_name, email: r.acct_email, phone: r.acct_phone }); } catch (e) { return json({ ok: false, error: e.message }, 400); }
+    try { built = await buildCompleteFile(env, { ...r, data: parse(r.data) }, docs, { name: r.acct_name, email: r.acct_email, phone: r.acct_phone }, (await intakeForm(env, r)).extra); } catch (e) { return json({ ok: false, error: e.message }, 400); }
     return new Response(built.bytes, { headers: { "content-type": "application/zip", "content-disposition": `attachment; filename="${built.name.replace(/"/g, "")}"`, "cache-control": "private, no-store" } });
   }
   if (m !== "POST") return json({ ok: false, error: "Not found." }, 404);
@@ -327,13 +336,13 @@ async function admin({ request, env }, route, m) {
     const acct = await env.DB.prepare(`SELECT name, email, phone FROM users WHERE id = ?1`).bind(r.user_id).first();
     const docs = (await env.DB.prepare(`SELECT * FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(r.id).all()).results;
     let built;
-    try { built = await buildCompleteFile(env, { ...r, data: parse(r.data) }, docs, acct); } catch (e) { return json({ ok: false, error: e.message }, 400); }
+    try { built = await buildCompleteFile(env, { ...r, data: parse(r.data) }, docs, acct, (await intakeForm(env, r)).extra); } catch (e) { return json({ ok: false, error: e.message }, 400); }
     const key = `intake/final/${r.id}/${crypto.randomUUID()}.zip`, now = new Date().toISOString();
     await env.RESUMES.put(key, built.bytes, { httpMetadata: { contentType: "application/zip" }, customMetadata: { intake: r.id } });
     if (r.final_key) await env.RESUMES.delete(r.final_key).catch(() => {});
     const exp = r.keep_file ? null : new Date(Date.now() + KEEP_DAYS * 864e5).toISOString();
     await env.DB.prepare(`UPDATE intakes SET final_key = ?1, final_name = ?2, final_size = ?3, final_at = ?4, final_expires = ?5 WHERE id = ?6`).bind(key, built.name, built.bytes.length, now, exp, r.id).run();
-    const form = FORMS[r.form_key], first = String(acct.name || "").split(" ")[0] || "there";
+    const form = formOf(r), first = String(acct.name || "").split(" ")[0] || "there";
     const emailed = b.notify === false ? false : await sendEmail(env, acct.email, `Your complete ${form.name} file is ready`,
       `Hi ${first},\n\nYour complete file for ${form.name} is ready: the summary of your answers and every document you submitted, in one ZIP file.\n\nSign in to download it: ${site(env)}/intake/\n\n${r.keep_file ? "As you asked, we will keep a copy in your WorkerPool account for future reference." : `You chose not to have us keep a copy, so it will be removed on ${new Date(exp).toLocaleDateString("en-CA", { dateStyle: "long" })}. Please download it and keep it safe before then.`}\n\nAs you agreed when you submitted, the documents you uploaded will now be permanently destroyed by our team.\n\nWorkerPool`);
     return json({ ok: true, final_at: now, final_size: built.bytes.length, files: built.count, emailed });
@@ -347,8 +356,20 @@ async function admin({ request, env }, route, m) {
     await env.DB.prepare(`UPDATE intakes SET docs_destroyed_at = ?1, docs_destroyed_count = ?2 WHERE id = ?3`).bind(now, docs.length, r.id).run();
     const acct = await env.DB.prepare(`SELECT name, email FROM users WHERE id = ?1`).bind(r.user_id).first();
     if (acct && b.notify !== false && !r.partner_id) await sendEmail(env, acct.email, "Your uploaded documents were destroyed",
-      `Hi ${String(acct.name || "").split(" ")[0] || "there"},\n\nAs you agreed, we permanently destroyed the ${docs.length} document${docs.length === 1 ? "" : "s"} you uploaded for ${FORMS[r.form_key] ? FORMS[r.form_key].name : "your application"} on ${new Date(now).toLocaleDateString("en-CA", { dateStyle: "long" })}.\n\n${r.final_key ? (r.keep_file ? `Your complete file stays in your WorkerPool account for future reference: ${site(env)}/intake/` : `Your complete file is still available to download until ${new Date(r.final_expires).toLocaleDateString("en-CA", { dateStyle: "long" })}: ${site(env)}/intake/`) : ""}\n\nWorkerPool`);
+      `Hi ${String(acct.name || "").split(" ")[0] || "there"},\n\nAs you agreed, we permanently destroyed the ${docs.length} document${docs.length === 1 ? "" : "s"} you uploaded for ${formOf(r) ? formOf(r).name : "your application"} on ${new Date(now).toLocaleDateString("en-CA", { dateStyle: "long" })}.\n\n${r.final_key ? (r.keep_file ? `Your complete file stays in your WorkerPool account for future reference: ${site(env)}/intake/` : `Your complete file is still available to download until ${new Date(r.final_expires).toLocaleDateString("en-CA", { dateStyle: "long" })}: ${site(env)}/intake/`) : ""}\n\nWorkerPool`);
     return json({ ok: true, destroyed: docs.length });
+  }
+  if (route === "request") return await createRequest(env, r, b);
+  if (route === "request-resend" || route === "request-cancel" || route === "request-done") {
+    const q = (await loadRequests(env, r.id)).find((x) => x.id === str(b.rid, 60));
+    if (!q) return json({ ok: false, error: "Request not found." }, 404);
+    const now = new Date().toISOString();
+    if (route === "request-cancel") { await env.DB.prepare(`UPDATE intake_requests SET status = 'cancelled', done_at = ?1 WHERE id = ?2`).bind(now, q.id).run(); return json({ ok: true }); }
+    if (route === "request-done") { await env.DB.prepare(`UPDATE intake_requests SET status = 'done', done_at = ?1 WHERE id = ?2`).bind(now, q.id).run(); return json({ ok: true }); }
+    const exp = new Date(Date.now() + REQ_DAYS * 864e5).toISOString();   // resend: reopen it for another REQ_DAYS days and email again
+    await env.DB.prepare(`UPDATE intake_requests SET status = 'open', expires = ?1, done_at = NULL WHERE id = ?2`).bind(exp, q.id).run();
+    const emailed = await emailRequest(env, r, { ...q, expires: exp }, true);
+    return json({ ok: true, emailed, expires: exp });
   }
   if (route === "unseen") {
     await env.DB.prepare(`UPDATE intakes SET admin_seen = NULL WHERE id = ?1`).bind(r.id).run();
@@ -364,6 +385,103 @@ async function admin({ request, env }, route, m) {
     if (env.RESUMES && r.final_key) await env.RESUMES.delete(r.final_key).catch(() => {});
     await env.DB.batch([env.DB.prepare(`DELETE FROM intake_docs WHERE intake_id = ?1`).bind(r.id), env.DB.prepare(`DELETE FROM intakes WHERE id = ?1`).bind(r.id)]);
     return json({ ok: true });
+  }
+  return json({ ok: false, error: "Not found." }, 404);
+}
+
+/* ======================= document requests ======================= */
+const reqLink = (env, token) => `${site(env)}/intake/?r=${token}`;
+async function createRequest(env, r, b) {
+  const { form } = await intakeForm(env, r);
+  if (!form) return json({ ok: false, error: "Unknown form." }, 400);
+  const seen = new Set(), items = [];
+  for (const it of Array.isArray(b.items) ? b.items.slice(0, 40) : []) {
+    const note = str(it && it.note, 300) || undefined;
+    if (it && it.k && form.docs.some((d) => d.k === it.k && !d.req)) { if (!seen.has(it.k)) { seen.add(it.k); items.push({ k: it.k, note }); } continue; }
+    const l = str(it && it.l, 200);
+    if (l) items.push({ k: "x_" + crypto.randomUUID().replace(/-/g, "").slice(0, 10), l, note });
+  }
+  if (!items.length) return json({ ok: false, error: "Pick at least one document, or type the name of one." }, 400);
+  const days = Math.min(90, Math.max(1, parseInt(b.days) || REQ_DAYS));
+  const q = { id: crypto.randomUUID(), intake_id: r.id, token: randomToken(), items, message: str(b.message, 2000), status: "open",
+    created: new Date().toISOString(), expires: new Date(Date.now() + days * 864e5).toISOString() };
+  await env.DB.prepare(`INSERT INTO intake_requests (id, intake_id, token, items, message, status, created, expires) VALUES (?1, ?2, ?3, ?4, ?5, 'open', ?6, ?7)`)
+    .bind(q.id, r.id, q.token, JSON.stringify(items), q.message || null, q.created, q.expires).run();
+  const emailed = b.send ? await emailRequest(env, r, q) : false;
+  return json({ ok: true, id: q.id, link: reqLink(env, q.token), emailed });
+}
+async function emailRequest(env, r, q, again) {
+  const acct = await env.DB.prepare(`SELECT u.name, u.email, p.firm, p.email AS firm_email FROM users u LEFT JOIN partners p ON p.id = ?2 WHERE u.id = ?1`).bind(r.user_id, r.partner_id || "").first();
+  const data = parse(r.data), to = acct && acct.email;
+  if (!to) return false;
+  const { form } = await intakeForm(env, r), label = (it) => it.l || ((form.docs.find((d) => d.k === it.k) || {}).l) || it.k;
+  const who = applicantName(data), first = String(acct.name || "").split(" ")[0] || "there", by = acct.firm ? acct.firm : "our team";
+  const list = q.items.map((it) => `  - ${label(it)}${it.note ? `\n    (${it.note})` : ""}`).join("\n");
+  const ok = await sendEmail(env, to, `${again ? "Reminder: " : ""}Documents needed for your ${form.name} file`,
+    `Hi ${first},\n\nTo continue with your ${form.name} file${who && who !== acct.name ? ` (applicant: ${who})` : ""}, ${by} needs these documents:\n\n${list}\n${q.message ? `\nMessage:\n${q.message}\n` : ""}\nUpload them with this secure link. You don't need to sign in, and each document has its own upload button:\n${reqLink(env, q.token)}\n\nYou can also sign in at ${site(env)}/intake/ and upload them from your form. The link works until ${new Date(q.expires).toLocaleDateString("en-CA", { dateStyle: "long" })}.\n\n${acct.firm ? `WorkerPool (secure intake for ${acct.firm})` : "WorkerPool"}`,
+    acct.firm_email || undefined);
+  if (ok) await env.DB.prepare(`UPDATE intake_requests SET emailed = ?1 WHERE id = ?2`).bind(new Date().toISOString(), q.id).run();
+  return ok;
+}
+// Public (no sign-in): the request link. Only the documents asked for can be uploaded, and only files sent through
+// this link are listed back.
+async function requestRoutes(env, request, url, route, m) {
+  const token = route === "req" && m === "GET" ? url.searchParams.get("t") : request.headers.get("x-req-token");
+  const q = await requestByToken(env, token);
+  if (!q) return json({ ok: false, error: "This link isn't valid. Check you copied all of it, or ask for a new one." }, 404);
+  if (q.status === "cancelled") return json({ ok: false, error: "This request was withdrawn. Contact us if you still have documents to send." }, 410);
+  if (q.status === "expired") return json({ ok: false, error: "This link has expired. Ask us for a new one, or sign in and upload from your form." }, 410);
+  const a = await env.DB.prepare(`SELECT i.*, p.firm AS firm, p.email AS firm_email FROM intakes i LEFT JOIN partners p ON p.id = i.partner_id WHERE i.id = ?1`).bind(q.intake_id).first();
+  if (!a) return json({ ok: false, error: "This file is no longer available." }, 404);
+  const { form } = await intakeForm(env, a);
+  if (!form) return json({ ok: false, error: "This form is no longer available." }, 404);
+  const files = async () => (await env.DB.prepare(`SELECT id, doc_key, name, size, uploaded FROM intake_docs WHERE intake_id = ?1 AND req_id = ?2 ORDER BY uploaded`).bind(a.id, q.id).all()).results;
+  const asked = (k) => q.items.some((it) => it.k === k);
+
+  if (route === "req" && m === "GET") {
+    const now = new Date().toISOString();
+    await env.DB.prepare(`UPDATE intake_requests SET opens = opens + 1, last_open = ?1 WHERE id = ?2`).bind(now, q.id).run();
+    const F = await files();
+    return json({ ok: true, form: form.name, applicant: applicantName(parse(a.data)).split(" ")[0] || "", firm: a.partner_id ? a.firm || "" : "",
+      message: q.message || "", created: q.created, expires: q.expires, status: q.status, sent_back: q.sent_back,
+      items: q.items.map((it) => { const d = form.docs.find((x) => x.k === it.k) || {}; return { k: it.k, l: it.l || d.l || it.k, h: it.note || (it.l ? "" : d.h) || "", note: !!it.note, files: F.filter((f) => f.doc_key === it.k) }; }) });
+  }
+  if (q.status !== "open") return json({ ok: false, error: "This request is closed. Contact us if you have more to send." }, 409);
+  if (route === "req-doc" && m === "POST") {
+    if (!env.RESUMES) return json({ ok: false, error: "Document upload isn't switched on yet." }, 503);
+    const dk = request.headers.get("x-doc-key") || "";
+    if (!asked(dk)) return json({ ok: false, error: "That document wasn't requested." }, 400);
+    if (parseInt(request.headers.get("content-length") || "0") > FILE_MAX + 1024) return json({ ok: false, error: "That file is over 10 MB." }, 413);
+    const name = fileName(request), buf = await request.arrayBuffer(), chk = fileCheck(name, buf);
+    if (chk.error) return json({ ok: false, error: chk.error }, 400);
+    const c = await env.DB.prepare(`SELECT COUNT(*) AS n, SUM(CASE WHEN doc_key = ?2 THEN 1 ELSE 0 END) AS k FROM intake_docs WHERE intake_id = ?1`).bind(a.id, dk).first();
+    if ((c && c.n) >= MAX_FILES) return json({ ok: false, error: `This file has reached the ${MAX_FILES}-document limit. Contact us.` }, 400);
+    if ((c && c.k) >= MAX_PER_DOC) return json({ ok: false, error: `Up to ${MAX_PER_DOC} files per document. Combine pages into one PDF.` }, 400);
+    const docId = crypto.randomUUID(), key = `intake/${a.user_id}/${a.id}/${docId}.${chk.ext}`, now = new Date().toISOString();
+    await env.RESUMES.put(key, buf, { httpMetadata: { contentType: chk.type }, customMetadata: { name, intake: a.id, doc: dk, request: q.id } });
+    await env.DB.prepare(`INSERT INTO intake_docs (id, intake_id, doc_key, name, size, type, r2_key, uploaded, req_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`)
+      .bind(docId, a.id, dk, name, buf.byteLength, chk.type, key, now, q.id).run();
+    const pct = a.status === "submitted" ? a.progress : progress(form, parse(a.data), await docKeys(env, a.id));
+    await env.DB.prepare(`UPDATE intakes SET progress = ?1, updated = ?2, req_new = ?2 WHERE id = ?3`).bind(pct, now, a.id).run();
+    return json({ ok: true, doc: { id: docId, doc_key: dk, name, size: buf.byteLength, uploaded: now } });
+  }
+  if (route === "req-doc" && m === "DELETE") {
+    const d = await env.DB.prepare(`SELECT * FROM intake_docs WHERE id = ?1 AND intake_id = ?2 AND req_id = ?3`).bind(url.searchParams.get("id") || "", a.id, q.id).first();
+    if (!d) return json({ ok: false, error: "File not found." }, 404);
+    if (env.RESUMES) await env.RESUMES.delete(d.r2_key).catch(() => {});
+    await env.DB.prepare(`DELETE FROM intake_docs WHERE id = ?1`).bind(d.id).run();
+    return json({ ok: true });
+  }
+  if (route === "req-send" && m === "POST") { // the client says they're finished: tell the team
+    const F = await files(), have = new Set(F.map((f) => f.doc_key)), left = q.items.filter((it) => !have.has(it.k));
+    if (!F.length) return json({ ok: false, error: "Upload at least one document first." }, 400);
+    const now = new Date().toISOString(), complete = !left.length;
+    await env.DB.prepare(`UPDATE intake_requests SET sent_back = ?1${complete ? ", status = 'done', done_at = ?1" : ""} WHERE id = ?2`).bind(now, q.id).run();
+    await env.DB.prepare(`UPDATE intakes SET req_new = ?1 WHERE id = ?2`).bind(now, a.id).run();
+    const who = applicantName(parse(a.data)) || "the client";
+    const body = `${who} uploaded ${F.length} file${F.length === 1 ? "" : "s"} for your document request on their ${form.name} file.${left.length ? `\n\nStill not sent:\n${left.map((it) => "  - " + (it.l || ((form.docs.find((d) => d.k === it.k) || {}).l) || it.k)).join("\n")}` : "\n\nEverything requested was sent."}`;
+    await sendEmail(env, env.ADMIN_EMAIL, `Documents received: ${who} – ${form.name}`, `${body}\n\nOpen it in the admin dashboard: ${site(env)}/admin/ (Intake forms tab)`);
+    return json({ ok: true, complete, left: left.length });
   }
   return json({ ok: false, error: "Not found." }, 404);
 }
