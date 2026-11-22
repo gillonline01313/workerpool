@@ -72,7 +72,7 @@
     return j;
   }
   const post = (path, b) => call(path, { method: "POST", body: JSON.stringify(b) });
-  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=6"); return C; }
+  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=7"); return C; }
   const site = () => location.origin;
   const genLink = (k) => `${site()}/intake/?f=${encodeURIComponent(k)}`;
   const formName = (k) => (C.FORMS[k] && C.FORMS[k].name) || ((C.catalogEntry(k) || {}).form || {}).name || k;

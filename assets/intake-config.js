@@ -6,7 +6,8 @@
    Section: { id, title, intro, if, fields, rep: { min, max, add } }   (rep = the client can add rows, e.g. jobs)
    Document:{ k, l, r: 1 if required, if: condition, h: help text }   (every document takes one or more files)
    Condition: "section.key=A|B" (equals one of), "section.key!=A|B", "section.key" (answered), "@key=A" (same row of a
-   repeatable section), "$minor" (applicant under 18 from date of birth). Join with "&" for AND.
+   repeatable section), "$minor" (applicant under 18 from date of birth). Join with "&" for AND and ";" for OR
+   (";" binds tighter: "a=1;b=1&c=1" means (a or b) and c). A tick box (cb) reads as "true" when ticked.
 
    To add a form: add it to FORMS below and set ready: 1 on its catalog entry. Never change a form key that has intakes. */
 
@@ -1036,41 +1037,237 @@ const RESTORE_WP = {
   ], D_FAMILY, D_BACK, D_OTHER),
 };
 
-/* ---------- Temporary resident permit inside Canada (IMM 5708) ---------- */
+/* ---------- Temporary resident permit (TRP): shared module for inside and outside Canada ----------
+   A TRP is discretionary. The officer weighs the NEED for the person to be in Canada against the RISK to Canadians,
+   so the form collects (1) every ground of inadmissibility in full, (2) each offence with its complete sentence,
+   (3) evidence of rehabilitation, (4) a specific, time-bound need, and (5) references and ties that lower the risk.
+   Inside Canada it also covers the TRPs for victims of family violence and of human trafficking (IMM 5708 + request
+   letter). Outside Canada it goes with IMM 5257 and Schedule 1, or is requested at a port of entry. */
+const G_CRIM = "Criminal record (including impaired driving)";
+const G_MED = "Medical reasons";
+const G_IMM_OUT = "Previous overstay or work without permission";
+const G_IMM_IN = "Out of status more than 90 days (can't restore)";
+const G_MIS = "Misrepresentation finding";
+const G_REM = "Previous removal or deportation";
+const G_FV = "Victim of family violence (my status depended on an abusive spouse or partner)";
+const G_TIP = "Victim of human trafficking";
+const C_CRIM = `inadm.ground=${G_CRIM};inadm.x_crim=true`;
+const C_MED = `inadm.ground=${G_MED};inadm.x_med=true`;
+const C_IMM = `inadm.ground=${G_IMM_OUT}|${G_IMM_IN};inadm.x_imm=true`;
+const C_MIS = `inadm.ground=${G_MIS};inadm.x_mis=true`;
+const C_REM = `inadm.ground=${G_REM};inadm.x_rem=true`;
+const C_HIST = [C_IMM, C_MIS, C_REM].join(";");
+const C_SAFE = `inadm.ground=${G_FV}|${G_TIP}`;
+const C_TOLD = "inadm.learned=Refused a visa or permit|Refused entry at the Canadian border|Told by an IRCC or CBSA officer";
+
+const TRP_INADM = (inside) => { const also = "inadm.also_yn=Yes"; return { id: "inadm", title: "Why you need a TRP",
+  intro: "Tell us everything, even things that happened long ago, were dismissed or were cleared. IRCC and CBSA share records with many countries, and leaving something out can be treated as misrepresentation, which brings a 5-year ban.", fields: [
+  { k: "ground", l: inside ? "Main reason you can't stay or extend the usual way" : "Main reason you are inadmissible to Canada", t: "s", r: 1, full: 1,
+    o: inside ? [G_CRIM, G_MED, G_IMM_IN, G_MIS, G_REM, G_FV, G_TIP, "Other"] : [G_CRIM, G_MED, G_IMM_OUT, G_MIS, G_REM, "Other"] },
+  { k: "ground_other", l: "Describe", t: "t", r: 1, if: "inadm.ground=Other", full: 1 },
+  { k: "also_yn", l: "Does any other reason also apply?", t: "yn", r: 1, h: "For example, a criminal record and an earlier overstay.", if: `inadm.ground!=${G_FV}|${G_TIP}` },
+  { k: "x_crim", l: "Criminal record or charges (any country)", t: "cb", if: also },
+  { k: "x_med", l: "Medical condition", t: "cb", if: also },
+  { k: "x_imm", l: inside ? "Overstay, or work or study without permission" : "Previous overstay or work without permission", t: "cb", if: also },
+  { k: "x_mis", l: "Misrepresentation finding", t: "cb", if: also },
+  { k: "x_rem", l: "Removal order or deportation", t: "cb", if: also },
+  { k: "x_other", l: "Something else (explain in the box below)", t: "cb", if: also },
+  { k: "details", l: "In your own words: what happened, when and where", t: "ta", r: 1, full: 1, if: `inadm.ground!=${G_FV}|${G_TIP}` },
+  { k: "learned", l: "How did you find out you may be inadmissible?", t: "s", r: 1, full: 1, if: `inadm.ground!=${G_FV}|${G_TIP}`,
+    o: ["Refused a visa or permit", "Refused entry at the Canadian border", "Told by an IRCC or CBSA officer", "Advised by a lawyer or consultant", "I haven't applied yet – I think I may be"] },
+  { k: "learned_date", l: "Date of that refusal or decision", t: "d", r: 1, if: C_TOLD },
+  { k: "since_entry", l: inside ? "Have you left Canada and come back since this issue began?" : "Have you entered Canada since this issue began (offence, refusal or removal)?", t: "yn", r: 1, full: 1, if: `inadm.ground!=${G_FV}|${G_TIP}` },
+  { k: "since_entry_details", l: "Dates, and did you tell the border officer about the issue?", t: "ta", r: 1, if: "inadm.since_entry=Yes", full: 1 },
+  { k: "crim_h", l: "Criminal record summary", t: "h", if: C_CRIM },
+  { k: "offence_date", l: "Date of the most recent offence", t: "d", r: 1, if: C_CRIM },
+  { k: "sentence_done", l: "Date the last part of any sentence ended (jail, probation, fines paid, licence suspension)", t: "d", r: 1, if: C_CRIM, full: 1, h: "Criminal rehabilitation is possible 5 years after this date. A TRP is often the only option before then." },
+  { k: "rehab", l: "Have you applied for criminal rehabilitation?", t: "s", if: C_CRIM, o: ["Yes", "No", "Not yet eligible (under 5 years since sentence ended)"] },
+  { k: "rehab_details", l: "Date applied, application number and result", t: "t", r: 1, if: "inadm.rehab=Yes" },
+  ...(inside ? [{ k: "out_since", l: "Date your status ended", t: "d", r: 1, if: C_IMM }] : []),
+  { k: "removal_date", l: "Date of the removal order or deportation, and the country", t: "t", r: 1, if: C_REM },
+  { k: "arc", l: "Have you applied for an Authorization to Return to Canada (ARC)?", t: "yn", if: C_REM, h: "Needed after a deportation order, or an exclusion order in its first year (2 years for misrepresentation)." },
+  { k: "prev_h", l: "Earlier requests", t: "h" },
+  { k: "prev_trp", l: "Have you had a TRP before?", t: "yn", r: 1 },
+  { k: "prev_trp_details", l: "Dates, permit numbers and the reason for each", t: "t", r: 1, if: "inadm.prev_trp=Yes", full: 1 },
+  { k: "prev_trp_ok", l: "Did you follow every condition of that TRP and leave (or extend) on time?", t: "yn", r: 1, if: "inadm.prev_trp=Yes" },
+  { k: "trp_refused", l: "Has a TRP, criminal rehabilitation or ARC request ever been refused?", t: "yn", r: 1, full: 1 },
+  { k: "trp_refused_details", l: "What was refused, when, and the reason given", t: "ta", r: 1, if: "inadm.trp_refused=Yes", full: 1 },
+  { k: "pr_app", l: "Is there a PR, H&C, sponsorship or other application in process for you?", t: "yn", r: 1, full: 1 },
+  { k: "pr_app_details", l: "Type, file number and stage", t: "t", r: 1, if: "inadm.pr_app=Yes", full: 1 },
+]}; };
+
+const TRP_OFFENCES = { id: "offences", title: "Every arrest, charge and conviction", if: C_CRIM,
+  intro: "One entry for each charge, in any country, newest first. Include charges that were dismissed, withdrawn, pardoned, expunged or sealed, and youth matters. Copy the wording from your court papers where you can.",
+  rep: { min: 1, max: 12, add: "Add another charge" }, fields: [
+  { k: "country", l: "Country", t: "c", r: 1 },
+  { k: "region", l: "State, province or region", t: "t" },
+  { k: "city", l: "City or town", t: "t" },
+  { k: "date", l: "Date of the offence", t: "d", r: 1 },
+  { k: "charge", l: "Charge, exactly as written on the court record", t: "t", r: 1, full: 1, h: "Example: Driving under the influence, California Vehicle Code 23152(a)." },
+  { k: "impaired", l: "Did it involve alcohol, drugs or driving?", t: "yn", r: 1 },
+  { k: "bac", l: "Blood alcohol reading, if known", t: "t", if: "@impaired=Yes" },
+  { k: "harm", l: "Was anyone hurt, or was property damaged?", t: "yn", r: 1 },
+  { k: "harm_details", l: "Describe", t: "ta", r: 1, if: "@harm=Yes", full: 1 },
+  { k: "outcome", l: "Outcome", t: "s", r: 1, full: 1, o: ["Convicted (found guilty or pleaded guilty)", "Discharge, deferred judgment or diversion", "Charge withdrawn, dismissed or stayed", "Acquitted (found not guilty)", "Still pending", "Youth (juvenile) matter", "Don't know"] },
+  { k: "outcome_date", l: "Date of conviction or final court decision", t: "d", r: 1, if: "@outcome!=Still pending|Don't know" },
+  { k: "court", l: "Court name and case or docket number", t: "t" },
+  { k: "jail", l: "Jail or custody (length and dates)", t: "t" },
+  { k: "fine", l: "Fine amount and date fully paid", t: "t" },
+  { k: "probation", l: "Probation (from and to dates)", t: "t" },
+  { k: "licence", l: "Driving licence suspension (from and to dates)", t: "t", if: "@impaired=Yes" },
+  { k: "other_orders", l: "Other orders (community service, DUI classes, ignition interlock, restitution)", t: "t", full: 1 },
+  { k: "done", l: "Date every part of this sentence was completed", t: "d", r: 1, if: "@outcome=Convicted (found guilty or pleaded guilty)|Discharge, deferred judgment or diversion" },
+  { k: "cleared", l: "Has this record been cleared?", t: "s", r: 1, o: ["No", "Pardon or record suspension", "Expunged, set aside or dismissed after sentence", "Sealed", "Don't know"] },
+  { k: "story", l: "What happened, in your own words", t: "ta", r: 1, full: 1 },
+]};
+
+const TRP_REHAB = { id: "rehab_ev", title: "What has changed since", if: C_CRIM,
+  intro: "The officer must be satisfied you are unlikely to offend again. Specific, provable changes carry the most weight.", fields: [
+  { k: "view", l: "How do you see the offence today, and what have you learned from it?", t: "ta", r: 1, full: 1 },
+  { k: "changes", l: "What have you changed in your life since then?", t: "ta", r: 1, full: 1, h: "Stable work, family responsibilities, sobriety, counselling, who you spend time with, community involvement." },
+  { k: "programs_yn", l: "Have you completed any course, treatment or counselling (alcohol education, addiction treatment, anger management)?", t: "yn", r: 1, full: 1 },
+  { k: "programs", l: "Program names, providers and completion dates", t: "ta", r: 1, if: "rehab_ev.programs_yn=Yes", full: 1 },
+  { k: "substance", l: "If alcohol or drugs were involved, how do you manage that now?", t: "ta", full: 1 },
+  { k: "since_yn", l: "Any arrest, charge, ticket or police contact since your last offence?", t: "yn", r: 1, full: 1 },
+  { k: "since_details", l: "Give details", t: "ta", r: 1, if: "rehab_ev.since_yn=Yes", full: 1 },
+  { k: "licence_now", l: "Is your driving licence valid today?", t: "s", o: ["Yes", "No – still suspended", "I don't drive", "Never had one"] },
+  { k: "community", l: "Volunteer, religious or community involvement", t: "ta", full: 1 },
+]};
+
+const TRP_MED = { id: "med", title: "Medical condition", if: C_MED,
+  intro: "Usually this means a condition found in an immigration medical exam that could endanger public health or need costly care in Canada.", fields: [
+  { k: "condition", l: "Condition or diagnosis", t: "t", r: 1, full: 1 },
+  { k: "since", l: "Diagnosed on", t: "d" },
+  { k: "doctor", l: "Treating doctor or clinic (name, city, phone)", t: "t", full: 1 },
+  { k: "treatment", l: "Current treatment and medicines", t: "ta", r: 1, full: 1 },
+  { k: "state", l: "How is the condition now?", t: "s", r: 1, o: ["Stable or controlled", "Improving", "Getting worse", "Not sure"] },
+  { k: "hospital_yn", l: "Any hospital stays in the past 5 years?", t: "yn", r: 1 },
+  { k: "hospital", l: "Dates and reasons", t: "ta", r: 1, if: "med.hospital_yn=Yes", full: 1 },
+  { k: "contagious", l: "Has a doctor said it can spread to other people?", t: "s", r: 1, o: ["No", "Yes", "It did, but treatment is complete", "Not sure"] },
+  { k: "ime", l: "Was it found in a medical exam for Canadian immigration?", t: "yn", r: 1 },
+  { k: "ime_date", l: "Date of that exam and the panel physician", t: "t", if: "med.ime=Yes" },
+  { k: "care_canada", l: "Will you need medical care or treatment while in Canada?", t: "yn", r: 1, full: 1 },
+  { k: "care_details", l: "What care, where, and the expected cost", t: "ta", r: 1, if: "med.care_canada=Yes", full: 1 },
+  { k: "pay", l: "Who will pay for any medical care in Canada?", t: "s", r: 1, o: ["Private medical or travel insurance", "Me or my family", "My employer", "No care needed during the stay", "Other"] },
+  { k: "insurance", l: "Insurer, policy number and coverage amount", t: "t", if: "med.pay=Private medical or travel insurance", full: 1 },
+]};
+
+const TRP_IMMHIST = { id: "immhist", title: "Immigration history in detail", if: C_HIST, fields: [
+  { k: "ov_h", l: "Overstay, or work or study without permission", t: "h", if: C_IMM },
+  { k: "ov_country", l: "Country", t: "c", r: 1, if: C_IMM },
+  { k: "ov_from", l: "Date status ended (or unauthorized work or study began)", t: "d", r: 1, if: C_IMM },
+  { k: "ov_to", l: "Date it ended (left, or got status again)", t: "d", if: C_IMM, h: "Leave blank if it is still going on." },
+  { k: "ov_why", l: "Why did it happen?", t: "ta", r: 1, if: C_IMM, full: 1 },
+  { k: "ov_work", l: "Did you work or study without permission?", t: "yn", r: 1, if: C_IMM },
+  { k: "ov_work_details", l: "Employer or school, dates and job", t: "ta", r: 1, if: "immhist.ov_work=Yes", full: 1 },
+  { k: "ov_restore", l: "Did you apply for restoration or any other status? What happened?", t: "t", if: C_IMM, full: 1 },
+  { k: "mis_h", l: "Misrepresentation", t: "h", if: C_MIS },
+  { k: "mis_date", l: "Date of the misrepresentation decision (date on the letter)", t: "d", r: 1, if: C_MIS, h: "The 5-year ban runs from this date." },
+  { k: "mis_app", l: "Application it was found on (type and number)", t: "t", r: 1, if: C_MIS },
+  { k: "mis_what", l: "What did IRCC say was false or missing, and what is the truth?", t: "ta", r: 1, if: C_MIS, full: 1 },
+  { k: "mis_by", l: "Was the false information or document supplied by someone else (agent, employer, school)?", t: "yn", r: 1, if: C_MIS, full: 1 },
+  { k: "mis_by_details", l: "Who, and what you knew at the time", t: "ta", r: 1, if: "immhist.mis_by=Yes", full: 1 },
+  { k: "mis_challenge", l: "Was the decision challenged (reconsideration or Federal Court)? Result?", t: "t", if: C_MIS, full: 1 },
+  { k: "rem_h", l: "Removal order", t: "h", if: C_REM },
+  { k: "rem_type", l: "Type of removal order", t: "s", r: 1, if: C_REM, o: ["Departure order", "Exclusion order", "Deportation order", "Don't know"] },
+  { k: "rem_reason", l: "Reason on the removal order", t: "t", r: 1, if: C_REM, full: 1 },
+  { k: "rem_left", l: "Date you actually left Canada", t: "d", r: 1, if: C_REM },
+  { k: "rem_cbsa", l: "Did you confirm your departure with CBSA (Certificate of Departure)?", t: "s", r: 1, if: C_REM, o: ["Yes", "No", "Don't know"] },
+  { k: "rem_paid", l: "Did the Canadian government pay for your removal?", t: "s", r: 1, if: C_REM, o: ["Yes", "No", "Don't know"], h: "If yes, that cost usually has to be repaid before you can return." },
+]};
+
+const TRP_SAFETY = { id: "safety", title: "Your safety", if: C_SAFE,
+  intro: "You don't have to write the details here. We can talk by phone at a time that is safe for you. If you are in danger now, call 911.", fields: [
+  { k: "safe_now", l: "Are you living somewhere safe now?", t: "yn", r: 1 },
+  { k: "contact", l: "Safest way and time to contact you", t: "t", r: 1, full: 1, h: "Tell us if we must not leave voice messages or write to a certain email." },
+  { k: "fv_status", l: "Status in Canada of the person who harmed you", t: "s", r: 1, if: `inadm.ground=${G_FV}`, o: ["Canadian citizen", "Permanent resident", "Temporary resident (worker or student)", "Don't know"] },
+  { k: "fv_basis", l: "Was your status in Canada based on your relationship with them?", t: "s", r: 1, if: `inadm.ground=${G_FV}`, full: 1, o: ["Yes – spousal open work permit", "Yes – visitor or other permit as their spouse or partner", "Yes – I was being sponsored by them", "No", "Not sure"] },
+  { k: "fv_left", l: "Date you left the relationship (if you have)", t: "d", if: `inadm.ground=${G_FV}` },
+  { k: "summary", l: "Anything you want us to know now (optional)", t: "ta", full: 1 },
+  { k: "help_yn", l: "Are you getting help from police, a shelter, a doctor, a counsellor or a support agency?", t: "yn", r: 1, full: 1 },
+  { k: "help_who", l: "Who helps you, and may we contact them?", t: "t", r: 1, if: "safety.help_yn=Yes", full: 1 },
+  { k: "children", l: "Are any of your children with you in Canada?", t: "yn", r: 1 },
+  { k: "children_details", l: "Their names, ages and status", t: "ta", r: 1, if: "safety.children=Yes", full: 1 },
+]};
+
+const TRP_REFS = { id: "refs", title: "Character references and supporters",
+  intro: "People who will write a support letter: employers, community or religious leaders, family and friends. The strongest letters are signed and dated, on letterhead where possible, say how long the writer has known you, and show they know about the issue.",
+  rep: { min: 0, max: 8, add: "Add a reference" }, fields: [
+  { k: "name", l: "Full name", t: "t", r: 1 },
+  { k: "relation", l: "Relationship to you", t: "t", r: 1 },
+  { k: "occupation", l: "Their occupation and employer", t: "t" },
+  { k: "years", l: "Years they have known you", t: "n" },
+  { k: "phone", l: "Phone", t: "p" },
+  { k: "email", l: "Email", t: "e" },
+  { k: "where", l: "Where they live", t: "s", o: ["In Canada – citizen or PR", "In Canada – temporary resident", "Outside Canada"] },
+  { k: "aware", l: "Do they know about the issue?", t: "yn", r: 1 },
+]};
+
+const TRP_NEED_IN = { id: "need", title: "Why you need to stay in Canada",
+  intro: "The officer weighs your need to stay against any risk. Be specific: names, dates, what depends on you being here.", fields: [
+  { k: "purpose", l: "Main reason you need to stay", t: "s", r: 1, full: 1, o: ["Family in Canada (spouse, children, parents)", "Waiting for a PR, H&C or sponsorship decision", "Medical treatment", "Work", "Study", "Safety or protection", "Other"] },
+  { k: "purpose_other", l: "Describe", t: "t", r: 1, if: "need.purpose=Other", full: 1 },
+  { k: "reasons", l: "Why should you be allowed to stay? Give specifics", t: "ta", r: 1, full: 1 },
+  { k: "hardship", l: "What would happen to you and your family if you had to leave Canada now?", t: "ta", r: 1, full: 1 },
+  { k: "establish", l: "Your life in Canada: how long here, work, home, community", t: "ta", r: 1, full: 1 },
+  { k: "until", l: "Stay requested until", t: "d", r: 1 },
+  { k: "until_why", l: "Why that length of time?", t: "t", full: 1 },
+  { k: "permit_need", l: "Will you also need a work or study permit?", t: "s", r: 1, o: ["Work permit", "Study permit", "Both", "Neither"], h: "These are applied for separately, usually together with the TRP request." },
+  { k: "funds", l: "Money available to support yourself (CAD)", t: "n", r: 1 },
+  { k: "income", l: "Monthly household income in Canada (CAD)", t: "n" },
+]};
+
+const TRP_FAMILY_CA = { id: "canada_family", title: "Family in Canada",
+  intro: "Your spouse or partner, children, parents, brothers and sisters living in Canada. Children's interests carry real weight, so include each child.",
+  rep: { min: 0, max: 12, add: "Add a family member" }, fields: [
+  { k: "name", l: "Full name", t: "t", r: 1 },
+  { k: "relation", l: "Relationship to you", t: "s", r: 1, o: ["Spouse or partner", "Son", "Daughter", "Mother", "Father", "Brother", "Sister", "Other relative"] },
+  { k: "dob", l: "Date of birth", t: "d" },
+  { k: "status", l: "Their status in Canada", t: "s", r: 1, o: ["Canadian citizen", "Permanent resident", "Work permit", "Study permit", "Visitor", "No status", "Don't know"] },
+  { k: "city", l: "City", t: "t" },
+  { k: "lives_with", l: "Do you live with them?", t: "yn", r: 1 },
+  { k: "depends", l: "Do they depend on you (money, care, schooling)?", t: "yn", r: 1 },
+  { k: "depends_details", l: "How", t: "t", r: 1, if: "@depends=Yes", full: 1 },
+]};
+
+const D_TRP = (inside) => [
+  { k: "explanation", l: "Your personal statement: what happened, what has changed, and why you need to be in Canada", h: "We draft it from your answers for you to check and sign." },
+  { k: "court_docs", l: "Court records for every charge: charge document, final judgment and sentence", r: 1, if: C_CRIM, h: "Ask the court clerk for a certified copy of the full file. Include dismissed and cleared charges." },
+  { k: "sentence_proof", l: "Proof every part of each sentence was completed: fine receipts, probation completion, release papers", r: 1, if: C_CRIM },
+  { k: inside ? "police_certs" : "police", l: "Police certificates from every country you lived in for 6 months or more since age 18", r: 1, if: C_CRIM, h: "Upload any you already have. We will tell you which ones IRCC needs." },
+  { k: "fbi", l: "FBI Identity History Summary, and state record checks for each US state where you were charged", if: C_CRIM },
+  { k: "driving", l: "Driving record (driver's abstract) and proof your licence was reinstated", if: C_CRIM, h: "For impaired driving or other driving offences." },
+  { k: "pardon", l: "Pardon, record suspension, expungement or sealing order", if: C_CRIM },
+  { k: "rehab_file", l: "Earlier criminal rehabilitation application or decision", r: 1, if: "inadm.rehab=Yes" },
+  { k: "programs", l: "Certificates from treatment, counselling or education programs", r: 1, if: "rehab_ev.programs_yn=Yes" },
+  { k: "medical", l: "Medical reports, treatment plan and a letter from your doctor on your current condition", r: 1, if: C_MED },
+  { k: "med_insurance", l: "Medical insurance policy covering the whole stay", r: 1, if: "med.pay=Private medical or travel insurance" },
+  { k: "ircc_letters", l: "IRCC or CBSA letters: refusals, removal orders, misrepresentation decisions (with GCMS notes if you have them)", r: 1, if: `${C_HIST};${C_TOLD}` },
+  { k: "departure", l: "Proof you left Canada: Certificate of Departure, boarding pass or entry stamp in the next country", if: C_REM },
+  { k: "prev_trp_docs", l: "Earlier TRPs", r: 1, if: "inadm.prev_trp=Yes" },
+  { k: "trp_refusal", l: "Refusal letter for the earlier TRP, rehabilitation or ARC request", r: 1, if: "inadm.trp_refused=Yes" },
+  { k: "support", l: "Character reference and support letters (signed, dated, with the writer's contact details)", h: "From the people listed under Character references." },
+];
+
+/* ---------- Temporary resident permit inside Canada (IMM 5708 + TRP request) ---------- */
 const TRP_IN = {
   key: "trp-in",
   name: "Temporary resident permit (inside Canada)",
-  intro: "A temporary resident permit (TRP) lets a person who is inadmissible, or who can no longer restore their status, stay in Canada when there is a strong reason. This form collects everything needed to prepare the request and the supporting documents. Answer every question truthfully and completely.",
+  intro: "A temporary resident permit (TRP) lets a person who is inadmissible, or who can no longer restore their status, stay in Canada when there is a strong reason. It also protects people whose status depended on an abusive partner, and victims of human trafficking. The officer weighs your need to stay against any risk to Canadians, so this form asks for the full story, proof that things have changed, and the people and reasons that tie you to Canada. Answer every question truthfully and completely.",
   sections: [
     ...IN_HEAD(),
-    { id: "inadm", title: "Why you need a TRP", fields: [
-      { k: "ground", l: "Main reason you can't stay or extend the usual way", t: "s", r: 1, o: ["Criminal record (including impaired driving)", "Medical reasons", "Out of status more than 90 days (can't restore)", "Misrepresentation finding", "Previous removal or deportation", "Other"] },
-      { k: "ground_other", l: "Describe", t: "t", r: 1, if: "inadm.ground=Other" },
-      { k: "details", l: "Full details: what happened, when and where", t: "ta", r: 1, full: 1 },
-      { k: "offence_date", l: "Date of the offence or conviction", t: "d", r: 1, if: "inadm.ground=Criminal record (including impaired driving)" },
-      { k: "sentence_done", l: "Date you finished the whole sentence (including probation and fines)", t: "d", if: "inadm.ground=Criminal record (including impaired driving)" },
-      { k: "rehab", l: "Have you applied for criminal rehabilitation?", t: "yn", if: "inadm.ground=Criminal record (including impaired driving)" },
-      { k: "out_since", l: "Date your status ended", t: "d", r: 1, if: "inadm.ground=Out of status more than 90 days (can't restore)" },
-      { k: "reasons", l: "Why should you be allowed to stay? (family, work, medical care, events, how long)", t: "ta", r: 1, full: 1 },
-      { k: "until", l: "Stay requested until", t: "d", r: 1 },
-      { k: "prev_trp", l: "Have you had a TRP before?", t: "yn", r: 1 },
-      { k: "prev_trp_details", l: "Dates and permit numbers", t: "t", r: 1, if: "inadm.prev_trp=Yes" },
-      { k: "pr_app", l: "Is there a PR, H&C or other application in process for you?", t: "yn", r: 1 },
-      { k: "pr_app_details", l: "Type, file number and stage", t: "t", r: 1, if: "inadm.pr_app=Yes" },
-      { k: "funds", l: "Money available (CAD)", t: "n", r: 1 },
-    ]},
+    TRP_INADM(true), TRP_OFFENCES, TRP_REHAB, TRP_MED, TRP_IMMHIST, TRP_SAFETY,
+    TRP_NEED_IN, TRP_FAMILY_CA, TRP_REFS,
     ...TAIL, ...END,
   ],
-  docs: docsOf(D_ID, D_STATUS, D_MONEY, [
-    { k: "explanation", l: "Your letter explaining your situation and why you need to stay", h: "We can write this from your answers." },
-    { k: "court_docs", l: "Court records, sentence and proof every part of the sentence was completed", r: 1, if: "inadm.ground=Criminal record (including impaired driving)" },
-    { k: "police_certs", l: "Police certificates from every country you lived in for 6 months or more since age 18", if: "inadm.ground=Criminal record (including impaired driving)" },
-    { k: "medical", l: "Medical reports and treatment plan", r: 1, if: "inadm.ground=Medical reasons" },
-    { k: "ircc_letters", l: "IRCC or CBSA letters (refusals, removal orders, misrepresentation findings)", if: "inadm.ground!=Medical reasons" },
-    { k: "support", l: "Support letters (family, employer, community), with the writer's status in Canada" },
-    { k: "family_proof", l: "Proof of family in Canada (birth or marriage certificates, their status)" },
-    { k: "work_proof", l: "Job offer or employment proof, if you are asking to work" },
-    { k: "pr_proof", l: "Proof of the PR, H&C or other application in process", r: 1, if: "inadm.pr_app=Yes" },
+  docs: docsOf(D_ID, D_STATUS, D_TRP(true), D_MONEY, [
+    { k: "family_proof", l: "Proof of family in Canada: birth and marriage certificates, and their status (passport, PR card or permit)" },
+    { k: "children_school", l: "Children's school or daycare letters, and anything showing how they depend on you" },
+    { k: "work_proof", l: "Job offer or employment letter and recent pay stubs, if you are asking to work" },
+    { k: "tax", l: "Canadian tax returns or notices of assessment (last 2 years), if you filed" },
+    { k: "pr_proof", l: "Proof of the PR, H&C or other application in process (acknowledgement of receipt)", r: 1, if: "inadm.pr_app=Yes" },
+    { k: "safety_docs", l: "Any evidence you feel safe sharing: police report, protection order, letters from a shelter, doctor, counsellor or support worker", if: C_SAFE, h: "Optional. Share only what is safe. We will talk about what else may help." },
+    { k: "relationship", l: "Proof of your relationship and of your status that depended on it (permit, sponsorship letters)", if: `inadm.ground=${G_FV}` },
   ], D_FAMILY, D_BACK, D_OTHER),
 };
 
@@ -1428,48 +1625,51 @@ const IEC_OUT = {
   ], D_TRAVEL, D_FAMILY, D_BACK, D_OTHER),
 };
 
-/* ---------- Temporary resident permit from outside Canada (IMM 5257 + TRP request) ---------- */
+/* ---------- Temporary resident permit from outside Canada (IMM 5257 + Schedule 1 + TRP request) ----------
+   Uses the shared TRP module above (inadmissibility, offences, rehabilitation, medical, immigration history,
+   references). The need for the trip must be specific and time-bound, and the risk managed by a fixed plan. */
 const TRP_OUT = {
   key: "trp-out",
   name: "Temporary resident permit (outside Canada)",
-  intro: "A temporary resident permit (TRP) lets a person who is inadmissible to Canada (for example, for a criminal record or a past immigration issue) come to Canada for a specific, strong reason. This form collects everything needed to prepare the request and the supporting documents. Answer every question truthfully and completely.",
+  intro: "A temporary resident permit (TRP) lets a person who is inadmissible to Canada (for example, for a criminal record, impaired driving or a past immigration issue) come to Canada for a specific, strong reason. The officer weighs why you need to come against any risk to Canadians, so this form asks for the full story, proof that things have changed, a clear plan for the trip and what brings you home. Answer every question truthfully and completely.",
   sections: [
     ...OUT_HEAD(),
-    { id: "inadm", title: "Why you need a TRP", fields: [
-      { k: "ground", l: "Reason you are inadmissible", t: "s", r: 1, o: ["Criminal record (including impaired driving)", "Medical reasons", "Previous overstay or work without permission", "Misrepresentation finding", "Previous removal or deportation", "Other"] },
-      { k: "ground_other", l: "Describe", t: "t", r: 1, if: "inadm.ground=Other" },
-      { k: "details", l: "Full details: what happened, when and where", t: "ta", r: 1, full: 1 },
-      { k: "offence_date", l: "Date of the offence or conviction", t: "d", r: 1, if: "inadm.ground=Criminal record (including impaired driving)" },
-      { k: "sentence_done", l: "Date you finished the whole sentence (including probation, fines and licence suspension)", t: "d", if: "inadm.ground=Criminal record (including impaired driving)", full: 1 },
-      { k: "rehab", l: "Have you applied for criminal rehabilitation?", t: "s", if: "inadm.ground=Criminal record (including impaired driving)", o: ["Yes", "No", "Not yet eligible (under 5 years since sentence ended)"] },
-      { k: "removal_date", l: "Date of the removal order or deportation, and the country", t: "t", r: 1, if: "inadm.ground=Previous removal or deportation" },
-      { k: "arc", l: "Have you applied for an Authorization to Return to Canada (ARC)?", t: "yn", if: "inadm.ground=Previous removal or deportation" },
-      { k: "prev_trp", l: "Have you had a TRP before?", t: "yn", r: 1 },
-      { k: "prev_trp_details", l: "Dates and permit numbers", t: "t", r: 1, if: "inadm.prev_trp=Yes" },
-    ]},
-    { id: "visit", title: "Why you need to come to Canada", fields: [
+    TRP_INADM(false), TRP_OFFENCES, TRP_REHAB, TRP_MED, TRP_IMMHIST,
+    { id: "visit", title: "Why you need to come to Canada",
+      intro: "A TRP is granted for a need, not a wish. Explain what is happening, who it involves, why it must be now and why you must be there in person.", fields: [
+      { k: "route", l: "Where will the TRP be requested?", t: "s", r: 1, full: 1, o: ["With an online application to IRCC (needed for visa-required countries)", "At a Canadian port of entry (visa-exempt travellers only, e.g. US citizens)", "Not sure – advise me"], h: "A port-of-entry request is decided on the spot, with no guarantee. Applying ahead is safer when the trip matters." },
       { k: "purpose", l: "Purpose of the trip", t: "s", r: 1, o: ["Business", "Family event (wedding, funeral, birth)", "Visiting family", "Medical", "Work", "Tourism", "Other"] },
-      { k: "reasons", l: "Why must you travel to Canada, and why can't it wait or happen elsewhere?", t: "ta", r: 1, full: 1 },
+      { k: "purpose_other", l: "Describe", t: "t", r: 1, if: "visit.purpose=Other" },
+      { k: "reasons", l: "Why must you travel to Canada? Give specifics: who, what, where", t: "ta", r: 1, full: 1 },
+      { k: "why_now", l: "Why can't it wait (for example, until you can apply for criminal rehabilitation)?", t: "ta", r: 1, full: 1 },
+      { k: "alternatives", l: "Why can't it be done without you coming (video call, someone else going, meeting in another country)?", t: "ta", r: 1, full: 1 },
+      { k: "benefit", l: "Who in Canada benefits from your visit, and how (contracts, jobs, family support, caring for someone)?", t: "ta", full: 1 },
+      { k: "refused_impact", l: "What happens if the TRP is refused?", t: "ta", full: 1 },
+      { k: "host", l: "Person or company you will visit: name, relationship, phone and their status in Canada", t: "ta", full: 1 },
       { k: "arrive", l: "Planned arrival date", t: "d", r: 1 },
       { k: "leave", l: "Planned departure date", t: "d", r: 1 },
+      { k: "entries", l: "Entries needed", t: "s", r: 1, o: ["One entry for this trip", "Multiple entries – I need to come back several times"] },
+      { k: "entries_why", l: "Why multiple entries? How often, how long each time, and over what period?", t: "ta", r: 1, if: "visit.entries=Multiple entries – I need to come back several times", full: 1 },
       { k: "entry", l: "Port of entry (airport or border crossing)", t: "t", r: 1 },
       { k: "stay_address", l: "Where you will stay", t: "ta", r: 1, full: 1 },
+      { k: "itinerary", l: "Plan for each day in Canada", t: "ta", full: 1 },
+      { k: "with_whom", l: "Who is travelling with you (names and relationship)?", t: "t", full: 1 },
+      { k: "drive", l: "Will you drive in Canada?", t: "yn", r: 1, if: C_CRIM },
+      { k: "ticket", l: "Return or onward ticket", t: "s", r: 1, o: ["Booked", "Will book once approved", "No"] },
       { k: "funds", l: "Money available for the trip (CAD)", t: "n", r: 1 },
+      { k: "payer", l: "Who is paying for the trip?", t: "s", r: 1, o: ["Me", "My employer", "My family", "The person or company inviting me", "Other"] },
     ]},
+    TRP_REFS,
     ref("work"), ref("ties"),
     ...OUT_TAIL, ...END,
   ],
-  docs: docsOf(D_OUT, [
-    { k: "explanation", l: "Your letter explaining what happened, what has changed since, and why you need to come", h: "We can write this from your answers." },
-    { k: "court_docs", l: "Court records, charge and sentence, and proof every part of the sentence was completed", r: 1, if: "inadm.ground=Criminal record (including impaired driving)" },
-    { ...D_POLICE, r: 1, if: "inadm.ground=Criminal record (including impaired driving)" },
-    { k: "fbi", l: "FBI identity history summary (if you lived in the US)", if: "inadm.ground=Criminal record (including impaired driving)" },
-    { k: "medical", l: "Medical reports and treatment plan", r: 1, if: "inadm.ground=Medical reasons" },
-    { k: "ircc_letters", l: "IRCC or CBSA letters (refusals, removal orders, misrepresentation findings)", if: "inadm.ground!=Medical reasons" },
+  docs: docsOf(D_OUT, D_TRP(false), [
     { k: "purpose_proof", l: "Proof of the reason for travel (invitation, event card, business letter, medical appointment)", r: 1 },
-    { k: "support", l: "Character references and support letters" },
+    { k: "host_letter", l: "Letter from the person or company in Canada explaining why you are needed in person, with their status proof", h: "For business: on letterhead, naming the contract or meeting and what is at stake." },
+    { k: "tickets", l: "Flight booking or itinerary", if: "visit.ticket=Booked" },
     { k: "bank", l: "Bank statements for the last 4 months", r: 1 },
     { k: "property", l: "Property documents", if: "ties.property_yn=Yes" },
+    { k: "pr_proof", l: "Proof of the PR or other application in process", r: 1, if: "inadm.pr_app=Yes" },
   ], D_WORK, D_TRAVEL, D_FAMILY, D_BACK, D_OTHER),
 };
 
@@ -1704,7 +1904,7 @@ function ageOf(dob) {
 }
 export function when(cond, data, row) {
   if (!cond) return true;
-  return String(cond).split("&").every((c) => {
+  return String(cond).split("&").every((part) => part.split(";").some((c) => {
     c = c.trim();
     if (c === "$minor") return ageOf((data.personal || {}).dob) < 18;
     const m = c.match(/^([@\w.]+?)(!=|=)(.*)$/);
@@ -1716,7 +1916,7 @@ export function when(cond, data, row) {
     if (!m) return !!v;
     const opts = m[3].split("|");
     return m[2] === "=" ? opts.includes(v) : !!v && !opts.includes(v);
-  });
+  }));
 }
 export const sectionOn = (s, data) => when(s.if, data);
 export const fieldOn = (f, data, row) => f.t !== "h" && when(f.if, data, row);
@@ -1756,7 +1956,15 @@ export function progress(form, data, docKeys) {
 }
 // Older inside-Canada answers kept the entry questions in "status"; move them to the "entry" section. Safe to run twice.
 const MOVED_TO_ENTRY = ["first_entry", "first_place", "first_purpose", "last_entry", "last_place", "exits_yn"];
+const MOVED_TO_NEED = ["reasons", "until", "funds"];
 export function upgradeIntake(data) {
+  // Older TRP (inside Canada) answers kept the stay questions in "inadm"; move them to "need". Only that form has
+  // both an "inadm" section and these keys without a "visit" section.
+  const ia = data && data.inadm;
+  if (ia && typeof ia === "object" && !data.visit && MOVED_TO_NEED.some((k) => k in ia)) {
+    const nd = data.need && typeof data.need === "object" && !Array.isArray(data.need) ? data.need : (data.need = {});
+    for (const k of MOVED_TO_NEED) if (k in ia) { if (nd[k] == null || nd[k] === "") nd[k] = ia[k]; delete ia[k]; }
+  }
   const st = data && data.status;
   if (!st || typeof st !== "object" || Array.isArray(st)) return data;
   const e = data.entry && typeof data.entry === "object" && !Array.isArray(data.entry) ? data.entry : (data.entry = {});
