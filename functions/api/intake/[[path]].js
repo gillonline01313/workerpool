@@ -5,6 +5,7 @@ import { json, readJson, str, isEmail, getUser, sendEmail, randomToken, fileName
 import { FORMS, FORM_V, formOf, upgradeIntake, missing, progress, applicantName, CONSENT_V, CONSENT_TEXT, KEEP_TEXT, partnerConsent, returnScope, RETURN_DOCS } from "../../../assets/intake-config.js";
 import { REQ_DAYS, loadRequests, requestByToken, intakeForm, pubRequest } from "../../_intake_req.js";
 import { buildCompleteFile, KEEP_DAYS } from "../../_intake_file.js";
+import { openReturn, listReturns, pubReturn, secTitles, sendBack, returnAction, closeReturns } from "../../_intake_return.js";
 import { ensureIntake } from "../../_partners.js";
 
 const MAX_FILES = 150, MAX_PER_DOC = 20;
@@ -20,14 +21,6 @@ async function docKeys(env, intakeId) {
   const r = await env.DB.prepare(`SELECT DISTINCT doc_key FROM intake_docs WHERE intake_id = ?1`).bind(intakeId).all();
   return new Set(r.results.map((d) => d.doc_key));
 }
-// Sections the team sent back for review. While one is open the client can change only those sections (and what follows from them).
-const secList = (s) => { try { const a = JSON.parse(s || "[]"); return Array.isArray(a) ? a : []; } catch { return []; } };
-async function openReturn(env, intakeId) {
-  const t = await env.DB.prepare(`SELECT * FROM intake_returns WHERE intake_id = ?1 AND status = 'open' ORDER BY created DESC LIMIT 1`).bind(intakeId).first();
-  return t ? { ...t, sections: secList(t.sections) } : null;
-}
-const pubReturn = (t) => t && { id: t.id, sections: t.sections, message: t.message || "", created: t.created };
-const secTitles = (form, ids) => ids.map((id) => id === RETURN_DOCS ? "Documents" : ((form.sections.find((s) => s.id === id) || {}).title || id));
 const mine = (env, u, intakeId) => env.DB.prepare(`SELECT i.*, p.firm AS firm, p.email AS firm_email FROM intakes i LEFT JOIN partners p ON p.id = i.partner_id WHERE i.id = ?1 AND i.user_id = ?2`).bind(intakeId || "", u.id).first();
 const clientRow = (r) => ({ id: r.id, form_key: r.form_key, form_v: r.form_v || 1, status: r.status, progress: r.progress, created: r.created, updated: r.updated, submitted: r.submitted, name: applicantName(parse(r.data)),
   consent_at: r.consent_at, keep_file: r.keep_file, final_at: r.final_at, final_size: r.final_size, final_name: r.final_name, final_expires: r.final_expires, docs_destroyed_at: r.docs_destroyed_at,
@@ -297,7 +290,7 @@ async function admin({ request, env }, route, m) {
     const docs = await env.DB.prepare(`SELECT id, doc_key, name, size, type, uploaded, req_id FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(id).all();
     if ((r.status === "submitted" && !r.admin_seen) || r.req_new) await env.DB.prepare(`UPDATE intakes SET admin_seen = COALESCE(admin_seen, ?1), req_new = NULL WHERE id = ?2`).bind(new Date().toISOString(), id).run();
     const { form, reqs, extra, asked } = await intakeForm(env, r);
-    const returns = (await env.DB.prepare(`SELECT * FROM intake_returns WHERE intake_id = ?1 ORDER BY created DESC LIMIT 30`).bind(id).all()).results.map((t) => ({ ...t, sections: secList(t.sections) }));
+    const returns = await listReturns(env, id);
     return json({ ok: true, row: { ...r, data: parse(r.data) }, docs: docs.results, extra, asked: [...asked], requests: reqs.map(pubRequest), returns,
       missing: form ? missing(form, parse(r.data), r.docs_destroyed_at ? new Set(form.docs.map((d) => d.k)) : new Set(docs.results.map((d) => d.doc_key))) : [] });
   }
@@ -403,17 +396,9 @@ async function admin({ request, env }, route, m) {
     return json({ ok: true });
   }
   if (route === "return") return await sendBack(env, r, b);
-  if (route === "return-remind" || route === "return-cancel") {
-    const t = await openReturn(env, r.id);
-    if (!t || t.id !== str(b.rid, 60)) return json({ ok: false, error: "This send-back is no longer open." }, 404);
-    if (route === "return-remind") return json({ ok: true, emailed: await emailReturn(env, r, t, true) });
-    const now = new Date().toISOString();
-    await env.DB.prepare(`UPDATE intake_returns SET status = 'cancelled', done_at = ?1 WHERE id = ?2`).bind(now, t.id).run();
-    await env.DB.prepare(`UPDATE intakes SET status = 'submitted', updated = ?1 WHERE id = ?2 AND status = 'editing'`).bind(now, r.id).run();
-    return json({ ok: true });
-  }
+  if (route === "return-remind" || route === "return-cancel") return await returnAction(env, r, route, b.rid);
   if (route === "unlock") { // let the client edit again (e.g. after asking for corrections)
-    await env.DB.prepare(`UPDATE intake_returns SET status = 'replaced', done_at = ?1 WHERE intake_id = ?2 AND status = 'open'`).bind(new Date().toISOString(), r.id).run();
+    await closeReturns(env, r.id);
     await env.DB.prepare(`UPDATE intakes SET status = 'editing', updated = ?1 WHERE id = ?2 AND status = 'submitted'`).bind(new Date().toISOString(), r.id).run();
     return json({ ok: true });
   }
@@ -425,38 +410,6 @@ async function admin({ request, env }, route, m) {
     return json({ ok: true });
   }
   return json({ ok: false, error: "Not found." }, 404);
-}
-
-/* ======================= send sections back ======================= */
-// The team reviews a submitted (or partial) form and sends one or more sections back. The form unlocks for the client, but
-// only those sections (and the questions that follow from them) can change; the rest stays as reviewed.
-async function sendBack(env, r, b) {
-  if (r.docs_destroyed_at) return json({ ok: false, error: "The documents were already destroyed, so the form can't be reopened." }, 409);
-  if (r.status !== "submitted" && r.status !== "editing") return json({ ok: false, error: "The client hasn't submitted this form yet." }, 409);
-  const { form } = await intakeForm(env, r);
-  if (!form) return json({ ok: false, error: "Unknown form." }, 400);
-  const ok = new Set([...form.sections.map((s) => s.id), RETURN_DOCS]);
-  const sections = [...new Set((Array.isArray(b.sections) ? b.sections : []).map((x) => str(x, 60)).filter((x) => ok.has(x)))];
-  if (!sections.length) return json({ ok: false, error: "Tick at least one section to send back." }, 400);
-  const now = new Date().toISOString();
-  await env.DB.prepare(`UPDATE intake_returns SET status = 'replaced', done_at = ?1 WHERE intake_id = ?2 AND status = 'open'`).bind(now, r.id).run();
-  const t = { id: crypto.randomUUID(), intake_id: r.id, sections, message: str(b.message, 2000), created: now };
-  await env.DB.prepare(`INSERT INTO intake_returns (id, intake_id, sections, message, status, created) VALUES (?1, ?2, ?3, ?4, 'open', ?5)`)
-    .bind(t.id, r.id, JSON.stringify(sections), t.message || null, now).run();
-  await env.DB.prepare(`UPDATE intakes SET status = 'editing', updated = ?1, admin_status = 'need-info', admin_seen = COALESCE(admin_seen, ?1) WHERE id = ?2`).bind(now, r.id).run();
-  const emailed = b.send === false ? false : await emailReturn(env, r, t);
-  return json({ ok: true, id: t.id, link: `${site(env)}/intake/?o=${r.id}`, emailed });
-}
-async function emailReturn(env, r, t, again) {
-  const acct = await env.DB.prepare(`SELECT u.name, u.email, p.firm, p.email AS firm_email FROM users u LEFT JOIN partners p ON p.id = ?2 WHERE u.id = ?1`).bind(r.user_id, r.partner_id || "").first();
-  if (!acct || !acct.email) return false;
-  const { form } = await intakeForm(env, r), who = applicantName(parse(r.data)), first = String(acct.name || "").split(" ")[0] || "there";
-  const by = acct.firm || "Our team";
-  const ok = await sendEmail(env, acct.email, `${again ? "Reminder: " : ""}Please review part of your ${form.name} form`,
-    `Hi ${first},\n\n${by} reviewed your ${form.name} form${who && who !== acct.name ? ` (applicant: ${who})` : ""} and sent back ${t.sections.length === 1 ? "this section" : "these sections"} for you to check, correct or complete:\n\n${secTitles(form, t.sections).map((x) => "  - " + x).join("\n")}\n${t.message ? `\nMessage:\n${t.message}\n` : ""}\nSign in and open your form here:\n${site(env)}/intake/?o=${r.id}\n\nOnly the sections listed above can be changed. The rest of your form stays as it is. When you're done, press Send back.\n\n${acct.firm ? `WorkerPool (secure intake for ${acct.firm})` : "WorkerPool"}`,
-    acct.firm_email || undefined);
-  if (ok) await env.DB.prepare(`UPDATE intake_returns SET emailed = ?1 WHERE id = ?2`).bind(new Date().toISOString(), t.id).run();
-  return ok;
 }
 
 /* ======================= document requests ======================= */

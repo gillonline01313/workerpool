@@ -15,6 +15,7 @@
 import { json, readJson, str, isEmail, sendEmail, hashPassword, checkPassword, randomToken, sha256hex } from "../../_lib.js";
 import { FORMS, upgradeIntake, missing, applicantName } from "../../../assets/intake-config.js";
 import { intakeForm } from "../../_intake_req.js";
+import { listReturns, sendBack, returnAction, closeReturns } from "../../_intake_return.js";
 import { buildCompleteFile } from "../../_intake_file.js";
 import { stripe } from "../../_scanpass.js";
 import { ensureIntake, getPartner, createPartnerSession, partnerCookie, partnerToken, addCredits, prices, kindOf, money,
@@ -107,7 +108,7 @@ async function partner({ request, env }, route, m) {
         (SELECT COUNT(*) FROM intakes i WHERE i.invite_code = v.code) AS started, (SELECT COUNT(*) FROM intakes i WHERE i.invite_code = v.code AND i.submitted IS NOT NULL) AS done
       FROM intake_invites v WHERE v.partner_id = ?1 ORDER BY v.created DESC LIMIT 1000`).bind(p.id).all();
     const rows = await env.DB.prepare(`SELECT i.id, i.form_key, i.invite_code, i.status, i.data, i.progress, i.created, i.updated, i.submitted, i.resubmitted, i.partner_seen, i.partner_status,
-        i.docs_destroyed_at, i.partner_downloads, u.name AS acct_name, u.email AS acct_email, u.phone AS acct_phone, v.label AS invite_label,
+        i.docs_destroyed_at, i.partner_downloads, i.partial, i.missing_n, (SELECT COUNT(*) FROM intake_returns t WHERE t.intake_id = i.id AND t.status = 'open') AS ret_open, u.name AS acct_name, u.email AS acct_email, u.phone AS acct_phone, v.label AS invite_label,
         (SELECT COUNT(*) FROM intake_docs d WHERE d.intake_id = i.id) AS files
       FROM intakes i JOIN users u ON u.id = i.user_id LEFT JOIN intake_invites v ON v.code = i.invite_code WHERE i.partner_id = ?1 ORDER BY COALESCE(i.resubmitted, i.submitted, i.updated) DESC LIMIT 2000`).bind(p.id).all();
     const ledger = await env.DB.prepare(`SELECT kind, delta, reason, ref, amount, created FROM partner_ledger WHERE partner_id = ?1 ORDER BY id DESC LIMIT 100`).bind(p.id).all();
@@ -193,9 +194,9 @@ async function partner({ request, env }, route, m) {
     if (r.status === "submitted" && !r.partner_seen) await env.DB.prepare(`UPDATE intakes SET partner_seen = ?1 WHERE id = ?2`).bind(new Date().toISOString(), r.id).run();
     const row = { id: r.id, form_key: r.form_key, form_v: r.form_v || 1, status: r.status, data: parse(r.data), progress: r.progress, created: r.created, updated: r.updated, submitted: r.submitted, resubmitted: r.resubmitted,
       consent_at: r.consent_at, consent_text: r.consent_text, partner_status: r.partner_status, partner_note: r.partner_note, partner_downloads: r.partner_downloads,
-      docs_destroyed_at: r.docs_destroyed_at, docs_destroyed_count: r.docs_destroyed_count, acct_name: r.acct_name, acct_email: r.acct_email, acct_phone: r.acct_phone, invite_label: r.invite_label };
+      docs_destroyed_at: r.docs_destroyed_at, docs_destroyed_count: r.docs_destroyed_count, acct_name: r.acct_name, acct_email: r.acct_email, acct_phone: r.acct_phone, invite_label: r.invite_label, partial: !!r.partial, missing_n: r.missing_n || 0 };
     const have = r.docs_destroyed_at ? new Set(form.docs.map((d) => d.k)) : new Set(docs.results.map((d) => d.doc_key));
-    return json({ ok: true, row, docs: docs.results, extra, missing: form ? missing(form, row.data, have) : [] });
+    return json({ ok: true, row, docs: docs.results, extra, missing: form ? missing(form, row.data, have) : [], returns: await listReturns(env, r.id) });
   }
   if (route === "zip" && m === "GET") {
     if (!env.RESUMES) return json({ ok: false, error: "File storage isn't connected." }, 503);
@@ -212,8 +213,11 @@ async function partner({ request, env }, route, m) {
     return json({ ok: true });
   }
   if (route === "unseen") { await env.DB.prepare(`UPDATE intakes SET partner_seen = NULL WHERE id = ?1`).bind(r.id).run(); return json({ ok: true }); }
+  if (route === "return") return await sendBack(env, r, b, { statusCol: "partner_status" });
+  if (route === "return-remind" || route === "return-cancel") return await returnAction(env, r, route, b.rid);
   if (route === "unlock") {
     if (r.docs_destroyed_at) return json({ ok: false, error: "The documents were already deleted, so the form can't be reopened." }, 409);
+    await closeReturns(env, r.id);
     await env.DB.prepare(`UPDATE intakes SET status = 'editing', updated = ?1 WHERE id = ?2 AND status = 'submitted'`).bind(new Date().toISOString(), r.id).run();
     if (b.notify !== false && r.acct_email) await sendEmail(env, r.acct_email, `${p.firm} asked you to update your ${form ? form.name : ""} form`,
       `Hi ${String(r.acct_name || "").split(" ")[0] || "there"},\n\n${p.firm} reopened your intake form so you can make changes or add documents.${typeof b.message === "string" && b.message.trim() ? `\n\nMessage from ${p.firm}:\n${b.message.trim().slice(0, 2000)}` : ""}\n\nSign in, make the changes and press Submit again: ${site(env)}/intake/\n\nWorkerPool (secure intake for ${p.firm})`, p.email);

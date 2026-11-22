@@ -126,7 +126,7 @@ footer a{color:var(--muted)}
 <main class="in" id="view"><div class="card"><p class="muted" style="margin:0">Loading…</p></div></main>
 <footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents for licensed representatives. We are not immigration representatives and do not give immigration advice. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
 <script type="module">
-import { FORMS, formOf, sectionOn, fieldOn, when as cond, applicantName } from "/assets/intake-config.js?v=9";
+import { FORMS, formOf, sectionOn, fieldOn, when as cond, applicantName, missing as missOf, RETURN_DOCS } from "/assets/intake-config.js?v=9";
 
 const $ = (s, r = document) => r.querySelector(s);
 const view = $("#view");
@@ -315,8 +315,9 @@ function formsPane() {
       <input id="q" type="search" placeholder="Search client, email, form…" value="${esc(S.q)}" style="max-width:260px"></div>
     ${L.length ? `<div class="tbl"><table><thead><tr><th>Status</th><th>Client</th><th>Form</th><th>Progress</th><th>Files</th><th>Submitted</th></tr></thead><tbody>
       ${L.map((x) => { const isNew = x.status === "submitted" && !x.partner_seen;
-        const badge = isNew ? `<span class="pill new">${x.resubmitted ? "Updated" : "New"}</span>` : x.status === "submitted" ? `<span class="pill sub">${esc(stLabel(x.partner_status))}</span>` : x.status === "editing" ? `<span class="pill edit">Client editing</span>` : `<span class="pill">Filling</span>`;
-        return `<tr class="${x.submitted ? "click" : ""}${isNew ? " new" : ""}" ${x.submitted ? `data-open="${x.id}" tabindex="0"` : `title="You can open it once your client submits"`}><td>${badge}</td>
+        const badge = isNew ? `<span class="pill new">${x.resubmitted ? "Updated" : "New"}</span>` : x.status === "submitted" ? `<span class="pill sub">${esc(stLabel(x.partner_status))}</span>` : x.ret_open ? `<span class="pill edit" title="Sections sent back to your client">Sent back</span>` : x.status === "editing" ? `<span class="pill edit">Client editing</span>` : `<span class="pill">Filling</span>`;
+        const part = x.partial && x.status === "submitted" ? ` <span class="pill edit" title="${x.missing_n || 0} required items missing">Partial</span>` : "";
+        return `<tr class="${x.submitted ? "click" : ""}${isNew ? " new" : ""}" ${x.submitted ? `data-open="${x.id}" tabindex="0"` : `title="You can open it once your client submits"`}><td>${badge}${part}</td>
           <td>${esc(x.name || x.invite_label || "(name not entered)")}<br><span class="muted">${esc(x.acct_email)} · ${esc(x.acct_phone)}</span></td>
           <td>${esc((FORMS[x.form_key] || {}).name || x.form_key)}</td><td><span class="meter"><i style="width:${x.progress || 0}%"></i></span>${x.progress || 0}%</td>
           <td>${x.docs_destroyed_at ? `<span class="muted">Deleted</span>` : x.files}</td><td>${x.submitted ? when(x.resubmitted || x.submitted) : `<span class="muted">Last saved ${when(x.updated)}</span>`}</td></tr>`; }).join("")}
@@ -334,6 +335,7 @@ function answers(form, data) {
   });
 }
 async function openItem(id) {
+  S.retOpen = false; S.retMade = null;
   const pane = $("#pane"); pane.innerHTML = `<div class="card"><p class="muted" style="margin:0">Opening…</p></div>`;
   const r = await api("item?id=" + encodeURIComponent(id));
   if (!r.ok) { pane.innerHTML = `<div class="card"><p class="err">${esc(r.j.error || "Couldn't open it.")}</p></div>`; return; }
@@ -352,7 +354,8 @@ function drawItem() {
       ${f.map((y) => `<div class="muted">${esc(y.name)} · ${kb(y.size)} · ${when(y.uploaded)}</div>`).join("")}</div>
       <div class="row">${f.map((y) => `<button class="btn ghost sm" type="button" data-view="${y.id}">View</button><button class="btn ghost sm" type="button" data-dl="${y.id}" data-name="${esc(y.name)}">Download</button>`).join("")}</div></div>`;
   }).join("");
-  const stat = r.status === "submitted" ? (r.resubmitted ? `Resubmitted ${when(r.resubmitted)} (first ${when(r.submitted)})` : `Submitted ${when(r.submitted)}`) : "Your client is making changes (not resubmitted yet)";
+  const openRet = (S.item.returns || []).find((t) => t.status === "open");
+  const stat = r.status === "submitted" ? (r.resubmitted ? `Resubmitted ${when(r.resubmitted)} (first ${when(r.submitted)})` : `Submitted ${when(r.submitted)}`) + (r.partial ? ` · PARTIAL, ${r.progress || 0}% complete` : "") : openRet ? `Sections sent back to your client ${when(openRet.created)} (not returned yet)` : "Your client is making changes (not resubmitted yet)";
   pane.innerHTML = `<div class="stack">
     <div><button class="btn ghost sm" type="button" id="back">← All client forms</button></div>
     <div class="card"><div class="row sp" style="align-items:flex-start"><div><span class="muted">${esc(form.name)}</span><h2 style="font-size:1.4rem">${esc(name)}</h2>
@@ -363,8 +366,9 @@ function drawItem() {
         <div class="f"><label for="st">Work status</label><select id="st">${STATUS.map(([v, l]) => `<option value="${v}"${(r.partner_status || "new") === v ? " selected" : ""}>${l}</option>`).join("")}</select></div>
         <div class="f"><label for="notes">Private notes (only your firm sees them)</label><textarea id="notes" rows="2">${esc(r.partner_note || "")}</textarea></div>
         <div><button class="btn" type="button" id="save">Save</button></div></div><div class="muted" id="msg"></div>
-      ${missing.length ? `<div class="note warn"><b>${missing.length} required item${missing.length > 1 ? "s" : ""} not complete</b><ul style="margin:6px 0 0;padding-left:18px">${missing.slice(0, 40).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+      ${missing.length ? `<div class="note warn"><b>${missing.length} required item${missing.length > 1 ? "s" : ""} not complete</b>${r.partial ? " (your client submitted a partial form; use Send sections back below to ask for the rest)" : ""}<ul style="margin:6px 0 0;padding-left:18px">${missing.slice(0, 40).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
     </div>
+    ${retCard(r, form, missing)}
     <div class="card"><h3>Documents (${docs.length} file${docs.length === 1 ? "" : "s"})</h3>${r.docs_destroyed_at ? `<p class="muted" style="margin:0">${r.docs_destroyed_count || 0} uploaded document${r.docs_destroyed_count === 1 ? " was" : "s were"} deleted from WorkerPool on ${when(r.docs_destroyed_at)}. They are in the ZIP you downloaded.</p>` : docRows || `<span class="muted">No documents.</span>`}</div>
     <div class="card"><h3>Answers</h3>${A.map(sec).join("")}</div>
     <div class="card"><h3>Manage</h3>
@@ -387,12 +391,60 @@ function drawItem() {
   pane.querySelectorAll("[data-dl]").forEach((b) => b.onclick = () => getFile(b.dataset.dl, b.dataset.name, false));
   const un = $("#unlock"); if (un) un.onclick = async () => { if (!confirm("Reopen this form so your client can change answers and documents? They get an email, and it comes back here as Updated when they resubmit.")) return;
     const x = await api("unlock", { method: "POST", body: JSON.stringify({ id: r.id, message: $("#askMsg").value }) }); if (!x.ok) return alert(x.j.error); await dash(); openItem(r.id); };
+  wireRet(r);
   $("#unread").onclick = async () => { await api("unseen", { method: "POST", body: JSON.stringify({ id: r.id }) }); S.item = null; dash(); };
   const ds = $("#destroy"); if (ds) ds.onclick = async () => {
     if (!r.partner_downloads) return alert("Download the complete file (ZIP) first, so you have every document before they are deleted.");
     if (!confirm(`Permanently delete all ${docs.length} uploaded documents for ${name} from WorkerPool? The answers stay. Your client is told by email. This can't be undone.`)) return;
     if (prompt("Type DELETE to confirm") !== "DELETE") return;
     const x = await api("destroy", { method: "POST", body: JSON.stringify({ id: r.id }) }); if (!x.ok) return alert(x.j.error); openItem(r.id); };
+}
+/* ---- send sections back to the client ---- */
+const RT = { open: ["Waiting for client", "edit"], done: ["Returned", "sub"], cancelled: ["Withdrawn", ""], replaced: ["Replaced", ""] };
+function retCard(r, form, miss) {
+  const T = S.item.returns || [], d = r.data, open = T.find((t) => t.status === "open");
+  const canSend = (r.status === "submitted" || r.status === "editing") && !r.docs_destroyed_at;
+  const title = (id) => id === RETURN_DOCS ? "Documents" : ((form.sections.find((x) => x.id === id) || {}).title || id);
+  const nMiss = (s) => missOf({ sections: [s], docs: [] }, d, new Set()).length, docMiss = miss.filter((x) => x.startsWith("Document: ")).length;
+  const link = `${location.origin}/intake/?o=${r.id}`, ph = String((d.contact || {}).phone || r.acct_phone || "").replace(/[^\d]/g, "");
+  const wa = `https://wa.me/${ph}?text=${encodeURIComponent(`Please review the sections we sent back on your ${form.name} form: ${link}`)}`;
+  const box = (id, label, n) => `<label class="cbx" style="display:flex;gap:8px;align-items:flex-start;font-size:.88rem;padding:4px 0;font-weight:500"><input type="checkbox" data-retk="${esc(id)}"${n ? " checked" : ""} style="width:auto;margin-top:3px"><span>${esc(label)} ${n ? `<span class="pill edit">${n} missing</span>` : ""}</span></label>`;
+  const made = S.retMade === r.id;
+  return `<div class="card"><div class="row sp"><h3>Send sections back to your client</h3>${canSend ? `<button class="btn${S.retOpen ? " ghost" : ""}" type="button" id="retNew">${S.retOpen ? "Close" : open ? "Change what's sent back" : "+ Send sections back"}</button>` : ""}</div>
+    <p class="muted" style="margin:0">Pick the sections your client should check, correct or complete. Their form reopens with only those sections editable (plus questions that follow from them); everything else stays locked as you reviewed it. They're emailed a link and press <b>Send back</b> when done, and the form comes back here as Updated.${canSend ? "" : " Available once your client has submitted (a partial submission is fine)."}</p>
+    ${made ? `<div class="note"><b>Sent back.</b> Share the link too if needed: <span style="overflow-wrap:anywhere">${esc(link)}</span> <button class="btn ghost sm" type="button" data-retcp="${esc(link)}">Copy link</button> <a class="btn ghost sm" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a></div>` : ""}
+    ${S.retOpen && canSend ? `<div class="sec" id="retBox"><h4>1. Sections to send back</h4>
+        <div class="row" style="margin-bottom:6px"><button class="btn ghost sm" type="button" id="retMiss">Tick sections with missing items</button><button class="btn ghost sm" type="button" id="retNone">Clear</button></div>
+        <div style="max-height:340px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 14px">${form.sections.filter((s) => sectionOn(s, d)).map((s) => box(s.id, s.title, nMiss(s))).join("")}${box(RETURN_DOCS, "Documents (let them upload / remove files)", docMiss)}</div>
+        <div class="f" style="margin-top:10px"><label for="retMsg">2. Message to your client (emailed with the link)</label><textarea id="retMsg" rows="3" maxlength="2000" placeholder="e.g. Your travel history is missing your 2019 trip to the USA. Please add every trip in the last 10 years.">${esc(open && open.message || "")}</textarea></div>
+        <div class="row" style="align-items:center;margin-top:8px"><label style="display:flex;gap:6px;align-items:center;font-weight:500;font-size:.88rem"><input type="checkbox" id="retSend" style="width:auto"${r.acct_email ? " checked" : " disabled"}> Email ${esc(r.acct_email || "your client")} a link</label>
+          <button class="btn" type="button" id="retGo">Send back to client</button></div><div class="err" id="retErr"></div></div>` : ""}
+    ${T.map((t) => { const st = RT[t.status] || [t.status, ""];
+      return `<div class="sec"><div class="row sp" style="align-items:flex-start"><div><span class="pill ${st[1]}">${esc(st[0])}</span> <b>${t.sections.length} section${t.sections.length === 1 ? "" : "s"}</b>
+          <div class="muted">Sent ${when(t.created)}${t.emailed ? ` · emailed ${when(t.emailed)}` : ""}${t.done_at ? ` · ${t.status === "done" ? "returned" : "closed"} ${when(t.done_at)}` : ""}</div></div>
+        ${t.status === "open" ? `<div class="row"><button class="btn ghost sm" type="button" data-retcp="${esc(link)}">Copy link</button><a class="btn ghost sm" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a><button class="btn ghost sm" type="button" data-retre="${t.id}">Email reminder</button><button class="btn ghost sm" type="button" data-retx="${t.id}">Withdraw</button></div>` : ""}</div>
+        <div style="margin-top:6px">${t.sections.map((id) => `<span class="pill" style="margin:2px 4px 2px 0;display:inline-block">${esc(title(id))}</span>`).join("")}</div>
+        ${t.message ? `<div class="muted" style="margin-top:6px">Message: ${esc(t.message)}</div>` : ""}</div>`; }).join("")}</div>`;
+}
+function wireRet(r) {
+  const pane = $("#pane"), again = async () => { await dash(); await openItem(r.id); };
+  const nb = $("#retNew"); if (nb) nb.onclick = () => { S.retOpen = !S.retOpen; S.retMade = null; drawItem(); const b = $("#retBox"); if (b) b.scrollIntoView({ behavior: "smooth", block: "nearest" }); };
+  const all = () => [...pane.querySelectorAll("[data-retk]")];
+  const mi = $("#retMiss"); if (mi) mi.onclick = () => all().forEach((c) => c.checked = !!c.parentElement.querySelector(".pill"));
+  const no = $("#retNone"); if (no) no.onclick = () => all().forEach((c) => c.checked = false);
+  const go = $("#retGo"); if (go) go.onclick = async () => {
+    const sections = all().filter((c) => c.checked).map((c) => c.dataset.retk);
+    if (!sections.length) { $("#retErr").textContent = "Tick at least one section."; return; }
+    go.disabled = true; go.textContent = "Sending…";
+    const x = await api("return", { method: "POST", body: JSON.stringify({ id: r.id, sections, message: $("#retMsg").value, send: $("#retSend").checked }) });
+    if (!x.ok) { go.disabled = false; go.textContent = "Send back to client"; $("#retErr").textContent = x.j.error || "Couldn't send it back."; return; }
+    if ($("#retSend").checked && !x.j.emailed) alert("Sent back, but the email couldn't be sent. Copy the link and send it to your client.");
+    S.retOpen = false; await again(); S.retMade = r.id; drawItem();
+  };
+  pane.querySelectorAll("[data-retcp]").forEach((b) => b.onclick = () => copy(b.dataset.retcp, b));
+  pane.querySelectorAll("[data-retre]").forEach((b) => b.onclick = async () => { b.disabled = true; const x = await api("return-remind", { method: "POST", body: JSON.stringify({ id: r.id, rid: b.dataset.retre }) }); alert(x.ok ? (x.j.emailed ? "Reminder emailed ✓" : "The email couldn't be sent. Copy the link instead.") : x.j.error); b.disabled = false; });
+  pane.querySelectorAll("[data-retx]").forEach((b) => b.onclick = async () => { if (!confirm("Withdraw this send-back? The form locks again as submitted. Anything your client already changed in those sections stays saved.")) return;
+    const x = await api("return-cancel", { method: "POST", body: JSON.stringify({ id: r.id, rid: b.dataset.retx }) }); if (!x.ok) return alert(x.j.error); again(); });
 }
 function save(blob, name) { const url = URL.createObjectURL(blob), a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 120000); }
 async function getFile(id, name, viewIt) {
