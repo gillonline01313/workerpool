@@ -301,8 +301,10 @@
       const B = S.B; if (!B || !c) return;
       r = r || B.recipients.find((x) => !String(x.name || "").trim() && !String(x.email || "").trim());
       if (!r) { r = { key: "k" + Math.random().toString(36).slice(2, 8), role: "signer", name: "", email: "", ord: B.recipients.length + 1 }; B.recipients.push(r); }
-      r.name = c.name; r.email = c.email; closeSug();
+      closeSug();
+      // let a box being typed in finish its own "change" first, so it can't overwrite the picked person afterwards
       if (document.activeElement && root.querySelector("#bRc").contains(document.activeElement)) document.activeElement.blur();
+      r.name = c.name; r.email = c.email;
       drawRecipients(); drawPalette(); drawFields(); dirty();
     }
     function openSug(inp, r) {
