@@ -188,6 +188,8 @@ Setup (Cloudflare → Pages → Settings → Variables and secrets):
 
 Send any PDF (or JPG/PNG; several files are joined into one) to one or more people for electronic signature.
 
+**Saved recipients.** Everyone a sender has added to an envelope before is remembered for that sender (admin and each subscriber separately; nobody sees another sender's people). In the builder, **Recent:** chips add a person in one click, and typing in a Name or Email box lists matching people (arrow keys + Enter, or click), filling both name and email. ✕ in that list removes someone from the saved list; they come back only if you add them to an envelope again. Built from `esign_recipients` (no extra copy of the data); removals are kept in `esign_contact_hide`.
+
 **Sending.** Admin → eSign → **+ New envelope**: upload the document, add recipients (*Needs to sign* or *Receives a copy*), optionally tick **Set signing order** and give a signer an **access code** (tell it to them by phone/text), write a message, set expiry and reminder days, then pick a field (Signature, Initials, Date signed, Full name, Email, Text, Checkbox) and click the page to place it. Drag to move, corner to resize, Delete to remove. Drafts save automatically. **Send for signature** checks every signer has a Signature field.
 
 **Signing.** Each signer gets a personal link. They agree to the Electronic Record and Signature Disclosure, enter the access code if one was set, confirm a 6-digit code emailed to them, then fill their fields and adopt a signature (typed in a script style or drawn). They can decline with a reason. With signing order, the next signer is emailed only after the previous one signs.

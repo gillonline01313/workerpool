@@ -63,6 +63,8 @@ export async function ensureEsign(env) {
       trial_end TEXT, trial_used INTEGER DEFAULT 0, cancel_at_end INTEGER DEFAULT 0, promo TEXT, comp_until TEXT, comp_note TEXT, created TEXT, updated TEXT, synced TEXT)`,
     `CREATE TABLE IF NOT EXISTS esign_payments (session_id TEXT PRIMARY KEY, user_id TEXT, plan_id TEXT, promo TEXT, created TEXT)`,
     `CREATE TABLE IF NOT EXISTS esign_settings (k TEXT PRIMARY KEY, v TEXT)`,
+    // people a sender chose to drop from their saved recipients list
+    `CREATE TABLE IF NOT EXISTS esign_contact_hide (owner TEXT NOT NULL, email TEXT NOT NULL, hidden_at TEXT, PRIMARY KEY (owner, email))`,
   ]) await env.DB.prepare(q).run();
   ready = true;
 }
