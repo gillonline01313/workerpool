@@ -301,7 +301,9 @@
       const B = S.B; if (!B || !c) return;
       r = r || B.recipients.find((x) => !String(x.name || "").trim() && !String(x.email || "").trim());
       if (!r) { r = { key: "k" + Math.random().toString(36).slice(2, 8), role: "signer", name: "", email: "", ord: B.recipients.length + 1 }; B.recipients.push(r); }
-      r.name = c.name; r.email = c.email; closeSug(); drawRecipients(); drawPalette(); drawFields(); dirty();
+      r.name = c.name; r.email = c.email; closeSug();
+      if (document.activeElement && root.querySelector("#bRc").contains(document.activeElement)) document.activeElement.blur();
+      drawRecipients(); drawPalette(); drawFields(); dirty();
     }
     function openSug(inp, r) {
       const q = inp.value.trim().toLowerCase(), u = used(r);
@@ -353,6 +355,7 @@
           inp.addEventListener("focus", () => openSug(inp, r)); inp.addEventListener("input", () => openSug(inp, r)); inp.addEventListener("keydown", (ev) => sugKey(ev, r));
           inp.addEventListener("blur", () => setTimeout(() => { if (!SUG || SUG.inp === inp) closeSug(); }, 180)); });
         row.querySelectorAll("[data-k]").forEach((inp) => inp.oninput = inp.onchange = () => {
+          if (!inp.isConnected) return;   // a box replaced by a redraw (e.g. after picking a saved person) still fires "change" when it loses focus
           const k = inp.dataset.k;
           r[k] = k === "ord" ? parseInt(inp.value) || 1 : inp.value;
           if (k === "email") drawRecent();
