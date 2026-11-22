@@ -1,7 +1,7 @@
 // Document requests: the team asks a client for particular documents on one intake. Each request has its own secure
 // link (/intake/?r=TOKEN) that opens without signing in and only accepts uploads for the documents asked for. The
 // files land on the intake like any other upload, so they appear under the form's documents and in the complete file.
-import { formOf, requestDocs } from "../assets/intake-config.js";
+import { formOf, requestDocs, returnQuestions } from "../assets/intake-config.js";
 
 export const REQ_DAYS = 30;
 const items = (s) => { try { const a = JSON.parse(s || "[]"); return Array.isArray(a) ? a : []; } catch { return []; } };
@@ -24,6 +24,9 @@ export async function intakeForm(env, row, reqs) {
   const base = formOf(row);
   if (!base) return { form: null, reqs, extra: [], asked: new Set() };
   const { extra, asked } = requestDocs(reqs, base);
+  // questions the team added when sending parts of the form back
+  const rets = row.id ? (await env.DB.prepare(`SELECT questions, status FROM intake_returns WHERE intake_id = ?1 AND questions IS NOT NULL ORDER BY created`).bind(row.id).all().catch(() => ({ results: [] }))).results : [];
+  extra.push(...returnQuestions(rets));
   return { form: formOf(row, extra, asked), reqs, extra, asked };
 }
 // What a client sees of a request: never the token of another request, never other files.

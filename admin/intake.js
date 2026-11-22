@@ -73,7 +73,7 @@
   }
   const post = (path, b) => call(path, { method: "POST", body: JSON.stringify(b) });
   let SB = null;
-  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=10"); if (!SB) SB = await import("/assets/intake-sendback.js?v=2"); return C; }
+  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=11"); if (!SB) SB = await import("/assets/intake-sendback.js?v=3"); return C; }
   const site = () => location.origin;
   const genLink = (k) => `${site()}/intake/?f=${encodeURIComponent(k)}`;
   const formName = (k) => (C.FORMS[k] && C.FORMS[k].name) || ((C.catalogEntry(k) || {}).form || {}).name || k;
@@ -326,7 +326,10 @@
         <div class="ik-url"><input readonly id="retLink" value="${esc(link)}"><button class="ik-btn" type="button" data-copy="retLink">Copy link</button><a class="ik-btn g" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a></div></div>` : ""}
       ${S.retOpen && canSend ? `<div class="ik-sec" id="retBox"><h4>1. What to send back</h4>
           <div id="retPick">${SB.pickerHtml(form, d, { picked: open ? open.sections : [], badge: "ik-badge edit", btn: "dl", docMiss })}</div>
-          <h4 style="margin-top:14px">2. Message</h4>
+          <h4 style="margin-top:14px">2. Ask new questions (optional)</h4>
+          <p class="ik-note" style="margin:0 0 6px">Questions that aren't on the form. The client answers them in an <b>Additional questions</b> section; the answers show with the rest of the form and in the complete file.</p>
+          <div id="retQs">${SB.questionsHtml({ btn: "dl" })}</div>
+          <h4 style="margin-top:14px">3. Message</h4>
           <textarea class="ik-in" id="retMsg" rows="3" maxlength="2000" placeholder="What should they fix? e.g. Your travel history is missing your 2019 trip to the USA. Please add every trip in the last 10 years.">${esc(open && open.message || "")}</textarea>
           <div class="ik-acts" style="margin-top:8px;align-items:center"><label class="ik-note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="retSend"${r.acct_email ? " checked" : " disabled"}> Email ${esc(r.acct_email || "the client")} a link</label>
             <button class="ik-btn" type="button" id="retGo">Send back to client</button></div><div class="ik-note" id="retErr"></div></div>` : ""}
@@ -341,11 +344,12 @@
     const $ = (x) => body.querySelector(x), again = async () => { S.item = await call("item?id=" + encodeURIComponent(r.id)); drawItem(); };
     const nb = $("#retNew"); if (nb) nb.onclick = () => { S.retOpen = !S.retOpen; S.retMade = null; drawItem(); if (S.retOpen) { const b = $("#retBox"); if (b) b.scrollIntoView({ behavior: "smooth", block: "nearest" }); } };
     const pick = $("#retPick"); if (pick) SB.pickerWire(pick);
+    const qbox = $("#retQs"); if (qbox) SB.questionsWire(qbox, { btn: "dl" });
     const go = $("#retGo"); if (go) go.onclick = async () => {
-      const sections = SB.pickerValue(pick);
-      if (!sections.length) { $("#retErr").textContent = "Tick at least one section or question."; return; }
+      const sections = SB.pickerValue(pick), questions = SB.questionsValue(qbox);
+      if (!sections.length && !questions.length) { $("#retErr").textContent = "Tick at least one section or question, or type a new question."; return; }
       go.disabled = true; go.textContent = "Sending…";
-      try { const j = await post("return", { id: r.id, sections, message: $("#retMsg").value, send: $("#retSend").checked });
+      try { const j = await post("return", { id: r.id, sections, questions, message: $("#retMsg").value, send: $("#retSend").checked });
         S.retOpen = false; S.retMade = { id: r.id, emailed: j.emailed }; await again();
         const row = S.list && S.list.rows.find((x) => x.id === r.id); if (row) { row.status = "editing"; row.ret_open = 1; }
       } catch (e) { go.disabled = false; go.textContent = "Send back to client"; $("#retErr").textContent = e.message; }

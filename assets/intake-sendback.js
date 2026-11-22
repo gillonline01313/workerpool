@@ -2,7 +2,7 @@
    Every section of the form has a tick box (the whole section) and a Questions list to tick single questions instead.
    pickerValue() returns what the server expects: "sectionId" for whole sections, "sectionId.questionKey" for single
    questions, and "__docs" for the Documents list. */
-import { sectionOn, fieldOn, RETURN_DOCS } from "/assets/intake-config.js?v=10";
+import { sectionOn, fieldOn, RETURN_DOCS, ASK_TYPES } from "/assets/intake-config.js?v=11";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const empty = (f, v) => (f.t === "cb" ? !(v === true || v === "Yes") : String(v ?? "").trim() === "");
@@ -82,4 +82,31 @@ export function pickerValue(root) {
     root.querySelectorAll(`[data-sb-q="${CSS.escape(cb.dataset.sbS)}"] input:checked`).forEach((f) => out.push(f.dataset.sbF));
   });
   return out;
+}
+
+/* New questions the team types when sending back: any number, each with an answer type and an optional note. */
+const qRow = (btn) => `<div class="sbq-r" data-sbq>
+  <input data-sbq-l maxlength="500" placeholder="Question, e.g. Why did you leave your job at ABC Ltd in March 2024?">
+  <select data-sbq-t>${Object.entries(ASK_TYPES).map(([k, l]) => `<option value="${k}"${k === "ta" ? " selected" : ""}>${l}</option>`).join("")}</select>
+  <input data-sbq-h maxlength="300" placeholder="Note for the client (optional)">
+  <button type="button" class="${btn}" data-sbq-x title="Remove this question">✕</button></div>`;
+export function questionsHtml(opts = {}) {
+  const btn = opts.btn || "";
+  return `<style>
+.sbq{display:flex;flex-direction:column;gap:6px}
+.sbq-r{display:grid;grid-template-columns:minmax(0,2.2fr) 130px minmax(0,1.3fr) auto;gap:6px;align-items:center}
+@media (max-width:760px){.sbq-r{grid-template-columns:1fr 1fr}.sbq-r [data-sbq-l]{grid-column:1/-1}}
+.sbq-r input,.sbq-r select{font:inherit;font-size:.86rem;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface,#fff);color:inherit;width:100%;min-width:0;margin:0}
+</style>
+  <div class="sbq" data-sbq-list>${qRow(btn)}</div>
+  <div style="margin-top:6px"><button type="button" class="${btn}" data-sbq-add>+ Add another question</button></div>`;
+}
+export function questionsWire(root, opts = {}) {
+  const list = root.querySelector("[data-sbq-list]");
+  root.querySelector("[data-sbq-add]").addEventListener("click", () => { list.insertAdjacentHTML("beforeend", qRow(opts.btn || "")); list.lastElementChild.querySelector("[data-sbq-l]").focus(); });
+  list.addEventListener("click", (e) => { const x = e.target.closest("[data-sbq-x]"); if (!x) return;
+    const row = x.closest("[data-sbq]"); if (list.children.length > 1) row.remove(); else row.querySelectorAll("input").forEach((i) => i.value = ""); });
+}
+export function questionsValue(root) {
+  return [...root.querySelectorAll("[data-sbq]")].map((r) => ({ l: r.querySelector("[data-sbq-l]").value.trim(), t: r.querySelector("[data-sbq-t]").value, h: r.querySelector("[data-sbq-h]").value.trim() })).filter((q) => q.l);
 }

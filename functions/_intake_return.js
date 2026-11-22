@@ -3,7 +3,7 @@
 // questions that follow from them, see returnScope in intake-config.js) can change; everything else stays as reviewed.
 // Used by the admin intake API and the partner portal API.
 import { json, str, sendEmail } from "./_lib.js";
-import { applicantName, upgradeIntake, returnLabels, RETURN_DOCS } from "../assets/intake-config.js";
+import { applicantName, upgradeIntake, returnLabels, RETURN_DOCS, ASK_SEC, ASK_TYPES } from "../assets/intake-config.js";
 import { intakeForm } from "./_intake_req.js";
 
 const site = (env) => env.SITE_URL || "https://workerpool.ca";
@@ -32,12 +32,19 @@ export async function sendBack(env, r, b, { statusCol = "admin_status" } = {}) {
   const ok = new Set([RETURN_DOCS, ...form.sections.flatMap((s) => [s.id, ...s.fields.filter((f) => f.t !== "h").map((f) => `${s.id}.${f.k}`)])]);
   let sections = [...new Set((Array.isArray(b.sections) ? b.sections.slice(0, 400) : []).map((x) => str(x, 120)).filter((x) => ok.has(x)))];
   sections = sections.filter((x) => !x.includes(".") || !sections.includes(x.split(".")[0]));   // a whole section covers its questions
-  if (!sections.length) return json({ ok: false, error: "Tick at least one section to send back." }, 400);
+  // new questions typed by the team: [{ l: question, t: answer type, h: note }]
+  const questions = [];
+  for (const q of Array.isArray(b.questions) ? b.questions.slice(0, 30) : []) {
+    const l = str(q && q.l, 500); if (!l) continue;
+    questions.push({ k: "q_" + crypto.randomUUID().replace(/-/g, "").slice(0, 10), l, t: ASK_TYPES[q.t] ? q.t : "ta", h: str(q.h, 300) || undefined });
+  }
+  sections.push(...questions.map((q) => `${ASK_SEC}.${q.k}`));
+  if (!sections.length) return json({ ok: false, error: "Tick at least one section or question, or add a new question." }, 400);
   const now = new Date().toISOString();
   await closeReturns(env, r.id);
   const t = { id: crypto.randomUUID(), intake_id: r.id, sections, message: str(b.message, 2000), created: now };
-  await env.DB.prepare(`INSERT INTO intake_returns (id, intake_id, sections, message, status, created) VALUES (?1, ?2, ?3, ?4, 'open', ?5)`)
-    .bind(t.id, r.id, JSON.stringify(sections), t.message || null, now).run();
+  await env.DB.prepare(`INSERT INTO intake_returns (id, intake_id, sections, message, status, created, questions) VALUES (?1, ?2, ?3, ?4, 'open', ?5, ?6)`)
+    .bind(t.id, r.id, JSON.stringify(sections), t.message || null, now, questions.length ? JSON.stringify(questions) : null).run();
   const col = statusCol === "partner_status" ? "partner_status" : "admin_status", seen = col === "partner_status" ? "partner_seen" : "admin_seen";
   await env.DB.prepare(`UPDATE intakes SET status = 'editing', updated = ?1, ${col} = 'need-info', ${seen} = COALESCE(${seen}, ?1) WHERE id = ?2`).bind(now, r.id).run();
   const emailed = b.send === false ? false : await emailReturn(env, r, t);
