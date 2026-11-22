@@ -9,6 +9,10 @@
   const localNow = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
   const toIso = (v) => { const t = new Date(v); return isNaN(t) ? new Date().toISOString() : t.toISOString(); };
   const digits = (p) => String(p || "").replace(/\D/g, "");
+  // wa.me needs a full international number: 10 digits = North America (+1)
+  const waNum = (c) => { const w = String(c.whatsapp || ""); const d = digits(/[a-z]/i.test(w) ? "" : w) || digits(c.phone); return d.length >= 7 ? (d.length === 10 ? "1" + d : d) : ""; };
+  const tgUser = (c) => String(c.telegram || "").replace(/^@/, "");
+  const reach = (c) => [c.phone, c.whatsapp && c.whatsapp !== c.phone ? "WA " + c.whatsapp : "", c.telegram ? "TG " + c.telegram : "", c.email].filter(Boolean).join(" · ");
   const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
   const plusDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
   const daysTo = (due) => Math.round((Date.parse(due + "T00:00:00Z") - Date.parse(today() + "T00:00:00Z")) / 864e5);
@@ -17,8 +21,8 @@
     return n < 0 ? `<span class="due over">${-n} day${n === -1 ? "" : "s"} overdue</span>` : n === 0 ? `<span class="due today">Due today</span>` : n === 1 ? `<span class="due soon">Tomorrow</span>` : n <= 7 ? `<span class="due soon">In ${n} days</span>` : `<span class="due">In ${n} days</span>`; };
   const TASK_ICON = { "File preparation": "🗂️", "File review": "🔍", "Document collection": "📎", "Submit application": "📤", "Follow up": "🔁", "Call back": "📞", "Payment follow-up": "💰", Refund: "↩️", "Send intake form": "📋", Other: "⏰" };
   const ST_CLS = { new: "new", "follow-up": "edit", retained: "ok", "in-progress": "ok", submitted: "ok", done: "", lost: "", cancelled: "gone", refunded: "gone" };
-  const ICON = { task: "⏰", query: "❓", call: "📞", email: "✉️", whatsapp: "💬", meeting: "🤝", note: "📝", retained: "✅", rcic: "🧑‍⚖️", intake: "📋", status: "🔄", form: "📄" };
-  const TYPE_LABEL = { query: "Query", call: "Call", email: "Email", whatsapp: "WhatsApp", meeting: "Meeting", note: "Internal note", retained: "Retained", rcic: "RCIC retained", intake: "Intake form", status: "Update", form: "Intake form", task: "Task" };
+  const ICON = { telegram: "✈️", task: "⏰", query: "❓", call: "📞", email: "✉️", whatsapp: "💬", meeting: "🤝", note: "📝", retained: "✅", rcic: "🧑‍⚖️", intake: "📋", status: "🔄", form: "📄" };
+  const TYPE_LABEL = { query: "Query", call: "Call", email: "Email", whatsapp: "WhatsApp", meeting: "Meeting", note: "Internal note", retained: "Retained", rcic: "RCIC retained", intake: "Intake form", status: "Update", form: "Intake form", task: "Task", telegram: "Telegram" };
   let KEY = "", body = null, C = null;
   const S = { list: null, q: "", st: "all", svc: "", open: null, item: null, act: null, busy: false, look: null, draft: null, tf: "due", taskEdit: null, showDone: false };
 
@@ -84,7 +88,7 @@
   }
   const stLabel = (k) => (S.list && S.list.statuses[k]) || k || "–";
   const badge = (k) => `<span class="b ${ST_CLS[k] || ""}">${esc(stLabel(k))}</span>`;
-  const datalists = () => `<datalist id="crmSvc">${(S.list ? S.list.services : []).map((s) => `<option value="${esc(s)}">`).join("")}</datalist>`;
+  const datalists = () => `<datalist id="crmSvc">${(S.list ? S.list.services : []).map((s) => `<option value="${esc(s)}">`).join("")}</datalist><datalist id="crmRef">${(S.list && S.list.referrers || []).map((s) => `<option value="${esc(s)}">`).join("")}</datalist>`;
   const chanOpts = (sel) => (S.list ? S.list.channels : ["Phone call"]).map((c) => `<option${c === sel ? " selected" : ""}>${esc(c)}</option>`).join("");
 
   async function load(key, el) {
@@ -115,11 +119,14 @@
     const segs = [["all", "All"], ...Object.entries(S.list.statuses)].filter(([k]) => k === "all" || counts[k]);
     body.innerHTML = `<div class="crm">${datalists()}
       ${boardHtml()}
-      <div class="wpa-card wide"><h3>Punch a query</h3><p class="sub" style="margin:0">Phone number first: if they've contacted us before, this adds to their history instead of making a new person.</p>
+      <div class="wpa-card wide"><h3>Punch a query</h3><p class="sub" style="margin:0">Add at least one way to reach them: phone, WhatsApp, Telegram or email. If any of these matches someone already in the CRM, the query is added to their history instead of making a new person.</p>
         <form id="cqF" class="g" autocomplete="off">
-          <label>Phone number *<input class="in" name="phone" type="tel" placeholder="+1 780 555 0101" value="${esc(d.phone || "")}" required></label>
           <label>Name<input class="in" name="name" placeholder="Full name" value="${esc(d.name || "")}"></label>
+          <label>Phone number<input class="in" name="phone" type="tel" placeholder="+1 780 555 0101" value="${esc(d.phone || "")}"></label>
+          <label>WhatsApp<input class="in" name="whatsapp" placeholder="Number or username, if not the phone" value="${esc(d.whatsapp || "")}"></label>
+          <label>Telegram username<input class="in" name="telegram" placeholder="@username" value="${esc(d.telegram || "")}"></label>
           <label>Email<input class="in" name="email" type="email" placeholder="name@email.com" value="${esc(d.email || "")}"></label>
+          <label>Referred by<input class="in" name="referred_by" list="crmRef" placeholder="Who sent them to us" value="${esc(d.referred_by || "")}"></label>
           <label>How they reached us<select class="in" name="channel">${chanOpts(d.channel || "Phone call")}</select></label>
           <label>Date & time<input class="in" name="at" type="datetime-local" value="${esc(d.at || localNow())}"></label>
           <label>Service type<input class="in" name="service" list="crmSvc" placeholder="e.g. Work permit – LMIA" value="${esc(d.service || "")}"></label>
@@ -154,13 +161,13 @@
   function rowsFiltered() {
     const q = S.q.trim().toLowerCase(), qd = digits(q);
     return S.list.rows.filter((r) => (S.st === "all" || r.status === S.st) && (!S.svc || r.service === S.svc) &&
-      (!q || [r.name, r.email, r.service, r.rcic_name, r.rcic_firm, r.location, r.pinned].some((x) => String(x || "").toLowerCase().includes(q)) || (qd.length >= 3 && digits(r.phone).includes(qd))));
+      (!q || [r.name, r.email, r.service, r.rcic_name, r.rcic_firm, r.location, r.pinned, r.telegram, r.whatsapp, r.referred_by].some((x) => String(x || "").toLowerCase().includes(q)) || (qd.length >= 3 && (digits(r.phone).includes(qd) || digits(r.whatsapp).includes(qd)))));
   }
   function tableHtml() {
     const L = rowsFiltered();
     if (!L.length) return `<div class="wpa-empty">${S.list.rows.length ? "No one matches." : "No one yet. Punch the first query above."}</div>`;
     return `<div class="wpa-tbl"><table><thead><tr><th>Person</th><th>Service</th><th>Status</th><th>RCIC</th><th>Last contact</th><th>Contacts</th></tr></thead><tbody>
-      ${L.slice(0, 500).map((r) => `<tr class="click" data-id="${r.id}" tabindex="0"><td><b>${esc(r.name || "(no name)")}</b><br><span class="note">${esc(r.phone || "")}${r.phone && r.email ? " · " : ""}${esc(r.email || "")}</span></td>
+      ${L.slice(0, 500).map((r) => `<tr class="click" data-id="${r.id}" tabindex="0"><td><b>${esc(r.name || "(no name)")}</b><br><span class="note">${esc(reach(r))}${r.referred_by ? `<br>Referred by ${esc(r.referred_by)}` : ""}</span></td>
         <td>${esc(r.service || "–")}</td><td>${badge(r.status)}${r.intakes_sent ? `<br><span class="note">📋 ${r.intakes_sent} form${r.intakes_sent > 1 ? "s" : ""} sent</span>` : ""}${r.tasks_open ? `<br><span class="note">⏰ ${r.tasks_open} task${r.tasks_open > 1 ? "s" : ""} · </span>${dueTag(r.next_due)}` : ""}</td>
         <td>${esc([r.rcic_name, r.rcic_firm].filter(Boolean).join(" – ") || "–")}</td>
         <td>${day(r.last_at || r.created)}${r.last_channel ? `<br><span class="note">${esc(r.last_channel)}</span>` : ""}</td><td>${r.touches || 0}</td></tr>`).join("")}
@@ -171,16 +178,16 @@
     const f = body.querySelector("#cqF"), hit = body.querySelector("#cqHit"), err = body.querySelector("#cqErr");
     const keep = () => { S.draft = Object.fromEntries(new FormData(f)); };
     const look = () => { clearTimeout(lookT); lookT = setTimeout(async () => {
-      const phone = f.phone.value, email = f.email.value;
-      if (digits(phone).length < 7 && !/@.+\./.test(email)) { hit.innerHTML = ""; return; }
-      try { const j = await call(`lookup?phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(email)}`); S.look = j.contact;
-        hit.innerHTML = j.contact ? `<div class="hit">👤 <b>Already in the CRM: ${esc(j.contact.name || "(no name)")}</b> · ${esc(j.contact.phone || "")} ${esc(j.contact.email || "")} · ${badge(j.contact.status)}${j.contact.service ? ` · ${esc(j.contact.service)}` : ""}${j.contact.rcic_name ? ` · RCIC ${esc(j.contact.rcic_name)}` : ""}
+      const phone = f.phone.value, email = f.email.value, wa = f.whatsapp.value.trim(), tg = f.telegram.value.trim();
+      if (digits(phone).length < 7 && !/@.+\./.test(email) && wa.length < 3 && tg.replace(/^@/, "").length < 3) { hit.innerHTML = ""; return; }
+      try { const j = await call(`lookup?phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(email)}&whatsapp=${encodeURIComponent(wa)}&telegram=${encodeURIComponent(tg)}`); S.look = j.contact;
+        hit.innerHTML = j.contact ? `<div class="hit">👤 <b>Already in the CRM: ${esc(j.contact.name || "(no name)")}</b> · ${esc(reach(j.contact))} · ${badge(j.contact.status)}${j.contact.service ? ` · ${esc(j.contact.service)}` : ""}${j.contact.rcic_name ? ` · RCIC ${esc(j.contact.rcic_name)}` : ""}
           <br><span class="note">${j.contact.contacts} earlier contact${j.contact.contacts === 1 ? "" : "s"}, last ${day(j.contact.last_at)}. Saving adds this query to their history.</span> <button class="btn g sm" type="button" id="cqOpen">Open their file</button></div>` : `<div class="note">New person. Saving creates their file.</div>`;
         const o = hit.querySelector("#cqOpen"); if (o) o.onclick = () => openItem(j.contact.id);
         if (j.contact && !f.name.value.trim() && j.contact.name) f.name.placeholder = j.contact.name;
       } catch (e) {} }, 350); };
-    f.addEventListener("input", (e) => { keep(); if (e.target.name === "phone" || e.target.name === "email") look(); });
-    if (S.draft && (S.draft.phone || S.draft.email)) look();
+    f.addEventListener("input", (e) => { keep(); if (["phone", "email", "whatsapp", "telegram"].includes(e.target.name)) look(); });
+    if (S.draft && (S.draft.phone || S.draft.email || S.draft.whatsapp || S.draft.telegram)) look();
     f.onsubmit = async (e) => {
       e.preventDefault(); err.textContent = "";
       const b = Object.fromEntries(new FormData(f)); b.at = toIso(b.at);
@@ -221,7 +228,7 @@
     const a = S.act, c = S.item.contact;
     if (!a) return "";
     const at = `<label>Date & time<input class="in" name="at" type="datetime-local" value="${localNow()}"></label>`;
-    if (a === "log") return `<form class="box g" id="aF"><label>Type<select class="in" name="type"><option value="call">Call</option><option value="query">Query</option><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="meeting">Meeting</option></select></label>
+    if (a === "log") return `<form class="box g" id="aF"><label>Type<select class="in" name="type"><option value="call">Call</option><option value="query">Query</option><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="meeting">Meeting</option></select></label>
       <label>Channel<select class="in" name="channel">${chanOpts("Phone call")}</select></label>${at}<span></span>
       <label class="full">What was it about?<textarea class="in" name="detail" rows="3"></textarea></label><div class="full row"><button class="btn" type="submit">Save</button><button class="btn g" type="button" data-cancel>Cancel</button><span class="err" id="aErr"></span></div></form>`;
     if (a === "note") return `<form class="box g" id="aF"><input type="hidden" name="type" value="note"><label class="full">Internal WorkerPool note (only the team sees this)<textarea class="in" name="detail" rows="3" placeholder="e.g. Prefers calls after 6 pm. Sister also interested in a super visa."></textarea></label>
@@ -242,7 +249,9 @@
         <div class="full row"><button class="btn" type="submit">Create link & send</button><button class="btn g" type="button" data-cancel>Cancel</button><span class="err" id="aErr"></span></div></form>`;
     }
     if (a === "edit") return `<form class="box g" id="aF"><label>Name<input class="in" name="name" value="${esc(c.name || "")}"></label><label>Phone<input class="in" name="phone" type="tel" value="${esc(c.phone || "")}"></label>
+      <label>WhatsApp<input class="in" name="whatsapp" value="${esc(c.whatsapp || "")}" placeholder="Number or username"></label><label>Telegram<input class="in" name="telegram" value="${esc(c.telegram || "")}" placeholder="@username"></label>
       <label>Email<input class="in" name="email" type="email" value="${esc(c.email || "")}"></label><label>Location<input class="in" name="location" value="${esc(c.location || "")}"></label>
+      <label>Referred by<input class="in" name="referred_by" list="crmRef" value="${esc(c.referred_by || "")}"></label>
       <label>Status<select class="in" name="status">${Object.entries(S.list.statuses).map(([k, l]) => `<option value="${k}"${c.status === k ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
       <label>Service type<input class="in" name="service" list="crmSvc" value="${esc(c.service || "")}"></label>
       <div class="full row"><button class="btn" type="submit">Save</button><button class="btn g" type="button" data-cancel>Cancel</button><span class="err" id="aErr"></span></div></form>`;
@@ -269,14 +278,18 @@
       ${done.length ? `<button class="btn g sm" type="button" id="tShowDone" style="align-self:flex-start">${S.showDone ? "Hide" : "Show"} ${done.length} done</button>${S.showDone ? `<div>${done.map(row).join("")}</div>` : ""}` : ""}</div>`;
   }
   function drawItem() {
-    const { contact: c, invites, forms } = S.item, ph = digits(c.phone);
+    const { contact: c, invites, forms } = S.item, wn = waNum(c), tg = tgUser(c);
     const T = timeline();
     body.innerHTML = `<div class="crm">${datalists()}
       <div class="row sp"><button class="btn g sm" type="button" id="cBack">← All people</button>${S.flash ? `<span class="note" style="color:var(--accent);font-weight:600">✓ ${esc(S.flash)}</span>` : ""}</div>
       <div class="wpa-card wide">
         <div class="row sp" style="align-items:flex-start"><div><h3 style="font-size:1.35rem">${esc(c.name || "(no name)")}</h3>
-            <div style="font-size:.9rem;margin-top:4px">${c.phone ? `<a href="tel:${esc(c.phone.replace(/[^\d+]/g, ""))}">${esc(c.phone)}</a> · <a href="https://wa.me/${esc(ph.length === 10 ? "1" + ph : ph)}" target="_blank" rel="noopener">WhatsApp</a>` : "No phone"}${c.email ? ` · <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ""}${c.location ? ` · ${esc(c.location)}` : ""}</div>
-            <div class="note" style="margin-top:4px">In the CRM since ${day(c.created)}${c.source ? ` (${esc(c.source)})` : ""}</div></div>
+            <div style="font-size:.9rem;margin-top:4px">${[
+              c.phone ? `📞 <a href="tel:${esc(c.phone.replace(/[^\d+]/g, ""))}">${esc(c.phone)}</a>` : "",
+              wn ? `💬 <a href="https://wa.me/${esc(wn)}" target="_blank" rel="noopener">WhatsApp${c.whatsapp && c.whatsapp !== c.phone ? " " + esc(c.whatsapp) : ""}</a>` : c.whatsapp ? `💬 WhatsApp ${esc(c.whatsapp)}` : "",
+              tg ? `✈️ <a href="https://t.me/${esc(tg)}" target="_blank" rel="noopener">Telegram @${esc(tg)}</a>` : "",
+              c.email ? `✉️ <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : "", c.location ? esc(c.location) : ""].filter(Boolean).join(" · ") || "No contact details yet"}</div>
+            <div class="note" style="margin-top:4px">In the CRM since ${day(c.created)}${c.source ? ` (${esc(c.source)})` : ""}${c.referred_by ? ` · referred by <b>${esc(c.referred_by)}</b>` : ""}</div></div>
           <div class="row">${badge(c.status)}<button class="btn g sm" type="button" data-a="edit">Edit details</button></div></div>
         <div class="facts">
           <div class="fact"><small>Service type</small>${esc(c.service || "–")}</div>
@@ -295,7 +308,7 @@
           <td><span class="meter"><i style="width:${f.progress || 0}%"></i></span>${f.progress || 0}%${f.partial && f.status === "submitted" ? " · partial" : ""}</td><td>${f.status === "submitted" ? `Submitted ${day(f.resubmitted || f.submitted)}` : f.status === "editing" ? "Client editing" : `Filling · ${day(f.updated)}`}</td>
           <td><button class="btn g sm" type="button" data-form="${f.id}">Open</button></td></tr>`).join("")}</tbody></table></div>` : ""}
         ${invites.filter((v) => !forms.some((f) => f.invite_code === v.code)).map((v) => `<div class="row sp" style="font-size:.88rem;border-top:1px solid var(--line);padding-top:8px"><span>📋 <b>${esc(C && C.FORMS[v.form_key] ? C.FORMS[v.form_key].name : v.form_key)}</b> · link sent ${day(v.created)} · ${v.opens ? `opened ${v.opens}×, last ${day(v.last_open)}` : "not opened yet"}${v.archived ? " · turned off" : ""}</span>
-          <span class="row"><button class="btn g sm" type="button" data-cp="${esc(S.item.link + "/intake/?i=" + v.code)}">Copy link</button>${c.phone ? `<a class="btn g sm" target="_blank" rel="noopener" href="https://wa.me/${esc(ph.length === 10 ? "1" + ph : ph)}?text=${encodeURIComponent(`Please fill your form here: ${S.item.link}/intake/?i=${v.code}`)}">WhatsApp</a>` : ""}</span></div>`).join("")}</div>` : ""}
+          <span class="row"><button class="btn g sm" type="button" data-cp="${esc(S.item.link + "/intake/?i=" + v.code)}">Copy link</button>${wn ? `<a class="btn g sm" target="_blank" rel="noopener" href="https://wa.me/${esc(wn)}?text=${encodeURIComponent(`Please fill your form here: ${S.item.link}/intake/?i=${v.code}`)}">WhatsApp</a>` : ""}</span></div>`).join("")}</div>` : ""}
       <div class="wpa-card wide"><h3>History (${T.length})</h3><div class="tl">${T.length ? T.map((e) => `<div class="ev ${e.type}"><div class="ic">${ICON[e.type] || "•"}</div>
           <div><div class="t"><b>${esc(TYPE_LABEL[e.type] || e.type)}</b>${e.channel ? ` · ${esc(e.channel)}` : ""} · ${when(e.at)}</div>${e.detail ? `<div class="d">${esc(e.detail)}</div>` : ""}
           ${e.meta && e.meta.link ? `<div class="row" style="margin-top:4px"><button class="btn g sm" type="button" data-cp="${esc(e.meta.link)}">Copy form link</button></div>` : ""}</div>
