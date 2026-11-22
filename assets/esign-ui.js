@@ -308,11 +308,8 @@
       const list = (S.contacts || []).filter((c) => !u.has(c.email) && (!q || c.name.toLowerCase().includes(q) || c.email.includes(q))).slice(0, 8);
       if (!list.length || (q && list.length === 1 && (list[0].email === q || list[0].name.toLowerCase() === q))) return closeSug();
       let box = document.getElementById("esSug");
-      if (!box) { box = document.createElement("div"); box.id = "esSug"; box.setAttribute("role", "listbox"); document.body.appendChild(box); window.addEventListener("scroll", closeSug, true); }
-      const rc = inp.getBoundingClientRect(), below = window.innerHeight - rc.bottom > 200;
-      box.style.left = Math.max(8, Math.min(rc.left, window.innerWidth - 300)) + "px"; box.style.width = Math.max(280, rc.width) + "px";
-      box.style.top = below ? rc.bottom + 4 + "px" : ""; box.style.bottom = below ? "" : window.innerHeight - rc.top + 4 + "px";
-      SUG = { inp, r, list, at: -1 };
+      if (!box) { box = document.createElement("div"); box.id = "esSug"; box.setAttribute("role", "listbox"); document.body.appendChild(box); window.addEventListener("scroll", posSug, true); window.addEventListener("resize", posSug); }
+      SUG = { inp, r, list, at: -1 }; posSug();
       box.innerHTML = `<div class="hd">${q ? "Matching people you've sent to" : "People you've sent to before"}</div>` + list.map((c, i) => `<div class="it" role="option" data-si="${i}" aria-selected="false">
         <div><b>${esc(c.name)}</b><small>${esc(c.email)} · used ${c.uses}×</small></div><button type="button" class="x" data-sx="${i}" title="Remove from this list">✕</button></div>`).join("");
       box.querySelectorAll("[data-si]").forEach((el) => el.onmousedown = (ev) => { if (ev.target.closest("[data-sx]")) return; ev.preventDefault(); addContact(list[+el.dataset.si], r); });
@@ -328,7 +325,16 @@
       else if (ev.key === "Enter" && SUG.at >= 0) { ev.preventDefault(); addContact(SUG.list[SUG.at], r); }
       else if (ev.key === "Escape") closeSug();
     }
-    function closeSug() { SUG = null; const b = document.getElementById("esSug"); if (b) b.remove(); window.removeEventListener("scroll", closeSug, true); }
+    function posSug(ev) {   // keep the list under its box while the page scrolls; close it once the box leaves the screen
+      const box = document.getElementById("esSug"); if (!box || !SUG) return;
+      if (ev && ev.target === box) return;
+      const rc = SUG.inp.getBoundingClientRect();
+      if (!SUG.inp.isConnected || rc.bottom < 0 || rc.top > window.innerHeight) return closeSug();
+      const below = window.innerHeight - rc.bottom > 200;
+      box.style.left = Math.max(8, Math.min(rc.left, window.innerWidth - 300)) + "px"; box.style.width = Math.max(280, rc.width) + "px";
+      box.style.top = below ? rc.bottom + 4 + "px" : ""; box.style.bottom = below ? "" : window.innerHeight - rc.top + 4 + "px";
+    }
+    function closeSug() { SUG = null; const b = document.getElementById("esSug"); if (b) b.remove(); window.removeEventListener("scroll", posSug, true); window.removeEventListener("resize", posSug); }
 
     function drawRecipients() {
       const B = S.B, box = root.querySelector("#bRc"); queueMicrotask(drawRecent);
