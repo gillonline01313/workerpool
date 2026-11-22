@@ -2,7 +2,7 @@
 // the admin (x-admin-key) creates links, sees every intake and opens the answers and files.
 // Tables are created automatically. Files live privately in the RESUMES R2 bucket under intake/.
 import { json, readJson, str, isEmail, getUser, sendEmail, randomToken, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
-import { FORMS, FORM_V, formOf, upgradeIntake, missing, progress, applicantName, CONSENT_V, CONSENT_TEXT, KEEP_TEXT, partnerConsent } from "../../../assets/intake-config.js";
+import { FORMS, FORM_V, formOf, upgradeIntake, missing, progress, applicantName, CONSENT_V, CONSENT_TEXT, KEEP_TEXT, partnerConsent, returnScope, RETURN_DOCS } from "../../../assets/intake-config.js";
 import { REQ_DAYS, loadRequests, requestByToken, intakeForm, pubRequest } from "../../_intake_req.js";
 import { buildCompleteFile, KEEP_DAYS } from "../../_intake_file.js";
 import { ensureIntake } from "../../_partners.js";
@@ -20,10 +20,18 @@ async function docKeys(env, intakeId) {
   const r = await env.DB.prepare(`SELECT DISTINCT doc_key FROM intake_docs WHERE intake_id = ?1`).bind(intakeId).all();
   return new Set(r.results.map((d) => d.doc_key));
 }
+// Sections the team sent back for review. While one is open the client can change only those sections (and what follows from them).
+const secList = (s) => { try { const a = JSON.parse(s || "[]"); return Array.isArray(a) ? a : []; } catch { return []; } };
+async function openReturn(env, intakeId) {
+  const t = await env.DB.prepare(`SELECT * FROM intake_returns WHERE intake_id = ?1 AND status = 'open' ORDER BY created DESC LIMIT 1`).bind(intakeId).first();
+  return t ? { ...t, sections: secList(t.sections) } : null;
+}
+const pubReturn = (t) => t && { id: t.id, sections: t.sections, message: t.message || "", created: t.created };
+const secTitles = (form, ids) => ids.map((id) => id === RETURN_DOCS ? "Documents" : ((form.sections.find((s) => s.id === id) || {}).title || id));
 const mine = (env, u, intakeId) => env.DB.prepare(`SELECT i.*, p.firm AS firm, p.email AS firm_email FROM intakes i LEFT JOIN partners p ON p.id = i.partner_id WHERE i.id = ?1 AND i.user_id = ?2`).bind(intakeId || "", u.id).first();
 const clientRow = (r) => ({ id: r.id, form_key: r.form_key, form_v: r.form_v || 1, status: r.status, progress: r.progress, created: r.created, updated: r.updated, submitted: r.submitted, name: applicantName(parse(r.data)),
   consent_at: r.consent_at, keep_file: r.keep_file, final_at: r.final_at, final_size: r.final_size, final_name: r.final_name, final_expires: r.final_expires, docs_destroyed_at: r.docs_destroyed_at,
-  final_ready: !!r.final_key, invite_code: r.invite_code, firm: r.partner_id ? r.firm || "your representative" : "" });
+  final_ready: !!r.final_key, invite_code: r.invite_code, partial: !!r.partial, missing_n: r.missing_n || 0, firm: r.partner_id ? r.firm || "your representative" : "" });
 // A complete file the client didn't ask us to keep is removed after KEEP_DAYS. Runs whenever the admin list or a client's forms load.
 async function sweep(env, where = "", bind = []) {
   const now = new Date().toISOString();
@@ -78,9 +86,10 @@ async function client({ request, env }, route, m) {
 
   if (route === "mine" && m === "GET") {
     await sweep(env, "AND user_id = ?2", [u.id]);
-    const r = await env.DB.prepare(`SELECT i.*, p.firm AS firm, (SELECT COUNT(*) FROM intake_requests q WHERE q.intake_id = i.id AND q.status = 'open' AND q.expires > ?2) AS reqs_open
+    const r = await env.DB.prepare(`SELECT i.*, p.firm AS firm, (SELECT COUNT(*) FROM intake_requests q WHERE q.intake_id = i.id AND q.status = 'open' AND q.expires > ?2) AS reqs_open,
+        (SELECT COUNT(*) FROM intake_returns t WHERE t.intake_id = i.id AND t.status = 'open') AS ret_open
       FROM intakes i LEFT JOIN partners p ON p.id = i.partner_id WHERE i.user_id = ?1 ORDER BY i.updated DESC LIMIT 50`).bind(u.id, new Date().toISOString()).all();
-    return json({ ok: true, user: { name: u.name, email: u.email, phone: u.phone }, rows: r.results.map((x) => ({ ...clientRow(x), reqs_open: x.reqs_open || 0 })) });
+    return json({ ok: true, user: { name: u.name, email: u.email, phone: u.phone }, rows: r.results.map((x) => ({ ...clientRow(x), reqs_open: x.reqs_open || 0, returned: !!x.ret_open })) });
   }
   if (route === "start" && m === "POST") {
     const b = await readJson(request, 2000) || {};
@@ -110,7 +119,8 @@ async function client({ request, env }, route, m) {
     if (!a) return json({ ok: false, error: "Form not found." }, 404);
     const docs = await env.DB.prepare(`SELECT id, doc_key, name, size, uploaded FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(a.id).all();
     const { reqs, extra, asked } = await intakeForm(env, a);
-    return json({ ok: true, row: { ...clientRow(a), data: parse(a.data) }, docs: docs.results, extra, asked: [...asked], requests: reqs.filter((q) => q.status === "open").map(pubRequest) });
+    const ret = a.status === "editing" ? await openReturn(env, a.id) : null;
+    return json({ ok: true, row: { ...clientRow(a), data: parse(a.data) }, docs: docs.results, extra, asked: [...asked], requests: reqs.filter((q) => q.status === "open").map(pubRequest), ret: pubReturn(ret) });
   }
   if (route === "item" && m === "PUT") {
     const b = await readJson(request, 400000);
@@ -120,6 +130,12 @@ async function client({ request, env }, route, m) {
     if (a.status === "submitted") return json({ ok: false, error: "This form was already submitted. Press Make changes to edit it." }, 409);
     upgradeIntake(b.data);
     const { form } = await intakeForm(env, a);
+    const ret = form && a.status === "editing" ? await openReturn(env, a.id) : null;
+    if (ret) { // only the sections sent back (and what follows from them) can change; everything else keeps the reviewed answers
+      const scope = returnScope(form, ret.sections), merged = parse(a.data);
+      for (const id of new Set([...Object.keys(b.data), ...Object.keys(merged)])) if (scope.has(id)) { if (id in b.data) merged[id] = b.data[id]; else delete merged[id]; }
+      b.data = merged;
+    }
     const pct = form ? progress(form, b.data, await docKeys(env, a.id)) : 0;
     await env.DB.prepare(`UPDATE intakes SET data = ?1, progress = ?2, updated = ?3 WHERE id = ?4`).bind(JSON.stringify(b.data), pct, new Date().toISOString(), a.id).run();
     return json({ ok: true, progress: pct });
@@ -132,6 +148,8 @@ async function client({ request, env }, route, m) {
     const { form, reqs, asked } = await intakeForm(env, a), dk = request.headers.get("x-doc-key") || "";
     if (!form || !form.docs.some((d) => d.k === dk)) return json({ ok: false, error: "Unknown document type." }, 400);
     const forReq = asked.has(dk) ? reqs.find((q) => q.status === "open" && q.items.some((it) => it.k === dk)) : null;
+    const ret = a.status === "editing" ? await openReturn(env, a.id) : null;
+    if (ret && !ret.sections.includes(RETURN_DOCS) && !asked.has(dk)) return json({ ok: false, error: "Our team sent back only some sections. Documents can't be changed this time." }, 409);
     if (parseInt(request.headers.get("content-length") || "0") > FILE_MAX + 1024) return json({ ok: false, error: "That file is over 10 MB." }, 413);
     const name = fileName(request), buf = await request.arrayBuffer();
     const chk = fileCheck(name, buf);
@@ -152,6 +170,8 @@ async function client({ request, env }, route, m) {
       .bind(url.searchParams.get("id") || "", u.id).first();
     if (!d) return json({ ok: false, error: "File not found." }, 404);
     if (d.status === "submitted") return json({ ok: false, error: "This form was already submitted. Press Make changes first." }, 409);
+    const ret = d.status === "editing" ? await openReturn(env, d.intake_id) : null;
+    if (ret && !ret.sections.includes(RETURN_DOCS) && !d.req_id) return json({ ok: false, error: "Our team sent back only some sections. Documents can't be changed this time." }, 409);
     if (env.RESUMES) await env.RESUMES.delete(d.r2_key).catch(() => {});
     await env.DB.prepare(`DELETE FROM intake_docs WHERE id = ?1`).bind(d.id).run();
     const { form } = await intakeForm(env, { id: d.intake_id, form_key: d.form_key, form_v: d.form_v }), pct = form ? progress(form, parse(d.data), await docKeys(env, d.intake_id)) : 0;
@@ -172,21 +192,26 @@ async function client({ request, env }, route, m) {
     if (a.status === "submitted") return json({ ok: true, already: true });
     const { form } = await intakeForm(env, a), data = parse(a.data), keys = await docKeys(env, a.id);
     if (!form) return json({ ok: false, error: "This form isn't available." }, 400);
-    const miss = missing(form, data, keys);
-    if (miss.length) return json({ ok: false, error: `Still needed: ${miss[0]}${miss.length > 1 ? ` (and ${miss.length - 1} more)` : ""}.`, missing: miss }, 400);
+    // A client can submit whatever they have so far: the form is flagged partial with what's still missing, and they can finish it later.
+    const miss = missing(form, data, keys), pct = progress(form, data, keys), partial = miss.length ? 1 : 0;
+    if (partial && b.partial !== true) return json({ ok: false, error: `${miss.length} item${miss.length === 1 ? " is" : "s are"} still missing. Confirm you want to submit what you have so far.`, missing: miss }, 400);
     if (b.consent !== true) return json({ ok: false, error: "Read the consent and tick the box to agree before submitting." }, 400);
     const now = new Date().toISOString(), resub = !!a.submitted;
     const who = applicantName(data) || u.name, files = (await env.DB.prepare(`SELECT COUNT(*) AS n FROM intake_docs WHERE intake_id = ?1`).bind(a.id).first()).n;
-    if (a.partner_id) return await submitForPartner(env, u, a, form, { now, resub, who, files });
+    const ret = await openReturn(env, a.id);
+    if (ret) await env.DB.prepare(`UPDATE intake_returns SET status = 'done', done_at = ?1 WHERE id = ?2`).bind(now, ret.id).run();
+    const extraLines = `${partial ? `\nPARTIAL SUBMISSION: ${pct}% complete, ${miss.length} required item${miss.length === 1 ? "" : "s"} still missing:\n${miss.slice(0, 25).map((x) => "  - " + x).join("\n")}${miss.length > 25 ? `\n  …and ${miss.length - 25} more` : ""}\n` : ""}${ret ? `\nSections sent back for review and now returned: ${secTitles(form, ret.sections).join(", ")}\n` : ""}`;
+    await env.DB.prepare(`UPDATE intakes SET partial = ?1, missing_n = ?2 WHERE id = ?3`).bind(partial, miss.length, a.id).run();
+    if (a.partner_id) return await submitForPartner(env, u, a, form, { now, resub, who, files, pct, extraLines, partial, ret });
     if (b.keep !== "yes" && b.keep !== "no") return json({ ok: false, error: "Choose whether WorkerPool should keep a copy of your complete file." }, 400);
     const keep = b.keep === "yes" ? 1 : 0;
-    await env.DB.prepare(`UPDATE intakes SET status = 'submitted', progress = 100, updated = ?1, submitted = COALESCE(submitted, ?1), resubmitted = ?2, admin_seen = NULL,
+    await env.DB.prepare(`UPDATE intakes SET status = 'submitted', progress = ?6, updated = ?1, submitted = COALESCE(submitted, ?1), resubmitted = ?2, admin_seen = NULL,
         consent_at = ?1, consent_text = ?3, keep_file = ?4, keep_changed = ?1 WHERE id = ?5`)
-      .bind(now, resub ? now : null, `[${CONSENT_V}] ${CONSENT_TEXT} | Keep a copy: ${KEEP_TEXT[keep]}`, keep, a.id).run();
-    await sendEmail(env, env.ADMIN_EMAIL, `${resub ? "Updated" : "New"} intake form: ${form.name} – ${who}`,
-      `${resub ? "A client made changes and resubmitted their intake form." : "A client submitted an intake form."}\n\nApplicant: ${who}\nAccount: ${u.name} (${u.email}, ${u.phone})\nForm: ${form.name}\nFiles uploaded: ${files}\nSubmitted: ${now}\nConsent given: yes (documents to be destroyed, complete file to be shared with the client)\nKeep a copy with WorkerPool: ${keep ? "YES" : "NO"}\n\nOpen it in the admin dashboard: ${site(env)}/admin/ (Intake forms tab)`, u.email);
+      .bind(now, resub ? now : null, `[${CONSENT_V}] ${CONSENT_TEXT} | Keep a copy: ${KEEP_TEXT[keep]}`, keep, a.id, pct).run();
+    await sendEmail(env, env.ADMIN_EMAIL, `${ret ? "Sections returned" : resub ? "Updated" : "New"}${partial ? " (partial)" : ""} intake form: ${form.name} – ${who}`,
+      `${ret ? "The client reviewed the sections you sent back and returned the form." : resub ? "A client made changes and resubmitted their intake form." : "A client submitted an intake form."}\n${extraLines}\nApplicant: ${who}\nAccount: ${u.name} (${u.email}, ${u.phone})\nForm: ${form.name}\nProgress: ${pct}%\nFiles uploaded: ${files}\nSubmitted: ${now}\nConsent given: yes (documents to be destroyed, complete file to be shared with the client)\nKeep a copy with WorkerPool: ${keep ? "YES" : "NO"}\n\nOpen it in the admin dashboard: ${site(env)}/admin/ (Intake forms tab)`, u.email);
     await sendEmail(env, u.email, `We received your ${form.name} form`,
-      `Hi ${String(u.name || "").split(" ")[0] || "there"},\n\nThank you. We received ${resub ? "the changes to " : ""}your information and documents for: ${form.name}${who && who !== u.name ? ` (applicant: ${who})` : ""}.\n\nOur team will review everything and contact you if anything else is needed. As you agreed, once your file is complete we will share the complete file with you and permanently destroy the documents you uploaded. ${keep ? "You asked us to keep a copy of your complete file in your WorkerPool account." : `You chose not to have us keep a copy, so the complete file will be removed ${KEEP_DAYS} days after we share it. Download it when we tell you it's ready.`}\n\nYou can sign in at ${site(env)}/intake/ any time to see what you sent.\n\nWorkerPool`);
+      `Hi ${String(u.name || "").split(" ")[0] || "there"},\n\nThank you. We received ${resub ? "the changes to " : ""}your information and documents for: ${form.name}${who && who !== u.name ? ` (applicant: ${who})` : ""}.${partial ? `\n\nYou sent what you had so far (${pct}% complete). Sign in at ${site(env)}/intake/ and press Continue filling whenever you're ready to add the rest.` : ""}\n\nOur team will review everything and contact you if anything else is needed. As you agreed, once your file is complete we will share the complete file with you and permanently destroy the documents you uploaded. ${keep ? "You asked us to keep a copy of your complete file in your WorkerPool account." : `You chose not to have us keep a copy, so the complete file will be removed ${KEEP_DAYS} days after we share it. Download it when we tell you it's ready.`}\n\nYou can sign in at ${site(env)}/intake/ any time to see what you sent.\n\nWorkerPool`);
     return json({ ok: true });
   }
   if (route === "keep" && m === "POST") { // the client changes their mind about WorkerPool keeping the complete file
@@ -228,14 +253,14 @@ async function client({ request, env }, route, m) {
 
 // A form sent by a partner firm: the consent names the firm, there's no "keep a copy" choice (the firm holds the file),
 // and the firm is emailed alongside WorkerPool.
-async function submitForPartner(env, u, a, form, { now, resub, who, files }) {
+async function submitForPartner(env, u, a, form, { now, resub, who, files, pct, extraLines, partial, ret }) {
   const firm = a.firm || "your representative";
-  await env.DB.prepare(`UPDATE intakes SET status = 'submitted', progress = 100, updated = ?1, submitted = COALESCE(submitted, ?1), resubmitted = ?2, admin_seen = NULL, partner_seen = NULL,
+  await env.DB.prepare(`UPDATE intakes SET status = 'submitted', progress = ?5, updated = ?1, submitted = COALESCE(submitted, ?1), resubmitted = ?2, admin_seen = NULL, partner_seen = NULL,
       consent_at = ?1, consent_text = ?3, keep_file = NULL, keep_changed = NULL WHERE id = ?4`)
-    .bind(now, resub ? now : null, `[${CONSENT_V}-partner] ${partnerConsent(firm)}`, a.id).run();
-  const body = `${resub ? "Your client made changes and resubmitted their intake form." : "Your client submitted an intake form."}\n\nApplicant: ${who}\nClient account: ${u.name} (${u.email}, ${u.phone})\nForm: ${form.name}\nFiles uploaded: ${files}\nSubmitted: ${now}\n\nOpen it in your partner portal to view and download the answers and documents: ${site(env)}/partners/`;
-  if (a.firm_email) await sendEmail(env, a.firm_email, `${resub ? "Updated" : "New"} client intake form: ${form.name} – ${who}`, body + "\n\nWorkerPool", u.email);
-  await sendEmail(env, env.ADMIN_EMAIL, `${resub ? "Updated" : "New"} partner intake form (${firm}): ${form.name} – ${who}`,
+    .bind(now, resub ? now : null, `[${CONSENT_V}-partner] ${partnerConsent(firm)}`, a.id, pct).run();
+  const body = `${ret ? "Your client reviewed the sections sent back to them and returned the form." : resub ? "Your client made changes and resubmitted their intake form." : "Your client submitted an intake form."}\n${extraLines}\nApplicant: ${who}\nClient account: ${u.name} (${u.email}, ${u.phone})\nForm: ${form.name}\nFiles uploaded: ${files}\nSubmitted: ${now}\n\nOpen it in your partner portal to view and download the answers and documents: ${site(env)}/partners/`;
+  if (a.firm_email) await sendEmail(env, a.firm_email, `${ret ? "Sections returned" : resub ? "Updated" : "New"}${partial ? " (partial)" : ""} client intake form: ${form.name} – ${who}`, body + "\n\nWorkerPool", u.email);
+  await sendEmail(env, env.ADMIN_EMAIL, `${ret ? "Sections returned" : resub ? "Updated" : "New"}${partial ? " (partial)" : ""} partner intake form (${firm}): ${form.name} – ${who}`,
     body.replace("Your client", `${firm}'s client`).replace(`${site(env)}/partners/`, `${site(env)}/admin/ (Intake forms tab)`), u.email);
   await sendEmail(env, u.email, `We received your ${form.name} form`,
     `Hi ${String(u.name || "").split(" ")[0] || "there"},\n\nThank you. We received ${resub ? "the changes to " : ""}your information and documents for: ${form.name}${who && who !== u.name ? ` (applicant: ${who})` : ""}, and shared them securely with ${firm}.\n\n${firm} will review everything and contact you if anything else is needed. You can sign in at ${site(env)}/intake/ any time to see what you sent.\n\nWorkerPool (secure intake for ${firm})`, a.firm_email || undefined);
@@ -248,7 +273,8 @@ async function admin({ request, env }, route, m) {
   const url = new URL(request.url);
   if (route === "list" && m === "GET") {
     await sweep(env);
-    const rows = await env.DB.prepare(`SELECT i.id, i.form_key, i.form_v, i.req_new, i.invite_code, i.status, i.data, i.progress, i.created, i.updated, i.submitted, i.resubmitted, i.admin_seen, i.admin_status, i.admin_note, i.keep_file, i.final_at, i.docs_destroyed_at,
+    const rows = await env.DB.prepare(`SELECT i.id, i.form_key, i.form_v, i.req_new, i.invite_code, i.status, i.data, i.progress, i.created, i.updated, i.submitted, i.resubmitted, i.admin_seen, i.admin_status, i.admin_note, i.keep_file, i.final_at, i.docs_destroyed_at, i.partial, i.missing_n,
+        (SELECT COUNT(*) FROM intake_returns t WHERE t.intake_id = i.id AND t.status = 'open') AS ret_open,
         u.name AS acct_name, u.email AS acct_email, u.phone AS acct_phone, v.label AS invite_label, i.partner_id, p.firm AS partner_firm, i.partner_status,
         (SELECT COUNT(*) FROM intake_docs d WHERE d.intake_id = i.id) AS files,
         (SELECT COUNT(*) FROM intake_requests q WHERE q.intake_id = i.id AND q.status = 'open' AND q.expires > ?1) AS reqs_open
@@ -271,7 +297,8 @@ async function admin({ request, env }, route, m) {
     const docs = await env.DB.prepare(`SELECT id, doc_key, name, size, type, uploaded, req_id FROM intake_docs WHERE intake_id = ?1 ORDER BY uploaded`).bind(id).all();
     if ((r.status === "submitted" && !r.admin_seen) || r.req_new) await env.DB.prepare(`UPDATE intakes SET admin_seen = COALESCE(admin_seen, ?1), req_new = NULL WHERE id = ?2`).bind(new Date().toISOString(), id).run();
     const { form, reqs, extra, asked } = await intakeForm(env, r);
-    return json({ ok: true, row: { ...r, data: parse(r.data) }, docs: docs.results, extra, asked: [...asked], requests: reqs.map(pubRequest),
+    const returns = (await env.DB.prepare(`SELECT * FROM intake_returns WHERE intake_id = ?1 ORDER BY created DESC LIMIT 30`).bind(id).all()).results.map((t) => ({ ...t, sections: secList(t.sections) }));
+    return json({ ok: true, row: { ...r, data: parse(r.data) }, docs: docs.results, extra, asked: [...asked], requests: reqs.map(pubRequest), returns,
       missing: form ? missing(form, parse(r.data), r.docs_destroyed_at ? new Set(form.docs.map((d) => d.k)) : new Set(docs.results.map((d) => d.doc_key))) : [] });
   }
   if (route === "doc" && m === "GET") {
@@ -375,7 +402,18 @@ async function admin({ request, env }, route, m) {
     await env.DB.prepare(`UPDATE intakes SET admin_seen = NULL WHERE id = ?1`).bind(r.id).run();
     return json({ ok: true });
   }
+  if (route === "return") return await sendBack(env, r, b);
+  if (route === "return-remind" || route === "return-cancel") {
+    const t = await openReturn(env, r.id);
+    if (!t || t.id !== str(b.rid, 60)) return json({ ok: false, error: "This send-back is no longer open." }, 404);
+    if (route === "return-remind") return json({ ok: true, emailed: await emailReturn(env, r, t, true) });
+    const now = new Date().toISOString();
+    await env.DB.prepare(`UPDATE intake_returns SET status = 'cancelled', done_at = ?1 WHERE id = ?2`).bind(now, t.id).run();
+    await env.DB.prepare(`UPDATE intakes SET status = 'submitted', updated = ?1 WHERE id = ?2 AND status = 'editing'`).bind(now, r.id).run();
+    return json({ ok: true });
+  }
   if (route === "unlock") { // let the client edit again (e.g. after asking for corrections)
+    await env.DB.prepare(`UPDATE intake_returns SET status = 'replaced', done_at = ?1 WHERE intake_id = ?2 AND status = 'open'`).bind(new Date().toISOString(), r.id).run();
     await env.DB.prepare(`UPDATE intakes SET status = 'editing', updated = ?1 WHERE id = ?2 AND status = 'submitted'`).bind(new Date().toISOString(), r.id).run();
     return json({ ok: true });
   }
@@ -387,6 +425,38 @@ async function admin({ request, env }, route, m) {
     return json({ ok: true });
   }
   return json({ ok: false, error: "Not found." }, 404);
+}
+
+/* ======================= send sections back ======================= */
+// The team reviews a submitted (or partial) form and sends one or more sections back. The form unlocks for the client, but
+// only those sections (and the questions that follow from them) can change; the rest stays as reviewed.
+async function sendBack(env, r, b) {
+  if (r.docs_destroyed_at) return json({ ok: false, error: "The documents were already destroyed, so the form can't be reopened." }, 409);
+  if (r.status !== "submitted" && r.status !== "editing") return json({ ok: false, error: "The client hasn't submitted this form yet." }, 409);
+  const { form } = await intakeForm(env, r);
+  if (!form) return json({ ok: false, error: "Unknown form." }, 400);
+  const ok = new Set([...form.sections.map((s) => s.id), RETURN_DOCS]);
+  const sections = [...new Set((Array.isArray(b.sections) ? b.sections : []).map((x) => str(x, 60)).filter((x) => ok.has(x)))];
+  if (!sections.length) return json({ ok: false, error: "Tick at least one section to send back." }, 400);
+  const now = new Date().toISOString();
+  await env.DB.prepare(`UPDATE intake_returns SET status = 'replaced', done_at = ?1 WHERE intake_id = ?2 AND status = 'open'`).bind(now, r.id).run();
+  const t = { id: crypto.randomUUID(), intake_id: r.id, sections, message: str(b.message, 2000), created: now };
+  await env.DB.prepare(`INSERT INTO intake_returns (id, intake_id, sections, message, status, created) VALUES (?1, ?2, ?3, ?4, 'open', ?5)`)
+    .bind(t.id, r.id, JSON.stringify(sections), t.message || null, now).run();
+  await env.DB.prepare(`UPDATE intakes SET status = 'editing', updated = ?1, admin_status = 'need-info', admin_seen = COALESCE(admin_seen, ?1) WHERE id = ?2`).bind(now, r.id).run();
+  const emailed = b.send === false ? false : await emailReturn(env, r, t);
+  return json({ ok: true, id: t.id, link: `${site(env)}/intake/?o=${r.id}`, emailed });
+}
+async function emailReturn(env, r, t, again) {
+  const acct = await env.DB.prepare(`SELECT u.name, u.email, p.firm, p.email AS firm_email FROM users u LEFT JOIN partners p ON p.id = ?2 WHERE u.id = ?1`).bind(r.user_id, r.partner_id || "").first();
+  if (!acct || !acct.email) return false;
+  const { form } = await intakeForm(env, r), who = applicantName(parse(r.data)), first = String(acct.name || "").split(" ")[0] || "there";
+  const by = acct.firm || "Our team";
+  const ok = await sendEmail(env, acct.email, `${again ? "Reminder: " : ""}Please review part of your ${form.name} form`,
+    `Hi ${first},\n\n${by} reviewed your ${form.name} form${who && who !== acct.name ? ` (applicant: ${who})` : ""} and sent back ${t.sections.length === 1 ? "this section" : "these sections"} for you to check, correct or complete:\n\n${secTitles(form, t.sections).map((x) => "  - " + x).join("\n")}\n${t.message ? `\nMessage:\n${t.message}\n` : ""}\nSign in and open your form here:\n${site(env)}/intake/?o=${r.id}\n\nOnly the sections listed above can be changed. The rest of your form stays as it is. When you're done, press Send back.\n\n${acct.firm ? `WorkerPool (secure intake for ${acct.firm})` : "WorkerPool"}`,
+    acct.firm_email || undefined);
+  if (ok) await env.DB.prepare(`UPDATE intake_returns SET emailed = ?1 WHERE id = ?2`).bind(new Date().toISOString(), t.id).run();
+  return ok;
 }
 
 /* ======================= document requests ======================= */

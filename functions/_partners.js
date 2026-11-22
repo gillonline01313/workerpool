@@ -68,6 +68,11 @@ export async function ensureIntake(env) {
     status TEXT DEFAULT 'open', created TEXT, expires TEXT, emailed TEXT, opens INTEGER DEFAULT 0, last_open TEXT, sent_back TEXT, done_at TEXT)`).run();
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS intake_requests_intake ON intake_requests (intake_id)`).run();
   await env.DB.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS intake_requests_token ON intake_requests (token)`).run();
+  // partial submissions, and sections the team sends back to the client for review
+  await add("intakes", ["partial INTEGER", "missing_n INTEGER"]);
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS intake_returns (id TEXT PRIMARY KEY, intake_id TEXT NOT NULL, sections TEXT, message TEXT,
+    status TEXT DEFAULT 'open', created TEXT, emailed TEXT, done_at TEXT)`).run();
+  await env.DB.prepare(`CREATE INDEX IF NOT EXISTS intake_returns_intake ON intake_returns (intake_id)`).run();
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS intakes_partner ON intakes (partner_id)`).run();
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS intake_invites_partner ON intake_invites (partner_id)`).run();
   await ensurePartners(env);

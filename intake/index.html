@@ -77,6 +77,10 @@ input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{out
 .sec .body{padding:0 18px 18px;display:flex;flex-direction:column;gap:14px}
 .sec .intro{margin:0;color:var(--muted);font-size:.9rem}
 .pill.req{background:#f6ebdc;color:#7a4a17;border-color:transparent}
+.sec.back{border:2px solid var(--warn)}
+.sec.lock>summary h2{color:var(--muted)}
+.sec.lock .body{opacity:.72}
+fieldset.lockset{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:14px}
 .rep{border:1px dashed var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
 .rep-h{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .doc{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--field);display:flex;flex-direction:column;gap:10px}
@@ -124,7 +128,7 @@ footer a{color:var(--muted)}
 <footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents. We are not immigration representatives and do not give immigration advice. Your information is kept private and is used only to prepare your file. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
 <datalist id="countries"></datalist>
 <script type="module">
-import { FORMS, formOf, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName, CONSENT_TEXT, KEEP_TEXT, KEEP_DAYS, partnerConsent } from "/assets/intake-config.js?v=8";
+import { FORMS, formOf, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName, CONSENT_TEXT, KEEP_TEXT, KEEP_DAYS, partnerConsent, returnScope, RETURN_DOCS } from "/assets/intake-config.js?v=9";
 
 const $ = (s, r = document) => r.querySelector(s);
 const view = $("#view");
@@ -135,7 +139,8 @@ $("#countries").innerHTML = COUNTRIES.map((c) => `<option value="${esc(c)}">`).j
 
 const qs = new URLSearchParams(location.search);
 let link = { code: qs.get("i") || "", form: qs.get("f") || "" }, linkInfo = null, me = null;
-let cur = null, form = null, data = {}, docs = [], asked = new Set(), reqs = [], saveTimer = null, saving = false, dirty = false;
+let cur = null, form = null, data = {}, docs = [], asked = new Set(), reqs = [], ret = null, scope = null, saveTimer = null, saving = false, dirty = false;
+const locked = (id) => !!scope && !scope.has(id);   // while sections are sent back, everything else is read-only
 
 async function api(url, opts = {}) {
   const r = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...(opts.headers || {}) } });
@@ -158,7 +163,8 @@ async function boot() {
   }
   const r = await api("/api/auth/me");
   me = r.j.user || null; header();
-  if (!me) return authView(linkInfo ? "signup" : "login");
+  if (!me) return authView(linkInfo ? "signup" : "login", qs.get("o") ? "Sign in to review your form." : "");
+  if (qs.get("o")) return open(qs.get("o"));
   list(true);
 }
 
@@ -235,9 +241,9 @@ async function list(auto) {
   view.innerHTML = `<div class="stack">
     <div><span class="eyebrow">Signed in as ${esc(me.email)}</span><h1>Your forms</h1></div>
     ${rows.length ? rows.map((x) => `<div class="app"><div><b>${esc(FORMS[x.form_key].name)}</b>
-        <span>${x.firm ? "For " + esc(x.firm) + " · " : ""}${x.name ? "Applicant: " + esc(x.name) + " · " : ""}${x.status === "submitted" ? "Submitted " + day(x.submitted) : x.progress + "% complete · last saved " + day(x.updated)}</span></div>
-        <div style="display:flex;gap:8px;align-items:center">${x.reqs_open ? `<span class="pill req">Documents requested</span>` : ""}<span class="pill ${x.status === "submitted" ? "sub" : ""}">${x.status === "submitted" ? "Submitted" : x.status === "editing" ? "Making changes" : "In progress"}</span>
-        <button class="btn sm" data-open="${x.id}">${x.status === "submitted" ? "View" : "Continue"}</button></div></div>`).join("")
+        <span>${x.firm ? "For " + esc(x.firm) + " · " : ""}${x.name ? "Applicant: " + esc(x.name) + " · " : ""}${x.returned ? "Sent back to you to review" : x.status === "submitted" ? "Submitted " + day(x.submitted) + (x.partial ? ` · partial, ${x.progress}% complete` : "") : x.progress + "% complete · last saved " + day(x.updated)}</span></div>
+        <div style="display:flex;gap:8px;align-items:center">${x.reqs_open ? `<span class="pill req">Documents requested</span>` : ""}<span class="pill ${x.returned ? "req" : x.status === "submitted" ? "sub" : ""}">${x.returned ? "Please review" : x.status === "submitted" ? (x.partial ? "Submitted (partial)" : "Submitted") : x.status === "editing" ? "Making changes" : "In progress"}</span>
+        <button class="btn sm" data-open="${x.id}">${x.returned ? "Review" : x.status === "submitted" ? "View" : "Continue"}</button></div></div>`).join("")
       : `<div class="card"><p style="margin:0">You don't have any forms yet. Open the link we sent you to start one.</p></div>`}
     ${link.form && FORMS[link.form] && !single ? `<div class="card"><h2>Applying for more than one person?</h2><p style="margin:0" class="saved">Each person needs their own form (for example your spouse or each child). Start one for each family member applying.</p>
       <div><button class="btn ghost" id="another">Start a ${esc(FORMS[link.form].name)} form for another person</button></div></div>` : ""}
@@ -256,9 +262,10 @@ async function open(id) {
   view.innerHTML = `<div class="card"><p class="saved" style="margin:0">Opening your form…</p></div>`;
   const r = await api("/api/intake/item?id=" + encodeURIComponent(id));
   if (!r.ok) { view.innerHTML = `<div class="card"><p class="err">${esc(r.j.error || "Couldn't open the form.")}</p></div>`; return; }
-  cur = r.j.row; data = cur.data || {}; docs = r.j.docs || []; asked = new Set(r.j.asked || []); form = formOf(cur, r.j.extra, asked); reqs = r.j.requests || [];
+  cur = r.j.row; data = cur.data || {}; docs = r.j.docs || []; asked = new Set(r.j.asked || []); form = formOf(cur, r.j.extra, asked); reqs = r.j.requests || []; ret = r.j.ret || null;
   if (!form) { view.innerHTML = `<div class="card"><p class="err">This form is no longer available. Contact us.</p></div>`; return; }
   window.scrollTo(0, 0);
+  scope = ret ? returnScope(form, ret.sections) : null;
   if (cur.status === "submitted") return done();
   draw();
 }
@@ -294,15 +301,17 @@ function secHtml(s) {
       <div class="grid">${s.fields.map((f) => fieldHtml(s, f, i)).join("")}</div></div>`).join("")
       + (rows.length < (s.rep.max || 20) ? `<div><button class="btn ghost sm" type="button" data-add="${s.id}">+ ${esc(s.rep.add || "Add")}</button></div>` : "");
   } else inner = `<div class="grid">${s.fields.map((f) => fieldHtml(s, f)).join("")}</div>`;
-  return `<details class="sec" data-sec="${s.id}"${s.if ? ` data-if="${esc(s.if)}"` : ""}><summary><h2>${esc(s.title)}</h2><span class="st"></span></summary><div class="body">${intro}${inner}</div></details>`;
+  const lock = locked(s.id), back = !!scope && !lock;
+  if (lock) inner = `<fieldset class="lockset" disabled>${inner}</fieldset>`;
+  return `<details class="sec${lock ? " lock" : ""}${back ? " back" : ""}" data-sec="${s.id}"${s.if ? ` data-if="${esc(s.if)}"` : ""}${back ? " open" : ""}><summary><h2>${esc(s.title)}</h2><span class="st"></span></summary><div class="body">${intro}${inner}</div></details>`;
 }
 function docHtml(d) {
-  const mine = docs.filter((x) => x.doc_key === d.k);
+  const mine = docs.filter((x) => x.doc_key === d.k), dl = locked(RETURN_DOCS) && !asked.has(d.k);
   return `<div class="doc" data-doc="${d.k}"${d.if ? ` data-if="${esc(d.if)}"` : ""}>
     <div class="doc-h"><div><b>${esc(d.l)}</b>${d.h ? `<div class="help" style="margin-top:3px">${esc(d.h)}</div>` : ""}</div>
       <span class="tag ${mine.length ? "ok" : d.r || asked.has(d.k) ? "need" : ""}">${mine.length ? "✓ Uploaded" : asked.has(d.k) ? "Requested by our team" : d.r ? "Required" : "Optional"}</span></div>
-    ${mine.length ? `<div class="files">${mine.map((x) => `<div class="file"><span title="${esc(x.name)}">${esc(x.name)} · ${kb(x.size)}</span><div><a class="linkbtn" href="/api/intake/doc?id=${x.id}" target="_blank" rel="noopener">View</a><button class="linkbtn" type="button" data-rm="${x.id}">Remove</button></div></div>`).join("")}</div>` : ""}
-    <label class="btn ghost sm up">Upload file${mine.length ? "s" : ""}<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" data-up="${d.k}"></label>
+    ${mine.length ? `<div class="files">${mine.map((x) => `<div class="file"><span title="${esc(x.name)}">${esc(x.name)} · ${kb(x.size)}</span><div><a class="linkbtn" href="/api/intake/doc?id=${x.id}" target="_blank" rel="noopener">View</a>${dl ? "" : `<button class="linkbtn" type="button" data-rm="${x.id}">Remove</button>`}</div></div>`).join("")}</div>` : ""}
+    ${dl ? "" : `<label class="btn ghost sm up">Upload file${mine.length ? "s" : ""}<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" data-up="${d.k}"></label>`}
     <div class="err" data-uperr="${d.k}" style="min-height:0"></div></div>`;
 }
 function draw() {
@@ -311,9 +320,11 @@ function draw() {
     <h1>${esc(form.name)}</h1>
     <p class="lede">${esc(form.intro)}</p></div>
     ${reqs.length ? `<div class="note warn" id="reqNote"><b>${esc(cur.firm || "Our team")} asked you for ${[...asked].length} document${[...asked].length === 1 ? "" : "s"}.</b> They are at the top of the Documents section, marked "Requested by our team". ${reqs.filter((q) => q.message).map((q) => `<br>Message: ${esc(q.message)}`).join("")} <button class="linkbtn" type="button" id="toDocs">Go to the documents</button></div>` : ""}
+    ${ret ? `<div class="note warn" id="retNote"><b>${esc(cur.firm || "Our team")} sent back ${ret.sections.length === 1 ? "this section" : `${ret.sections.length} sections`} for you to review:</b> ${ret.sections.map((id) => esc(id === RETURN_DOCS ? "Documents" : (form.sections.find((x) => x.id === id) || {}).title || id)).join(", ")}.
+      ${ret.message ? `<br>Message: ${esc(ret.message)}` : ""}<br>These are outlined and open below. The other sections are locked as they are. When you're done, press <b>Send back</b> at the bottom.</div>` : ""}
     <div class="bar"><div class="meter" aria-hidden="true"><i id="meter" style="width:0"></i></div><span class="pct" id="pct">0%</span><span class="saved" id="saved">All changes saved</span></div>
     <form id="ff" novalidate>${form.sections.map(secHtml).join("")}
-      <details class="sec" data-sec="__docs" open><summary><h2>Documents</h2><span class="st"></span></summary><div class="body">
+      <details class="sec${locked(RETURN_DOCS) ? " lock" : scope ? " back" : ""}" data-sec="__docs"${locked(RETURN_DOCS) && !reqs.length ? "" : " open"}><summary><h2>Documents</h2><span class="st"></span></summary><div class="body">
         <p class="intro">Upload a clear scan or photo of each document. You can add more than one file for any item. The list changes with your answers above.</p>
         <div class="stack" id="docList">${[...form.docs.filter((d) => asked.has(d.k)), ...form.docs.filter((d) => !asked.has(d.k))].map(docHtml).join("")}</div></div></details>
       <div class="card" id="finish"><h2>Review and submit</h2>
@@ -339,7 +350,7 @@ function draw() {
             <label class="opt"><input type="radio" name="cKeep" value="no"><span>${esc(KEEP_TEXT[0])}</span></label>
           </fieldset>
         </div>`}
-        <div class="actions"><span class="saved">You can come back and finish later. Your answers are saved.</span><button class="btn" type="button" id="submit">${cur.firm ? "Submit to " + esc(cur.firm) : "Submit to WorkerPool"}</button></div>
+        <div class="actions"><span class="saved">You can come back and finish later. Your answers are saved.</span><button class="btn" type="button" id="submit">${submitLabel(false)}</button></div>
         <div class="err" id="subErr"></div></div>
     </form>`;
   const ff = $("#ff");
@@ -350,7 +361,7 @@ function draw() {
   $("#submit").onclick = submit;
   const td = $("#toDocs"); if (td) td.onclick = () => { const d = ff.querySelector('[data-sec="__docs"]'); d.open = true; d.scrollIntoView({ behavior: "smooth" }); };
   $("#consentBox").addEventListener("change", gate);
-  const firstOpen = form.sections.find((s) => sectionOn(s, data) && secMissing(s).length);
+  const firstOpen = !scope && form.sections.find((s) => sectionOn(s, data) && secMissing(s).length);
   const el = firstOpen && ff.querySelector(`[data-sec="${firstOpen.id}"]`); if (el) el.open = true;
   refresh();
 }
@@ -370,21 +381,26 @@ function refresh() {
     const el = ff.querySelector(`[data-sec="${s.id}"] .st`); if (!el) continue;
     const m = secMissing(s), rows = s.rep ? (data[s.id] || []).length : 0;
     el.className = "st" + (m.length ? "" : " ok");
-    el.textContent = m.length ? `${m.length} to answer` : s.rep && !rows ? "Optional" : "✓ Done";
+    el.textContent = (locked(s.id) ? "🔒 " : scope ? "Review · " : "") + (m.length ? `${m.length} to answer` : s.rep && !rows ? "Optional" : "✓ Done");
   }
   const dm = form.docs.filter((d) => d.r && when(d.if, data) && !keys().has(d.k)).length;
-  const ds = ff.querySelector(`[data-sec="__docs"] .st`); ds.className = "st" + (dm ? "" : " ok"); ds.textContent = dm ? `${dm} required to upload` : "✓ Done";
+  const ds = ff.querySelector(`[data-sec="__docs"] .st`); ds.className = "st" + (dm ? "" : " ok"); ds.textContent = (locked(RETURN_DOCS) ? "🔒 " : scope ? "Review · " : "") + (dm ? `${dm} required to upload` : "✓ Done");
   const pct = progress(form, data, keys());
   $("#meter").style.width = pct + "%"; $("#pct").textContent = pct + "%";
   const miss = missing(form, data, keys());
-  $("#missWrap").innerHTML = miss.length ? `<div class="note warn"><b>${miss.length} item${miss.length > 1 ? "s" : ""} still needed before you can submit:</b><ul class="miss">${miss.slice(0, 40).map((x) => `<li>${esc(x)}</li>`).join("")}${miss.length > 40 ? `<li>…and ${miss.length - 40} more</li>` : ""}</ul></div>` : `<div class="note">Everything required is complete. Check your answers, then submit.</div>`;
-  window.__miss = miss.length; gate();
+  $("#missWrap").innerHTML = miss.length ? `<div class="note warn"><b>${miss.length} required item${miss.length > 1 ? "s" : ""} not filled in yet.</b> You can still submit what you have now (${pct}% complete) and finish the rest later: ${esc(cur.firm || "our team")} will see what's missing.<ul class="miss">${miss.slice(0, 40).map((x) => `<li>${esc(x)}</li>`).join("")}${miss.length > 40 ? `<li>…and ${miss.length - 40} more</li>` : ""}</ul></div>` : `<div class="note">Everything required is complete. Check your answers, then submit.</div>`;
+  window.__miss = miss.length; const sb = $("#submit"); if (sb && !sb.dataset.busy) sb.textContent = submitLabel(!!miss.length); gate();
+}
+function submitLabel(part) {
+  if (ret) return part ? "Send back what I have" : "Send back";
+  const to = cur.firm ? "to " + cur.firm : "to WorkerPool";
+  return part ? `Submit what I have so far ${to}` : `Submit ${to}`;
 }
 const keepPick = () => { if (cur && cur.firm) return "partner"; const r = document.querySelector('input[name="cKeep"]:checked'); return r ? r.value : ""; };
 function gate() {
   const c = $("#cConsent"), b = $("#submit"); if (!c || !b) return;
-  b.disabled = !!window.__miss || !c.checked || !keepPick();
-  b.title = window.__miss ? "Complete the items listed above first" : !c.checked ? "Tick the consent box first" : !keepPick() ? "Choose whether we should save your complete file" : "";
+  b.disabled = !c.checked || !keepPick();
+  b.title = !c.checked ? "Tick the consent box first" : !keepPick() ? "Choose whether we should save your complete file" : "";
 }
 function onInput(e) {
   const t = e.target; if (!t.dataset || !t.dataset.s) return;
@@ -461,12 +477,13 @@ async function submit() {
   const b = $("#submit"), err = $("#subErr"); err.textContent = "";
   await flush(); if (dirty) { err.textContent = "Your latest answers aren't saved yet. Check your connection and try again."; return; }
   if (!$("#cConsent").checked || !keepPick()) { err.textContent = "Give your consent and choose whether we should save your complete file."; return; }
-  const keep = keepPick(), label = b.textContent;
+  const keep = keepPick(), label = b.textContent, part = !!window.__miss;
+  if (part && !confirm(`${window.__miss} required item${window.__miss > 1 ? "s are" : " is"} still missing.\n\nSubmit what you have so far? You can come back and finish the rest later (press Continue filling on your form).`)) return;
   if (!confirm(cur.firm ? `Submit this form now?\n\nYour answers and documents will be shared with ${cur.firm}.` : `Submit this form now?\n\nYou agree that WorkerPool will permanently destroy your uploaded documents once your file is complete and share the complete file with you.\n\nSave a copy with WorkerPool: ${keep === "yes" ? "Yes" : "No"}`)) return;
-  b.disabled = true; b.textContent = "Submitting…";
-  const r = await api("/api/intake/submit", { method: "POST", body: JSON.stringify({ id: cur.id, consent: true, keep: cur.firm ? undefined : keep }) });
-  if (!r.ok) { b.disabled = false; b.textContent = label; err.textContent = r.j.error || "Couldn't submit. Try again."; return; }
-  cur.status = "submitted"; cur.submitted = cur.submitted || new Date().toISOString(); cur.consent_at = new Date().toISOString(); cur.keep_file = keep === "yes" ? 1 : 0; done(true);
+  b.disabled = true; b.dataset.busy = "1"; b.textContent = "Submitting…";
+  const r = await api("/api/intake/submit", { method: "POST", body: JSON.stringify({ id: cur.id, consent: true, keep: cur.firm ? undefined : keep, partial: part }) });
+  if (!r.ok) { b.disabled = false; delete b.dataset.busy; b.textContent = label; err.textContent = r.j.error || "Couldn't submit. Try again."; return; }
+  cur.status = "submitted"; cur.submitted = cur.submitted || new Date().toISOString(); cur.consent_at = new Date().toISOString(); cur.keep_file = keep === "yes" ? 1 : 0; cur.partial = part; cur.missing_n = window.__miss || 0; cur.progress = progress(form, data, keys()); ret = null; scope = null; done(true);
 }
 
 /* ---------- submitted ---------- */
@@ -494,10 +511,11 @@ function done(just) {
   const files = form.docs.filter((d) => docs.some((x) => x.doc_key === d.k)).map((d) => `<div><b>${esc(d.l)}</b><div class="files" style="margin-top:6px">${docs.filter((x) => x.doc_key === d.k).map((x) => `<div class="file"><span>${esc(x.name)} · ${kb(x.size)}</span><a class="linkbtn" href="/api/intake/doc?id=${x.id}" target="_blank" rel="noopener">View</a></div>`).join("")}</div></div>`).join("");
   view.innerHTML = `<div class="stack">
     <div><span class="eyebrow">Submitted ${day(cur.submitted)}</span><h1>${esc(form.name)}</h1>${applicantName(data) ? `<p class="lede">Applicant: ${esc(applicantName(data))}</p>` : ""}</div>
+    ${cur.partial ? `<div class="note warn"><b>Submitted as a partial form (${cur.progress || 0}% complete${cur.missing_n ? `, ${cur.missing_n} required item${cur.missing_n > 1 ? "s" : ""} still missing` : ""}).</b> Press <b>Continue filling</b> below whenever you're ready to add the rest.</div>` : ""}
     ${just ? `<div class="note"><b>Thank you. Your form was submitted.</b> We emailed you a confirmation, and ${cur.firm ? esc(cur.firm) + " will" : "our team will"} contact you if anything else is needed.</div>` : ""}
     ${reqs.map((q) => `<div class="card" data-req="${esc(q.token)}"><p class="saved" style="margin:0">Loading the documents requested…</p></div>`).join("")}
     ${fileCard()}
-    ${cur.docs_destroyed_at ? "" : `<div class="card"><div class="actions"><span>Need to fix something or add a document?</span><button class="btn ghost sm" id="reopen" type="button">Make changes</button></div><div class="err" id="roErr" style="min-height:0"></div></div>`}
+    ${cur.docs_destroyed_at ? "" : `<div class="card"><div class="actions"><span>${cur.partial ? "Ready to add the rest?" : "Need to fix something or add a document?"}</span><button class="btn ${cur.partial ? "" : "ghost "}sm" id="reopen" type="button">${cur.partial ? "Continue filling" : "Make changes"}</button></div><div class="err" id="roErr" style="min-height:0"></div></div>`}
     <div>${blocks}</div>
     <div class="card"><h2>Documents (${docs.length})</h2>${cur.docs_destroyed_at ? `<p style="margin:0">As you agreed, the documents you uploaded were permanently ${cur.firm ? `deleted from WorkerPool on ${day(cur.docs_destroyed_at)}, after ${esc(cur.firm)} received your complete file.` : `destroyed on ${day(cur.docs_destroyed_at)}. They are all inside your complete file.`}</p>` : files || `<p class="saved" style="margin:0">No files.</p>`}</div>
     <div><button class="btn ghost" id="back" type="button">Back to my forms</button></div></div>`;
