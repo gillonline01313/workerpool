@@ -126,7 +126,8 @@ footer a{color:var(--muted)}
 <main class="in" id="view"><div class="card"><p class="muted" style="margin:0">Loading…</p></div></main>
 <footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents for licensed representatives. We are not immigration representatives and do not give immigration advice. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
 <script type="module">
-import { FORMS, formOf, sectionOn, fieldOn, when as cond, applicantName, missing as missOf, RETURN_DOCS } from "/assets/intake-config.js?v=9";
+import { FORMS, formOf, sectionOn, fieldOn, when as cond, applicantName, returnLabels } from "/assets/intake-config.js?v=10";
+import { pickerHtml, pickerWire, pickerValue } from "/assets/intake-sendback.js?v=1";
 
 const $ = (s, r = document) => r.querySelector(s);
 const view = $("#view");
@@ -404,37 +405,32 @@ const RT = { open: ["Waiting for client", "edit"], done: ["Returned", "sub"], ca
 function retCard(r, form, miss) {
   const T = S.item.returns || [], d = r.data, open = T.find((t) => t.status === "open");
   const canSend = (r.status === "submitted" || r.status === "editing") && !r.docs_destroyed_at;
-  const title = (id) => id === RETURN_DOCS ? "Documents" : ((form.sections.find((x) => x.id === id) || {}).title || id);
-  const nMiss = (s) => missOf({ sections: [s], docs: [] }, d, new Set()).length, docMiss = miss.filter((x) => x.startsWith("Document: ")).length;
+  const docMiss = miss.filter((x) => x.startsWith("Document: ")).length;
   const link = `${location.origin}/intake/?o=${r.id}`, ph = String((d.contact || {}).phone || r.acct_phone || "").replace(/[^\d]/g, "");
   const wa = `https://wa.me/${ph}?text=${encodeURIComponent(`Please review the sections we sent back on your ${form.name} form: ${link}`)}`;
-  const box = (id, label, n) => `<label class="cbx" style="display:flex;gap:8px;align-items:flex-start;font-size:.88rem;padding:4px 0;font-weight:500"><input type="checkbox" data-retk="${esc(id)}"${n ? " checked" : ""} style="width:auto;margin-top:3px"><span>${esc(label)} ${n ? `<span class="pill edit">${n} missing</span>` : ""}</span></label>`;
   const made = S.retMade === r.id;
-  return `<div class="card"><div class="row sp"><h3>Send sections back to your client</h3>${canSend ? `<button class="btn${S.retOpen ? " ghost" : ""}" type="button" id="retNew">${S.retOpen ? "Close" : open ? "Change what's sent back" : "+ Send sections back"}</button>` : ""}</div>
-    <p class="muted" style="margin:0">Pick the sections your client should check, correct or complete. Their form reopens with only those sections editable (plus questions that follow from them); everything else stays locked as you reviewed it. They're emailed a link and press <b>Send back</b> when done, and the form comes back here as Updated.${canSend ? "" : " Available once your client has submitted (a partial submission is fine)."}</p>
+  return `<div class="card"><div class="row sp"><h3>Send back to your client</h3>${canSend ? `<button class="btn${S.retOpen ? " ghost" : ""}" type="button" id="retNew">${S.retOpen ? "Close" : open ? "Change what's sent back" : "+ Send sections back"}</button>` : ""}</div>
+    <p class="muted" style="margin:0">Pick whole sections, or only particular questions inside them, for your client to check, correct or complete. Their form reopens with only those editable (plus questions that follow from them); everything else stays locked as you reviewed it. They're emailed a link and press <b>Send back</b> when done, and the form comes back here as Updated.${canSend ? "" : " Available once your client has submitted (a partial submission is fine)."}</p>
     ${made ? `<div class="note"><b>Sent back.</b> Share the link too if needed: <span style="overflow-wrap:anywhere">${esc(link)}</span> <button class="btn ghost sm" type="button" data-retcp="${esc(link)}">Copy link</button> <a class="btn ghost sm" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a></div>` : ""}
-    ${S.retOpen && canSend ? `<div class="sec" id="retBox"><h4>1. Sections to send back</h4>
-        <div class="row" style="margin-bottom:6px"><button class="btn ghost sm" type="button" id="retMiss">Tick sections with missing items</button><button class="btn ghost sm" type="button" id="retNone">Clear</button></div>
-        <div style="max-height:340px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 14px">${form.sections.filter((s) => sectionOn(s, d)).map((s) => box(s.id, s.title, nMiss(s))).join("")}${box(RETURN_DOCS, "Documents (let them upload / remove files)", docMiss)}</div>
+    ${S.retOpen && canSend ? `<div class="sec" id="retBox"><h4>1. What to send back</h4>
+        <div id="retPick">${pickerHtml(form, d, { picked: open ? open.sections : [], badge: "pill edit", btn: "btn ghost sm", docMiss })}</div>
         <div class="f" style="margin-top:10px"><label for="retMsg">2. Message to your client (emailed with the link)</label><textarea id="retMsg" rows="3" maxlength="2000" placeholder="e.g. Your travel history is missing your 2019 trip to the USA. Please add every trip in the last 10 years.">${esc(open && open.message || "")}</textarea></div>
         <div class="row" style="align-items:center;margin-top:8px"><label style="display:flex;gap:6px;align-items:center;font-weight:500;font-size:.88rem"><input type="checkbox" id="retSend" style="width:auto"${r.acct_email ? " checked" : " disabled"}> Email ${esc(r.acct_email || "your client")} a link</label>
           <button class="btn" type="button" id="retGo">Send back to client</button></div><div class="err" id="retErr"></div></div>` : ""}
     ${T.map((t) => { const st = RT[t.status] || [t.status, ""];
-      return `<div class="sec"><div class="row sp" style="align-items:flex-start"><div><span class="pill ${st[1]}">${esc(st[0])}</span> <b>${t.sections.length} section${t.sections.length === 1 ? "" : "s"}</b>
+      return `<div class="sec"><div class="row sp" style="align-items:flex-start"><div><span class="pill ${st[1]}">${esc(st[0])}</span> <b>${returnLabels(form, t.sections).length} part${returnLabels(form, t.sections).length === 1 ? "" : "s"}</b>
           <div class="muted">Sent ${when(t.created)}${t.emailed ? ` · emailed ${when(t.emailed)}` : ""}${t.done_at ? ` · ${t.status === "done" ? "returned" : "closed"} ${when(t.done_at)}` : ""}</div></div>
         ${t.status === "open" ? `<div class="row"><button class="btn ghost sm" type="button" data-retcp="${esc(link)}">Copy link</button><a class="btn ghost sm" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a><button class="btn ghost sm" type="button" data-retre="${t.id}">Email reminder</button><button class="btn ghost sm" type="button" data-retx="${t.id}">Withdraw</button></div>` : ""}</div>
-        <div style="margin-top:6px">${t.sections.map((id) => `<span class="pill" style="margin:2px 4px 2px 0;display:inline-block">${esc(title(id))}</span>`).join("")}</div>
+        <ul style="margin:6px 0 0;padding-left:18px;font-size:.88rem">${returnLabels(form, t.sections).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
         ${t.message ? `<div class="muted" style="margin-top:6px">Message: ${esc(t.message)}</div>` : ""}</div>`; }).join("")}</div>`;
 }
 function wireRet(r) {
   const pane = $("#pane"), again = async () => { await dash(); await openItem(r.id); };
   const nb = $("#retNew"); if (nb) nb.onclick = () => { S.retOpen = !S.retOpen; S.retMade = null; drawItem(); const b = $("#retBox"); if (b) b.scrollIntoView({ behavior: "smooth", block: "nearest" }); };
-  const all = () => [...pane.querySelectorAll("[data-retk]")];
-  const mi = $("#retMiss"); if (mi) mi.onclick = () => all().forEach((c) => c.checked = !!c.parentElement.querySelector(".pill"));
-  const no = $("#retNone"); if (no) no.onclick = () => all().forEach((c) => c.checked = false);
+  const pick = $("#retPick"); if (pick) pickerWire(pick);
   const go = $("#retGo"); if (go) go.onclick = async () => {
-    const sections = all().filter((c) => c.checked).map((c) => c.dataset.retk);
-    if (!sections.length) { $("#retErr").textContent = "Tick at least one section."; return; }
+    const sections = pickerValue(pick);
+    if (!sections.length) { $("#retErr").textContent = "Tick at least one section or question."; return; }
     go.disabled = true; go.textContent = "Sending…";
     const x = await api("return", { method: "POST", body: JSON.stringify({ id: r.id, sections, message: $("#retMsg").value, send: $("#retSend").checked }) });
     if (!x.ok) { go.disabled = false; go.textContent = "Send back to client"; $("#retErr").textContent = x.j.error || "Couldn't send it back."; return; }

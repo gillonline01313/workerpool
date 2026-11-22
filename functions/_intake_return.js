@@ -3,7 +3,7 @@
 // questions that follow from them, see returnScope in intake-config.js) can change; everything else stays as reviewed.
 // Used by the admin intake API and the partner portal API.
 import { json, str, sendEmail } from "./_lib.js";
-import { applicantName, upgradeIntake, RETURN_DOCS } from "../assets/intake-config.js";
+import { applicantName, upgradeIntake, returnLabels, RETURN_DOCS } from "../assets/intake-config.js";
 import { intakeForm } from "./_intake_req.js";
 
 const site = (env) => env.SITE_URL || "https://workerpool.ca";
@@ -18,7 +18,7 @@ export async function listReturns(env, intakeId) {
   return r.results.map((t) => ({ ...t, sections: secList(t.sections) }));
 }
 export const pubReturn = (t) => t && { id: t.id, sections: t.sections, message: t.message || "", created: t.created };
-export const secTitles = (form, ids) => ids.map((id) => id === RETURN_DOCS ? "Documents" : ((form.sections.find((s) => s.id === id) || {}).title || id));
+export const secTitles = (form, ids) => returnLabels(form, ids);
 // Closes any open send-back (when the form is unlocked fully, or a new send-back replaces it).
 export const closeReturns = (env, intakeId, status = "replaced") =>
   env.DB.prepare(`UPDATE intake_returns SET status = ?1, done_at = ?2 WHERE intake_id = ?3 AND status = 'open'`).bind(status, new Date().toISOString(), intakeId).run();
@@ -29,8 +29,9 @@ export async function sendBack(env, r, b, { statusCol = "admin_status" } = {}) {
   if (r.status !== "submitted" && r.status !== "editing") return json({ ok: false, error: "The client hasn't submitted this form yet." }, 409);
   const { form } = await intakeForm(env, r);
   if (!form) return json({ ok: false, error: "Unknown form." }, 400);
-  const ok = new Set([...form.sections.map((s) => s.id), RETURN_DOCS]);
-  const sections = [...new Set((Array.isArray(b.sections) ? b.sections : []).map((x) => str(x, 60)).filter((x) => ok.has(x)))];
+  const ok = new Set([RETURN_DOCS, ...form.sections.flatMap((s) => [s.id, ...s.fields.filter((f) => f.t !== "h").map((f) => `${s.id}.${f.k}`)])]);
+  let sections = [...new Set((Array.isArray(b.sections) ? b.sections.slice(0, 400) : []).map((x) => str(x, 120)).filter((x) => ok.has(x)))];
+  sections = sections.filter((x) => !x.includes(".") || !sections.includes(x.split(".")[0]));   // a whole section covers its questions
   if (!sections.length) return json({ ok: false, error: "Tick at least one section to send back." }, 400);
   const now = new Date().toISOString();
   await closeReturns(env, r.id);
@@ -48,7 +49,7 @@ export async function emailReturn(env, r, t, again) {
   const { form } = await intakeForm(env, r), who = applicantName(parse(r.data)), first = String(acct.name || "").split(" ")[0] || "there";
   const by = acct.firm || "Our team";
   const ok = await sendEmail(env, acct.email, `${again ? "Reminder: " : ""}Please review part of your ${form.name} form`,
-    `Hi ${first},\n\n${by} reviewed your ${form.name} form${who && who !== acct.name ? ` (applicant: ${who})` : ""} and sent back ${t.sections.length === 1 ? "this section" : "these sections"} for you to check, correct or complete:\n\n${secTitles(form, t.sections).map((x) => "  - " + x).join("\n")}\n${t.message ? `\nMessage:\n${t.message}\n` : ""}\nSign in and open your form here:\n${site(env)}/intake/?o=${r.id}\n\nOnly the sections listed above can be changed. The rest of your form stays as it is. When you're done, press Send back.\n\n${acct.firm ? `WorkerPool (secure intake for ${acct.firm})` : "WorkerPool"}`,
+    `Hi ${first},\n\n${by} reviewed your ${form.name} form${who && who !== acct.name ? ` (applicant: ${who})` : ""} and sent back ${secTitles(form, t.sections).length === 1 ? "this part" : "these parts"} for you to check, correct or complete:\n\n${secTitles(form, t.sections).map((x) => "  - " + x).join("\n")}\n${t.message ? `\nMessage:\n${t.message}\n` : ""}\nSign in and open your form here:\n${site(env)}/intake/?o=${r.id}\n\nOnly what's listed above can be changed. The rest of your form stays as it is. When you're done, press Send back.\n\n${acct.firm ? `WorkerPool (secure intake for ${acct.firm})` : "WorkerPool"}`,
     acct.firm_email || undefined);
   if (ok) await env.DB.prepare(`UPDATE intake_returns SET emailed = ?1 WHERE id = ?2`).bind(new Date().toISOString(), t.id).run();
   return ok;

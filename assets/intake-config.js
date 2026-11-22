@@ -2065,18 +2065,68 @@ export function progress(form, data, docKeys) {
   for (const d of form.docs) if (d.r && when(d.if, data)) { need++; if (docKeys.has(d.k)) have++; }
   return need ? Math.round((have / need) * 100) : 100;
 }
-// Sections the team sent back to the client for review ("__docs" = the Documents list). A section whose condition reads
-// a sent-back section opens too, so a changed answer (e.g. marital status) can bring in the questions that follow from it.
+// What the team sent back to the client for review. Each entry is a whole section id ("travel"), one question in a
+// section ("personal.dob") or "__docs" (the Documents list). Anything that depends on a sent-back item opens too: a section
+// or question whose condition reads it, so a changed answer (e.g. marital status) brings in the questions that follow.
 export const RETURN_DOCS = "__docs";
-const condRefs = (cond) => String(cond || "").split(/[&;]/).map((p) => p.trim()).filter(Boolean)
-  .map((p) => (p === "$minor" ? "personal" : p.split(/[.=!]/)[0])).filter((x) => x && x[0] !== "@");
+const condRefs = (cond) => String(cond || "").split(/[&;]/).map((p) => p.trim()).filter(Boolean).map((p) => {
+  if (p === "$minor") return { s: "personal", k: "dob" };
+  const ref = p.split(/!=|=/)[0];
+  if (ref[0] === "@") return { s: null, k: ref.slice(1) };          // same row of a repeatable section
+  const [sec, k] = ref.split("."); return { s: sec, k };
+});
 export function returnScope(form, ids) {
-  const open = new Set(Array.isArray(ids) ? ids : []);
+  const whole = new Set(), part = new Map();
+  for (const x of Array.isArray(ids) ? ids : []) {
+    const i = String(x).indexOf(".");
+    if (i < 0) whole.add(x); else { const sid = x.slice(0, i); if (!part.has(sid)) part.set(sid, new Set()); part.get(sid).add(x.slice(i + 1)); }
+  }
+  const open = (sid, k) => whole.has(sid) || !!(part.get(sid) && part.get(sid).has(k));
+  const hit = (r, sid) => r.s ? whole.has(r.s) || open(r.s, r.k) : open(sid, r.k);
   for (let grew = true; grew;) {
     grew = false;
-    for (const s of form.sections) if (!open.has(s.id) && s.if && condRefs(s.if).some((r) => open.has(r))) { open.add(s.id); grew = true; }
+    for (const s of form.sections) {
+      if (whole.has(s.id)) continue;
+      if (s.if && condRefs(s.if).some((r) => r.s && hit(r))) { whole.add(s.id); part.delete(s.id); grew = true; continue; }
+      for (const f of s.fields) if (f.if && !open(s.id, f.k) && condRefs(f.if).some((r) => hit(r, s.id))) {
+        if (!part.has(s.id)) part.set(s.id, new Set()); part.get(s.id).add(f.k); grew = true;
+      }
+    }
   }
-  return open;
+  for (const sid of whole) part.delete(sid);
+  return {
+    has: (sid) => whole.has(sid) || part.has(sid),   // any part of the section (or "__docs") is open
+    all: (sid) => whole.has(sid),                    // the whole section is open (rows can be added and removed)
+    field: open,                                     // one question is open
+  };
+}
+// Server side: keep the reviewed answers and take only what the scope opens from the client's copy.
+export function mergeReturned(form, scope, saved, incoming) {
+  const out = { ...saved };
+  for (const s of form.sections) {
+    if (!scope.has(s.id)) continue;
+    if (scope.all(s.id)) { if (s.id in incoming) out[s.id] = incoming[s.id]; else delete out[s.id]; continue; }
+    const keys = s.fields.filter((f) => scope.field(s.id, f.k)).map((f) => f.k), inc = incoming[s.id];
+    if (s.rep) {   // same rows as reviewed; only the opened questions change in each
+      const rows = Array.isArray(saved[s.id]) ? saved[s.id] : [];
+      out[s.id] = rows.map((row, i) => { const r = { ...row }, src = Array.isArray(inc) && inc[i] || {}; for (const k of keys) { if (k in src) r[k] = src[k]; else delete r[k]; } return r; });
+    } else {
+      const o = { ...(saved[s.id] || {}) }, src = inc && typeof inc === "object" && !Array.isArray(inc) ? inc : {};
+      for (const k of keys) { if (k in src) o[k] = src[k]; else delete o[k]; }
+      out[s.id] = o;
+    }
+  }
+  return out;
+}
+// Readable names for what was sent back: "Travel history", "Personal details: Date of birth".
+export function returnLabels(form, ids) {
+  const list = (Array.isArray(ids) ? ids : []).map(String), whole = new Set(list.filter((x) => !x.includes("."))), groups = new Map();
+  for (const x of list) { const [sid, k] = x.split("."); if (!groups.has(sid)) groups.set(sid, []); if (k && !whole.has(sid)) groups.get(sid).push(k); }
+  return [...groups].map(([sid, ks]) => {
+    if (sid === RETURN_DOCS) return "Documents";
+    const s = form.sections.find((y) => y.id === sid), t = s ? s.title : sid;
+    return ks.length ? `${t}: ${ks.map((k) => ((s && s.fields.find((f) => f.k === k)) || {}).l || k).join("; ")}` : t;
+  });
 }
 // Older inside-Canada answers kept the entry questions in "status"; move them to the "entry" section. Safe to run twice.
 const MOVED_TO_ENTRY = ["first_entry", "first_place", "first_purpose", "last_entry", "last_place", "exits_yn"];

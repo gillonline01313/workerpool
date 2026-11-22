@@ -78,6 +78,8 @@ input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{out
 .sec .intro{margin:0;color:var(--muted);font-size:.9rem}
 .pill.req{background:#f6ebdc;color:#7a4a17;border-color:transparent}
 .sec.back{border:2px solid var(--warn)}
+.f.fx{opacity:.55}
+.f.pick{box-shadow:-3px 0 0 var(--warn);padding-left:8px}
 .sec.lock>summary h2{color:var(--muted)}
 .sec.lock .body{opacity:.72}
 fieldset.lockset{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:14px}
@@ -128,7 +130,7 @@ footer a{color:var(--muted)}
 <footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents. We are not immigration representatives and do not give immigration advice. Your information is kept private and is used only to prepare your file. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
 <datalist id="countries"></datalist>
 <script type="module">
-import { FORMS, formOf, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName, CONSENT_TEXT, KEEP_TEXT, KEEP_DAYS, partnerConsent, returnScope, RETURN_DOCS } from "/assets/intake-config.js?v=9";
+import { FORMS, formOf, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName, CONSENT_TEXT, KEEP_TEXT, KEEP_DAYS, partnerConsent, returnScope, returnLabels, RETURN_DOCS } from "/assets/intake-config.js?v=10";
 
 const $ = (s, r = document) => r.querySelector(s);
 const view = $("#view");
@@ -274,11 +276,12 @@ const get = (s, k, i) => { const v = data[s]; return i == null ? (v || {})[k] : 
 
 function fieldHtml(s, f, i) {
   const id = `f_${s.id}_${i ?? "x"}_${f.k}`, v = get(s.id, f.k, i) ?? "";
-  const at = `data-s="${s.id}" data-k="${f.k}"${i != null ? ` data-i="${i}"` : ""}`;
+  const part = !!scope && scope.has(s.id) && !scope.all(s.id), fx = part && !scope.field(s.id, f.k);   // only some questions sent back
+  const at = `data-s="${s.id}" data-k="${f.k}"${i != null ? ` data-i="${i}"` : ""}${fx ? " disabled" : ""}`;
   const lab = `<label for="${id}">${esc(f.l)}${f.r ? '<span class="req" aria-hidden="true">*</span>' : ""}</label>`;
   const help = f.h ? `<span class="help">${esc(f.h)}</span>` : "";
   const cond = f.if ? ` data-if="${esc(f.if)}"` : "";
-  const cls = `f${f.full || f.t === "ta" || f.t === "cb" ? " full" : ""}`;
+  const cls = `f${f.full || f.t === "ta" || f.t === "cb" ? " full" : ""}${fx ? " fx" : part ? " pick" : ""}`;
   if (f.t === "h") return `<div class="f hd"${cond}>${esc(f.l)}</div>`;
   let ctl;
   if (f.t === "s") ctl = `<select id="${id}" ${at}><option value="">Choose…</option>${f.o.map((o) => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
@@ -297,9 +300,10 @@ function secHtml(s) {
   let inner;
   if (s.rep) {
     const rows = Array.isArray(data[s.id]) ? data[s.id] : [];
-    inner = rows.map((row, i) => `<div class="rep"><div class="rep-h"><span>${i + 1}</span><button class="linkbtn" type="button" data-del="${s.id}" data-i="${i}">Remove</button></div>
+    const fixed = !!scope && scope.has(s.id) && !scope.all(s.id);   // only some questions sent back: same rows
+    inner = rows.map((row, i) => `<div class="rep"><div class="rep-h"><span>${i + 1}</span>${fixed ? "" : `<button class="linkbtn" type="button" data-del="${s.id}" data-i="${i}">Remove</button>`}</div>
       <div class="grid">${s.fields.map((f) => fieldHtml(s, f, i)).join("")}</div></div>`).join("")
-      + (rows.length < (s.rep.max || 20) ? `<div><button class="btn ghost sm" type="button" data-add="${s.id}">+ ${esc(s.rep.add || "Add")}</button></div>` : "");
+      + (!fixed && rows.length < (s.rep.max || 20) ? `<div><button class="btn ghost sm" type="button" data-add="${s.id}">+ ${esc(s.rep.add || "Add")}</button></div>` : "");
   } else inner = `<div class="grid">${s.fields.map((f) => fieldHtml(s, f)).join("")}</div>`;
   const lock = locked(s.id), back = !!scope && !lock;
   if (lock) inner = `<fieldset class="lockset" disabled>${inner}</fieldset>`;
@@ -320,8 +324,8 @@ function draw() {
     <h1>${esc(form.name)}</h1>
     <p class="lede">${esc(form.intro)}</p></div>
     ${reqs.length ? `<div class="note warn" id="reqNote"><b>${esc(cur.firm || "Our team")} asked you for ${[...asked].length} document${[...asked].length === 1 ? "" : "s"}.</b> They are at the top of the Documents section, marked "Requested by our team". ${reqs.filter((q) => q.message).map((q) => `<br>Message: ${esc(q.message)}`).join("")} <button class="linkbtn" type="button" id="toDocs">Go to the documents</button></div>` : ""}
-    ${ret ? `<div class="note warn" id="retNote"><b>${esc(cur.firm || "Our team")} sent back ${ret.sections.length === 1 ? "this section" : `${ret.sections.length} sections`} for you to review:</b> ${ret.sections.map((id) => esc(id === RETURN_DOCS ? "Documents" : (form.sections.find((x) => x.id === id) || {}).title || id)).join(", ")}.
-      ${ret.message ? `<br>Message: ${esc(ret.message)}` : ""}<br>These are outlined and open below. The other sections are locked as they are. When you're done, press <b>Send back</b> at the bottom.</div>` : ""}
+    ${ret ? `<div class="note warn" id="retNote"><b>${esc(cur.firm || "Our team")} sent back these parts of your form for you to review:</b><ul class="miss" style="margin-top:4px">${returnLabels(form, ret.sections).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+      ${ret.message ? `<div style="margin:6px 0"><b>Message:</b> ${esc(ret.message)}</div>` : ""}These are outlined and open below (single questions are marked with a line on the left). Everything else is locked as it is. When you're done, press <b>Send back</b> at the bottom.</div>` : ""}
     <div class="bar"><div class="meter" aria-hidden="true"><i id="meter" style="width:0"></i></div><span class="pct" id="pct">0%</span><span class="saved" id="saved">All changes saved</span></div>
     <form id="ff" novalidate>${form.sections.map(secHtml).join("")}
       <details class="sec${locked(RETURN_DOCS) ? " lock" : scope ? " back" : ""}" data-sec="__docs"${locked(RETURN_DOCS) && !reqs.length ? "" : " open"}><summary><h2>Documents</h2><span class="st"></span></summary><div class="body">
