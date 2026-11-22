@@ -12,6 +12,8 @@
 // POST retain  { id, at, service, fee, detail }      POST unretain { id }
 // POST rcic    { id, at, name, firm, licence, detail }
 // POST intake  { id, form, email, send }               send an intake form link (a personal link tied to this contact)
+// POST task   { id, tid?, kind, title, due, note }      add or edit a task (deadline = due date)
+// POST task-done { id, tid, done }   POST task-delete { id, tid }
 // POST delete  { id }
 import { json, readJson, str, isEmail, sendEmail, randomToken } from "../../_lib.js";
 import { ensureIntake } from "../../_partners.js";
@@ -34,6 +36,7 @@ export const SERVICES = ["Visitor visa (TRV)", "Super visa", "Study permit", "St
   "Visitor record", "PR – Express Entry", "PR – Provincial nominee (PNP)", "PR – RCIP / FCIP", "Spousal / common-law sponsorship", "Parents & grandparents sponsorship", "Humanitarian & compassionate (H&C)",
   "Citizenship", "PR card / PRTD", "LMIA (employer)", "Federal Court judicial review", "Job search / Employer Match", "Other"];
 const TYPES = ["query", "call", "email", "whatsapp", "meeting", "note"];
+export const TASK_KINDS = ["File preparation", "File review", "Document collection", "Submit application", "Follow up", "Call back", "Payment follow-up", "Refund", "Send intake form", "Other"];
 
 let ready = false;
 async function ensure(env) {
@@ -47,6 +50,9 @@ async function ensure(env) {
     `CREATE TABLE IF NOT EXISTS crm_events (id TEXT PRIMARY KEY, contact_id TEXT NOT NULL, type TEXT NOT NULL, channel TEXT, at TEXT NOT NULL, detail TEXT, meta TEXT, ref TEXT, created TEXT)`,
     `CREATE INDEX IF NOT EXISTS crm_events_contact ON crm_events (contact_id, at)`,
     `CREATE UNIQUE INDEX IF NOT EXISTS crm_events_ref ON crm_events (ref)`,
+    `CREATE TABLE IF NOT EXISTS crm_tasks (id TEXT PRIMARY KEY, contact_id TEXT NOT NULL, kind TEXT, title TEXT, note TEXT, due TEXT, status TEXT DEFAULT 'open', created TEXT, updated TEXT, done_at TEXT)`,
+    `CREATE INDEX IF NOT EXISTS crm_tasks_contact ON crm_tasks (contact_id)`,
+    `CREATE INDEX IF NOT EXISTS crm_tasks_open ON crm_tasks (status, due)`,
   ]) await env.DB.prepare(q).run();
   try { await env.DB.prepare(`ALTER TABLE intake_invites ADD COLUMN crm_id TEXT`).run(); } catch {}
   ready = true;
@@ -112,6 +118,11 @@ export async function onRequest(ctx) {
   const route = (params.path || []).join("/"), m = request.method, url = new URL(request.url), q = (k) => url.searchParams.get(k) || "";
   try {
     if (route === "list" && m === "GET") return await list(env, q);
+    if (route === "count" && m === "GET") {   // for the CRM tab button: tasks overdue or due today (by the admin's own date)
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(q("today")) ? q("today") : nowIso().slice(0, 10);
+      const r = await env.DB.prepare(`SELECT SUM(CASE WHEN due < ?1 THEN 1 ELSE 0 END) AS over, SUM(CASE WHEN due = ?1 THEN 1 ELSE 0 END) AS today FROM crm_tasks WHERE status = 'open'`).bind(d).first();
+      return json({ ok: true, over: (r && r.over) || 0, today: (r && r.today) || 0 });
+    }
     if (route === "lookup" && m === "GET") {
       const c = await findContact(env, q("phone"), q("email"));
       if (!c) return json({ ok: true, contact: null });
@@ -158,8 +169,35 @@ export async function onRequest(ctx) {
       return json({ ok: true });
     }
     if (route === "intake") return await sendIntake(env, c, b);
+    if (route === "task") {
+      const kind = TASK_KINDS.includes(b.kind) ? b.kind : "Other", title = str(b.title, 300), note = str(b.note, 4000) || null;
+      const due = /^\d{4}-\d{2}-\d{2}$/.test(b.due || "") ? b.due : null;   // a calendar date (deadline), no time
+      if (!due) return json({ ok: false, error: "Pick a deadline." }, 400);
+      const now = nowIso(), label = title || kind;
+      if (b.tid) {
+        const t = await env.DB.prepare(`SELECT * FROM crm_tasks WHERE id = ?1 AND contact_id = ?2`).bind(str(b.tid, 60), c.id).first();
+        if (!t) return json({ ok: false, error: "Task not found." }, 404);
+        await env.DB.prepare(`UPDATE crm_tasks SET kind = ?1, title = ?2, note = ?3, due = ?4, updated = ?5 WHERE id = ?6`).bind(kind, title || null, note, due, now, t.id).run();
+        if (t.due !== due) await addEvent(env, c.id, { type: "task", at: now, detail: `Task deadline moved: ${label} · ${t.due} → ${due}` });
+        return json({ ok: true, id: t.id });
+      }
+      const id = uid();
+      await env.DB.prepare(`INSERT INTO crm_tasks (id, contact_id, kind, title, note, due, status, created, updated) VALUES (?1,?2,?3,?4,?5,?6,'open',?7,?7)`).bind(id, c.id, kind, title || null, note, due, now).run();
+      await addEvent(env, c.id, { type: "task", at: now, detail: `Task added: ${kind}${title ? ` – ${title}` : ""} · due ${due}${note ? `\n${note}` : ""}` });
+      return json({ ok: true, id });
+    }
+    if (route === "task-done" || route === "task-delete") {
+      const t = await env.DB.prepare(`SELECT * FROM crm_tasks WHERE id = ?1 AND contact_id = ?2`).bind(str(b.tid, 60), c.id).first();
+      if (!t) return json({ ok: false, error: "Task not found." }, 404);
+      const now = nowIso(), label = `${t.kind}${t.title ? ` – ${t.title}` : ""}`;
+      if (route === "task-delete") { await env.DB.prepare(`DELETE FROM crm_tasks WHERE id = ?1`).bind(t.id).run(); await addEvent(env, c.id, { type: "task", at: now, detail: `Task removed: ${label}` }); return json({ ok: true }); }
+      const done = b.done !== false;
+      await env.DB.prepare(`UPDATE crm_tasks SET status = ?1, done_at = ?2, updated = ?3 WHERE id = ?4`).bind(done ? "done" : "open", done ? now : null, now, t.id).run();
+      await addEvent(env, c.id, { type: "task", at: now, detail: done ? `Task done: ${label}${t.due < now.slice(0, 10) ? ` (was due ${t.due})` : ""}` : `Task reopened: ${label}` });
+      return json({ ok: true });
+    }
     if (route === "delete") {
-      await env.DB.batch([env.DB.prepare(`DELETE FROM crm_events WHERE contact_id = ?1`).bind(c.id), env.DB.prepare(`DELETE FROM crm_contacts WHERE id = ?1`).bind(c.id)]);
+      await env.DB.batch([env.DB.prepare(`DELETE FROM crm_tasks WHERE contact_id = ?1`).bind(c.id), env.DB.prepare(`DELETE FROM crm_events WHERE contact_id = ?1`).bind(c.id), env.DB.prepare(`DELETE FROM crm_contacts WHERE id = ?1`).bind(c.id)]);
       return json({ ok: true });
     }
     return json({ ok: false, error: "Not found." }, 404);
@@ -173,12 +211,16 @@ async function list(env, q) {
   const synced = await syncWebsite(env);
   const r = await env.DB.prepare(`SELECT c.*, (SELECT COUNT(*) FROM crm_events e WHERE e.contact_id = c.id AND e.type IN ('query','call','email','whatsapp','meeting')) AS touches,
       (SELECT e.channel FROM crm_events e WHERE e.contact_id = c.id AND e.type IN ('query','call','email','whatsapp','meeting') ORDER BY e.at DESC LIMIT 1) AS last_channel,
-      (SELECT COUNT(*) FROM intake_invites v WHERE v.crm_id = c.id) AS intakes_sent
+      (SELECT COUNT(*) FROM intake_invites v WHERE v.crm_id = c.id) AS intakes_sent,
+      (SELECT COUNT(*) FROM crm_tasks t WHERE t.contact_id = c.id AND t.status = 'open') AS tasks_open,
+      (SELECT MIN(t.due) FROM crm_tasks t WHERE t.contact_id = c.id AND t.status = 'open') AS next_due
     FROM crm_contacts c ORDER BY COALESCE(c.last_at, c.created) DESC LIMIT 5000`).all();
   const used = await env.DB.prepare(`SELECT DISTINCT service FROM crm_contacts WHERE service IS NOT NULL AND service != ''`).all();
   const rc = await env.DB.prepare(`SELECT rcic_name AS name, rcic_firm AS firm, rcic_licence AS licence, MAX(rcic_at) AS at FROM crm_contacts WHERE rcic_name IS NOT NULL OR rcic_firm IS NOT NULL GROUP BY LOWER(COALESCE(rcic_name,'')), LOWER(COALESCE(rcic_firm,'')) ORDER BY at DESC LIMIT 100`).all();
   let firms = []; try { firms = (await env.DB.prepare(`SELECT contact AS name, firm, licence FROM partners WHERE status = 'active' ORDER BY firm LIMIT 200`).all()).results; } catch {}
-  return json({ ok: true, synced, rows: r.results, statuses: STATUSES, channels: CHANNELS,
+  const tasks = (await env.DB.prepare(`SELECT t.*, c.name, c.phone, c.service, c.status AS c_status FROM crm_tasks t JOIN crm_contacts c ON c.id = t.contact_id
+    WHERE t.status = 'open' ORDER BY t.due, t.created LIMIT 2000`).all()).results;
+  return json({ ok: true, synced, rows: r.results, tasks, task_kinds: TASK_KINDS, statuses: STATUSES, channels: CHANNELS,
     services: [...new Set([...SERVICES, ...used.results.map((x) => x.service)])], rcics: [...rc.results, ...firms] });
 }
 
@@ -229,7 +271,8 @@ async function item(env, id) {
   const forms = (await env.DB.prepare(`SELECT i.id, i.form_key, i.status, i.progress, i.partial, i.created, i.updated, i.submitted, i.resubmitted, i.admin_status, i.invite_code, i.data
       FROM intakes i JOIN users u ON u.id = i.user_id WHERE ${c.email ? "LOWER(u.email) = ?1" : "0"}${codes.length ? ` OR i.invite_code IN (${ph})` : ""} ORDER BY i.created DESC LIMIT 50`)
     .bind(c.email || "", ...codes).all()).results.map((x) => { const d = parse(x.data); delete x.data; return { ...x, name: applicantName(d), form: (FORMS[x.form_key] || {}).name || x.form_key }; });
-  return json({ ok: true, contact: c, events: ev, invites, forms, link: site(env) });
+  const tasks = (await env.DB.prepare(`SELECT * FROM crm_tasks WHERE contact_id = ?1 ORDER BY CASE status WHEN 'open' THEN 0 ELSE 1 END, due, created`).bind(c.id).all()).results;
+  return json({ ok: true, contact: c, events: ev, invites, forms, tasks, task_kinds: TASK_KINDS, link: site(env) });
 }
 
 async function sendIntake(env, c, b) {

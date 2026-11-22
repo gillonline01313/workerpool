@@ -9,11 +9,18 @@
   const localNow = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
   const toIso = (v) => { const t = new Date(v); return isNaN(t) ? new Date().toISOString() : t.toISOString(); };
   const digits = (p) => String(p || "").replace(/\D/g, "");
+  const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+  const plusDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+  const daysTo = (due) => Math.round((Date.parse(due + "T00:00:00Z") - Date.parse(today() + "T00:00:00Z")) / 864e5);
+  const dueDay = (due) => new Date(due + "T12:00:00").toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  const dueTag = (due) => { const n = daysTo(due);
+    return n < 0 ? `<span class="due over">${-n} day${n === -1 ? "" : "s"} overdue</span>` : n === 0 ? `<span class="due today">Due today</span>` : n === 1 ? `<span class="due soon">Tomorrow</span>` : n <= 7 ? `<span class="due soon">In ${n} days</span>` : `<span class="due">In ${n} days</span>`; };
+  const TASK_ICON = { "File preparation": "🗂️", "File review": "🔍", "Document collection": "📎", "Submit application": "📤", "Follow up": "🔁", "Call back": "📞", "Payment follow-up": "💰", Refund: "↩️", "Send intake form": "📋", Other: "⏰" };
   const ST_CLS = { new: "new", "follow-up": "edit", retained: "ok", "in-progress": "ok", submitted: "ok", done: "", lost: "" };
-  const ICON = { query: "❓", call: "📞", email: "✉️", whatsapp: "💬", meeting: "🤝", note: "📝", retained: "✅", rcic: "🧑‍⚖️", intake: "📋", status: "🔄", form: "📄" };
-  const TYPE_LABEL = { query: "Query", call: "Call", email: "Email", whatsapp: "WhatsApp", meeting: "Meeting", note: "Internal note", retained: "Retained", rcic: "RCIC retained", intake: "Intake form", status: "Update", form: "Intake form" };
+  const ICON = { task: "⏰", query: "❓", call: "📞", email: "✉️", whatsapp: "💬", meeting: "🤝", note: "📝", retained: "✅", rcic: "🧑‍⚖️", intake: "📋", status: "🔄", form: "📄" };
+  const TYPE_LABEL = { query: "Query", call: "Call", email: "Email", whatsapp: "WhatsApp", meeting: "Meeting", note: "Internal note", retained: "Retained", rcic: "RCIC retained", intake: "Intake form", status: "Update", form: "Intake form", task: "Task" };
   let KEY = "", body = null, C = null;
-  const S = { list: null, q: "", st: "all", svc: "", open: null, item: null, act: null, busy: false, look: null, draft: null };
+  const S = { list: null, q: "", st: "all", svc: "", open: null, item: null, act: null, busy: false, look: null, draft: null, tf: "due", taskEdit: null, showDone: false };
 
   const css = `
 .crm{display:flex;flex-direction:column;gap:16px}
@@ -56,6 +63,14 @@
 .crm .fact{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.86rem}
 .crm .fact small{display:block;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:2px}
 .crm .box{border:1px solid var(--accent);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;background:color-mix(in srgb,var(--accent-soft) 45%,transparent)}
+.crm .due{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--bg);color:var(--muted);white-space:nowrap}
+.crm .due.over{background:#b3412e;color:#fff}.crm .due.today{background:#e0a23a;color:#2a1c05}.crm .due.soon{background:#f6ebdc;color:#7a4a17}
+.crm tr.over td{background:color-mix(in srgb,#b3412e 7%,transparent)}
+.crm .tk{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 0;border-bottom:1px solid var(--line)}
+.crm .tk:last-child{border-bottom:0}.crm .tk.done{opacity:.6}.crm .tk.done b{text-decoration:line-through}
+.crm .tk input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:var(--accent);cursor:pointer}
+.crm .tk .n{white-space:pre-wrap;font-size:.84rem;color:var(--muted);margin-top:2px}
+.crm .chk{width:20px;height:20px;accent-color:var(--accent);cursor:pointer}
 .crm .meter{width:70px;height:7px;border-radius:4px;background:var(--line);overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}.crm .meter i{display:block;height:100%;background:var(--accent)}
 `;
   function addCss() { if (document.getElementById("crmCss")) return; const s = document.createElement("style"); s.id = "crmCss"; s.textContent = css; document.head.appendChild(s); }
@@ -78,7 +93,16 @@
     if (S.open) return openItem(S.open);
     await refresh(); draw();
   }
-  async function refresh() { try { S.list = await call("list"); S.err = ""; } catch (e) { S.err = e.message; } }
+  async function refresh() { try { S.list = await call("list"); S.err = ""; } catch (e) { S.err = e.message; } tabBadge(); }
+  // CRM tab button shows tasks that are overdue or due today
+  let bIv = null;
+  async function tabBadge(key) {
+    if (key) KEY = key;
+    const t = document.querySelector('#tabs [data-t="crm"]'); if (!t || !KEY) return;
+    try { const j = await call("count?today=" + today()); const n = j.over + j.today;
+      t.textContent = n ? `CRM (${n} due)` : "CRM"; t.style.fontWeight = n ? "700" : ""; t.style.color = j.over ? "#b3412e" : ""; t.title = n ? `${j.over} overdue, ${j.today} due today` : ""; } catch (e) {}
+    if (!bIv) bIv = setInterval(() => { if (!document.hidden) tabBadge(); }, 300000);
+  }
 
   /* ---------- list + punch a query ---------- */
   function draw() {
@@ -88,6 +112,7 @@
     const counts = { all: R.length }; R.forEach((r) => counts[r.status] = (counts[r.status] || 0) + 1);
     const segs = [["all", "All"], ...Object.entries(S.list.statuses)].filter(([k]) => k === "all" || counts[k]);
     body.innerHTML = `<div class="crm">${datalists()}
+      ${boardHtml()}
       <div class="wpa-card wide"><h3>Punch a query</h3><p class="sub" style="margin:0">Phone number first: if they've contacted us before, this adds to their history instead of making a new person.</p>
         <form id="cqF" class="g" autocomplete="off">
           <label>Phone number *<input class="in" name="phone" type="tel" placeholder="+1 780 555 0101" value="${esc(d.phone || "")}" required></label>
@@ -109,6 +134,21 @@
         <div id="cList">${tableHtml()}</div></div></div>`;
     wireList();
   }
+  /* ---------- open tasks across everyone ---------- */
+  function boardHtml() {
+    const T = S.list.tasks || [], n = { over: 0, today: 0, week: 0 };
+    T.forEach((t) => { const d = daysTo(t.due); if (d < 0) n.over++; else if (d === 0) n.today++; if (d >= 0 && d <= 7) n.week++; });
+    const segs = [["due", `Overdue & today (${n.over + n.today})`], ["week", `Next 7 days (${n.week})`], ["all", `All open (${T.length})`]];
+    const L = T.filter((t) => { const d = daysTo(t.due); return S.tf === "all" || (S.tf === "due" ? d <= 0 : d >= 0 && d <= 7); });
+    return `<div class="wpa-card wide"><div class="row sp"><h3>Open tasks${T.length ? ` (${T.length})` : ""}${n.over ? ` · <span style="color:#b3412e">${n.over} overdue</span>` : ""}</h3>
+        <div class="wpa-seg">${segs.map(([k, l]) => `<button type="button" data-tf="${k}" aria-pressed="${S.tf === k}">${l}</button>`).join("")}</div></div>
+      ${L.length ? `<div class="wpa-tbl"><table><thead><tr><th style="width:34px">Done</th><th>Deadline</th><th>Task</th><th>Person</th><th>Service</th></tr></thead><tbody>
+        ${L.map((t) => `<tr class="${daysTo(t.due) < 0 ? "over" : ""}"><td><input type="checkbox" class="chk" data-tdone="${t.id}" data-cid="${t.contact_id}" title="Mark done" aria-label="Mark done"></td>
+          <td>${dueTag(t.due)}<br><span class="note">${dueDay(t.due)}</span></td>
+          <td>${TASK_ICON[t.kind] || "⏰"} <b>${esc(t.kind)}</b>${t.title ? ` – ${esc(t.title)}` : ""}${t.note ? `<br><span class="note">${esc(t.note.length > 140 ? t.note.slice(0, 140) + "…" : t.note)}</span>` : ""}</td>
+          <td><a href="#" data-pid="${t.contact_id}"><b>${esc(t.name || "(no name)")}</b></a><br><span class="note">${esc(t.phone || "")}</span></td><td>${esc(t.service || "–")}</td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="note">${T.length ? (S.tf === "due" ? "Nothing overdue or due today. 🎉" : "Nothing due in the next 7 days.") : "No open tasks. Add tasks from a person's file (file preparation, review, payment follow-up, refund…)."}</div>`}</div>`;
+  }
   function rowsFiltered() {
     const q = S.q.trim().toLowerCase(), qd = digits(q);
     return S.list.rows.filter((r) => (S.st === "all" || r.status === S.st) && (!S.svc || r.service === S.svc) &&
@@ -119,7 +159,7 @@
     if (!L.length) return `<div class="wpa-empty">${S.list.rows.length ? "No one matches." : "No one yet. Punch the first query above."}</div>`;
     return `<div class="wpa-tbl"><table><thead><tr><th>Person</th><th>Service</th><th>Status</th><th>RCIC</th><th>Last contact</th><th>Contacts</th></tr></thead><tbody>
       ${L.slice(0, 500).map((r) => `<tr class="click" data-id="${r.id}" tabindex="0"><td><b>${esc(r.name || "(no name)")}</b><br><span class="note">${esc(r.phone || "")}${r.phone && r.email ? " · " : ""}${esc(r.email || "")}</span></td>
-        <td>${esc(r.service || "–")}</td><td>${badge(r.status)}${r.intakes_sent ? `<br><span class="note">📋 ${r.intakes_sent} form${r.intakes_sent > 1 ? "s" : ""} sent</span>` : ""}</td>
+        <td>${esc(r.service || "–")}</td><td>${badge(r.status)}${r.intakes_sent ? `<br><span class="note">📋 ${r.intakes_sent} form${r.intakes_sent > 1 ? "s" : ""} sent</span>` : ""}${r.tasks_open ? `<br><span class="note">⏰ ${r.tasks_open} task${r.tasks_open > 1 ? "s" : ""} · </span>${dueTag(r.next_due)}` : ""}</td>
         <td>${esc([r.rcic_name, r.rcic_firm].filter(Boolean).join(" – ") || "–")}</td>
         <td>${day(r.last_at || r.created)}${r.last_channel ? `<br><span class="note">${esc(r.last_channel)}</span>` : ""}</td><td>${r.touches || 0}</td></tr>`).join("")}
       </tbody></table></div>${L.length > 500 ? `<div class="note">Showing the first 500. Search to narrow it down.</div>` : ""}`;
@@ -149,12 +189,18 @@
     const s = body.querySelector("#cS"); s.oninput = () => { S.q = s.value; body.querySelector("#cList").innerHTML = tableHtml(); wireRows(); };
     body.querySelector("#cSv").onchange = (e) => { S.svc = e.target.value; body.querySelector("#cList").innerHTML = tableHtml(); wireRows(); };
     body.querySelectorAll("[data-st]").forEach((b) => b.onclick = () => { S.st = b.dataset.st; draw(); });
+    body.querySelectorAll("[data-tf]").forEach((b) => b.onclick = () => { S.tf = b.dataset.tf; draw(); });
+    body.querySelectorAll("[data-pid]").forEach((a) => a.onclick = (e) => { e.preventDefault(); openItem(a.dataset.pid); });
+    body.querySelectorAll("[data-tdone]").forEach((cb) => cb.onchange = async () => { cb.disabled = true;
+      try { await call("task-done", { id: cb.dataset.cid, tid: cb.dataset.tdone, done: true }); const tr = cb.closest("tr"); tr.style.transition = "opacity .4s"; tr.style.opacity = ".3"; await refresh(); setTimeout(draw, 350); }
+      catch (x) { cb.disabled = false; cb.checked = false; alert(x.message); } });
     wireRows();
   }
   function wireRows() { body.querySelectorAll("tr[data-id]").forEach((tr) => { tr.onclick = () => openItem(tr.dataset.id); tr.onkeydown = (e) => { if (e.key === "Enter") openItem(tr.dataset.id); }; }); }
 
   /* ---------- one person ---------- */
   async function openItem(id, flash) {
+    if (S.open !== id) { S.taskEdit = null; S.showDone = false; }
     S.open = id; S.busy = true;
     if (!S.list) await refresh();
     try { S.item = await call("item?id=" + encodeURIComponent(id)); } catch (e) { S.busy = false; S.open = null; body.innerHTML = `<div class="wpa-empty">Couldn't open it: ${esc(e.message)}</div>`; return; }
@@ -200,6 +246,26 @@
       <div class="full row"><button class="btn" type="submit">Save</button><button class="btn g" type="button" data-cancel>Cancel</button><span class="err" id="aErr"></span></div></form>`;
     return "";
   }
+  function taskForm(t) {
+    const kinds = S.item.task_kinds || [];
+    return `<form class="box g" id="tF"><label>Task<select class="in" name="kind">${kinds.map((k) => `<option${(t ? t.kind : "Follow up") === k ? " selected" : ""}>${esc(k)}</option>`).join("")}</select></label>
+      <label class="w2">Details (optional)<input class="in" name="title" maxlength="300" value="${esc(t ? t.title || "" : "")}" placeholder="e.g. Second instalment $600, or Review IMM 5710 with client"></label>
+      <label>Deadline<input class="in" name="due" type="date" required value="${esc(t ? t.due : plusDays(3))}"></label>
+      <div class="full row" style="gap:6px"><span class="note">Quick:</span>${[["Today", 0], ["Tomorrow", 1], ["In 3 days", 3], ["In a week", 7], ["In 2 weeks", 14], ["In a month", 30]].map(([l, d]) => `<button type="button" class="btn g sm" data-qd="${plusDays(d)}">${l}</button>`).join("")}</div>
+      <label class="full">Notes (optional)<textarea class="in" name="note" rows="2" placeholder="Anything to remember for this task">${esc(t ? t.note || "" : "")}</textarea></label>
+      <div class="full row"><button class="btn" type="submit">${t ? "Save task" : "Add task"}</button><button class="btn g" type="button" data-tcancel>Cancel</button><span class="err" id="tErr"></span></div></form>`;
+  }
+  function tasksHtml() {
+    const T = S.item.tasks || [], open = T.filter((t) => t.status === "open"), done = T.filter((t) => t.status !== "open");
+    const row = (t) => S.taskEdit === t.id ? taskForm(t) : `<div class="tk ${t.status === "open" ? "" : "done"}"><input type="checkbox" data-tk="${t.id}"${t.status === "open" ? "" : " checked"} title="${t.status === "open" ? "Mark done" : "Reopen"}" aria-label="${t.status === "open" ? "Mark done" : "Reopen"}">
+      <div><div>${TASK_ICON[t.kind] || "⏰"} <b>${esc(t.kind)}</b>${t.title ? ` – ${esc(t.title)}` : ""}</div>
+        <div class="row" style="gap:6px;margin-top:3px">${t.status === "open" ? dueTag(t.due) : `<span class="due">Done ${day(t.done_at)}</span>`}<span class="note">Deadline ${dueDay(t.due)} · added ${day(t.created)}</span></div>${t.note ? `<div class="n">${esc(t.note)}</div>` : ""}</div>
+      <div class="row" style="gap:4px">${t.status === "open" ? `<button class="btn g sm" type="button" data-tedit="${t.id}">Edit</button>` : ""}<button class="x" type="button" data-tdel="${t.id}" title="Delete task">✕</button></div></div>`;
+    return `<div class="wpa-card wide"><div class="row sp"><h3>Tasks${open.length ? ` (${open.length} open)` : ""}</h3>${S.taskEdit === "new" ? "" : `<button class="btn sm" type="button" id="tNew">+ Add task</button>`}</div>
+      ${S.taskEdit === "new" ? taskForm(null) : ""}
+      ${open.length ? `<div>${open.map(row).join("")}</div>` : S.taskEdit === "new" ? "" : `<div class="note">No open tasks for ${esc(S.item.contact.name || "this person")}.</div>`}
+      ${done.length ? `<button class="btn g sm" type="button" id="tShowDone" style="align-self:flex-start">${S.showDone ? "Hide" : "Show"} ${done.length} done</button>${S.showDone ? `<div>${done.map(row).join("")}</div>` : ""}` : ""}</div>`;
+  }
   function drawItem() {
     const { contact: c, invites, forms } = S.item, ph = digits(c.phone);
     const T = timeline();
@@ -216,8 +282,9 @@
           <div class="fact"><small>RCIC retained</small>${c.rcic_name || c.rcic_firm ? `${esc([c.rcic_name, c.rcic_firm].filter(Boolean).join(" – "))}${c.rcic_licence ? ` · ${esc(c.rcic_licence)}` : ""}<br><span class="note">${day(c.rcic_at)}</span>` : "Not yet"}</div>
           <div class="fact"><small>Last contact</small>${day(c.last_at)}</div></div>
         <div class="row"><button class="btn" type="button" data-a="log">+ Log a call / query / email</button><button class="btn g" type="button" data-a="note">📝 Internal note</button>
-          <button class="btn g" type="button" data-a="retain">${c.retained_at ? "✅ Update retention" : "✅ Mark retained"}</button><button class="btn g" type="button" data-a="rcic">🧑‍⚖️ RCIC retained</button><button class="btn g" type="button" data-a="intake">📋 Send intake form</button></div>
+          <button class="btn g" type="button" data-a="retain">${c.retained_at ? "✅ Update retention" : "✅ Mark retained"}</button><button class="btn g" type="button" data-a="rcic">🧑‍⚖️ RCIC retained</button><button class="btn g" type="button" data-a="intake">📋 Send intake form</button><button class="btn g" type="button" id="cTask">⏰ Add task</button></div>
         <div id="cAct">${actBox()}</div></div>
+      ${tasksHtml()}
       <div class="wpa-card wide"><div class="row sp"><h3>Pinned internal notes</h3><span class="note">Only the WorkerPool team sees these</span></div>
         <textarea class="in" id="cPin" rows="3" placeholder="Key facts to see first every time: family members, deadlines, what was promised…" style="font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--fg)">${esc(c.pinned || "")}</textarea>
         <div class="row"><button class="btn g sm" type="button" id="cPinS">Save pinned notes</button><span class="note" id="cPinM"></span></div></div>
@@ -254,6 +321,20 @@
         } catch (x) { btn.disabled = false; $("#aErr").textContent = x.message; }
       };
     }
+    $("#cTask").onclick = () => { S.taskEdit = "new"; S.act = null; drawItem(); const f2 = $("#tF"); if (f2) { f2.scrollIntoView({ behavior: "smooth", block: "center" }); f2.querySelector("input[name=title]").focus(); } };
+    const tn = $("#tNew"); if (tn) tn.onclick = () => { S.taskEdit = "new"; drawItem(); const f2 = $("#tF"); if (f2) f2.querySelector("input[name=title]").focus(); };
+    const tsd = $("#tShowDone"); if (tsd) tsd.onclick = () => { S.showDone = !S.showDone; drawItem(); };
+    const tf = $("#tF");
+    if (tf) {
+      tf.querySelector("[data-tcancel]").onclick = () => { S.taskEdit = null; drawItem(); };
+      tf.querySelectorAll("[data-qd]").forEach((b) => b.onclick = () => { tf.due.value = b.dataset.qd; });
+      tf.onsubmit = async (e) => { e.preventDefault(); const b = Object.fromEntries(new FormData(tf)); b.id = c.id; if (S.taskEdit !== "new") b.tid = S.taskEdit;
+        const btn = tf.querySelector("button[type=submit]"); btn.disabled = true;
+        try { await call("task", b); const msg = S.taskEdit === "new" ? "Task added." : "Task saved."; S.taskEdit = null; await again(msg); } catch (x) { btn.disabled = false; $("#tErr").textContent = x.message; } };
+    }
+    body.querySelectorAll("[data-tk]").forEach((cb) => cb.onchange = async () => { cb.disabled = true; try { await call("task-done", { id: c.id, tid: cb.dataset.tk, done: cb.checked }); await again(cb.checked ? "Task done." : "Task reopened."); } catch (x) { cb.disabled = false; alert(x.message); } });
+    body.querySelectorAll("[data-tedit]").forEach((b) => b.onclick = () => { S.taskEdit = b.dataset.tedit; drawItem(); });
+    body.querySelectorAll("[data-tdel]").forEach((b) => b.onclick = async () => { if (!confirm("Delete this task?")) return; await call("task-delete", { id: c.id, tid: b.dataset.tdel }); again("Task deleted."); });
     $("#cPinS").onclick = async () => { try { await call("update", { id: c.id, pinned: $("#cPin").value }); c.pinned = $("#cPin").value; $("#cPinM").textContent = "Saved ✓"; } catch (x) { $("#cPinM").textContent = x.message; } };
     body.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => { if (!confirm("Delete this entry from their history?")) return; await call("event-delete", { id: c.id, eid: b.dataset.del }); again("Entry deleted."); });
     body.querySelectorAll("[data-cp]").forEach((b) => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.cp); b.textContent = "Copied ✓"; } catch (x) { prompt("Copy this link:", b.dataset.cp); } });
@@ -261,5 +342,5 @@
     $("#cDel").onclick = async () => { if (!confirm(`Delete ${c.name || "this person"} and their whole history? This can't be undone.`)) return; await call("delete", { id: c.id }); S.act = null; await refresh(); draw(); };
   }
   function leave() { S.open = null; S.item = null; S.act = null; S.list = null; S.draft = null; }
-  window.WPCrm = { load, leave };
+  window.WPCrm = { load, leave, badge: tabBadge };
 })();
