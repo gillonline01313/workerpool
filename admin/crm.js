@@ -16,7 +16,7 @@
   const dueTag = (due) => { const n = daysTo(due);
     return n < 0 ? `<span class="due over">${-n} day${n === -1 ? "" : "s"} overdue</span>` : n === 0 ? `<span class="due today">Due today</span>` : n === 1 ? `<span class="due soon">Tomorrow</span>` : n <= 7 ? `<span class="due soon">In ${n} days</span>` : `<span class="due">In ${n} days</span>`; };
   const TASK_ICON = { "File preparation": "🗂️", "File review": "🔍", "Document collection": "📎", "Submit application": "📤", "Follow up": "🔁", "Call back": "📞", "Payment follow-up": "💰", Refund: "↩️", "Send intake form": "📋", Other: "⏰" };
-  const ST_CLS = { new: "new", "follow-up": "edit", retained: "ok", "in-progress": "ok", submitted: "ok", done: "", lost: "" };
+  const ST_CLS = { new: "new", "follow-up": "edit", retained: "ok", "in-progress": "ok", submitted: "ok", done: "", lost: "", cancelled: "gone", refunded: "gone" };
   const ICON = { task: "⏰", query: "❓", call: "📞", email: "✉️", whatsapp: "💬", meeting: "🤝", note: "📝", retained: "✅", rcic: "🧑‍⚖️", intake: "📋", status: "🔄", form: "📄" };
   const TYPE_LABEL = { query: "Query", call: "Call", email: "Email", whatsapp: "WhatsApp", meeting: "Meeting", note: "Internal note", retained: "Retained", rcic: "RCIC retained", intake: "Intake form", status: "Update", form: "Intake form", task: "Task" };
   let KEY = "", body = null, C = null;
@@ -46,6 +46,8 @@
 .crm .b.new{background:var(--accent);color:var(--surface);border-color:var(--accent)}
 .crm .b.ok{background:var(--accent-soft);color:var(--fg);border-color:transparent}
 .crm .b.edit{background:#f6ebdc;color:#7a4a17;border-color:transparent}
+.crm .b.gone{background:#f3e1de;color:#8e3424;border-color:transparent}
+@media (prefers-color-scheme:dark){.crm .b.gone{background:#3a2320;color:#e8a597}}
 @media (prefers-color-scheme:dark){.crm .b.edit{background:#33281b;color:#e3b27c}}
 .crm tr.click{cursor:pointer}.crm tr.click:hover td{background:var(--accent-soft)}
 .crm .tl{display:flex;flex-direction:column}
@@ -315,7 +317,14 @@
           if (S.act === "log" || S.act === "note") { await call("event", b); return again(S.act === "note" ? "Note saved." : "Added to their history."); }
           if (S.act === "retain") { await call("retain", b); return again("Marked retained."); }
           if (S.act === "rcic") { await call("rcic", b); return again("RCIC retention saved."); }
-          if (S.act === "edit") { await call("update", b); return again("Details saved."); }
+          if (S.act === "edit") {
+            await call("update", b);
+            const openT = (S.item.tasks || []).filter((t) => t.status === "open");
+            if (["cancelled", "refunded"].includes(b.status) && b.status !== c.status && openT.length &&
+                confirm(`${stLabel(b.status)}: also mark their ${openT.length} open task${openT.length > 1 ? "s" : ""} as done?\n\n${openT.map((t) => "• " + t.kind + (t.title ? " – " + t.title : "")).join("\n")}`))
+              for (const t of openT) await call("task-done", { id: c.id, tid: t.id, done: true });
+            return again("Details saved.");
+          }
           if (S.act === "intake") { b.send = !!f.send.checked; const j = await call("intake", b); try { await navigator.clipboard.writeText(j.link); } catch (x) {}
             return again(j.emailed ? `Intake link emailed to ${b.email} (and copied).` : "Intake link created and copied. Send it on WhatsApp or by email."); }
         } catch (x) { btn.disabled = false; $("#aErr").textContent = x.message; }
