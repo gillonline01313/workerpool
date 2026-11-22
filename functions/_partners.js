@@ -73,6 +73,7 @@ export async function ensureIntake(env) {
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS intake_returns (id TEXT PRIMARY KEY, intake_id TEXT NOT NULL, sections TEXT, message TEXT,
     status TEXT DEFAULT 'open', created TEXT, emailed TEXT, done_at TEXT)`).run();
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS intake_returns_intake ON intake_returns (intake_id)`).run();
+  await add("intake_returns", ["questions TEXT"]);
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS intakes_partner ON intakes (partner_id)`).run();
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS intake_invites_partner ON intake_invites (partner_id)`).run();
   await ensurePartners(env);

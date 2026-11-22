@@ -1975,11 +1975,26 @@ export function formOf(row, extra, asked) {
   if (!row) return null;
   const k = row.form_key, f = (Number(row.form_v) || 1) >= 2 ? FORMS[k] : FORMS_V1[k] || FORMS[k];
   if (!f) return null;
-  const add = (extra || []).filter((x) => !f.docs.some((d) => d.k === x.k));
+  const qs = (extra || []).filter((x) => x.q);   // questions the team added when sending parts of the form back
+  const add = (extra || []).filter((x) => !x.q && !f.docs.some((d) => d.k === x.k));
   let docs = add.length ? [...add, ...f.docs] : f.docs;
   const ask = asked instanceof Set ? asked : new Set(asked || []);
   if (ask.size) docs = docs.map((d) => (ask.has(d.k) ? { ...d, r: 1, if: undefined } : d));
-  return docs === f.docs ? f : { ...f, docs };
+  const sections = qs.length ? [{ id: ASK_SEC, title: "Additional questions", intro: "These questions were added after your form was reviewed.", fields: qs.map(({ q, ...fld }) => fld) }, ...f.sections] : f.sections;
+  return docs === f.docs && sections === f.sections ? f : { ...f, docs, sections };
+}
+// Extra questions the team typed when sending a form back. Stored on each send-back (intake_returns.questions) and
+// shown to everyone as one section, "Additional questions from our team". Required while that send-back is open.
+export const ASK_SEC = "x_asked";
+export const ASK_TYPES = { t: "Short answer", ta: "Long answer", yn: "Yes / No", d: "Date", n: "Number" };
+export function returnQuestions(returns) {
+  const out = [];
+  for (const t of returns || []) {
+    let qs = t.questions; if (typeof qs === "string") { try { qs = JSON.parse(qs); } catch { qs = []; } }
+    for (const q of Array.isArray(qs) ? qs : []) if (q && q.k && !out.some((x) => x.k === q.k))
+      out.push({ q: 1, k: q.k, l: q.l, t: ASK_TYPES[q.t] ? q.t : "ta", h: q.h || undefined, r: t.status === "open" ? 1 : 0, full: 1 });
+  }
+  return out;
 }
 // Document requests the team sent for an intake. Each item is either a document already on the form ({ k }) or a
 // custom document ({ k: "x_…", l, h }). Returns the custom ones as extra document types (required while the request
@@ -2122,9 +2137,10 @@ export function mergeReturned(form, scope, saved, incoming) {
 export function returnLabels(form, ids) {
   const list = (Array.isArray(ids) ? ids : []).map(String), whole = new Set(list.filter((x) => !x.includes("."))), groups = new Map();
   for (const x of list) { const [sid, k] = x.split("."); if (!groups.has(sid)) groups.set(sid, []); if (k && !whole.has(sid)) groups.get(sid).push(k); }
-  return [...groups].map(([sid, ks]) => {
+  return [...groups].flatMap(([sid, ks]) => {
     if (sid === RETURN_DOCS) return "Documents";
     const s = form.sections.find((y) => y.id === sid), t = s ? s.title : sid;
+    if (sid === ASK_SEC && ks.length) return ks.map((k) => `Question: ${((s && s.fields.find((f) => f.k === k)) || {}).l || k}`);
     return ks.length ? `${t}: ${ks.map((k) => ((s && s.fields.find((f) => f.k === k)) || {}).l || k).join("; ")}` : t;
   });
 }

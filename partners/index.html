@@ -126,8 +126,8 @@ footer a{color:var(--muted)}
 <main class="in" id="view"><div class="card"><p class="muted" style="margin:0">Loading…</p></div></main>
 <footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents for licensed representatives. We are not immigration representatives and do not give immigration advice. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
 <script type="module">
-import { FORMS, formOf, sectionOn, fieldOn, when as cond, applicantName, returnLabels } from "/assets/intake-config.js?v=10";
-import { pickerHtml, pickerWire, pickerValue } from "/assets/intake-sendback.js?v=2";
+import { FORMS, formOf, sectionOn, fieldOn, when as cond, applicantName, returnLabels } from "/assets/intake-config.js?v=11";
+import { pickerHtml, pickerWire, pickerValue, questionsHtml, questionsWire, questionsValue } from "/assets/intake-sendback.js?v=4";
 
 const $ = (s, r = document) => r.querySelector(s);
 const view = $("#view");
@@ -414,7 +414,10 @@ function retCard(r, form, miss) {
     ${made ? `<div class="note"><b>Sent back.</b> Share the link too if needed: <span style="overflow-wrap:anywhere">${esc(link)}</span> <button class="btn ghost sm" type="button" data-retcp="${esc(link)}">Copy link</button> <a class="btn ghost sm" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a></div>` : ""}
     ${S.retOpen && canSend ? `<div class="sec" id="retBox"><h4>1. What to send back</h4>
         <div id="retPick">${pickerHtml(form, d, { picked: open ? open.sections : [], badge: "pill edit", btn: "btn ghost sm", docMiss })}</div>
-        <div class="f" style="margin-top:10px"><label for="retMsg">2. Message to your client (emailed with the link)</label><textarea id="retMsg" rows="3" maxlength="2000" placeholder="e.g. Your travel history is missing your 2019 trip to the USA. Please add every trip in the last 10 years.">${esc(open && open.message || "")}</textarea></div>
+        <h4 style="margin-top:14px">2. Ask new questions (optional)</h4>
+        <p class="muted" style="margin:0 0 6px">Questions that aren't on the form. Your client answers them in an <b>Additional questions</b> section; the answers show with the rest of the form and in the ZIP.</p>
+        <div id="retQs">${questionsHtml({ btn: "btn ghost sm" })}</div>
+        <div class="f" style="margin-top:10px"><label for="retMsg">3. Message to your client (emailed with the link)</label><textarea id="retMsg" rows="3" maxlength="2000" placeholder="e.g. Your travel history is missing your 2019 trip to the USA. Please add every trip in the last 10 years.">${esc(open && open.message || "")}</textarea></div>
         <div class="row" style="align-items:center;margin-top:8px"><label style="display:flex;gap:6px;align-items:center;font-weight:500;font-size:.88rem"><input type="checkbox" id="retSend" style="width:auto"${r.acct_email ? " checked" : " disabled"}> Email ${esc(r.acct_email || "your client")} a link</label>
           <button class="btn" type="button" id="retGo">Send back to client</button></div><div class="err" id="retErr"></div></div>` : ""}
     ${T.map((t) => { const st = RT[t.status] || [t.status, ""];
@@ -428,11 +431,12 @@ function wireRet(r) {
   const pane = $("#pane"), again = async () => { await dash(); await openItem(r.id); };
   const nb = $("#retNew"); if (nb) nb.onclick = () => { S.retOpen = !S.retOpen; S.retMade = null; drawItem(); const b = $("#retBox"); if (b) b.scrollIntoView({ behavior: "smooth", block: "nearest" }); };
   const pick = $("#retPick"); if (pick) pickerWire(pick);
+  const qbox = $("#retQs"); if (qbox) questionsWire(qbox, { btn: "btn ghost sm" });
   const go = $("#retGo"); if (go) go.onclick = async () => {
-    const sections = pickerValue(pick);
-    if (!sections.length) { $("#retErr").textContent = "Tick at least one section or question."; return; }
+    const sections = pickerValue(pick), questions = questionsValue(qbox);
+    if (!sections.length && !questions.length) { $("#retErr").textContent = "Tick at least one section or question, or type a new question."; return; }
     go.disabled = true; go.textContent = "Sending…";
-    const x = await api("return", { method: "POST", body: JSON.stringify({ id: r.id, sections, message: $("#retMsg").value, send: $("#retSend").checked }) });
+    const x = await api("return", { method: "POST", body: JSON.stringify({ id: r.id, sections, questions, message: $("#retMsg").value, send: $("#retSend").checked }) });
     if (!x.ok) { go.disabled = false; go.textContent = "Send back to client"; $("#retErr").textContent = x.j.error || "Couldn't send it back."; return; }
     if ($("#retSend").checked && !x.j.emailed) alert("Sent back, but the email couldn't be sent. Copy the link and send it to your client.");
     S.retOpen = false; await again(); S.retMade = r.id; drawItem();
