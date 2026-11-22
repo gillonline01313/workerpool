@@ -2,7 +2,7 @@
 // the admin (x-admin-key) creates links, sees every intake and opens the answers and files.
 // Tables are created automatically. Files live privately in the RESUMES R2 bucket under intake/.
 import { json, readJson, str, isEmail, getUser, sendEmail, randomToken, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
-import { FORMS, FORM_V, formOf, upgradeIntake, missing, progress, applicantName, CONSENT_V, CONSENT_TEXT, KEEP_TEXT, partnerConsent, returnScope, RETURN_DOCS } from "../../../assets/intake-config.js";
+import { FORMS, FORM_V, formOf, upgradeIntake, missing, progress, applicantName, CONSENT_V, CONSENT_TEXT, KEEP_TEXT, partnerConsent, returnScope, mergeReturned, RETURN_DOCS } from "../../../assets/intake-config.js";
 import { REQ_DAYS, loadRequests, requestByToken, intakeForm, pubRequest } from "../../_intake_req.js";
 import { buildCompleteFile, KEEP_DAYS } from "../../_intake_file.js";
 import { openReturn, listReturns, pubReturn, secTitles, sendBack, returnAction, closeReturns } from "../../_intake_return.js";
@@ -125,9 +125,7 @@ async function client({ request, env }, route, m) {
     const { form } = await intakeForm(env, a);
     const ret = form && a.status === "editing" ? await openReturn(env, a.id) : null;
     if (ret) { // only the sections sent back (and what follows from them) can change; everything else keeps the reviewed answers
-      const scope = returnScope(form, ret.sections), merged = parse(a.data);
-      for (const id of new Set([...Object.keys(b.data), ...Object.keys(merged)])) if (scope.has(id)) { if (id in b.data) merged[id] = b.data[id]; else delete merged[id]; }
-      b.data = merged;
+      b.data = mergeReturned(form, returnScope(form, ret.sections), parse(a.data), b.data);
     }
     const pct = form ? progress(form, b.data, await docKeys(env, a.id)) : 0;
     await env.DB.prepare(`UPDATE intakes SET data = ?1, progress = ?2, updated = ?3 WHERE id = ?4`).bind(JSON.stringify(b.data), pct, new Date().toISOString(), a.id).run();

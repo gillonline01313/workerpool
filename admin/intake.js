@@ -72,7 +72,8 @@
     return j;
   }
   const post = (path, b) => call(path, { method: "POST", body: JSON.stringify(b) });
-  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=9"); return C; }
+  let SB = null;
+  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=10"); if (!SB) SB = await import("/assets/intake-sendback.js?v=2"); return C; }
   const site = () => location.origin;
   const genLink = (k) => `${site()}/intake/?f=${encodeURIComponent(k)}`;
   const formName = (k) => (C.FORMS[k] && C.FORMS[k].name) || ((C.catalogEntry(k) || {}).form || {}).name || k;
@@ -315,41 +316,34 @@
   function retCard(r, form) {
     const T = S.item.returns || [], d = r.data, open = T.find((t) => t.status === "open");
     const canSend = (r.status === "submitted" || r.status === "editing") && !r.docs_destroyed_at;
-    const title = (id) => id === C.RETURN_DOCS ? "Documents" : ((form.sections.find((x) => x.id === id) || {}).title || id);
-    const secs = form.sections.filter((s) => C.sectionOn(s, d));
-    const nMiss = (s) => C.missing({ sections: [s], docs: [] }, d, new Set()).length;
     const docMiss = (S.item.missing || []).filter((x) => x.startsWith("Document: ")).length;
     const made = S.retMade && S.retMade.id === r.id ? S.retMade : null;
     const link = `${location.origin}/intake/?o=${r.id}`;
     const wa = `https://wa.me/${String((d.contact || {}).phone || r.acct_phone || "").replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Please review the sections we sent back on your ${form.name} form: ${link}`)}`;
-    const box = (id, label, miss) => `<label style="display:flex;gap:8px;align-items:flex-start;font-size:.86rem;padding:4px 0"><input type="checkbox" data-retk="${esc(id)}"${miss ? " checked" : ""} style="margin-top:3px"><span>${esc(label)} ${miss ? `<span class="ik-badge edit">${miss} missing</span>` : ""}</span></label>`;
-    return `<div class="wpa-card wide"><div class="ik-top"><h3>Send sections back to the client</h3>${canSend ? `<button class="ik-btn" type="button" id="retNew">${S.retOpen ? "Close" : open ? "Change what's sent back" : "+ Send sections back"}</button>` : ""}</div>
-      <p class="ik-note" style="margin:0">After you review the form, pick one or more sections for the client to check, correct or complete. Their form unlocks with only those sections editable (plus any questions that follow from them); everything else stays locked as reviewed. They're emailed a link and press <b>Send back</b> when done.${canSend ? "" : " Available once the client has submitted (a partial submission is fine)."}</p>
+    return `<div class="wpa-card wide"><div class="ik-top"><h3>Send back to the client</h3>${canSend ? `<button class="ik-btn" type="button" id="retNew">${S.retOpen ? "Close" : open ? "Change what's sent back" : "+ Send sections back"}</button>` : ""}</div>
+      <p class="ik-note" style="margin:0">After you review the form, pick whole sections, or only particular questions inside them, for the client to check, correct or complete. Their form unlocks with only those editable (plus any questions that follow from them); everything else stays locked as reviewed. They're emailed a link and press <b>Send back</b> when done.${canSend ? "" : " Available once the client has submitted (a partial submission is fine)."}</p>
       ${made ? `<div class="ik-link"><strong>Sent back${made.emailed ? ` · emailed to ${esc(r.acct_email)} ✓` : " · email not sent, share the link"}</strong>
         <div class="ik-url"><input readonly id="retLink" value="${esc(link)}"><button class="ik-btn" type="button" data-copy="retLink">Copy link</button><a class="ik-btn g" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a></div></div>` : ""}
-      ${S.retOpen && canSend ? `<div class="ik-sec" id="retBox"><h4>1. Sections to send back</h4>
-          <div class="ik-acts" style="margin-bottom:6px"><button class="dl" type="button" id="retMiss">Tick sections with missing items</button><button class="dl" type="button" id="retNone">Clear</button></div>
-          <div style="max-height:340px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 14px">${secs.map((s) => box(s.id, s.title, nMiss(s))).join("")}${box(C.RETURN_DOCS, "Documents (let them upload / remove files)", docMiss)}</div>
+      ${S.retOpen && canSend ? `<div class="ik-sec" id="retBox"><h4>1. What to send back</h4>
+          <div id="retPick">${SB.pickerHtml(form, d, { picked: open ? open.sections : [], badge: "ik-badge edit", btn: "dl", docMiss })}</div>
           <h4 style="margin-top:14px">2. Message</h4>
           <textarea class="ik-in" id="retMsg" rows="3" maxlength="2000" placeholder="What should they fix? e.g. Your travel history is missing your 2019 trip to the USA. Please add every trip in the last 10 years.">${esc(open && open.message || "")}</textarea>
           <div class="ik-acts" style="margin-top:8px;align-items:center"><label class="ik-note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="retSend"${r.acct_email ? " checked" : " disabled"}> Email ${esc(r.acct_email || "the client")} a link</label>
             <button class="ik-btn" type="button" id="retGo">Send back to client</button></div><div class="ik-note" id="retErr"></div></div>` : ""}
       ${T.length ? T.map((t) => { const st = RT[t.status] || [t.status, ""];
-        return `<div class="ik-sec"><div class="ik-top"><div><span class="ik-badge ${st[1]}">${esc(st[0])}</span> <b>${t.sections.length} section${t.sections.length === 1 ? "" : "s"}</b>
+        return `<div class="ik-sec"><div class="ik-top"><div><span class="ik-badge ${st[1]}">${esc(st[0])}</span> <b>${C.returnLabels(form, t.sections).length} part${C.returnLabels(form, t.sections).length === 1 ? "" : "s"}</b>
             <div class="ik-note">Sent ${when(t.created)}${t.emailed ? ` · emailed ${when(t.emailed)}` : ""}${t.done_at ? ` · ${t.status === "done" ? "returned" : "closed"} ${when(t.done_at)}` : ""}</div></div>
           ${t.status === "open" ? `<div class="ik-acts"><button class="dl" type="button" data-retcp="${esc(link)}">Copy link</button><a class="dl" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a><button class="dl" type="button" data-retre="${t.id}">Email reminder</button><button class="dl" type="button" data-retx="${t.id}">Withdraw</button></div>` : ""}</div>
-          <div style="margin-top:6px;font-size:.86rem">${t.sections.map((id) => `<span class="ik-badge" style="margin:2px 4px 2px 0">${esc(title(id))}</span>`).join("")}</div>
+          <ul style="margin:6px 0 0;padding-left:18px;font-size:.86rem">${C.returnLabels(form, t.sections).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
           ${t.message ? `<div class="ik-note" style="margin-top:6px">Message: ${esc(t.message)}</div>` : ""}</div>`; }).join("") : ""}</div>`;
   }
   function wireRet(r) {
     const $ = (x) => body.querySelector(x), again = async () => { S.item = await call("item?id=" + encodeURIComponent(r.id)); drawItem(); };
     const nb = $("#retNew"); if (nb) nb.onclick = () => { S.retOpen = !S.retOpen; S.retMade = null; drawItem(); if (S.retOpen) { const b = $("#retBox"); if (b) b.scrollIntoView({ behavior: "smooth", block: "nearest" }); } };
-    const all = () => [...body.querySelectorAll("[data-retk]")];
-    const mi = $("#retMiss"); if (mi) mi.onclick = () => all().forEach((c) => c.checked = !!c.parentElement.querySelector(".ik-badge"));
-    const no = $("#retNone"); if (no) no.onclick = () => all().forEach((c) => c.checked = false);
+    const pick = $("#retPick"); if (pick) SB.pickerWire(pick);
     const go = $("#retGo"); if (go) go.onclick = async () => {
-      const sections = all().filter((c) => c.checked).map((c) => c.dataset.retk);
-      if (!sections.length) { $("#retErr").textContent = "Tick at least one section."; return; }
+      const sections = SB.pickerValue(pick);
+      if (!sections.length) { $("#retErr").textContent = "Tick at least one section or question."; return; }
       go.disabled = true; go.textContent = "Sending…";
       try { const j = await post("return", { id: r.id, sections, message: $("#retMsg").value, send: $("#retSend").checked });
         S.retOpen = false; S.retMade = { id: r.id, emailed: j.emailed }; await again();
