@@ -7,7 +7,7 @@
   const when = (t) => t ? new Date(t).toLocaleString("en-CA", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "–";
   const STATUS = [["new", "New"], ["reviewing", "Reviewing"], ["need-info", "Waiting for client"], ["in-progress", "Preparing application"], ["done", "Done"]];
   const stLabel = (k) => (STATUS.find((s) => s[0] === k) || [0, k])[1];
-  let C = null, KEY = "", body = null, S = { pick: "trv-out", filter: "new", q: "", open: null, item: null, list: null, made: null, busy: false };
+  let C = null, KEY = "", body = null, S = { pick: "trv-out", filter: "new", q: "", open: null, item: null, list: null, made: null, busy: false, retOpen: false, retMade: null };
 
   const css = `
 .ik-wrap{display:flex;flex-direction:column;gap:16px}
@@ -72,7 +72,7 @@
     return j;
   }
   const post = (path, b) => call(path, { method: "POST", body: JSON.stringify(b) });
-  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=8"); return C; }
+  async function cfg() { if (!C) C = await import("/assets/intake-config.js?v=9"); return C; }
   const site = () => location.origin;
   const genLink = (k) => `${site()}/intake/?f=${encodeURIComponent(k)}`;
   const formName = (k) => (C.FORMS[k] && C.FORMS[k].name) || ((C.catalogEntry(k) || {}).form || {}).name || k;
@@ -153,7 +153,8 @@
       ${L.length ? `<div class="wpa-tbl"><table><thead><tr><th>Status</th><th>Applicant</th><th>Form</th><th>Account</th><th>Progress</th><th>Files</th><th>Submitted</th></tr></thead><tbody>
         ${L.map((r) => { const isNew = (r.status === "submitted" && !r.admin_seen) || !!r.req_new;
           const fresh = r.status === "submitted" && !r.admin_seen;
-          const badge = (r.req_new ? `<span class="ik-badge new">New documents</span> ` : "") + (fresh ? `<span class="ik-badge new">${r.resubmitted ? "Updated" : "New"}</span>` : r.status === "submitted" ? `<span class="ik-badge sub">${esc(stLabel(r.admin_status))}</span>` : r.status === "editing" ? `<span class="ik-badge edit">Client editing</span>` : `<span class="ik-badge">Filling</span>`);
+          const badge = (r.req_new ? `<span class="ik-badge new">New documents</span> ` : "") + (fresh ? `<span class="ik-badge new">${r.resubmitted ? "Updated" : "New"}</span>` : r.status === "submitted" ? `<span class="ik-badge sub">${esc(stLabel(r.admin_status))}</span>` : r.ret_open ? `<span class="ik-badge edit" title="Sections sent back to the client">Sent back</span>` : r.status === "editing" ? `<span class="ik-badge edit">Client editing</span>` : `<span class="ik-badge">Filling</span>`)
+            + (r.partial && r.status === "submitted" ? ` <span class="ik-badge edit" title="${r.missing_n || 0} required items missing">Partial</span>` : "");
           return `<tr class="ik-row${isNew ? " new" : ""}" data-open="${r.id}" tabindex="0"><td>${badge}</td><td>${esc(r.name || "(name not entered)")}${r.partner_id ? `<br><span class="ik-badge sub" title="Sent by a partner firm">Partner: ${esc(r.partner_firm || "firm")}</span>` : ""}${r.invite_label ? `<br><span class="ik-note">Link: ${esc(r.invite_label)}</span>` : ""}</td>
             <td>${esc(formName(r.form_key))}</td><td>${esc(r.acct_name)}<br><span class="ik-note">${esc(r.acct_email)} · ${esc(r.acct_phone)}</span></td>
             <td><span class="ik-meter"><i style="width:${r.progress || 0}%"></i></span>${r.progress || 0}%</td><td>${r.files}${r.reqs_open ? `<br><span class="ik-badge edit" title="Document request waiting for the client">Requested</span>` : ""}</td><td>${r.submitted ? when(r.resubmitted || r.submitted) : `<span class="ik-note">Last saved ${when(r.updated)}</span>`}</td></tr>`; }).join("")}
@@ -223,7 +224,8 @@
         ${f.map((y) => `<div class="ik-note">${esc(y.name)} · ${kb(y.size)} · ${when(y.uploaded)}${y.req_id ? " · sent through a request link" : ""}</div>`).join("")}</div>
         <div class="ik-acts">${f.map((y) => `<button class="dl" type="button" data-view="${y.id}" data-name="${esc(y.name)}">View</button><button class="dl" type="button" data-dl="${y.id}" data-name="${esc(y.name)}">Download</button>`).join("")}</div></div>`;
     }).join("");
-    const stat = r.status === "submitted" ? (r.resubmitted ? `Resubmitted ${when(r.resubmitted)} (first ${when(r.submitted)})` : `Submitted ${when(r.submitted)}`) : r.status === "editing" ? "Client is making changes (not resubmitted yet)" : `Still filling · ${r.progress || 0}% · last saved ${when(r.updated)}`;
+    const openRet = (S.item.returns || []).find((t) => t.status === "open");
+    const stat = r.status === "submitted" ? (r.resubmitted ? `Resubmitted ${when(r.resubmitted)} (first ${when(r.submitted)})` : `Submitted ${when(r.submitted)}`) + (r.partial ? ` · PARTIAL, ${r.progress || 0}% complete` : "") : openRet ? `Sections sent back to the client ${when(openRet.created)} (not returned yet)` : r.status === "editing" ? "Client is making changes (not resubmitted yet)" : `Still filling · ${r.progress || 0}% · last saved ${when(r.updated)}`;
     const phone = String(c.phone || r.acct_phone || "").replace(/[^\d+]/g, "");
     body.innerHTML = `<div class="ik-wrap">
       <div><button class="dl" type="button" id="ikBack">← All intake forms</button></div>
@@ -237,9 +239,10 @@
           <label>Work status<select class="ik-in" id="ikSt">${STATUS.map(([v, l]) => `<option value="${v}"${r.admin_status === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>
           <label>Private notes<textarea class="ik-in" id="ikNotes" rows="2" placeholder="Only you see this">${esc(r.admin_note || "")}</textarea></label>
           <div><button class="ik-btn" type="button" id="ikSave">Save</button></div></div><div class="ik-note" id="ikMsg"></div>
-        ${missing.length ? `<div class="ik-miss"><b>${missing.length} required item${missing.length > 1 ? "s" : ""} not complete</b>${r.status === "submitted" ? " (the form rules changed after they submitted)" : ""}<ul>${missing.slice(0, 60).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+        ${missing.length ? `<div class="ik-miss"><b>${missing.length} required item${missing.length > 1 ? "s" : ""} not complete</b>${r.status === "submitted" ? (r.partial ? " (the client submitted a partial form)" : " (the form rules changed after they submitted)") : ""}<ul>${missing.slice(0, 60).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
       </div>
       ${lifeCard(r, docs)}
+      ${retCard(r, form)}
       ${reqCard(r, form, docs)}
       <div class="wpa-card wide"><h3>Documents (${docs.length} file${docs.length === 1 ? "" : "s"})</h3>${r.docs_destroyed_at ? `<span class="ik-note">${r.docs_destroyed_count || 0} uploaded document${r.docs_destroyed_count === 1 ? " was" : "s were"} permanently destroyed on ${when(r.docs_destroyed_at)}.</span>` : docRows || `<span class="ik-note">No documents.</span>`}</div>
       <div class="wpa-card wide"><h3>Answers</h3>${A.map(sec).join("")}</div>
@@ -261,6 +264,7 @@
     body.querySelectorAll("[data-view]").forEach((b) => b.onclick = () => getFile(b.dataset.view, b.dataset.name, true).catch((e) => alert(e.message)));
     body.querySelectorAll("[data-dl]").forEach((b) => b.onclick = () => getFile(b.dataset.dl, b.dataset.name, false).catch((e) => alert(e.message)));
     const fz = $("#ikFinal"); if (fz) fz.onclick = async () => {
+      if (r.partial && !confirm(`This is a PARTIAL form (${r.progress || 0}% complete, ${missing.length} required items missing). Build and share the complete file anyway?`)) return;
       if (!confirm(`${r.final_key ? "Rebuild the complete file and share it again" : "Build the complete file (answers summary + all " + docs.length + " documents) and share it with the client"}? They get an email and can download it from their WorkerPool account.`)) return;
       fz.disabled = true; fz.textContent = "Building the complete file…";
       try { const j = await post("finalize", { id: r.id }); alert(`Complete file shared: ${j.files} documents, ${(j.final_size / 1048576).toFixed(1)} MB.${j.emailed ? " The client was emailed." : " (The email couldn't be sent; tell the client to sign in.)"}`); openItem(r.id); }
@@ -275,6 +279,7 @@
     const u = $("#ikUnlock"); if (u) u.onclick = async () => { if (!confirm("Unlock this form so the client can change answers and documents? It returns here as Updated when they resubmit.")) return; await post("unlock", { id: r.id }); openItem(r.id); };
     $("#ikUnread").onclick = async () => { await post("unseen", { id: r.id }); back(); };
     wireReq(r, form);
+    wireRet(r);
     $("#ikDel").onclick = async () => { if (!confirm(`Permanently delete ${name}'s form and all ${docs.length} files? This can't be undone.`)) return; if (prompt('Type DELETE to confirm') !== "DELETE") return; await post("delete", { id: r.id }); back(); };
   }
   function lifeCard(r, docs) {
@@ -305,6 +310,57 @@
       <p class="ik-note" style="margin:0">Order: finish your work, then share the complete file (a ZIP with an answers summary PDF and every document in numbered folders), then destroy the uploaded documents. The client is emailed at each step.</p></div>`;
   }
   /* ---------- document requests: ask the client for particular documents with a link of their own ---------- */
+  /* ---------- send sections back to the client ---------- */
+  const RT = { open: ["Waiting for client", "edit"], done: ["Returned", "sub"], cancelled: ["Withdrawn", ""], replaced: ["Replaced", ""] };
+  function retCard(r, form) {
+    const T = S.item.returns || [], d = r.data, open = T.find((t) => t.status === "open");
+    const canSend = (r.status === "submitted" || r.status === "editing") && !r.docs_destroyed_at;
+    const title = (id) => id === C.RETURN_DOCS ? "Documents" : ((form.sections.find((x) => x.id === id) || {}).title || id);
+    const secs = form.sections.filter((s) => C.sectionOn(s, d));
+    const nMiss = (s) => C.missing({ sections: [s], docs: [] }, d, new Set()).length;
+    const docMiss = (S.item.missing || []).filter((x) => x.startsWith("Document: ")).length;
+    const made = S.retMade && S.retMade.id === r.id ? S.retMade : null;
+    const link = `${location.origin}/intake/?o=${r.id}`;
+    const wa = `https://wa.me/${String((d.contact || {}).phone || r.acct_phone || "").replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Please review the sections we sent back on your ${form.name} form: ${link}`)}`;
+    const box = (id, label, miss) => `<label style="display:flex;gap:8px;align-items:flex-start;font-size:.86rem;padding:4px 0"><input type="checkbox" data-retk="${esc(id)}"${miss ? " checked" : ""} style="margin-top:3px"><span>${esc(label)} ${miss ? `<span class="ik-badge edit">${miss} missing</span>` : ""}</span></label>`;
+    return `<div class="wpa-card wide"><div class="ik-top"><h3>Send sections back to the client</h3>${canSend ? `<button class="ik-btn" type="button" id="retNew">${S.retOpen ? "Close" : open ? "Change what's sent back" : "+ Send sections back"}</button>` : ""}</div>
+      <p class="ik-note" style="margin:0">After you review the form, pick one or more sections for the client to check, correct or complete. Their form unlocks with only those sections editable (plus any questions that follow from them); everything else stays locked as reviewed. They're emailed a link and press <b>Send back</b> when done.${canSend ? "" : " Available once the client has submitted (a partial submission is fine)."}</p>
+      ${made ? `<div class="ik-link"><strong>Sent back${made.emailed ? ` · emailed to ${esc(r.acct_email)} ✓` : " · email not sent, share the link"}</strong>
+        <div class="ik-url"><input readonly id="retLink" value="${esc(link)}"><button class="ik-btn" type="button" data-copy="retLink">Copy link</button><a class="ik-btn g" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a></div></div>` : ""}
+      ${S.retOpen && canSend ? `<div class="ik-sec" id="retBox"><h4>1. Sections to send back</h4>
+          <div class="ik-acts" style="margin-bottom:6px"><button class="dl" type="button" id="retMiss">Tick sections with missing items</button><button class="dl" type="button" id="retNone">Clear</button></div>
+          <div style="max-height:340px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 14px">${secs.map((s) => box(s.id, s.title, nMiss(s))).join("")}${box(C.RETURN_DOCS, "Documents (let them upload / remove files)", docMiss)}</div>
+          <h4 style="margin-top:14px">2. Message</h4>
+          <textarea class="ik-in" id="retMsg" rows="3" maxlength="2000" placeholder="What should they fix? e.g. Your travel history is missing your 2019 trip to the USA. Please add every trip in the last 10 years.">${esc(open && open.message || "")}</textarea>
+          <div class="ik-acts" style="margin-top:8px;align-items:center"><label class="ik-note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="retSend"${r.acct_email ? " checked" : " disabled"}> Email ${esc(r.acct_email || "the client")} a link</label>
+            <button class="ik-btn" type="button" id="retGo">Send back to client</button></div><div class="ik-note" id="retErr"></div></div>` : ""}
+      ${T.length ? T.map((t) => { const st = RT[t.status] || [t.status, ""];
+        return `<div class="ik-sec"><div class="ik-top"><div><span class="ik-badge ${st[1]}">${esc(st[0])}</span> <b>${t.sections.length} section${t.sections.length === 1 ? "" : "s"}</b>
+            <div class="ik-note">Sent ${when(t.created)}${t.emailed ? ` · emailed ${when(t.emailed)}` : ""}${t.done_at ? ` · ${t.status === "done" ? "returned" : "closed"} ${when(t.done_at)}` : ""}</div></div>
+          ${t.status === "open" ? `<div class="ik-acts"><button class="dl" type="button" data-retcp="${esc(link)}">Copy link</button><a class="dl" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a><button class="dl" type="button" data-retre="${t.id}">Email reminder</button><button class="dl" type="button" data-retx="${t.id}">Withdraw</button></div>` : ""}</div>
+          <div style="margin-top:6px;font-size:.86rem">${t.sections.map((id) => `<span class="ik-badge" style="margin:2px 4px 2px 0">${esc(title(id))}</span>`).join("")}</div>
+          ${t.message ? `<div class="ik-note" style="margin-top:6px">Message: ${esc(t.message)}</div>` : ""}</div>`; }).join("") : ""}</div>`;
+  }
+  function wireRet(r) {
+    const $ = (x) => body.querySelector(x), again = async () => { S.item = await call("item?id=" + encodeURIComponent(r.id)); drawItem(); };
+    const nb = $("#retNew"); if (nb) nb.onclick = () => { S.retOpen = !S.retOpen; S.retMade = null; drawItem(); if (S.retOpen) { const b = $("#retBox"); if (b) b.scrollIntoView({ behavior: "smooth", block: "nearest" }); } };
+    const all = () => [...body.querySelectorAll("[data-retk]")];
+    const mi = $("#retMiss"); if (mi) mi.onclick = () => all().forEach((c) => c.checked = !!c.parentElement.querySelector(".ik-badge"));
+    const no = $("#retNone"); if (no) no.onclick = () => all().forEach((c) => c.checked = false);
+    const go = $("#retGo"); if (go) go.onclick = async () => {
+      const sections = all().filter((c) => c.checked).map((c) => c.dataset.retk);
+      if (!sections.length) { $("#retErr").textContent = "Tick at least one section."; return; }
+      go.disabled = true; go.textContent = "Sending…";
+      try { const j = await post("return", { id: r.id, sections, message: $("#retMsg").value, send: $("#retSend").checked });
+        S.retOpen = false; S.retMade = { id: r.id, emailed: j.emailed }; await again();
+        const row = S.list && S.list.rows.find((x) => x.id === r.id); if (row) { row.status = "editing"; row.ret_open = 1; }
+      } catch (e) { go.disabled = false; go.textContent = "Send back to client"; $("#retErr").textContent = e.message; }
+    };
+    body.querySelectorAll("[data-retcp]").forEach((b) => b.onclick = () => copy(b.dataset.retcp, b));
+    body.querySelectorAll('[data-copy="retLink"]').forEach((b) => b.onclick = () => copy($("#retLink").value, b));
+    body.querySelectorAll("[data-retre]").forEach((b) => b.onclick = async () => { b.disabled = true; try { const j = await post("return-remind", { id: r.id, rid: b.dataset.retre }); alert(j.emailed ? "Reminder emailed ✓" : "The email couldn't be sent. Copy the link instead."); } catch (e) { alert(e.message); } b.disabled = false; });
+    body.querySelectorAll("[data-retx]").forEach((b) => b.onclick = async () => { if (!confirm("Withdraw this send-back? The form locks again as submitted. Anything the client already changed in those sections stays saved.")) return; await post("return-cancel", { id: r.id, rid: b.dataset.retx }); again(); });
+  }
   const RQ = { open: ["Waiting for client", "edit"], done: ["Received", "sub"], expired: ["Link expired", ""], cancelled: ["Withdrawn", ""] };
   function reqCard(r, form, docs) {
     const R = S.item.requests || [], d = r.data, label = (it) => it.l || ((form.docs.find((x) => x.k === it.k) || {}).l) || it.k;

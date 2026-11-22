@@ -2065,6 +2065,19 @@ export function progress(form, data, docKeys) {
   for (const d of form.docs) if (d.r && when(d.if, data)) { need++; if (docKeys.has(d.k)) have++; }
   return need ? Math.round((have / need) * 100) : 100;
 }
+// Sections the team sent back to the client for review ("__docs" = the Documents list). A section whose condition reads
+// a sent-back section opens too, so a changed answer (e.g. marital status) can bring in the questions that follow from it.
+export const RETURN_DOCS = "__docs";
+const condRefs = (cond) => String(cond || "").split(/[&;]/).map((p) => p.trim()).filter(Boolean)
+  .map((p) => (p === "$minor" ? "personal" : p.split(/[.=!]/)[0])).filter((x) => x && x[0] !== "@");
+export function returnScope(form, ids) {
+  const open = new Set(Array.isArray(ids) ? ids : []);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const s of form.sections) if (!open.has(s.id) && s.if && condRefs(s.if).some((r) => open.has(r))) { open.add(s.id); grew = true; }
+  }
+  return open;
+}
 // Older inside-Canada answers kept the entry questions in "status"; move them to the "entry" section. Safe to run twice.
 const MOVED_TO_ENTRY = ["first_entry", "first_place", "first_purpose", "last_entry", "last_place", "exits_yn"];
 export function upgradeIntake(data) {
