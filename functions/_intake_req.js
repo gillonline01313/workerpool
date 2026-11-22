@@ -24,7 +24,7 @@ export async function intakeForm(env, row, reqs) {
   const base = formOf(row);
   if (!base) return { form: null, reqs, extra: [], asked: new Set() };
   const { extra, asked } = requestDocs(reqs, base);
-  return { form: formOf(row, extra), reqs, extra, asked };
+  return { form: formOf(row, extra, asked), reqs, extra, asked };
 }
 // What a client sees of a request: never the token of another request, never other files.
 export const pubRequest = (q) => ({ id: q.id, token: q.token, message: q.message || "", created: q.created, expires: q.expires, status: q.status, sent_back: q.sent_back, items: q.items });

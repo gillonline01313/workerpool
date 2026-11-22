@@ -256,7 +256,7 @@ async function open(id) {
   view.innerHTML = `<div class="card"><p class="saved" style="margin:0">Opening your form…</p></div>`;
   const r = await api("/api/intake/item?id=" + encodeURIComponent(id));
   if (!r.ok) { view.innerHTML = `<div class="card"><p class="err">${esc(r.j.error || "Couldn't open the form.")}</p></div>`; return; }
-  cur = r.j.row; data = cur.data || {}; docs = r.j.docs || []; form = formOf(cur, r.j.extra); asked = new Set(r.j.asked || []); reqs = r.j.requests || [];
+  cur = r.j.row; data = cur.data || {}; docs = r.j.docs || []; asked = new Set(r.j.asked || []); form = formOf(cur, r.j.extra, asked); reqs = r.j.requests || [];
   if (!form) { view.innerHTML = `<div class="card"><p class="err">This form is no longer available. Contact us.</p></div>`; return; }
   window.scrollTo(0, 0);
   if (cur.status === "submitted") return done();

@@ -212,7 +212,7 @@
     const r = S.list && S.list.rows.find((x) => x.id === id); if (r && !r.admin_seen && r.status === "submitted") r.admin_seen = new Date().toISOString();
   }
   function drawItem() {
-    const { row: r, docs, missing } = S.item, form = C.formOf(r, S.item.extra), asked = new Set(S.item.asked || []);
+    const { row: r, docs, missing } = S.item, asked = new Set(S.item.asked || []), form = C.formOf(r, S.item.extra, asked);
     if (!form) { body.innerHTML = `<div class="wpa-empty">Unknown form ${esc(r.form_key)}.</div>`; return; }
     const A = answers(form, r.data), d = r.data, c = d.contact || {}, name = C.applicantName(d) || "(name not entered)";
     const sec = (s) => `<div class="ik-sec"><h4>${esc(s.title)}</h4>${s.reps ? (s.reps.length ? s.reps.map((p, i) => `<div class="ik-rep"><div class="ik-note" style="font-weight:700;margin-bottom:4px">${i + 1}</div><dl class="ik-dl">${p.map(([l, v]) => `<dt>${esc(l)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></div>`).join("") : `<span class="ik-note">None</span>`)

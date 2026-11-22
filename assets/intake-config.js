@@ -1969,13 +1969,17 @@ export const FORMS = Object.fromEntries([TRV_OUT, SUPERVISA_OUT, ETA, TRANSIT_OU
    Bump CONSENT_V when the wording changes. KEEP_DAYS must match functions/_intake_file.js. */
 /* ---------- versions and document requests ---------- */
 export const FORM_V = 2;
-// The form an intake uses: its own version, plus any documents the team requested for it (extra).
-export function formOf(row, extra) {
+// The form an intake uses: its own version, plus any documents the team requested for it. extra = custom documents,
+// asked = keys still being requested: those always show (whatever the answers) and are required until uploaded.
+export function formOf(row, extra, asked) {
   if (!row) return null;
   const k = row.form_key, f = (Number(row.form_v) || 1) >= 2 ? FORMS[k] : FORMS_V1[k] || FORMS[k];
   if (!f) return null;
   const add = (extra || []).filter((x) => !f.docs.some((d) => d.k === x.k));
-  return add.length ? { ...f, docs: [...add, ...f.docs] } : f;
+  let docs = add.length ? [...add, ...f.docs] : f.docs;
+  const ask = asked instanceof Set ? asked : new Set(asked || []);
+  if (ask.size) docs = docs.map((d) => (ask.has(d.k) ? { ...d, r: 1, if: undefined } : d));
+  return docs === f.docs ? f : { ...f, docs };
 }
 // Document requests the team sent for an intake. Each item is either a document already on the form ({ k }) or a
 // custom document ({ k: "x_…", l, h }). Returns the custom ones as extra document types (required while the request
