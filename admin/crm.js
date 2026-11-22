@@ -19,7 +19,8 @@
 .crm{display:flex;flex-direction:column;gap:16px}
 .crm .g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @media (max-width:900px){.crm .g{grid-template-columns:1fr 1fr}}
-@media (max-width:560px){.crm .g{grid-template-columns:1fr}}
+@media (max-width:560px){.crm .g{grid-template-columns:1fr}.crm .g .w2{grid-column:auto}}
+.crm .w2{grid-column:span 2}
 .crm label{display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted)}
 .crm .full{grid-column:1/-1}
 .crm .in{font:inherit;font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--fg);width:100%;min-width:0}
@@ -95,7 +96,7 @@
           <label>How they reached us<select class="in" name="channel">${chanOpts(d.channel || "Phone call")}</select></label>
           <label>Date & time<input class="in" name="at" type="datetime-local" value="${esc(d.at || localNow())}"></label>
           <label>Service type<input class="in" name="service" list="crmSvc" placeholder="e.g. Work permit – LMIA" value="${esc(d.service || "")}"></label>
-          <label class="full" style="grid-column:span 2">Location (optional)<input class="in" name="location" placeholder="e.g. Surrey, BC" value="${esc(d.location || "")}"></label>
+          <label class="w2">Location (optional)<input class="in" name="location" placeholder="e.g. Surrey, BC" value="${esc(d.location || "")}"></label>
           <label class="full">Their query<textarea class="in" name="detail" rows="3" placeholder="What did they ask? Any dates, refusals, deadlines…">${esc(d.detail || "")}</textarea></label>
           <div class="full" id="cqHit"></div>
           <div class="full row"><button class="btn" type="submit">Save query</button><span class="err" id="cqErr"></span></div>
@@ -188,8 +189,8 @@
     if (a === "intake") {
       const cats = C ? C.CATALOG : [];
       return `<form class="box g" id="aF"><label class="full">Intake form<select class="in" name="form" required><option value="">Choose a form…</option>${cats.map((cat) => cat.groups.map((g) => `<optgroup label="${esc(cat.label.replace(" applications", ""))} · ${esc(g.label)}">${g.forms.filter((f) => C.FORMS[f.key]).map((f) => `<option value="${f.key}">${esc(f.name)}</option>`).join("")}</optgroup>`).join("")).join("")}</select></label>
-        <label style="grid-column:span 2">Their email<input class="in" name="email" type="email" value="${esc(c.email || "")}" placeholder="name@email.com"></label>
-        <label style="flex-direction:row;align-items:center;gap:6px;grid-column:span 2"><input type="checkbox" name="send" checked> Email them the link</label>
+        <label class="w2">Their email<input class="in" name="email" type="email" value="${esc(c.email || "")}" placeholder="name@email.com"></label>
+        <label class="w2" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" name="send" checked> Email them the link</label>
         <div class="full row"><button class="btn" type="submit">Create link & send</button><button class="btn g" type="button" data-cancel>Cancel</button><span class="err" id="aErr"></span></div></form>`;
     }
     if (a === "edit") return `<form class="box g" id="aF"><label>Name<input class="in" name="name" value="${esc(c.name || "")}"></label><label>Phone<input class="in" name="phone" type="tel" value="${esc(c.phone || "")}"></label>
