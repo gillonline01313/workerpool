@@ -98,6 +98,27 @@ async function ownerRoutes({ request, env }, owner, route, m) {
     await logEvent(env, e, { actor: `${owner.name} <${owner.email}>`, action: "Envelope created", request });
     return json({ ok: true, id });
   }
+  // Saved recipients: everyone this sender has added to an envelope before, newest first, so repeat signers are one click.
+  if (route === "contacts" && m === "GET") {
+    const r = await env.DB.prepare(`SELECT LOWER(TRIM(r.email)) AS email, r.name, MAX(COALESCE(e.sent_at, e.created)) AS last, COUNT(DISTINCT e.id) AS uses
+      FROM esign_recipients r JOIN esign_envelopes e ON e.id = r.env_id
+      WHERE e.owner = ?1 AND r.email LIKE '%@%' AND TRIM(COALESCE(r.name, '')) != ''
+      GROUP BY LOWER(TRIM(r.email))
+      HAVING last > COALESCE((SELECT h.hidden_at FROM esign_contact_hide h WHERE h.owner = ?1 AND h.email = LOWER(TRIM(r.email))), '')   -- removed from the list, unless used again since
+      ORDER BY last DESC LIMIT 500`).bind(owner.id).all();
+    // the name used most recently for each email
+    const names = await env.DB.prepare(`SELECT LOWER(TRIM(r.email)) AS email, r.name FROM esign_recipients r JOIN esign_envelopes e ON e.id = r.env_id
+      WHERE e.owner = ?1 AND TRIM(COALESCE(r.name, '')) != '' ORDER BY COALESCE(e.sent_at, e.created) ASC`).bind(owner.id).all();
+    const latest = new Map(names.results.map((x) => [x.email, x.name]));
+    return json({ ok: true, contacts: r.results.map((x) => ({ name: latest.get(x.email) || x.name, email: x.email, uses: x.uses, last: x.last })) });
+  }
+  if (route === "contact-hide" && m === "POST") {
+    const b = await readJson(request, 2000) || {}, em = str(b.email, 160).trim().toLowerCase();
+    if (!em) return bad("Missing email.");
+    if (b.undo) await env.DB.prepare(`DELETE FROM esign_contact_hide WHERE owner = ?1 AND email = ?2`).bind(owner.id, em).run();
+    else await env.DB.prepare(`INSERT OR REPLACE INTO esign_contact_hide (owner, email, hidden_at) VALUES (?1, ?2, ?3)`).bind(owner.id, em, new Date().toISOString()).run();
+    return json({ ok: true });
+  }
   const id = q("id");
   let b = null;
   if (m === "POST" && route !== "upload") b = await readJson(request, 400000) || {};

@@ -21,6 +21,17 @@
   const RSTATUS = { created: "Waiting", sent: "Email sent", viewed: "Opened", verified: "Identity confirmed", signed: "Signed", declined: "Declined", completed: "Copy sent" };
 
   const CSS = `.es{display:flex;flex-direction:column;gap:14px;color:var(--fg)}
+.es-recent{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.es-recent>span{font-size:.78rem;color:var(--muted);font-weight:600;margin-right:2px}
+.es-chip{font:inherit;font-size:.8rem;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:4px 11px;cursor:pointer;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.es-chip:hover{border-color:var(--accent);background:var(--accent-soft)}
+#esSug{position:fixed;z-index:9000;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:280px;overflow:auto;padding:4px;min-width:280px}
+#esSug .it{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer}
+#esSug .it[aria-selected="true"],#esSug .it:hover{background:var(--accent-soft)}
+#esSug .it div{flex:1;min-width:0}#esSug .it b{display:block;font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#esSug .it small{display:block;font-size:.76rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#esSug .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:2px 5px;border-radius:5px}#esSug .x:hover{color:#b3412e;background:var(--bg)}
+#esSug .hd{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:5px 9px 3px}
 .es *{box-sizing:border-box}
 .es-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .es-card h3{margin:0;font-size:1rem}
@@ -189,6 +200,7 @@
         <div class="es-drop" id="bDrop" tabindex="0">Drop PDF, JPG or PNG files here, or <u>choose files</u>. Several files are joined into one document in the order you add them.<input type="file" id="bFile" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" multiple hidden></div>
         <div class="es-err" id="bUpErr"></div></div>
       <div class="es-card"><div class="es-row es-sp"><h3>2 · Recipients</h3><label class="es-row es-note" style="gap:6px"><input type="checkbox" id="bSeq"> Set signing order (signer 2 gets the email after signer 1 signs)</label></div>
+        <div class="es-recent" id="bRecent" hidden></div>
         <div id="bRc"></div>
         <div class="es-row"><button class="es-btn g sm" type="button" id="bAdd">+ Add recipient</button>${opts.me ? `<button class="es-btn g sm" type="button" id="bMe">+ Add me</button>` : ""}</div>
         <div class="es-note">Each signer gets a personal link and must confirm a one-time code sent to their email before they can see the document. An optional access code (that you tell them by phone or text) adds a second check. “Receives a copy” gets the completed document only.</div></div>
@@ -205,7 +217,8 @@
       $("#bSeq").onchange = (ev) => { B.seq = ev.target.checked; if (B.seq) B.recipients.forEach((r, i) => r.ord = i + 1); drawRecipients(); dirty(); };
       $("#bExp").oninput = (ev) => { B.expires_days = ev.target.value; dirty(); };
       $("#bRem").oninput = (ev) => { B.remind_days = ev.target.value; dirty(); };
-      $("#bBack").onclick = async () => { if (S.dirty) await save(true); showList(); };
+      $("#bBack").onclick = async () => { closeSug(); if (S.dirty) await save(true); showList(); };
+      loadContacts();
       $("#bSave").onclick = () => save();
       $("#bSend").onclick = send;
       $("#bAdd").onclick = () => { B.recipients.push({ key: "k" + Math.random().toString(36).slice(2, 8), role: "signer", name: "", email: "", ord: B.recipients.length + 1 }); drawRecipients(); dirty(); };
@@ -270,8 +283,65 @@
       }
     }
     function color(key) { const i = S.B.recipients.findIndex((r) => r.key === key || r.id === key); return COLORS[(i < 0 ? 0 : i) % COLORS.length]; }
+    /* ---- saved recipients: people this sender has used before ---- */
+    let SUG = null;   // { inp, r, list, at }
+    async function loadContacts() {
+      try { S.contacts = (await api("contacts")).contacts || []; } catch (x) { S.contacts = []; }
+      drawRecent();
+    }
+    const used = (except) => new Set((S.B ? S.B.recipients : []).filter((x) => x !== except).map((x) => String(x.email || "").trim().toLowerCase()).filter(Boolean));
+    function drawRecent() {
+      const box = root.querySelector("#bRecent"); if (!box || !S.B) return;
+      const u = used(), list = (S.contacts || []).filter((c) => !u.has(c.email)).slice(0, 8);
+      box.hidden = !list.length;
+      box.innerHTML = list.length ? `<span>Recent:</span>${list.map((c, i) => `<button type="button" class="es-chip" data-rc="${i}" title="${esc(c.name)} · ${esc(c.email)}">+ ${esc(c.name)}</button>`).join("")}` : "";
+      box.querySelectorAll("[data-rc]").forEach((b) => b.onclick = () => addContact(list[+b.dataset.rc]));
+    }
+    function addContact(c, r) {
+      const B = S.B; if (!B || !c) return;
+      r = r || B.recipients.find((x) => !String(x.name || "").trim() && !String(x.email || "").trim());
+      if (!r) { r = { key: "k" + Math.random().toString(36).slice(2, 8), role: "signer", name: "", email: "", ord: B.recipients.length + 1 }; B.recipients.push(r); }
+      closeSug();
+      // let a box being typed in finish its own "change" first, so it can't overwrite the picked person afterwards
+      if (document.activeElement && root.querySelector("#bRc").contains(document.activeElement)) document.activeElement.blur();
+      r.name = c.name; r.email = c.email;
+      drawRecipients(); drawPalette(); drawFields(); dirty();
+    }
+    function openSug(inp, r) {
+      const q = inp.value.trim().toLowerCase(), u = used(r);
+      const list = (S.contacts || []).filter((c) => !u.has(c.email) && (!q || c.name.toLowerCase().includes(q) || c.email.includes(q))).slice(0, 8);
+      if (!list.length || (q && list.length === 1 && (list[0].email === q || list[0].name.toLowerCase() === q))) return closeSug();
+      let box = document.getElementById("esSug");
+      if (!box) { box = document.createElement("div"); box.id = "esSug"; box.setAttribute("role", "listbox"); document.body.appendChild(box); window.addEventListener("scroll", posSug, true); window.addEventListener("resize", posSug); }
+      SUG = { inp, r, list, at: -1 }; posSug();
+      box.innerHTML = `<div class="hd">${q ? "Matching people you've sent to" : "People you've sent to before"}</div>` + list.map((c, i) => `<div class="it" role="option" data-si="${i}" aria-selected="false">
+        <div><b>${esc(c.name)}</b><small>${esc(c.email)} · used ${c.uses}×</small></div><button type="button" class="x" data-sx="${i}" title="Remove from this list">✕</button></div>`).join("");
+      box.querySelectorAll("[data-si]").forEach((el) => el.onmousedown = (ev) => { if (ev.target.closest("[data-sx]")) return; ev.preventDefault(); addContact(list[+el.dataset.si], r); });
+      box.querySelectorAll("[data-sx]").forEach((b) => b.onmousedown = async (ev) => { ev.preventDefault(); ev.stopPropagation(); const c = list[+b.dataset.sx];
+        S.contacts = S.contacts.filter((x) => x !== c); openSug(inp, r); drawRecent();
+        try { await post("contact-hide", { email: c.email }); toast(`${c.name} removed from saved recipients.`); } catch (x) {} });
+    }
+    function sugKey(ev, r) {
+      if (!SUG || SUG.r !== r) return;
+      const box = document.getElementById("esSug"); if (!box) return;
+      if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { ev.preventDefault(); SUG.at = (SUG.at + (ev.key === "ArrowDown" ? 1 : -1) + SUG.list.length) % SUG.list.length;
+        box.querySelectorAll("[data-si]").forEach((el) => el.setAttribute("aria-selected", String(+el.dataset.si === SUG.at))); }
+      else if (ev.key === "Enter" && SUG.at >= 0) { ev.preventDefault(); addContact(SUG.list[SUG.at], r); }
+      else if (ev.key === "Escape") closeSug();
+    }
+    function posSug(ev) {   // keep the list under its box while the page scrolls; close it once the box leaves the screen
+      const box = document.getElementById("esSug"); if (!box || !SUG) return;
+      if (ev && ev.target === box) return;
+      const rc = SUG.inp.getBoundingClientRect();
+      if (!SUG.inp.isConnected || rc.bottom < 0 || rc.top > window.innerHeight) return closeSug();
+      const below = window.innerHeight - rc.bottom > 200;
+      box.style.left = Math.max(8, Math.min(rc.left, window.innerWidth - 300)) + "px"; box.style.width = Math.max(280, rc.width) + "px";
+      box.style.top = below ? rc.bottom + 4 + "px" : ""; box.style.bottom = below ? "" : window.innerHeight - rc.top + 4 + "px";
+    }
+    function closeSug() { SUG = null; const b = document.getElementById("esSug"); if (b) b.remove(); window.removeEventListener("scroll", posSug, true); window.removeEventListener("resize", posSug); }
+
     function drawRecipients() {
-      const B = S.B, box = root.querySelector("#bRc");
+      const B = S.B, box = root.querySelector("#bRc"); queueMicrotask(drawRecent);
       box.innerHTML = B.recipients.map((r, i) => `<div class="es-rc" data-i="${i}" style="margin-bottom:6px">
         <span class="dot" style="background:${COLORS[i % COLORS.length]}"></span>
         <select class="es-in" data-k="role"><option value="signer">Needs to sign</option><option value="cc">Receives a copy</option></select>
@@ -283,9 +353,14 @@
       box.querySelectorAll(".es-rc").forEach((row) => {
         const r = B.recipients[+row.dataset.i];
         row.querySelector('[data-k="role"]').value = r.role;
+        ["name", "email"].forEach((k) => { const inp = row.querySelector(`[data-k="${k}"]`); inp.setAttribute("autocomplete", "off");
+          inp.addEventListener("focus", () => openSug(inp, r)); inp.addEventListener("input", () => openSug(inp, r)); inp.addEventListener("keydown", (ev) => sugKey(ev, r));
+          inp.addEventListener("blur", () => setTimeout(() => { if (!SUG || SUG.inp === inp) closeSug(); }, 180)); });
         row.querySelectorAll("[data-k]").forEach((inp) => inp.oninput = inp.onchange = () => {
+          if (!inp.isConnected) return;   // a box replaced by a redraw (e.g. after picking a saved person) still fires "change" when it loses focus
           const k = inp.dataset.k;
           r[k] = k === "ord" ? parseInt(inp.value) || 1 : inp.value;
+          if (k === "email") drawRecent();
           if (k === "role") { if (r.role === "cc") B.fields = B.fields.filter((f) => f.rcpt_id !== r.key && f.rcpt_id !== r.id); drawRecipients(); drawFields(); }
           drawPalette(); dirty();
         });
