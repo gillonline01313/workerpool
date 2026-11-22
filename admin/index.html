@@ -325,7 +325,7 @@ $("#gate").onsubmit=e=>{ e.preventDefault(); KEY=$("#key").value.trim(); if(!KEY
 $("#out").onclick=()=>lock("");
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; newsEdit=null; drEdit=null; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
 let iv=null;
-function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); vsStart(); if(window.WPIntake) window.WPIntake.badge(KEY); if(window.WPPartners) window.WPPartners.badge(KEY); }
+function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); vsStart(); if(window.WPIntake) window.WPIntake.badge(KEY); if(window.WPCrm) window.WPCrm.badge(KEY); if(window.WPPartners) window.WPPartners.badge(KEY); }
 /* ---------- Live visitors (unique visitors, Edmonton time; refreshed every 30 seconds) ---------- */
 let vsIv=null; const vsShown={};
 function vsAnim(el,to){ const from=vsShown[el.dataset.k]??0; vsShown[el.dataset.k]=to; const f0=n=>Number(n||0).toLocaleString("en-CA");
@@ -1594,7 +1594,7 @@ if(KEY) start();
 })();
 </script>
 <script src="/admin/intake.js?v=11"></script>
-<script src="/admin/crm.js?v=3"></script>
+<script src="/admin/crm.js?v=4"></script>
 <script src="/admin/partners.js?v=3"></script>
 <script src="/admin/profile-scan.js?v=1"></script>
 <script src="/admin/ai-text.js?v=3"></script>
