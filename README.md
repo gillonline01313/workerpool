@@ -70,6 +70,16 @@ Then open `https://workerpool.ca/admin/` and enter your admin key.
 
 Cloudflare → R2 Object Storage → Create bucket `workerpool-resumes` (keep it private; no public access). Then Pages project → Settings → Bindings → Add → R2 bucket → Variable name `RESUMES` → bucket `workerpool-resumes`. Run `schema-resumes.sql` in the D1 console once, then redeploy.
 
+## CRM (admin → CRM)
+
+Every person who contacts WorkerPool, matched by **phone number** (last 10 digits, so +1 780…, (780)… and 780… are the same person) or, without a phone, by email.
+
+- **Punch a query:** phone, name, email, how they reached us (call, WhatsApp, email, text, in person, website, referral), date and time (defaults to now, can be changed), service type and what they asked. While you type the number, an existing person is shown ("Already in the CRM … 3 earlier contacts"), and saving adds the query to their history instead of creating someone new. Details we didn't have (email, name) are filled in, never overwritten.
+- **Each person's file:** service type, status (New query, Following up, Retained, File in progress, Application submitted, Completed, Not proceeding), retained date and fee, RCIC retained (name, firm, licence, date; suggestions from earlier entries and approved partner firms), pinned internal notes, and a dated history of every call, query, email, WhatsApp, meeting, internal note, retention, RCIC retention, status change and intake form. **Last contact** counts only real contact with the person.
+- **Send intake forms from the CRM:** pick any ready form; it makes a personal link tied to the person (optionally emailed, always copied, WhatsApp button). Forms they start from it, or with an account using the same email, show with their progress and milestones (started, submitted, resubmitted) in the history; **Open** jumps to the form in Intake forms.
+- **Website requests come in automatically:** Candidates who ask for a consultant call on the website questionnaire are added (or matched to an existing person) the next time the CRM opens.
+- Tables `crm_contacts`, `crm_events` (and `intake_invites.crm_id`) are created automatically. Server: `functions/api/crm/[[path]].js`; screen: `admin/crm.js`.
+
 ## Client intake forms (admin → Intake forms)
 
 Pick an application type under **Temporary residence applications** (Outside Canada / Inside Canada) or **Permanent residence applications**. Types marked *Soon* aren't built yet; **Visitor visa (TRV), outside Canada** is ready. Picking a ready type highlights its client link: **Copy link**, send it on WhatsApp, or **Preview** it. Open *Make a personal link for one client* to create a link with the client's name (and optionally email it to them); the table shows when each personal link was opened and how many forms were started and submitted. **Turn off** stops a personal link working.
