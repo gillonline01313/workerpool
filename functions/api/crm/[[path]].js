@@ -29,7 +29,7 @@ export const phoneKey = (p) => { const d = String(p || "").replace(/\D/g, ""); r
 const emailKey = (e) => String(e || "").trim().toLowerCase();
 const parse = (s) => { try { return upgradeIntake(JSON.parse(s || "{}")); } catch { return {}; } };
 
-export const STATUSES = { new: "New query", "follow-up": "Following up", retained: "Retained", "in-progress": "File in progress", submitted: "Application submitted", done: "Completed", lost: "Not proceeding" };
+export const STATUSES = { new: "New query", "follow-up": "Following up", retained: "Retained", "in-progress": "File in progress", submitted: "Application submitted", done: "Completed", lost: "Not proceeding", cancelled: "Cancelled", refunded: "Refunded" };
 export const CHANNELS = ["Phone call", "WhatsApp", "Email", "Text / SMS", "In person", "Website", "Referral", "Other"];
 export const SERVICES = ["Visitor visa (TRV)", "Super visa", "Study permit", "Study permit extension", "College / university admission", "Work permit – LMIA", "Work permit – LMIA-exempt",
   "Work permit extension / new employer", "PGWP", "Spousal open work permit", "Bridging open work permit (BOWP)", "Vulnerable worker OWP", "Restoration of status", "Temporary resident permit (TRP)",
@@ -140,7 +140,7 @@ export async function onRequest(ctx) {
       const type = TYPES.includes(b.type) ? b.type : "query", detail = str(b.detail, 8000);
       if (!detail && type === "note") return json({ ok: false, error: "Write the note first." }, 400);
       const e = await addEvent(env, c.id, { type, channel: type === "note" ? null : str(b.channel, 40) || null, at: atOf(b.at), detail });
-      if (type !== "note" && c.status === "lost") await env.DB.prepare(`UPDATE crm_contacts SET status = 'follow-up' WHERE id = ?1`).bind(c.id).run();
+      if (type !== "note" && ["lost", "cancelled", "refunded"].includes(c.status)) await env.DB.prepare(`UPDATE crm_contacts SET status = 'follow-up' WHERE id = ?1`).bind(c.id).run();
       return json({ ok: true, event: e });
     }
     if (route === "event-delete") {
@@ -232,7 +232,7 @@ async function capture(env, b) {
   const service = str(b.service, 120) || null;
   const { contact, created } = await upsert(env, { phone, name, email, location: str(b.location, 120), service, source: str(b.channel, 40) });
   if (!created && service && !contact.service) await env.DB.prepare(`UPDATE crm_contacts SET service = ?1 WHERE id = ?2`).bind(service, contact.id).run();
-  if (!created && contact.status === "lost") await env.DB.prepare(`UPDATE crm_contacts SET status = 'follow-up' WHERE id = ?1`).bind(contact.id).run();
+  if (!created && ["lost", "cancelled", "refunded"].includes(contact.status)) await env.DB.prepare(`UPDATE crm_contacts SET status = 'follow-up' WHERE id = ?1`).bind(contact.id).run();
   await addEvent(env, contact.id, { type: "query", channel: str(b.channel, 40) || null, at: atOf(b.at), detail: service && !created && service !== contact.service ? `${detail}\n(Asked about: ${service})` : detail });
   return json({ ok: true, id: contact.id, created });
 }
