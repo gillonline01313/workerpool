@@ -13,6 +13,8 @@
   Cache-Control: no-cache
 /assets/intake-config.js
   Cache-Control: no-cache
+/assets/intake-forms-v*
+  Cache-Control: no-cache
 /student-pool/*
   Cache-Control: no-cache
 /assets/chat.js

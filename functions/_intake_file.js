@@ -1,6 +1,6 @@
 // Builds a client's "complete file": one ZIP with an application summary PDF and every uploaded document,
 // in numbered folders that follow the form's checklist. No outside libraries.
-import { FORMS, sectionOn, fieldOn, applicantName, KEEP_DAYS } from "../assets/intake-config.js";
+import { formOf, sectionOn, fieldOn, applicantName, KEEP_DAYS } from "../assets/intake-config.js";
 
 export const FINAL_MAX = 95 * 1024 * 1024;   // keeps the build inside a Worker's memory
 export { KEEP_DAYS };                          // how long a file the client didn't ask us to keep stays downloadable
@@ -97,8 +97,11 @@ export function zip(files) {   // files: [{ name, data: Uint8Array }]
 /* ---------- the complete file ---------- */
 const shown = (v) => (v === true ? "Yes" : String(v ?? "").trim());
 const safe = (s) => String(s || "file").replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, " ").trim().slice(0, 90);
-export async function buildCompleteFile(env, row, docs, acct) {
-  const form = FORMS[row.form_key], data = row.data || {}, name = applicantName(data) || acct.name || "Applicant";
+// extra = documents the team requested for this intake (see _intake_req.js), so they are labelled and included.
+export async function buildCompleteFile(env, row, docs, acct, extra) {
+  const form = formOf(row, extra);
+  if (!form) throw new Error("Unknown form.");
+  const data = row.data || {}, name = applicantName(data) || acct.name || "Applicant";
   const when = (t) => (t ? new Date(t).toLocaleString("en-CA", { timeZone: "America/Edmonton", dateStyle: "medium", timeStyle: "short" }) : "-");
   const B = [
     { t: "title", a: name },

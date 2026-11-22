@@ -6,9 +6,18 @@
    Section: { id, title, intro, if, fields, rep: { min, max, add } }   (rep = the client can add rows, e.g. jobs)
    Document:{ k, l, r: 1 if required, if: condition, h: help text }   (every document takes one or more files)
    Condition: "section.key=A|B" (equals one of), "section.key!=A|B", "section.key" (answered), "@key=A" (same row of a
-   repeatable section), "$minor" (applicant under 18 from date of birth). Join with "&" for AND.
+   repeatable section), "$minor" (applicant under 18 from date of birth). Join with "&" for AND and ";" for OR
+   (";" binds tighter: "a=1;b=1&c=1" means (a or b) and c). A tick box (cb) reads as "true" when ticked.
 
-   To add a form: add it to FORMS below and set ready: 1 on its catalog entry. Never change a form key that has intakes. */
+   To add a form: add it to FORMS below and set ready: 1 on its catalog entry. Never change a form key that has intakes.
+
+   Versions: every intake stores the form version it was started on (form_v). Intakes from before versions existed
+   (form_v empty) use the frozen copy in intake-forms-v1.js, so a client part-way through, or a submitted file, never
+   changes under them. This file is the current version (FORM_V). Edit questions freely here for new intakes; when an
+   edit would change what earlier intakes on this version see, copy this file to intake-forms-v<N>.js, raise FORM_V and
+   add it to formOf(). Always look a form up with formOf(intake), never FORMS[key] directly. */
+
+import { FORMS as FORMS_V1 } from "./intake-forms-v1.js";
 
 const YN = ["Yes", "No"];
 export const COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (Democratic Republic)","Congo (Republic)","Costa Rica","Côte d'Ivoire","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hong Kong SAR","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Korea (North)","Korea (South)","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Macao SAR","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Macedonia","Norway","Oman","Pakistan","Palau","Palestinian Authority","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Türkiye","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe","Stateless"];
@@ -74,6 +83,7 @@ export function catalogEntry(key) {
 }
 
 /* ---------- reusable field sets ---------- */
+const D_TRANSLATE = { k: "translations", l: "Certified English or French translations of any document in another language, with the translator's declaration", h: "IRCC needs a translation of every document not in English or French, plus a copy of the original." };
 const ADDRESS = (p, req) => [
   { k: p + "_apt", l: "Apartment / unit number", t: "t" },
   { k: p + "_street_no", l: "House / street number", t: "t", r: req },
@@ -104,6 +114,8 @@ const TRV_OUT = {
       { k: "has_uci", l: "Does the applicant have a UCI (client ID) from an earlier Canadian application?", t: "yn", r: 1, h: "An 8 or 10 digit number on earlier Canadian visas, permits, refusal letters or IRCC letters." },
       { k: "uci", l: "UCI number", t: "t", r: 1, if: "about.has_uci=Yes" },
       { k: "service_lang", l: "Language for IRCC to contact the applicant", t: "s", r: 1, o: ["English", "French"] },
+      { k: "prev_rep", l: "Did an agent, consultant or lawyer prepare any earlier Canadian application for the applicant?", t: "yn", r: 1, full: 1, h: "We compare earlier applications with this one so the answers match. Any difference can look like misrepresentation." },
+      { k: "prev_rep_details", l: "Who, which application and year, and do you have a copy of what was sent?", t: "ta", r: 1, if: "about.prev_rep=Yes", full: 1 },
       { k: "source", l: "How did you hear about us?", t: "t" },
     ]},
     { id: "personal", title: "Personal details", intro: "Exactly as written on the passport.", fields: [
@@ -258,6 +270,7 @@ const TRV_OUT = {
       { k: "property_yn", l: "Do you or your spouse own a house, land or other property?", t: "yn", r: 1 },
       { k: "property", l: "Describe the property and its approximate value", t: "ta", r: 1, if: "ties.property_yn=Yes", full: 1 },
       { k: "assets", l: "Savings, fixed deposits, investments or pension (approximate total with currency)", t: "t" },
+      { k: "deposits", l: "Any large deposit into your bank account in the last 6 months? Where did it come from?", t: "ta", full: 1, h: "Officers check where the money came from. A sale of crops, land, a loan or a gift is fine if it is explained and documented." },
       { k: "return_reason", l: "Why will you return home after the visit?", t: "ta", r: 1, full: 1 },
     ]},
     { id: "travel", title: "Travel history", fields: [
@@ -299,6 +312,8 @@ const TRV_OUT = {
       { k: "refused", l: "Have you ever been refused a visa or permit, denied entry, or ordered to leave Canada or any other country?", t: "yn", r: 1, full: 1, h: "Include refusals by the US, UK, Schengen, Australia and every other country." },
       { k: "refused_details", l: "For each refusal: country, type of visa, month and year, and the reason given", t: "ta", r: 1, if: "background.refused=Yes", full: 1 },
       { k: "applied", l: "Have you ever applied to enter or stay in Canada before (visa, permit, PR, eTA)?", t: "yn", r: 1, full: 1 },
+      { k: "asylum", l: "Have you ever made a refugee or asylum claim in Canada or any other country?", t: "yn", r: 1, full: 1 },
+      { k: "asylum_details", l: "Country, year, outcome and file number", t: "ta", r: 1, if: "background.asylum=Yes", full: 1 },
       { k: "applied_details", l: "Type of application, year, result and application or UCI number", t: "ta", r: 1, if: "background.applied=Yes", full: 1 },
       { k: "crime", l: "Have you ever committed, been arrested for, been charged with or convicted of any criminal offence in any country?", t: "yn", r: 1, full: 1, h: "Include traffic offences like drunk driving. Answer Yes even if pardoned or discharged." },
       { k: "crime_details", l: "Give details: offence, date, country and outcome", t: "ta", r: 1, if: "background.crime=Yes", full: 1 },
@@ -350,7 +365,7 @@ const TRV_OUT = {
     { k: "national_id", l: "National identity card (front and back)", r: 1, if: "passport.nid_yn=Yes" },
     { k: "res_status", l: "Proof of legal status in the country of residence (residence card, permit or visa)", r: 1, if: "residence.status!=Citizen" },
     { k: "applying_status", l: "Proof of legal status in the country you are applying from", r: 1, if: "residence.applying_from=No" },
-    { k: "bank", l: "Bank statements for the last 4 to 6 months", r: 1, h: "Show the account holder's name, the bank's details and the balance. Explain any large recent deposits in the notes." },
+    { k: "bank", l: "Bank statements for the last 6 months", r: 1, h: "IRCC asks for at least 6 months of account history with balances. Show the account holder's name and the bank's details. Explain any large recent deposits in the notes." },
     { k: "itr", l: "Income tax returns (ITR) for the last 2 to 3 years", h: "Strongly recommended for employed, self-employed and business applicants." },
     { k: "assets", l: "Fixed deposits, investments, pension or other savings", if: "ties.assets" },
     { k: "property", l: "Property documents (house or land ownership papers, jamabandi/fard, valuation report)", r: 1, if: "ties.property_yn=Yes" },
@@ -382,6 +397,10 @@ const TRV_OUT = {
     { k: "birth_cert", l: "Birth certificate naming both parents", r: 1, if: "$minor" },
     { k: "consent_letter", l: "Consent letter from both parents (or the parent not travelling), with a copy of their ID", r: 1, if: "$minor", h: "Needed when a child travels alone or with only one parent." },
     { k: "custody", l: "Custody order or death certificate of a parent, if applicable", if: "$minor" },
+    { k: "asylum_docs", l: "Decision or letters for the refugee or asylum claim", r: 1, if: "background.asylum=Yes" },
+    { k: "name_docs", l: "Proof of any other name used (affidavit, gazette notice, marriage certificate)", if: "personal.other_names_yn=Yes" },
+    { k: "prev_apps", l: "Copies of earlier Canadian applications (forms, letters and the submission confirmation)", if: "about.prev_rep=Yes|background.applied=Yes", h: "Especially anything an agent prepared. We check the old answers match the new ones." },
+    D_TRANSLATE,
     { k: "other", l: "Any other supporting documents (family photos, letters, previous cover letters)" },
   ],
 };
@@ -407,6 +426,10 @@ const ABOUT_IN = (extra = []) => ({ id: "about", title: "About this application"
   { k: "has_uci", l: "Does the applicant have a UCI (client ID)?", t: "yn", r: 1, h: "The 8 or 10 digit number on your Canadian permit, visitor record, visa or IRCC letters." },
   { k: "uci", l: "UCI number", t: "t", r: 1, if: "about.has_uci=Yes" },
   { k: "service_lang", l: "Language for IRCC to contact the applicant", t: "s", r: 1, o: ["English", "French"] },
+  { k: "bio_yn", l: "Has the applicant given fingerprints and photo (biometrics) for a Canadian application in the last 10 years?", t: "yn", r: 1, full: 1, h: "Biometrics stay valid for 10 years, so they may not need to be given again." },
+  { k: "bio_date", l: "Date biometrics were given", t: "d", if: "about.bio_yn=Yes" },
+  { k: "prev_rep", l: "Did an agent, consultant or lawyer prepare any earlier Canadian application for the applicant?", t: "yn", r: 1, full: 1, h: "We compare earlier applications with this one so the answers match. Any difference can look like misrepresentation." },
+  { k: "prev_rep_details", l: "Who, which application and year, and do you have a copy of what was sent?", t: "ta", r: 1, if: "about.prev_rep=Yes", full: 1 },
   { k: "source", l: "How did you hear about us?", t: "t" },
 ]});
 
@@ -465,6 +488,8 @@ const STATUS_IN = (title = "Your status in Canada now") => ({ id: "status", titl
   { k: "visa_yn", l: "Is there a Canadian visitor visa (counterfoil sticker) in your passport?", t: "yn", r: 1 },
   { k: "visa_expiry", l: "Visitor visa expiry date", t: "d", r: 1, if: "status.visa_yn=Yes" },
   { k: "prev_yn", l: "Have you held any other Canadian permit or visitor record before the one you hold now?", t: "yn", r: 1, full: 1 },
+  { k: "ime_yn", l: "Have you had an immigration medical exam (IME) for Canada in the last 5 years?", t: "yn", r: 1, full: 1, h: "Under a public policy running to October 5, 2029, many people in Canada with an earlier low-risk exam don't need a new one." },
+  { k: "ime_date", l: "Date of that exam and the UCI or IME number on it", t: "t", if: "status.ime_yn=Yes", full: 1 },
 ]});
 const PERMITS = { id: "permits", title: "Earlier Canadian permits and visitor records", if: "status.prev_yn=Yes", rep: { min: 1, max: 12, add: "Add a permit" }, fields: [
   { k: "type", l: "Type", t: "s", r: 1, o: ["Work permit", "Study permit", "Visitor record", "Temporary resident permit", "Co-op work permit", "Post-graduation work permit", "Open work permit"] },
@@ -487,6 +512,7 @@ const D_ID = [
   { k: "old_passports", l: "Older passports (pages with visas and stamps)", if: "passport.old_yn=Yes" },
   { k: "national_id", l: "National identity card (front and back)", if: "passport.nid_yn=Yes" },
 ];
+const D_IME = { k: "ime", l: "Earlier immigration medical exam: IMM 1017 or eMedical information sheet, and any IRCC letter about the results", if: "status.ime_yn=Yes" };
 const D_STATUS = [
   { k: "status_doc", l: "Your current permit or visitor record (both sides if it has two)", r: 1, if: "status.doc_type=Work permit|Study permit|Visitor record|Temporary resident permit" },
   { k: "first_stamp", l: "Passport page with your first Canadian entry stamp, and the permit or visitor record you were given that day", h: "Add your boarding pass or e-ticket if the stamp is missing or hard to read." },
@@ -494,6 +520,7 @@ const D_STATUS = [
   { k: "prev_permits", l: "Earlier Canadian permits and visitor records", r: 1, if: "status.prev_yn=Yes" },
   { k: "maint_proof", l: "Proof of the application still in process (IRCC submission confirmation or AOR)", r: 1, if: "status.maintained=Yes" },
   { k: "visa", l: "Canadian visitor visa (counterfoil page)", if: "status.visa_yn=Yes" },
+  D_IME,
 ];
 const D_FAMILY = [
   { k: "marriage", l: "Marriage certificate", r: 1, if: "marital.status=Married" },
@@ -512,7 +539,7 @@ const D_BACK = [
 const D_MONEY = [
   { k: "bank", l: "Bank statements for the last 4 months (Canadian and home-country accounts)", r: 1, h: "Show the account holder's name and the balance. Explain any large recent deposits in the notes." },
 ];
-const D_OTHER = [{ k: "other", l: "Any other supporting documents (letters, previous cover letters, anything you think helps)" }];
+const D_OTHER = [D_TRANSLATE, { k: "other", l: "Any other supporting documents (letters, previous cover letters, anything you think helps)" }];
 const docsOf = (...lists) => lists.flat();
 
 const HOSTS_IN = { id: "hosts", title: "People you live with or are visiting in Canada", if: "visit.host_yn=Yes", rep: { min: 1, max: 4, add: "Add another person" }, fields: [
@@ -533,7 +560,8 @@ const VR_IN = {
   sections: [
     ...IN_HEAD(),
     { id: "visit", title: "Why you want to stay longer", fields: [
-      { k: "reason", l: "Main reason for the extension", t: "s", r: 1, o: ["Visiting family or friends", "Tourism", "Waiting for a decision on another application (PR, work or study permit)", "Medical treatment or recovery", "Caring for a family member", "Attending an event (wedding, birth, convocation)", "Business", "Other"] },
+      { k: "reason", l: "Main reason for the extension", t: "s", r: 1, o: ["Visiting family or friends", "Tourism", "Waiting for a decision on another application (PR, work or study permit)", "My work or study permit is ending and I want to stay as a visitor", "Super visa holder staying longer", "Medical treatment or recovery", "Caring for a family member", "Attending an event (wedding, birth, convocation)", "Business", "Other"] },
+      { k: "permit_end", l: "Which permit is ending, and what will you do while you are a visitor?", t: "ta", r: 1, if: "visit.reason=My work or study permit is ending and I want to stay as a visitor", full: 1, h: "A visitor can't work or study (except short courses). Tell us your plan and when you will leave or what you are waiting for." },
       { k: "reason_other", l: "Describe the reason", t: "t", r: 1, if: "visit.reason=Other" },
       { k: "details", l: "Explain in your own words why you need more time, what you will do during it and why you will leave at the end", t: "ta", r: 1, full: 1 },
       { k: "pending_app", l: "Which application are you waiting on? Type, application number and date submitted", t: "t", r: 1, if: "visit.reason=Waiting for a decision on another application (PR, work or study permit)", full: 1 },
@@ -548,6 +576,9 @@ const VR_IN = {
       { k: "host_yn", l: "Are you living with or visiting someone in Canada?", t: "yn", r: 1 },
       { k: "ties", l: "What brings you back home (family, job, property, business)?", t: "ta", r: 1, full: 1 },
       { k: "insurance", l: "Do you have health insurance for the extra time?", t: "yn", r: 1 },
+      { k: "insurance_details", l: "Insurer, policy number and coverage dates", t: "t", if: "visit.insurance=Yes", full: 1 },
+      { k: "prev_ext", l: "Have you extended your stay in Canada as a visitor before?", t: "yn", r: 1 },
+      { k: "prev_ext_details", l: "Dates of each earlier extension", t: "t", r: 1, if: "visit.prev_ext=Yes", full: 1 },
     ]},
     HOSTS_IN,
     ...TAIL, ...END,
@@ -615,10 +646,11 @@ const SP_EXT = {
       { k: "end", l: "Expected completion date", t: "d", r: 1 },
       { k: "tuition", l: "Tuition for the first year (CAD)", t: "n", r: 1 },
       { k: "paid", l: "Tuition already paid (CAD)", t: "n" },
-      { k: "pal", l: "Do you have a provincial or territorial attestation letter (PAL/TAL) for this application?", t: "s", r: 1, o: ["Yes", "No", "Not sure"], h: "Most extension applications need one; graduate (master's and PhD) and some other students don't. We will confirm for you." },
+      { k: "pal", l: "Do you have a provincial or territorial attestation letter (PAL/TAL) for this application?", t: "s", r: 1, o: ["Yes", "Not needed – same school and same level of study", "Not needed – master's or PhD at a public school", "No", "Not sure"], h: "An extension at the same school and level, and (since January 1, 2026) a master's or PhD at a public school, don't need one. Changing school or level usually does. We will confirm for you." },
       { k: "quebec", l: "Is the school in Quebec?", t: "yn", r: 1 },
       { k: "caq", l: "CAQ number and expiry date", t: "t", r: 1, if: "study.quebec=Yes" },
       { k: "reason", l: "Why do you need more time, or why are you changing school or program?", t: "ta", r: 1, full: 1 },
+      { k: "updated_ircc", l: "If you already changed school, did you update the school in your IRCC account?", t: "s", r: 1, if: "study.change=New school|Moving from high school to college or university", o: ["Yes", "No", "Not started at the new school yet"] },
     ]},
     { id: "history", title: "Your studies in Canada so far", fields: [
       { k: "fulltime", l: "Have you studied full time in every regular term?", t: "yn", r: 1 },
@@ -627,11 +659,13 @@ const SP_EXT = {
       { k: "failed", l: "Have you failed or repeated any course?", t: "yn", r: 1 },
       { k: "work_off", l: "Have you worked off campus?", t: "yn", r: 1 },
       { k: "work_hours", l: "Employer(s) and average weekly hours during class terms", t: "ta", r: 1, if: "history.work_off=Yes", full: 1, h: "Off-campus work during class terms is limited (24 hours a week since late 2024). Tell us honestly; we will advise you." },
-      { k: "coop", l: "Does your program include a co-op or internship?", t: "yn", r: 1 },
-      { k: "coop_wp", l: "Do you already have a co-op work permit?", t: "yn", r: 1, if: "history.coop=Yes" },
+      { k: "coop", l: "Does your program include a required co-op, practicum or internship?", t: "yn", r: 1, h: "Since April 1, 2026, most post-secondary students don't need a separate co-op work permit for required placements." },
+      { k: "leave", l: "Have you taken a break or authorized leave from studies?", t: "yn", r: 1 },
+      { k: "leave_details", l: "Dates and reason, and did you work during it?", t: "ta", r: 1, if: "history.leave=Yes", full: 1 },
     ]},
     { id: "money", title: "How you will pay", fields: [
-      { k: "funds", l: "Money available for tuition and living costs for the next year (CAD)", t: "n", r: 1 },
+      { k: "funds", l: "Money available for tuition and living costs for the next year (CAD)", t: "n", r: 1, h: "Outside Quebec, IRCC asks for at least $23,448 for one person for a year (from September 1, 2026), plus tuition, and more for each family member. We will check the current amount." },
+      { k: "source", l: "Where does this money come from?", t: "ta", r: 1, full: 1, h: "Savings from work, parents' income, a loan, a scholarship. Officers check both the amount and where it came from." },
       { k: "payer", l: "Who is paying?", t: "s", r: 1, o: ["Myself (savings and part-time job)", "My parents", "My spouse", "Education loan", "Scholarship", "Other"] },
       { k: "payer_details", l: "Name and relationship of the sponsor or lender", t: "t", r: 1, if: "money.payer!=Myself (savings and part-time job)" },
     ]},
@@ -641,6 +675,7 @@ const SP_EXT = {
     { k: "loa", l: "Letter of acceptance for the new program or school", r: 1, if: "study.change!=More time in the same program" },
     { k: "pal", l: "Provincial or territorial attestation letter (PAL/TAL)", r: 1, if: "study.pal=Yes" },
     { k: "enrolment", l: "Current enrolment letter showing expected completion date", r: 1 },
+    { k: "leave_letter", l: "School letter confirming the dates of any break or leave", if: "history.leave=Yes" },
     { k: "transcripts", l: "Transcripts for every term studied in Canada", r: 1 },
     { k: "tuition_receipt", l: "Tuition fee receipts", r: 1 },
     { k: "caq", l: "Quebec acceptance certificate (CAQ)", r: 1, if: "study.quebec=Yes" },
@@ -654,7 +689,8 @@ const SP_EXT = {
 
 /* ---------- Work permit extension or new employer (IMM 5710) ---------- */
 const JOB = (id, title) => ({ id, title, fields: [
-  { k: "basis", l: "What is the new work permit based on?", t: "s", r: 1, o: ["LMIA", "LMIA-exempt job offer (employer portal offer number)", "Provincial nomination (employer-specific)", "Open work permit", "Not sure"] },
+  { k: "basis", l: "What is the new work permit based on?", t: "s", r: 1, o: ["LMIA", "LMIA applied for, decision pending", "LMIA-exempt job offer (employer portal offer number)", "Provincial nomination (employer-specific)", "Open work permit", "Not sure"] },
+  { k: "lmia_file", l: "LMIA application file number and date the employer applied", t: "t", r: 1, if: `${id}.basis=LMIA applied for, decision pending`, full: 1, h: "If you are in Canada with a valid permit, IRCC can hold your work permit application while the LMIA is decided." },
   { k: "same_employer", l: "Is it the same employer as your current permit?", t: "yn", r: 1 },
   { k: "lmia_no", l: "LMIA number", t: "t", r: 1, if: `${id}.basis=LMIA`, h: "The 7 to 9 digit number on the positive LMIA letter." },
   { k: "offer_no", l: "Offer of employment number", t: "t", r: 1, if: `${id}.basis=LMIA-exempt job offer (employer portal offer number)`, h: "Starts with A followed by 7 digits. The employer gets it from the IRCC Employer Portal." },
@@ -697,6 +733,7 @@ const WP_EXT = {
   ],
   docs: docsOf(D_ID, D_STATUS, [
     { k: "lmia", l: "Positive LMIA letter and Annex A", r: 1, if: "job.basis=LMIA" },
+    { k: "lmia_pending", l: "Proof the employer applied for the LMIA (Service Canada acknowledgment)", r: 1, if: "job.basis=LMIA applied for, decision pending" },
     { k: "offer", l: "Signed job offer or employment contract", r: 1, if: "job.basis!=Open work permit" },
     { k: "offer_confirm", l: "Employer Portal offer of employment confirmation (shows the A-number and fee paid)", r: 1, if: "job.basis=LMIA-exempt job offer (employer portal offer number)" },
     { k: "nomination", l: "Provincial nomination letter and work permit support letter", r: 1, if: "job.basis=Provincial nomination (employer-specific)" },
@@ -737,8 +774,13 @@ const PGWP = {
       { k: "other_details", l: "School, program, dates and credential", t: "ta", r: 1, if: "program.other_programs=Yes", full: 1 },
       { k: "sp_valid", l: "Was your study permit valid on the day you will apply (or are you on maintained status)?", t: "s", r: 1, o: ["Yes, valid", "Maintained status", "No, it expired"], full: 1 },
       { k: "pgwp_before", l: "Have you ever had a post-graduation work permit before?", t: "yn", r: 1, h: "A PGWP is given only once." },
+      { k: "sp_first", l: "When did you first apply for the study permit for this program?", t: "s", r: 1, o: ["Before November 1, 2024", "On or after November 1, 2024"], h: "Non-degree programs (certificates, diplomas) started with a study permit applied for on or after November 1, 2024 must be in an eligible field of study." },
+      { k: "licensed", l: "Was the program delivered by a private college under a licence from a public college (curriculum licensing)?", t: "s", r: 1, o: ["No", "Yes", "Not sure"], full: 1, h: "Programs like this are generally not eligible for a PGWP. Your school can confirm." },
+      { k: "off_campus", l: "Did you work off campus during your studies?", t: "yn", r: 1 },
+      { k: "over_hours", l: "Did you ever work off campus more than the allowed hours during a class term (24 hours a week since November 8, 2024; 20 before)?", t: "s", r: 1, if: "program.off_campus=Yes", o: ["No", "Yes", "Not sure"], full: 1, h: "Tell us honestly. Working over the limit can make you ineligible; we will review it with you." },
+      { k: "where", l: "Where will you apply from?", t: "s", r: 1, o: ["Inside Canada", "Outside Canada"], h: "PGWP can't be applied for at the border (flagpoling) any more." },
       { k: "lang_test", l: "Have you taken an English or French test for this application?", t: "s", r: 1, o: ["Yes", "Booked", "No"], h: "IRCC requires a language test for most PGWP applications made since November 2024 (CLB 7 for degree programs, CLB 5 for college programs)." },
-      { k: "lang_result", l: "Test, date and scores (listening, reading, writing, speaking)", t: "t", r: 1, if: "program.lang_test=Yes", full: 1 },
+      { k: "lang_result", l: "Test, date and scores (listening, reading, writing, speaking)", t: "t", r: 1, if: "program.lang_test=Yes", full: 1, h: "The result must be less than 2 years old when you apply. CLB 7 for university degrees, CLB 5 for college programs, in all four skills." },
     ]},
     ...TAIL, ...END,
   ],
@@ -749,6 +791,8 @@ const PGWP = {
     { k: "online_letter", l: "School letter showing terms studied online", if: "program.online=Yes" },
     { k: "gap_letter", l: "School letter about any leave or part-time term", if: "program.fulltime=No" },
     { k: "other_programs", l: "Completion letters and transcripts for earlier programs in Canada", if: "program.other_programs=Yes" },
+    { k: "work_records", l: "Pay stubs or T4s from off-campus jobs during your studies", if: "program.off_campus=Yes" },
+    { k: "fos_proof", l: "School letter or page showing the program's CIP code", if: "program.sp_first=On or after November 1, 2024" },
   ], D_FAMILY, D_BACK, D_OTHER),
 };
 
@@ -764,15 +808,19 @@ const SOWP_IN = {
       { k: "given_names", l: "Partner's given names", t: "t", r: 1 },
       { k: "dob", l: "Partner's date of birth", t: "d", r: 1 },
       { k: "uci", l: "Partner's UCI number", t: "t" },
-      { k: "status", l: "Partner's status in Canada", t: "s", r: 1, o: ["Worker", "Student", "Permanent residence applicant with a work permit", "Other"] },
+      { k: "status", l: "Partner's status in Canada", t: "s", r: 1, o: ["Worker", "Student", "Permanent residence applicant with a work permit", "Worker on a provincial or pilot PR pathway (not applied yet)", "Other"] },
       { k: "permit_no", l: "Partner's permit number", t: "t", r: 1 },
       { k: "permit_expiry", l: "Partner's permit expiry date", t: "d", r: 1 },
-      { k: "employer", l: "Partner's employer", t: "t", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit" },
-      { k: "job_title", l: "Partner's job title", t: "t", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit" },
-      { k: "noc", l: "Partner's NOC code and TEER", t: "t", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit", h: "Since January 2025 the partner's job must usually be TEER 0 or 1, or in a listed TEER 2 or 3 occupation." },
-      { k: "wp_type", l: "Partner's work permit type", t: "s", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit", o: ["LMIA-based", "LMIA-exempt employer-specific", "Open work permit (PGWP, BOWP, etc.)", "Not sure"] },
+      { k: "employer", l: "Partner's employer", t: "t", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit|Worker on a provincial or pilot PR pathway (not applied yet)" },
+      { k: "job_title", l: "Partner's job title", t: "t", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit|Worker on a provincial or pilot PR pathway (not applied yet)" },
+      { k: "noc", l: "Partner's NOC code and TEER", t: "t", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit|Worker on a provincial or pilot PR pathway (not applied yet)", h: "For most workers the job must be TEER 0 or 1, or a listed TEER 2 or 3 occupation, and their permit must be valid at least 16 months after IRCC receives your application." },
+      { k: "wp_type", l: "Partner's work permit type", t: "s", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit|Worker on a provincial or pilot PR pathway (not applied yet)", o: ["LMIA-based", "LMIA-exempt employer-specific", "Post-graduation work permit (PGWP)", "Spousal open work permit", "Other open work permit (BOWP, etc.)", "Not sure"], h: "A partner who holds a spousal open work permit can't be the basis for yours." },
+      { k: "months_left", l: "Will the partner's permit still be valid at least 16 months after you apply?", t: "s", r: 1, if: "partner.status=Worker", o: ["Yes", "No", "Not sure"], h: "6 months is enough if the partner has applied for PR, or is on an eligible PR pathway." },
+      { k: "sip", l: "Is the partner working for a BC employer under a provincial support (SIP) agreement?", t: "yn", if: "partner.status=Worker", h: "Since March 23, 2026, spouses of these workers can apply at any TEER level." },
+      { k: "qc_health", l: "Was the partner recruited by Quebec as a health professional (NOC 31301, 32103 or 32120)?", t: "yn", if: "partner.status=Worker" },
       { k: "school", l: "Partner's school and program", t: "t", r: 1, if: "partner.status=Student", full: 1 },
-      { k: "level", l: "Partner's level of study", t: "s", r: 1, if: "partner.status=Student", o: ["Master's (16 months or longer)", "Master's (under 16 months)", "PhD", "Professional degree (medicine, law, dentistry, nursing, pharmacy, engineering, education, etc.)", "College or bachelor's", "Other"] },
+      { k: "level", l: "Partner's level of study", t: "s", r: 1, if: "partner.status=Student", o: ["Master's (16 months or longer)", "Master's (under 16 months)", "PhD", "Professional degree (medicine, law, dentistry, nursing, pharmacy, engineering, education, etc.)", "College or bachelor's", "Other"], h: "Since January 21, 2025: PhD, master's of 16 months or longer, and certain professional programs only." },
+      { k: "pr_pathway", l: "Which PR pathway, and is the partner's job in TEER 4 or 5?", t: "t", r: 1, if: "partner.status=Worker on a provincial or pilot PR pathway (not applied yet)", full: 1 },
       { k: "prog_end", l: "Partner's program end date", t: "d", r: 1, if: "partner.status=Student" },
       { k: "pr_app", l: "Partner's PR or nomination program and file number", t: "t", r: 1, if: "partner.status=Permanent residence applicant with a work permit" },
       { k: "in_canada", l: "Is your partner living in Canada now?", t: "yn", r: 1 },
@@ -791,8 +839,11 @@ const SOWP_IN = {
     { k: "marriage_proof", l: "Marriage certificate, or IMM 5409 with proof of 12 months living together", r: 1 },
     { k: "partner_passport", l: "Partner's passport bio page", r: 1 },
     { k: "partner_permit", l: "Partner's work or study permit", r: 1 },
-    { k: "partner_job", l: "Partner's employment letter (job title, NOC, wage, start date) and 3 recent pay stubs", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit" },
-    { k: "partner_lmia", l: "Partner's LMIA or offer of employment confirmation", if: "partner.status=Worker|Permanent residence applicant with a work permit" },
+    { k: "partner_job", l: "Partner's employment letter (job title, NOC, wage, start date) and 3 recent pay stubs", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit|Worker on a provincial or pilot PR pathway (not applied yet)" },
+    { k: "partner_lmia", l: "Partner's LMIA or offer of employment confirmation", if: "partner.status=Worker|Permanent residence applicant with a work permit|Worker on a provincial or pilot PR pathway (not applied yet)" },
+    { k: "partner_sip", l: "Provincial letter of support naming the SIP agreement", r: 1, if: "partner.sip=Yes" },
+    { k: "partner_qc", l: "Partner's Quebec letter of selection", r: 1, if: "partner.qc_health=Yes" },
+    { k: "partner_pathway", l: "Proof of the partner's PR pathway (program letter, employer endorsement)", r: 1, if: "partner.status=Worker on a provincial or pilot PR pathway (not applied yet)" },
     { k: "partner_school", l: "Partner's enrolment letter and transcript", r: 1, if: "partner.status=Student" },
     { k: "partner_pr", l: "Partner's PR or nomination acknowledgment letter", r: 1, if: "partner.status=Permanent residence applicant with a work permit" },
     { k: "together_proof", l: "Proof you live together (lease, joint bills or bank account, ID with the same address)", r: 1 },
@@ -816,8 +867,11 @@ const BOWP = {
       { k: "province", l: "Province that nominated you", t: "t", r: 1, if: "pr.program=Provincial Nominee Program (PNP)" },
       { k: "nom_date", l: "Nomination date and certificate number", t: "t", r: 1, if: "pr.program=Provincial Nominee Program (PNP)" },
       { k: "nom_employer", l: "Is the nomination tied to an employer?", t: "yn", r: 1, if: "pr.program=Provincial Nominee Program (PNP)" },
+      { k: "nom_expired", l: "Has the nomination certificate expired?", t: "s", r: 1, if: "pr.program=Provincial Nominee Program (PNP)", o: ["No", "Yes", "Not sure"], h: "A temporary measure (to December 31, 2026) lets officers confirm a pending PR application even if the nomination has expired." },
+      { k: "nom_restrict", l: "Does the nomination limit you to an employer, job or region?", t: "t", if: "pr.program=Provincial Nominee Program (PNP)", full: 1 },
       { k: "employer", l: "Current employer and job title", t: "t", r: 1, full: 1 },
       { k: "living_prov", l: "Province you live and work in", t: "t", r: 1 },
+      { k: "family_owp", l: "Will your spouse or partner apply for an open work permit with you?", t: "yn", r: 1 },
     ]},
     ...TAIL, ...END,
   ],
@@ -846,6 +900,7 @@ const VOWP = {
       { k: "housing", l: "Do you live in housing provided by the employer?", t: "yn", r: 1 },
     ]},
     { id: "job", title: "The employer named on your permit", fields: [
+      { k: "permit_type", l: "Type of work permit you hold", t: "s", r: 1, o: ["Employer-specific, LMIA-based (including seasonal agricultural)", "Employer-specific, LMIA-exempt", "Open work permit", "Waiting on a renewal I applied for", "Not sure"], h: "This permit is for workers on an employer-specific permit (or waiting on its renewal). If yours is open, tell us anyway and we will advise." },
       { k: "employer", l: "Employer name", t: "t", r: 1 },
       { k: "address", l: "Work address", t: "ta", r: 1, full: 1 },
       { k: "title", l: "Your job title", t: "t", r: 1 },
@@ -864,11 +919,13 @@ const VOWP = {
       { k: "reported", l: "Have you reported this to anyone (police, employment standards, a support organization, a doctor)?", t: "yn", r: 1, full: 1 },
       { k: "reported_details", l: "Who, and when", t: "ta", r: 1, if: "situation.reported=Yes", full: 1 },
       { k: "family_owp", l: "Are family members in Canada with you who also need a permit?", t: "yn", r: 1 },
+      { k: "family_names", l: "Their names, relationship and current status", t: "ta", r: 1, if: "situation.family_owp=Yes", full: 1 },
+      { k: "inspection", l: "If approved, would you be willing for IRCC to contact you about inspecting the employer?", t: "s", o: ["Yes", "No", "I want to talk about it first"], h: "Optional. Your answer doesn't affect the decision." },
     ]},
     ...TAIL, ...END,
   ],
   docs: docsOf(D_ID, D_STATUS, [
-    { k: "statement", l: "Your written statement (optional; we can prepare it from your answers)" },
+    { k: "statement", l: "Your Letter of Explanation (IMM 0017) or written statement", h: "Optional. We can prepare the IMM 0017 from your answers for you to sign." },
     { k: "evidence", l: "Anything that supports what happened: messages, photos, pay records, bank deposits, medical notes", h: "Optional. Share only what is safe to upload." },
     { k: "support_letter", l: "Letter from a support organization, social worker, doctor or counsellor", if: "situation.reported=Yes" },
     { k: "reports", l: "Police report or employment standards complaint", if: "situation.reported=Yes" },
@@ -891,11 +948,13 @@ const RESTORE = {
       { k: "explain", l: "Explain what happened in your own words", t: "ta", r: 1, full: 1 },
       { k: "since", l: "Have you worked or studied since your status expired?", t: "yn", r: 1 },
       { k: "since_details", l: "Give details (where and dates)", t: "ta", r: 1, if: "lost.since=Yes", full: 1 },
+      { k: "left_canada", l: "Have you left Canada since your status expired?", t: "yn", r: 1, full: 1, h: "You must stay in Canada until IRCC decides a restoration application." },
+      { k: "trp", l: "Was your last status a temporary resident permit (TRP)?", t: "yn", r: 1, h: "TRP holders can't restore status; we will look at other options." },
       { k: "kept", l: "Before it expired, did you follow every condition on your permit (employer, school, no work)?", t: "yn", r: 1, full: 1 },
       { k: "kept_details", l: "Explain", t: "ta", r: 1, if: "lost.kept=No", full: 1 },
     ]},
     { id: "restore_to", title: "What you want to restore to", fields: [
-      { k: "to", l: "Restore status as a", t: "s", r: 1, o: ["Visitor", "Student", "Worker"] },
+      { k: "to", l: "Restore status as a", t: "s", r: 1, o: ["Visitor", "Student", "Worker"], h: "Since May 2026, a former worker or student can restore as a visitor even without a new job or school." },
       { k: "reason", l: "Why do you need to stay, and until when?", t: "ta", r: 1, full: 1 },
       { k: "until", l: "Stay requested until", t: "d", r: 1 },
       { k: "school", l: "School, DLI number and program", t: "t", r: 1, if: "restore_to.to=Student", full: 1 },
@@ -1001,6 +1060,7 @@ const RESTORE_WP = {
       { k: "worked_details", l: "Where, dates and hours", t: "ta", r: 1, if: "lost.worked_after=Yes", full: 1 },
       { k: "kept", l: "While your permit was valid, did your work always match its conditions (employer, job, location)?", t: "yn", r: 1, full: 1 },
       { k: "kept_details", l: "Explain what was different", t: "ta", r: 1, if: "lost.kept=No", full: 1 },
+      { k: "left_canada", l: "Have you left Canada since your status expired?", t: "yn", r: 1, full: 1, h: "You must stay in Canada until IRCC decides a restoration application." },
       { k: "earlier_restore", l: "Have you applied for restoration of status before?", t: "yn", r: 1 },
       { k: "earlier_details", l: "When, and what was the result?", t: "t", r: 1, if: "lost.earlier_restore=Yes", full: 1 },
     ]},
@@ -1019,6 +1079,7 @@ const RESTORE_WP = {
     { k: "refused_app", l: "Copy of the refused or returned application (forms and submission confirmation)", if: "lost.why=Extension application was refused|Application was returned as incomplete" },
     { k: "explanation", l: "Your letter explaining why your status expired and why it should be restored", h: "We can write this from your answers." },
     { k: "lmia", l: "Positive LMIA letter and Annex A", r: 1, if: "job.basis=LMIA" },
+    { k: "lmia_pending", l: "Proof the employer applied for the LMIA (Service Canada acknowledgment)", r: 1, if: "job.basis=LMIA applied for, decision pending" },
     { k: "offer_confirm", l: "Employer Portal offer of employment confirmation (shows the A-number and fee paid)", r: 1, if: "job.basis=LMIA-exempt job offer (employer portal offer number)" },
     { k: "nomination", l: "Provincial nomination letter and work permit support letter", r: 1, if: "job.basis=Provincial nomination (employer-specific)" },
     { k: "offer", l: "Signed job offer or employment contract", r: 1, if: "job.basis!=Open work permit" },
@@ -1036,41 +1097,237 @@ const RESTORE_WP = {
   ], D_FAMILY, D_BACK, D_OTHER),
 };
 
-/* ---------- Temporary resident permit inside Canada (IMM 5708) ---------- */
+/* ---------- Temporary resident permit (TRP): shared module for inside and outside Canada ----------
+   A TRP is discretionary. The officer weighs the NEED for the person to be in Canada against the RISK to Canadians,
+   so the form collects (1) every ground of inadmissibility in full, (2) each offence with its complete sentence,
+   (3) evidence of rehabilitation, (4) a specific, time-bound need, and (5) references and ties that lower the risk.
+   Inside Canada it also covers the TRPs for victims of family violence and of human trafficking (IMM 5708 + request
+   letter). Outside Canada it goes with IMM 5257 and Schedule 1, or is requested at a port of entry. */
+const G_CRIM = "Criminal record (including impaired driving)";
+const G_MED = "Medical reasons";
+const G_IMM_OUT = "Previous overstay or work without permission";
+const G_IMM_IN = "Out of status more than 90 days (can't restore)";
+const G_MIS = "Misrepresentation finding";
+const G_REM = "Previous removal or deportation";
+const G_FV = "Victim of family violence (my status depended on an abusive spouse or partner)";
+const G_TIP = "Victim of human trafficking";
+const C_CRIM = `inadm.ground=${G_CRIM};inadm.x_crim=true`;
+const C_MED = `inadm.ground=${G_MED};inadm.x_med=true`;
+const C_IMM = `inadm.ground=${G_IMM_OUT}|${G_IMM_IN};inadm.x_imm=true`;
+const C_MIS = `inadm.ground=${G_MIS};inadm.x_mis=true`;
+const C_REM = `inadm.ground=${G_REM};inadm.x_rem=true`;
+const C_HIST = [C_IMM, C_MIS, C_REM].join(";");
+const C_SAFE = `inadm.ground=${G_FV}|${G_TIP}`;
+const C_TOLD = "inadm.learned=Refused a visa or permit|Refused entry at the Canadian border|Told by an IRCC or CBSA officer";
+
+const TRP_INADM = (inside) => { const also = "inadm.also_yn=Yes"; return { id: "inadm", title: "Why you need a TRP",
+  intro: "Tell us everything, even things that happened long ago, were dismissed or were cleared. IRCC and CBSA share records with many countries, and leaving something out can be treated as misrepresentation, which brings a 5-year ban.", fields: [
+  { k: "ground", l: inside ? "Main reason you can't stay or extend the usual way" : "Main reason you are inadmissible to Canada", t: "s", r: 1, full: 1,
+    o: inside ? [G_CRIM, G_MED, G_IMM_IN, G_MIS, G_REM, G_FV, G_TIP, "Other"] : [G_CRIM, G_MED, G_IMM_OUT, G_MIS, G_REM, "Other"] },
+  { k: "ground_other", l: "Describe", t: "t", r: 1, if: "inadm.ground=Other", full: 1 },
+  { k: "also_yn", l: "Does any other reason also apply?", t: "yn", r: 1, h: "For example, a criminal record and an earlier overstay.", if: `inadm.ground!=${G_FV}|${G_TIP}` },
+  { k: "x_crim", l: "Criminal record or charges (any country)", t: "cb", if: also },
+  { k: "x_med", l: "Medical condition", t: "cb", if: also },
+  { k: "x_imm", l: inside ? "Overstay, or work or study without permission" : "Previous overstay or work without permission", t: "cb", if: also },
+  { k: "x_mis", l: "Misrepresentation finding", t: "cb", if: also },
+  { k: "x_rem", l: "Removal order or deportation", t: "cb", if: also },
+  { k: "x_other", l: "Something else (explain in the box below)", t: "cb", if: also },
+  { k: "details", l: "In your own words: what happened, when and where", t: "ta", r: 1, full: 1, if: `inadm.ground!=${G_FV}|${G_TIP}` },
+  { k: "learned", l: "How did you find out you may be inadmissible?", t: "s", r: 1, full: 1, if: `inadm.ground!=${G_FV}|${G_TIP}`,
+    o: ["Refused a visa or permit", "Refused entry at the Canadian border", "Told by an IRCC or CBSA officer", "Advised by a lawyer or consultant", "I haven't applied yet – I think I may be"] },
+  { k: "learned_date", l: "Date of that refusal or decision", t: "d", r: 1, if: C_TOLD },
+  { k: "since_entry", l: inside ? "Have you left Canada and come back since this issue began?" : "Have you entered Canada since this issue began (offence, refusal or removal)?", t: "yn", r: 1, full: 1, if: `inadm.ground!=${G_FV}|${G_TIP}` },
+  { k: "since_entry_details", l: "Dates, and did you tell the border officer about the issue?", t: "ta", r: 1, if: "inadm.since_entry=Yes", full: 1 },
+  { k: "crim_h", l: "Criminal record summary", t: "h", if: C_CRIM },
+  { k: "offence_date", l: "Date of the most recent offence", t: "d", r: 1, if: C_CRIM },
+  { k: "sentence_done", l: "Date the last part of any sentence ended (jail, probation, fines paid, licence suspension)", t: "d", r: 1, if: C_CRIM, full: 1, h: "Criminal rehabilitation is possible 5 years after this date. A TRP is often the only option before then." },
+  { k: "rehab", l: "Have you applied for criminal rehabilitation?", t: "s", if: C_CRIM, o: ["Yes", "No", "Not yet eligible (under 5 years since sentence ended)"] },
+  { k: "rehab_details", l: "Date applied, application number and result", t: "t", r: 1, if: "inadm.rehab=Yes" },
+  ...(inside ? [{ k: "out_since", l: "Date your status ended", t: "d", r: 1, if: C_IMM }] : []),
+  { k: "removal_date", l: "Date of the removal order or deportation, and the country", t: "t", r: 1, if: C_REM },
+  { k: "arc", l: "Have you applied for an Authorization to Return to Canada (ARC)?", t: "yn", if: C_REM, h: "Needed after a deportation order, or an exclusion order in its first year (2 years for misrepresentation)." },
+  { k: "prev_h", l: "Earlier requests", t: "h" },
+  { k: "prev_trp", l: "Have you had a TRP before?", t: "yn", r: 1 },
+  { k: "prev_trp_details", l: "Dates, permit numbers and the reason for each", t: "t", r: 1, if: "inadm.prev_trp=Yes", full: 1 },
+  { k: "prev_trp_ok", l: "Did you follow every condition of that TRP and leave (or extend) on time?", t: "yn", r: 1, if: "inadm.prev_trp=Yes" },
+  { k: "trp_refused", l: "Has a TRP, criminal rehabilitation or ARC request ever been refused?", t: "yn", r: 1, full: 1 },
+  { k: "trp_refused_details", l: "What was refused, when, and the reason given", t: "ta", r: 1, if: "inadm.trp_refused=Yes", full: 1 },
+  { k: "pr_app", l: "Is there a PR, H&C, sponsorship or other application in process for you?", t: "yn", r: 1, full: 1 },
+  { k: "pr_app_details", l: "Type, file number and stage", t: "t", r: 1, if: "inadm.pr_app=Yes", full: 1 },
+]}; };
+
+const TRP_OFFENCES = { id: "offences", title: "Every arrest, charge and conviction", if: C_CRIM,
+  intro: "One entry for each charge, in any country, newest first. Include charges that were dismissed, withdrawn, pardoned, expunged or sealed, and youth matters. Copy the wording from your court papers where you can.",
+  rep: { min: 1, max: 12, add: "Add another charge" }, fields: [
+  { k: "country", l: "Country", t: "c", r: 1 },
+  { k: "region", l: "State, province or region", t: "t" },
+  { k: "city", l: "City or town", t: "t" },
+  { k: "date", l: "Date of the offence", t: "d", r: 1 },
+  { k: "charge", l: "Charge, exactly as written on the court record", t: "t", r: 1, full: 1, h: "Example: Driving under the influence, California Vehicle Code 23152(a)." },
+  { k: "impaired", l: "Did it involve alcohol, drugs or driving?", t: "yn", r: 1 },
+  { k: "bac", l: "Blood alcohol reading, if known", t: "t", if: "@impaired=Yes" },
+  { k: "harm", l: "Was anyone hurt, or was property damaged?", t: "yn", r: 1 },
+  { k: "harm_details", l: "Describe", t: "ta", r: 1, if: "@harm=Yes", full: 1 },
+  { k: "outcome", l: "Outcome", t: "s", r: 1, full: 1, o: ["Convicted (found guilty or pleaded guilty)", "Discharge, deferred judgment or diversion", "Charge withdrawn, dismissed or stayed", "Acquitted (found not guilty)", "Still pending", "Youth (juvenile) matter", "Don't know"] },
+  { k: "outcome_date", l: "Date of conviction or final court decision", t: "d", r: 1, if: "@outcome!=Still pending|Don't know" },
+  { k: "court", l: "Court name and case or docket number", t: "t" },
+  { k: "jail", l: "Jail or custody (length and dates)", t: "t" },
+  { k: "fine", l: "Fine amount and date fully paid", t: "t" },
+  { k: "probation", l: "Probation (from and to dates)", t: "t" },
+  { k: "licence", l: "Driving licence suspension (from and to dates)", t: "t", if: "@impaired=Yes" },
+  { k: "other_orders", l: "Other orders (community service, DUI classes, ignition interlock, restitution)", t: "t", full: 1 },
+  { k: "done", l: "Date every part of this sentence was completed", t: "d", r: 1, if: "@outcome=Convicted (found guilty or pleaded guilty)|Discharge, deferred judgment or diversion" },
+  { k: "cleared", l: "Has this record been cleared?", t: "s", r: 1, o: ["No", "Pardon or record suspension", "Expunged, set aside or dismissed after sentence", "Sealed", "Don't know"] },
+  { k: "story", l: "What happened, in your own words", t: "ta", r: 1, full: 1 },
+]};
+
+const TRP_REHAB = { id: "rehab_ev", title: "What has changed since", if: C_CRIM,
+  intro: "The officer must be satisfied you are unlikely to offend again. Specific, provable changes carry the most weight.", fields: [
+  { k: "view", l: "How do you see the offence today, and what have you learned from it?", t: "ta", r: 1, full: 1 },
+  { k: "changes", l: "What have you changed in your life since then?", t: "ta", r: 1, full: 1, h: "Stable work, family responsibilities, sobriety, counselling, who you spend time with, community involvement." },
+  { k: "programs_yn", l: "Have you completed any course, treatment or counselling (alcohol education, addiction treatment, anger management)?", t: "yn", r: 1, full: 1 },
+  { k: "programs", l: "Program names, providers and completion dates", t: "ta", r: 1, if: "rehab_ev.programs_yn=Yes", full: 1 },
+  { k: "substance", l: "If alcohol or drugs were involved, how do you manage that now?", t: "ta", full: 1 },
+  { k: "since_yn", l: "Any arrest, charge, ticket or police contact since your last offence?", t: "yn", r: 1, full: 1 },
+  { k: "since_details", l: "Give details", t: "ta", r: 1, if: "rehab_ev.since_yn=Yes", full: 1 },
+  { k: "licence_now", l: "Is your driving licence valid today?", t: "s", o: ["Yes", "No – still suspended", "I don't drive", "Never had one"] },
+  { k: "community", l: "Volunteer, religious or community involvement", t: "ta", full: 1 },
+]};
+
+const TRP_MED = { id: "med", title: "Medical condition", if: C_MED,
+  intro: "Usually this means a condition found in an immigration medical exam that could endanger public health or need costly care in Canada.", fields: [
+  { k: "condition", l: "Condition or diagnosis", t: "t", r: 1, full: 1 },
+  { k: "since", l: "Diagnosed on", t: "d" },
+  { k: "doctor", l: "Treating doctor or clinic (name, city, phone)", t: "t", full: 1 },
+  { k: "treatment", l: "Current treatment and medicines", t: "ta", r: 1, full: 1 },
+  { k: "state", l: "How is the condition now?", t: "s", r: 1, o: ["Stable or controlled", "Improving", "Getting worse", "Not sure"] },
+  { k: "hospital_yn", l: "Any hospital stays in the past 5 years?", t: "yn", r: 1 },
+  { k: "hospital", l: "Dates and reasons", t: "ta", r: 1, if: "med.hospital_yn=Yes", full: 1 },
+  { k: "contagious", l: "Has a doctor said it can spread to other people?", t: "s", r: 1, o: ["No", "Yes", "It did, but treatment is complete", "Not sure"] },
+  { k: "ime", l: "Was it found in a medical exam for Canadian immigration?", t: "yn", r: 1 },
+  { k: "ime_date", l: "Date of that exam and the panel physician", t: "t", if: "med.ime=Yes" },
+  { k: "care_canada", l: "Will you need medical care or treatment while in Canada?", t: "yn", r: 1, full: 1 },
+  { k: "care_details", l: "What care, where, and the expected cost", t: "ta", r: 1, if: "med.care_canada=Yes", full: 1 },
+  { k: "pay", l: "Who will pay for any medical care in Canada?", t: "s", r: 1, o: ["Private medical or travel insurance", "Me or my family", "My employer", "No care needed during the stay", "Other"] },
+  { k: "insurance", l: "Insurer, policy number and coverage amount", t: "t", if: "med.pay=Private medical or travel insurance", full: 1 },
+]};
+
+const TRP_IMMHIST = { id: "immhist", title: "Immigration history in detail", if: C_HIST, fields: [
+  { k: "ov_h", l: "Overstay, or work or study without permission", t: "h", if: C_IMM },
+  { k: "ov_country", l: "Country", t: "c", r: 1, if: C_IMM },
+  { k: "ov_from", l: "Date status ended (or unauthorized work or study began)", t: "d", r: 1, if: C_IMM },
+  { k: "ov_to", l: "Date it ended (left, or got status again)", t: "d", if: C_IMM, h: "Leave blank if it is still going on." },
+  { k: "ov_why", l: "Why did it happen?", t: "ta", r: 1, if: C_IMM, full: 1 },
+  { k: "ov_work", l: "Did you work or study without permission?", t: "yn", r: 1, if: C_IMM },
+  { k: "ov_work_details", l: "Employer or school, dates and job", t: "ta", r: 1, if: "immhist.ov_work=Yes", full: 1 },
+  { k: "ov_restore", l: "Did you apply for restoration or any other status? What happened?", t: "t", if: C_IMM, full: 1 },
+  { k: "mis_h", l: "Misrepresentation", t: "h", if: C_MIS },
+  { k: "mis_date", l: "Date of the misrepresentation decision (date on the letter)", t: "d", r: 1, if: C_MIS, h: "The 5-year ban runs from this date." },
+  { k: "mis_app", l: "Application it was found on (type and number)", t: "t", r: 1, if: C_MIS },
+  { k: "mis_what", l: "What did IRCC say was false or missing, and what is the truth?", t: "ta", r: 1, if: C_MIS, full: 1 },
+  { k: "mis_by", l: "Was the false information or document supplied by someone else (agent, employer, school)?", t: "yn", r: 1, if: C_MIS, full: 1 },
+  { k: "mis_by_details", l: "Who, and what you knew at the time", t: "ta", r: 1, if: "immhist.mis_by=Yes", full: 1 },
+  { k: "mis_challenge", l: "Was the decision challenged (reconsideration or Federal Court)? Result?", t: "t", if: C_MIS, full: 1 },
+  { k: "rem_h", l: "Removal order", t: "h", if: C_REM },
+  { k: "rem_type", l: "Type of removal order", t: "s", r: 1, if: C_REM, o: ["Departure order", "Exclusion order", "Deportation order", "Don't know"] },
+  { k: "rem_reason", l: "Reason on the removal order", t: "t", r: 1, if: C_REM, full: 1 },
+  { k: "rem_left", l: "Date you actually left Canada", t: "d", r: 1, if: C_REM },
+  { k: "rem_cbsa", l: "Did you confirm your departure with CBSA (Certificate of Departure)?", t: "s", r: 1, if: C_REM, o: ["Yes", "No", "Don't know"] },
+  { k: "rem_paid", l: "Did the Canadian government pay for your removal?", t: "s", r: 1, if: C_REM, o: ["Yes", "No", "Don't know"], h: "If yes, that cost usually has to be repaid before you can return." },
+]};
+
+const TRP_SAFETY = { id: "safety", title: "Your safety", if: C_SAFE,
+  intro: "You don't have to write the details here. We can talk by phone at a time that is safe for you. If you are in danger now, call 911.", fields: [
+  { k: "safe_now", l: "Are you living somewhere safe now?", t: "yn", r: 1 },
+  { k: "contact", l: "Safest way and time to contact you", t: "t", r: 1, full: 1, h: "Tell us if we must not leave voice messages or write to a certain email." },
+  { k: "fv_status", l: "Status in Canada of the person who harmed you", t: "s", r: 1, if: `inadm.ground=${G_FV}`, o: ["Canadian citizen", "Permanent resident", "Temporary resident (worker or student)", "Don't know"] },
+  { k: "fv_basis", l: "Was your status in Canada based on your relationship with them?", t: "s", r: 1, if: `inadm.ground=${G_FV}`, full: 1, o: ["Yes – spousal open work permit", "Yes – visitor or other permit as their spouse or partner", "Yes – I was being sponsored by them", "No", "Not sure"] },
+  { k: "fv_left", l: "Date you left the relationship (if you have)", t: "d", if: `inadm.ground=${G_FV}` },
+  { k: "summary", l: "Anything you want us to know now (optional)", t: "ta", full: 1 },
+  { k: "help_yn", l: "Are you getting help from police, a shelter, a doctor, a counsellor or a support agency?", t: "yn", r: 1, full: 1 },
+  { k: "help_who", l: "Who helps you, and may we contact them?", t: "t", r: 1, if: "safety.help_yn=Yes", full: 1 },
+  { k: "children", l: "Are any of your children with you in Canada?", t: "yn", r: 1 },
+  { k: "children_details", l: "Their names, ages and status", t: "ta", r: 1, if: "safety.children=Yes", full: 1 },
+]};
+
+const TRP_REFS = { id: "refs", title: "Character references and supporters",
+  intro: "People who will write a support letter: employers, community or religious leaders, family and friends. The strongest letters are signed and dated, on letterhead where possible, say how long the writer has known you, and show they know about the issue.",
+  rep: { min: 0, max: 8, add: "Add a reference" }, fields: [
+  { k: "name", l: "Full name", t: "t", r: 1 },
+  { k: "relation", l: "Relationship to you", t: "t", r: 1 },
+  { k: "occupation", l: "Their occupation and employer", t: "t" },
+  { k: "years", l: "Years they have known you", t: "n" },
+  { k: "phone", l: "Phone", t: "p" },
+  { k: "email", l: "Email", t: "e" },
+  { k: "where", l: "Where they live", t: "s", o: ["In Canada – citizen or PR", "In Canada – temporary resident", "Outside Canada"] },
+  { k: "aware", l: "Do they know about the issue?", t: "yn", r: 1 },
+]};
+
+const TRP_NEED_IN = { id: "need", title: "Why you need to stay in Canada",
+  intro: "The officer weighs your need to stay against any risk. Be specific: names, dates, what depends on you being here.", fields: [
+  { k: "purpose", l: "Main reason you need to stay", t: "s", r: 1, full: 1, o: ["Family in Canada (spouse, children, parents)", "Waiting for a PR, H&C or sponsorship decision", "Medical treatment", "Work", "Study", "Safety or protection", "Other"] },
+  { k: "purpose_other", l: "Describe", t: "t", r: 1, if: "need.purpose=Other", full: 1 },
+  { k: "reasons", l: "Why should you be allowed to stay? Give specifics", t: "ta", r: 1, full: 1 },
+  { k: "hardship", l: "What would happen to you and your family if you had to leave Canada now?", t: "ta", r: 1, full: 1 },
+  { k: "establish", l: "Your life in Canada: how long here, work, home, community", t: "ta", r: 1, full: 1 },
+  { k: "until", l: "Stay requested until", t: "d", r: 1 },
+  { k: "until_why", l: "Why that length of time?", t: "t", full: 1 },
+  { k: "permit_need", l: "Will you also need a work or study permit?", t: "s", r: 1, o: ["Work permit", "Study permit", "Both", "Neither"], h: "These are applied for separately, usually together with the TRP request." },
+  { k: "funds", l: "Money available to support yourself (CAD)", t: "n", r: 1 },
+  { k: "income", l: "Monthly household income in Canada (CAD)", t: "n" },
+]};
+
+const TRP_FAMILY_CA = { id: "canada_family", title: "Family in Canada",
+  intro: "Your spouse or partner, children, parents, brothers and sisters living in Canada. Children's interests carry real weight, so include each child.",
+  rep: { min: 0, max: 12, add: "Add a family member" }, fields: [
+  { k: "name", l: "Full name", t: "t", r: 1 },
+  { k: "relation", l: "Relationship to you", t: "s", r: 1, o: ["Spouse or partner", "Son", "Daughter", "Mother", "Father", "Brother", "Sister", "Other relative"] },
+  { k: "dob", l: "Date of birth", t: "d" },
+  { k: "status", l: "Their status in Canada", t: "s", r: 1, o: ["Canadian citizen", "Permanent resident", "Work permit", "Study permit", "Visitor", "No status", "Don't know"] },
+  { k: "city", l: "City", t: "t" },
+  { k: "lives_with", l: "Do you live with them?", t: "yn", r: 1 },
+  { k: "depends", l: "Do they depend on you (money, care, schooling)?", t: "yn", r: 1 },
+  { k: "depends_details", l: "How", t: "t", r: 1, if: "@depends=Yes", full: 1 },
+]};
+
+const D_TRP = (inside) => [
+  { k: "explanation", l: "Your personal statement: what happened, what has changed, and why you need to be in Canada", h: "We draft it from your answers for you to check and sign." },
+  { k: "court_docs", l: "Court records for every charge: charge document, final judgment and sentence", r: 1, if: C_CRIM, h: "Ask the court clerk for a certified copy of the full file. Include dismissed and cleared charges." },
+  { k: "sentence_proof", l: "Proof every part of each sentence was completed: fine receipts, probation completion, release papers", r: 1, if: C_CRIM },
+  { k: inside ? "police_certs" : "police", l: "Police certificates from every country you lived in for 6 months or more since age 18", r: 1, if: C_CRIM, h: "Upload any you already have. We will tell you which ones IRCC needs." },
+  { k: "fbi", l: "FBI Identity History Summary, and state record checks for each US state where you were charged", if: C_CRIM },
+  { k: "driving", l: "Driving record (driver's abstract) and proof your licence was reinstated", if: C_CRIM, h: "For impaired driving or other driving offences." },
+  { k: "pardon", l: "Pardon, record suspension, expungement or sealing order", if: C_CRIM },
+  { k: "rehab_file", l: "Earlier criminal rehabilitation application or decision", r: 1, if: "inadm.rehab=Yes" },
+  { k: "programs", l: "Certificates from treatment, counselling or education programs", r: 1, if: "rehab_ev.programs_yn=Yes" },
+  { k: "medical", l: "Medical reports, treatment plan and a letter from your doctor on your current condition", r: 1, if: C_MED },
+  { k: "med_insurance", l: "Medical insurance policy covering the whole stay", r: 1, if: "med.pay=Private medical or travel insurance" },
+  { k: "ircc_letters", l: "IRCC or CBSA letters: refusals, removal orders, misrepresentation decisions (with GCMS notes if you have them)", r: 1, if: `${C_HIST};${C_TOLD}` },
+  { k: "departure", l: "Proof you left Canada: Certificate of Departure, boarding pass or entry stamp in the next country", if: C_REM },
+  { k: "prev_trp_docs", l: "Earlier TRPs", r: 1, if: "inadm.prev_trp=Yes" },
+  { k: "trp_refusal", l: "Refusal letter for the earlier TRP, rehabilitation or ARC request", r: 1, if: "inadm.trp_refused=Yes" },
+  { k: "support", l: "Character reference and support letters (signed, dated, with the writer's contact details)", h: "From the people listed under Character references." },
+];
+
+/* ---------- Temporary resident permit inside Canada (IMM 5708 + TRP request) ---------- */
 const TRP_IN = {
   key: "trp-in",
   name: "Temporary resident permit (inside Canada)",
-  intro: "A temporary resident permit (TRP) lets a person who is inadmissible, or who can no longer restore their status, stay in Canada when there is a strong reason. This form collects everything needed to prepare the request and the supporting documents. Answer every question truthfully and completely.",
+  intro: "A temporary resident permit (TRP) lets a person who is inadmissible, or who can no longer restore their status, stay in Canada when there is a strong reason. It also protects people whose status depended on an abusive partner, and victims of human trafficking. The officer weighs your need to stay against any risk to Canadians, so this form asks for the full story, proof that things have changed, and the people and reasons that tie you to Canada. Answer every question truthfully and completely.",
   sections: [
     ...IN_HEAD(),
-    { id: "inadm", title: "Why you need a TRP", fields: [
-      { k: "ground", l: "Main reason you can't stay or extend the usual way", t: "s", r: 1, o: ["Criminal record (including impaired driving)", "Medical reasons", "Out of status more than 90 days (can't restore)", "Misrepresentation finding", "Previous removal or deportation", "Other"] },
-      { k: "ground_other", l: "Describe", t: "t", r: 1, if: "inadm.ground=Other" },
-      { k: "details", l: "Full details: what happened, when and where", t: "ta", r: 1, full: 1 },
-      { k: "offence_date", l: "Date of the offence or conviction", t: "d", r: 1, if: "inadm.ground=Criminal record (including impaired driving)" },
-      { k: "sentence_done", l: "Date you finished the whole sentence (including probation and fines)", t: "d", if: "inadm.ground=Criminal record (including impaired driving)" },
-      { k: "rehab", l: "Have you applied for criminal rehabilitation?", t: "yn", if: "inadm.ground=Criminal record (including impaired driving)" },
-      { k: "out_since", l: "Date your status ended", t: "d", r: 1, if: "inadm.ground=Out of status more than 90 days (can't restore)" },
-      { k: "reasons", l: "Why should you be allowed to stay? (family, work, medical care, events, how long)", t: "ta", r: 1, full: 1 },
-      { k: "until", l: "Stay requested until", t: "d", r: 1 },
-      { k: "prev_trp", l: "Have you had a TRP before?", t: "yn", r: 1 },
-      { k: "prev_trp_details", l: "Dates and permit numbers", t: "t", r: 1, if: "inadm.prev_trp=Yes" },
-      { k: "pr_app", l: "Is there a PR, H&C or other application in process for you?", t: "yn", r: 1 },
-      { k: "pr_app_details", l: "Type, file number and stage", t: "t", r: 1, if: "inadm.pr_app=Yes" },
-      { k: "funds", l: "Money available (CAD)", t: "n", r: 1 },
-    ]},
+    TRP_INADM(true), TRP_OFFENCES, TRP_REHAB, TRP_MED, TRP_IMMHIST, TRP_SAFETY,
+    TRP_NEED_IN, TRP_FAMILY_CA, TRP_REFS,
     ...TAIL, ...END,
   ],
-  docs: docsOf(D_ID, D_STATUS, D_MONEY, [
-    { k: "explanation", l: "Your letter explaining your situation and why you need to stay", h: "We can write this from your answers." },
-    { k: "court_docs", l: "Court records, sentence and proof every part of the sentence was completed", r: 1, if: "inadm.ground=Criminal record (including impaired driving)" },
-    { k: "police_certs", l: "Police certificates from every country you lived in for 6 months or more since age 18", if: "inadm.ground=Criminal record (including impaired driving)" },
-    { k: "medical", l: "Medical reports and treatment plan", r: 1, if: "inadm.ground=Medical reasons" },
-    { k: "ircc_letters", l: "IRCC or CBSA letters (refusals, removal orders, misrepresentation findings)", if: "inadm.ground!=Medical reasons" },
-    { k: "support", l: "Support letters (family, employer, community), with the writer's status in Canada" },
-    { k: "family_proof", l: "Proof of family in Canada (birth or marriage certificates, their status)" },
-    { k: "work_proof", l: "Job offer or employment proof, if you are asking to work" },
-    { k: "pr_proof", l: "Proof of the PR, H&C or other application in process", r: 1, if: "inadm.pr_app=Yes" },
+  docs: docsOf(D_ID, D_STATUS, D_TRP(true), D_MONEY, [
+    { k: "family_proof", l: "Proof of family in Canada: birth and marriage certificates, and their status (passport, PR card or permit)" },
+    { k: "children_school", l: "Children's school or daycare letters, and anything showing how they depend on you" },
+    { k: "work_proof", l: "Job offer or employment letter and recent pay stubs, if you are asking to work" },
+    { k: "tax", l: "Canadian tax returns or notices of assessment (last 2 years), if you filed" },
+    { k: "pr_proof", l: "Proof of the PR, H&C or other application in process (acknowledgement of receipt)", r: 1, if: "inadm.pr_app=Yes" },
+    { k: "safety_docs", l: "Any evidence you feel safe sharing: police report, protection order, letters from a shelter, doctor, counsellor or support worker", if: C_SAFE, h: "Optional. Share only what is safe. We will talk about what else may help." },
+    { k: "relationship", l: "Proof of your relationship and of your status that depended on it (permit, sponsorship letters)", if: `inadm.ground=${G_FV}` },
   ], D_FAMILY, D_BACK, D_OTHER),
 };
 
@@ -1082,7 +1339,7 @@ const TRP_IN = {
 const tdoc = (...keys) => keys.map((k) => TRV_OUT.docs.find((d) => d.k === k));
 const ABOUT_OUT = (extra = []) => {
   const a = ABOUT_IN(extra);
-  return { ...a, fields: a.fields.map((f) => f.k === "has_uci" ? { ...f, l: "Does the applicant have a UCI (client ID) from an earlier Canadian application?", h: "An 8 or 10 digit number on earlier Canadian visas, permits, refusal letters or IRCC letters." } : f) };
+  return { ...a, fields: a.fields.filter((f) => f.k !== "bio_yn" && f.k !== "bio_date").map((f) => f.k === "has_uci" ? { ...f, l: "Does the applicant have a UCI (client ID) from an earlier Canadian application?", h: "An 8 or 10 digit number on earlier Canadian visas, permits, refusal letters or IRCC letters." } : f) };
 };
 const OUT_HEAD = (extra) => [ABOUT_OUT(extra), ref("personal"), ref("residence"), ref("prev_res"), ref("marital"), ref("language"), ref("passport"), ref("contact")];
 const OUT_TAIL = ["education", "schools", "jobs", "travel", "trips", "family", "background", "military", "govpos", "memberships"].map(ref);
@@ -1119,7 +1376,10 @@ const SUPERVISA_OUT = {
       { k: "email", l: "Email", t: "e", r: 1 },
       { k: "occupation", l: "Their job title and employer", t: "t", r: 1 },
       { k: "income", l: "Their total income on the latest Notice of Assessment (CAD)", t: "n", r: 1 },
+      { k: "income_prev", l: "Their total income for the tax year before that (CAD)", t: "n", r: 1, h: "Since March 31, 2026, the minimum income can be met in either of the two tax years before the application." },
       { k: "spouse_income", l: "Their spouse's income, if combining (CAD)", t: "n" },
+      { k: "own_income_yn", l: "Do you (the parent or grandparent) have your own yearly income, such as a pension, rent or business?", t: "yn", r: 1, full: 1, h: "If your child's household meets a minimum share of the requirement, your own income can now be added to make up the rest." },
+      { k: "own_income", l: "Your yearly income, its source and currency", t: "t", r: 1, if: "host.own_income_yn=Yes", full: 1 },
       { k: "household", l: "Number of people in their household, including you and your spouse if coming", t: "n", r: 1 },
       { k: "cosigner", l: "Is their spouse or partner co-signing the letter of support?", t: "yn", r: 1 },
     ]},
@@ -1129,7 +1389,8 @@ const SUPERVISA_OUT = {
   docs: docsOf(D_OUT, [
     { k: "invitation", l: "Signed letter of invitation from your child or grandchild, promising financial support for your whole stay", r: 1, h: "We can draft it. It lists everyone in their household." },
     { k: "host_status", l: "Their proof of status (Canadian passport, citizenship certificate or PR card)", r: 1 },
-    { k: "host_noa", l: "Their latest Notice of Assessment (and T4 or T1) from CRA", r: 1 },
+    { k: "host_noa", l: "Their Notices of Assessment (and T4 or T1) from CRA for the last two tax years", r: 1 },
+    { k: "own_income", l: "Proof of your own income (pension statements, rent agreements, business or tax returns for the last two years)", r: 1, if: "host.own_income_yn=Yes" },
     { k: "host_job", l: "Their employment letter and recent pay stubs", r: 1 },
     { k: "cosigner_docs", l: "Co-signing spouse's status proof, Notice of Assessment and marriage certificate", r: 1, if: "host.cosigner=Yes" },
     { k: "relation_proof", l: "Proof you are their parent or grandparent (their birth certificate naming you; for grandchildren, the parent's too)", r: 1 },
@@ -1241,7 +1502,8 @@ const SP_OUT = {
       { k: "end", l: "Program end date", t: "d", r: 1 },
       { k: "tuition", l: "Tuition for the first year (CAD)", t: "n", r: 1 },
       { k: "paid", l: "Tuition already paid (CAD)", t: "n", r: 1 },
-      { k: "pal", l: "Do you have a provincial or territorial attestation letter (PAL/TAL)?", t: "s", r: 1, o: ["Yes", "Not needed (master's, PhD, school-age or other exempt)", "Not yet"] },
+      { k: "pal", l: "Do you have a provincial or territorial attestation letter (PAL/TAL)?", t: "s", r: 1, o: ["Yes", "Not needed (master's or PhD at a public school, school-age, exchange or other exempt)", "Not yet"], h: "Most college and bachelor's applicants need one; without it IRCC returns the application. Master's and PhD students at public schools don't need one since January 1, 2026." },
+      { k: "public", l: "Is the school public or private?", t: "s", r: 1, o: ["Public", "Private", "Not sure"] },
       { k: "caq", l: "CAQ number and expiry (Quebec schools)", t: "t", r: 1, if: "study.province=Quebec" },
       { k: "coop", l: "Does the program include a co-op or internship?", t: "yn", r: 1 },
     ]},
@@ -1255,12 +1517,15 @@ const SP_OUT = {
       { k: "score", l: "Overall score and each band", t: "t", r: 1, if: "plan.test!=None (school waived it)" },
     ]},
     { id: "money", title: "How you will pay", fields: [
-      { k: "funds", l: "Total money available for the first year, excluding tuition already paid (CAD)", t: "n", r: 1, h: "IRCC asks for one year of tuition plus living costs. We will check the current amount for you." },
+      { k: "funds", l: "Total money available for the first year, excluding tuition already paid (CAD)", t: "n", r: 1, h: "Outside Quebec, IRCC asks for first-year tuition plus at least $23,448 for one person (from September 1, 2026), and more for each family member. Quebec has its own amounts. We will check the current figure." },
+      { k: "source", l: "Where did the money come from? Explain any large recent deposit", t: "ta", r: 1, full: 1, h: "Officers now look closely at both the amount and its source (salary savings, farm income, sale of property, loan). Unexplained deposits are a common refusal reason." },
       { k: "gic", l: "Have you bought a GIC (Guaranteed Investment Certificate) from a Canadian bank?", t: "yn", r: 1 },
       { k: "gic_details", l: "Bank and amount", t: "t", r: 1, if: "money.gic=Yes" },
       { k: "payer", l: "Who is paying?", t: "s", r: 1, o: ["Myself", "My parents", "My spouse", "Other family member", "Education loan", "Scholarship", "Employer"] },
       { k: "payer_details", l: "Name, relationship, occupation and annual income of the sponsor", t: "ta", r: 1, if: "money.payer=My parents|My spouse|Other family member|Employer", full: 1 },
       { k: "loan_details", l: "Bank, loan amount and sanction date", t: "t", r: 1, if: "money.payer=Education loan" },
+      { k: "family_come", l: "Will your spouse or children come with you?", t: "yn", r: 1, h: "Spouses of most college and bachelor's students can no longer get an open work permit." },
+      { k: "family_come_details", l: "Who, and what each will apply for (visitor, study permit, work permit)", t: "t", r: 1, if: "money.family_come=Yes", full: 1 },
       { k: "family_canada", l: "Do you have family in Canada?", t: "yn", r: 1 },
       { k: "family_canada_details", l: "Name, relationship, city and status", t: "t", r: 1, if: "money.family_canada=Yes" },
     ]},
@@ -1282,6 +1547,8 @@ const SP_OUT = {
     { k: "resume", l: "Resume (CV)" },
     { k: "experience", l: "Experience letters for jobs listed in your history" },
     { k: "gap_proof", l: "Proof for any education gap (job letters, course certificates, medical records)", if: "plan.gap_yn=Yes" },
+    { k: "source_proof", l: "Proof of where the funds came from (salary slips, land or crop sale deeds, loan disbursement, gift deed)", r: 1 },
+    { k: "family_docs", l: "Marriage certificate and children's birth certificates", r: 1, if: "money.family_come=Yes" },
     { k: "property", l: "Family property or asset documents" },
   ], D_TRAVEL, D_FAMILY, D_BACK, D_OTHER),
 };
@@ -1310,6 +1577,8 @@ const JOB_OUT = (exempt) => ({ id: "job", title: "The job in Canada", fields: [
   { k: "duration", l: "Length of the job or permit requested", t: "t", r: 1 },
   { k: "duties", l: "Main duties", t: "ta", r: 1, full: 1 },
   { k: "how_found", l: "How did you find this job?", t: "t", r: 1 },
+  { k: "recruiter", l: "Did a recruiter or agency help you get this job?", t: "yn", r: 1 },
+  { k: "recruiter_details", l: "Recruiter's name, company and licence number (if the province licenses recruiters)", t: "t", r: 1, if: "job.recruiter=Yes", full: 1 },
   { k: "fee", l: "Did you or anyone pay money to get this job offer?", t: "yn", r: 1, h: "Employers and recruiters may not charge workers for a job. Tell us honestly." },
   { k: "fee_details", l: "Who was paid, how much and when", t: "t", r: 1, if: "job.fee=Yes", full: 1 },
 ]});
@@ -1320,7 +1589,9 @@ const QUAL = { id: "qual", title: "Your qualifications for the job", fields: [
   { k: "licence", l: "Does the job need a licence or certificate in Canada (Red Seal, nursing, driving class, etc.)?", t: "yn", r: 1, full: 1 },
   { k: "licence_details", l: "Which one, and the status of yours", t: "t", r: 1, if: "qual.licence=Yes", full: 1 },
   { k: "lang_req", l: "Language level the job needs, and yours", t: "t" },
-  { k: "family_come", l: "Will your spouse or children come with you?", t: "yn", r: 1 },
+  { k: "family_come", l: "Will your spouse or children come with you?", t: "yn", r: 1, h: "Spouses of workers in most TEER 2 to 5 jobs can no longer get an open work permit. We will check your case." },
+  { k: "sensitive_job", l: "Will the job involve health care, child care, elder care or primary or secondary schools?", t: "yn", r: 1, full: 1, h: "These jobs need an immigration medical exam before you apply." },
+  { k: "ime", l: "Have you done the immigration medical exam?", t: "s", r: 1, if: "qual.sensitive_job=Yes", o: ["Yes", "Booked", "Not yet"] },
 ]};
 const WP_DOCS = (exempt) => docsOf(D_OUT, exempt ? [
   { k: "offer_confirm", l: "Employer Portal offer of employment confirmation (shows the A-number and fee paid)", r: 1 },
@@ -1338,6 +1609,8 @@ const WP_DOCS = (exempt) => docsOf(D_OUT, exempt ? [
   { k: "pay_proof", l: "Proof of past pay (salary slips, bank credits or tax returns)" },
   { k: "licence", l: "Licence or certificate for the job", r: 1, if: "qual.licence=Yes" },
   { k: "language", l: "English or French test results", if: "language.test_yn=Yes" },
+  { k: "ime", l: "Immigration medical exam confirmation (IMM 1017 or eMedical information sheet)", r: 1, if: "qual.ime=Yes" },
+  { k: "recruiter_docs", l: "Recruitment agreement and any receipts", if: "job.recruiter=Yes" },
   D_POLICE,
 ], D_TRAVEL, D_FAMILY, D_BACK, D_OTHER);
 const WP_INTRO = (what) => `This form collects everything needed for an ${what} work permit application from outside Canada (IMM 1295 and the Family Information form) and the supporting documents. Answer every question truthfully and completely. Wrong or missing information can lead to a refusal or a finding of misrepresentation.`;
@@ -1380,8 +1653,11 @@ const SOWP_OUT = {
     { k: "wedding", l: "Wedding photos, invitation card and marriage registration" },
     { k: "partner_passport", l: "Partner's passport bio page", r: 1 },
     { k: "partner_permit", l: "Partner's work or study permit", r: 1 },
-    { k: "partner_job", l: "Partner's employment letter (job title, NOC, wage, start date) and 3 recent pay stubs", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit" },
-    { k: "partner_lmia", l: "Partner's LMIA or offer of employment confirmation", if: "partner.status=Worker|Permanent residence applicant with a work permit" },
+    { k: "partner_job", l: "Partner's employment letter (job title, NOC, wage, start date) and 3 recent pay stubs", r: 1, if: "partner.status=Worker|Permanent residence applicant with a work permit|Worker on a provincial or pilot PR pathway (not applied yet)" },
+    { k: "partner_lmia", l: "Partner's LMIA or offer of employment confirmation", if: "partner.status=Worker|Permanent residence applicant with a work permit|Worker on a provincial or pilot PR pathway (not applied yet)" },
+    { k: "partner_sip", l: "Provincial letter of support naming the SIP agreement", r: 1, if: "partner.sip=Yes" },
+    { k: "partner_qc", l: "Partner's Quebec letter of selection", r: 1, if: "partner.qc_health=Yes" },
+    { k: "partner_pathway", l: "Proof of the partner's PR pathway (program letter, employer endorsement)", r: 1, if: "partner.status=Worker on a provincial or pilot PR pathway (not applied yet)" },
     { k: "partner_school", l: "Partner's enrolment letter, transcript and tuition receipt", r: 1, if: "partner.status=Student" },
     { k: "partner_pr", l: "Partner's PR or nomination acknowledgment letter", r: 1, if: "partner.status=Permanent residence applicant with a work permit" },
     { k: "contact_proof", l: "Proof of ongoing contact (call logs, chats, money transfers, visits)" },
@@ -1406,7 +1682,8 @@ const IEC_OUT = {
       { k: "prev_iec", l: "Have you taken part in IEC before?", t: "yn", r: 1 },
       { k: "prev_iec_details", l: "Category and years", t: "t", r: 1, if: "iec.prev_iec=Yes" },
       { k: "funds", l: "Money you will have when you arrive (CAD)", t: "n", r: 1, h: "IEC asks for at least CAD 2,500 to cover initial expenses." },
-      { k: "insurance", l: "Will you buy health insurance for your whole stay before you travel?", t: "yn", r: 1, h: "Required at the border, for the whole length of the permit." },
+      { k: "insurance", l: "Will you buy health insurance for your whole stay before you travel?", t: "yn", r: 1, h: "Required at the border. The permit is only issued for as long as the insurance covers, so buy it for the full stay." },
+      { k: "residence_pc", l: "Country you live in now (for the police certificate)", t: "c", r: 1, h: "That certificate must be issued within 6 months before IRCC receives your work permit application." },
       { k: "employer", l: "Employer name and address in Canada", t: "ta", r: 1, if: "iec.category=Young Professionals|International Co-op (internship)", full: 1 },
       { k: "offer_no", l: "Offer of employment number (A followed by 7 digits)", t: "t", r: 1, if: "iec.category=Young Professionals|International Co-op (internship)" },
       { k: "job_title", l: "Job title and NOC", t: "t", r: 1, if: "iec.category=Young Professionals|International Co-op (internship)" },
@@ -1417,7 +1694,8 @@ const IEC_OUT = {
   ],
   docs: docsOf(D_OUT, [
     { k: "resume", l: "Resume (CV)", r: 1 },
-    { ...D_POLICE, r: 1, h: "Required for IEC: from your country of citizenship and every country you lived in for 6 months or more since age 18." },
+    { ...D_POLICE, r: 1, h: "Required for IEC: from every country you lived in for 6 months or more since age 18. The one for your current country must be issued within 6 months of applying. US citizens and PRs who only lived in the US don't need one." },
+    { k: "insurance_doc", l: "Health insurance policy for the whole stay (bring it to the border too)", if: "iec.insurance=Yes" },
     { k: "funds", l: "Bank statement showing the funds", r: 1 },
     { k: "offer", l: "Job offer or contract", r: 1, if: "iec.category=Young Professionals|International Co-op (internship)" },
     { k: "offer_confirm", l: "Offer of employment confirmation from the Employer Portal", r: 1, if: "iec.category=Young Professionals|International Co-op (internship)" },
@@ -1428,48 +1706,51 @@ const IEC_OUT = {
   ], D_TRAVEL, D_FAMILY, D_BACK, D_OTHER),
 };
 
-/* ---------- Temporary resident permit from outside Canada (IMM 5257 + TRP request) ---------- */
+/* ---------- Temporary resident permit from outside Canada (IMM 5257 + Schedule 1 + TRP request) ----------
+   Uses the shared TRP module above (inadmissibility, offences, rehabilitation, medical, immigration history,
+   references). The need for the trip must be specific and time-bound, and the risk managed by a fixed plan. */
 const TRP_OUT = {
   key: "trp-out",
   name: "Temporary resident permit (outside Canada)",
-  intro: "A temporary resident permit (TRP) lets a person who is inadmissible to Canada (for example, for a criminal record or a past immigration issue) come to Canada for a specific, strong reason. This form collects everything needed to prepare the request and the supporting documents. Answer every question truthfully and completely.",
+  intro: "A temporary resident permit (TRP) lets a person who is inadmissible to Canada (for example, for a criminal record, impaired driving or a past immigration issue) come to Canada for a specific, strong reason. The officer weighs why you need to come against any risk to Canadians, so this form asks for the full story, proof that things have changed, a clear plan for the trip and what brings you home. Answer every question truthfully and completely.",
   sections: [
     ...OUT_HEAD(),
-    { id: "inadm", title: "Why you need a TRP", fields: [
-      { k: "ground", l: "Reason you are inadmissible", t: "s", r: 1, o: ["Criminal record (including impaired driving)", "Medical reasons", "Previous overstay or work without permission", "Misrepresentation finding", "Previous removal or deportation", "Other"] },
-      { k: "ground_other", l: "Describe", t: "t", r: 1, if: "inadm.ground=Other" },
-      { k: "details", l: "Full details: what happened, when and where", t: "ta", r: 1, full: 1 },
-      { k: "offence_date", l: "Date of the offence or conviction", t: "d", r: 1, if: "inadm.ground=Criminal record (including impaired driving)" },
-      { k: "sentence_done", l: "Date you finished the whole sentence (including probation, fines and licence suspension)", t: "d", if: "inadm.ground=Criminal record (including impaired driving)", full: 1 },
-      { k: "rehab", l: "Have you applied for criminal rehabilitation?", t: "s", if: "inadm.ground=Criminal record (including impaired driving)", o: ["Yes", "No", "Not yet eligible (under 5 years since sentence ended)"] },
-      { k: "removal_date", l: "Date of the removal order or deportation, and the country", t: "t", r: 1, if: "inadm.ground=Previous removal or deportation" },
-      { k: "arc", l: "Have you applied for an Authorization to Return to Canada (ARC)?", t: "yn", if: "inadm.ground=Previous removal or deportation" },
-      { k: "prev_trp", l: "Have you had a TRP before?", t: "yn", r: 1 },
-      { k: "prev_trp_details", l: "Dates and permit numbers", t: "t", r: 1, if: "inadm.prev_trp=Yes" },
-    ]},
-    { id: "visit", title: "Why you need to come to Canada", fields: [
+    TRP_INADM(false), TRP_OFFENCES, TRP_REHAB, TRP_MED, TRP_IMMHIST,
+    { id: "visit", title: "Why you need to come to Canada",
+      intro: "A TRP is granted for a need, not a wish. Explain what is happening, who it involves, why it must be now and why you must be there in person.", fields: [
+      { k: "route", l: "Where will the TRP be requested?", t: "s", r: 1, full: 1, o: ["With an online application to IRCC (needed for visa-required countries)", "At a Canadian port of entry (visa-exempt travellers only, e.g. US citizens)", "Not sure – advise me"], h: "A port-of-entry request is decided on the spot, with no guarantee. Applying ahead is safer when the trip matters." },
       { k: "purpose", l: "Purpose of the trip", t: "s", r: 1, o: ["Business", "Family event (wedding, funeral, birth)", "Visiting family", "Medical", "Work", "Tourism", "Other"] },
-      { k: "reasons", l: "Why must you travel to Canada, and why can't it wait or happen elsewhere?", t: "ta", r: 1, full: 1 },
+      { k: "purpose_other", l: "Describe", t: "t", r: 1, if: "visit.purpose=Other" },
+      { k: "reasons", l: "Why must you travel to Canada? Give specifics: who, what, where", t: "ta", r: 1, full: 1 },
+      { k: "why_now", l: "Why can't it wait (for example, until you can apply for criminal rehabilitation)?", t: "ta", r: 1, full: 1 },
+      { k: "alternatives", l: "Why can't it be done without you coming (video call, someone else going, meeting in another country)?", t: "ta", r: 1, full: 1 },
+      { k: "benefit", l: "Who in Canada benefits from your visit, and how (contracts, jobs, family support, caring for someone)?", t: "ta", full: 1 },
+      { k: "refused_impact", l: "What happens if the TRP is refused?", t: "ta", full: 1 },
+      { k: "host", l: "Person or company you will visit: name, relationship, phone and their status in Canada", t: "ta", full: 1 },
       { k: "arrive", l: "Planned arrival date", t: "d", r: 1 },
       { k: "leave", l: "Planned departure date", t: "d", r: 1 },
+      { k: "entries", l: "Entries needed", t: "s", r: 1, o: ["One entry for this trip", "Multiple entries – I need to come back several times"] },
+      { k: "entries_why", l: "Why multiple entries? How often, how long each time, and over what period?", t: "ta", r: 1, if: "visit.entries=Multiple entries – I need to come back several times", full: 1 },
       { k: "entry", l: "Port of entry (airport or border crossing)", t: "t", r: 1 },
       { k: "stay_address", l: "Where you will stay", t: "ta", r: 1, full: 1 },
+      { k: "itinerary", l: "Plan for each day in Canada", t: "ta", full: 1 },
+      { k: "with_whom", l: "Who is travelling with you (names and relationship)?", t: "t", full: 1 },
+      { k: "drive", l: "Will you drive in Canada?", t: "yn", r: 1, if: C_CRIM },
+      { k: "ticket", l: "Return or onward ticket", t: "s", r: 1, o: ["Booked", "Will book once approved", "No"] },
       { k: "funds", l: "Money available for the trip (CAD)", t: "n", r: 1 },
+      { k: "payer", l: "Who is paying for the trip?", t: "s", r: 1, o: ["Me", "My employer", "My family", "The person or company inviting me", "Other"] },
     ]},
+    TRP_REFS,
     ref("work"), ref("ties"),
     ...OUT_TAIL, ...END,
   ],
-  docs: docsOf(D_OUT, [
-    { k: "explanation", l: "Your letter explaining what happened, what has changed since, and why you need to come", h: "We can write this from your answers." },
-    { k: "court_docs", l: "Court records, charge and sentence, and proof every part of the sentence was completed", r: 1, if: "inadm.ground=Criminal record (including impaired driving)" },
-    { ...D_POLICE, r: 1, if: "inadm.ground=Criminal record (including impaired driving)" },
-    { k: "fbi", l: "FBI identity history summary (if you lived in the US)", if: "inadm.ground=Criminal record (including impaired driving)" },
-    { k: "medical", l: "Medical reports and treatment plan", r: 1, if: "inadm.ground=Medical reasons" },
-    { k: "ircc_letters", l: "IRCC or CBSA letters (refusals, removal orders, misrepresentation findings)", if: "inadm.ground!=Medical reasons" },
+  docs: docsOf(D_OUT, D_TRP(false), [
     { k: "purpose_proof", l: "Proof of the reason for travel (invitation, event card, business letter, medical appointment)", r: 1 },
-    { k: "support", l: "Character references and support letters" },
+    { k: "host_letter", l: "Letter from the person or company in Canada explaining why you are needed in person, with their status proof", h: "For business: on letterhead, naming the contract or meeting and what is at stake." },
+    { k: "tickets", l: "Flight booking or itinerary", if: "visit.ticket=Booked" },
     { k: "bank", l: "Bank statements for the last 4 months", r: 1 },
     { k: "property", l: "Property documents", if: "ties.property_yn=Yes" },
+    { k: "pr_proof", l: "Proof of the PR or other application in process", r: 1, if: "inadm.pr_app=Yes" },
   ], D_WORK, D_TRAVEL, D_FAMILY, D_BACK, D_OTHER),
 };
 
@@ -1586,6 +1867,7 @@ const CIT_LANG = { id: "language", title: "Language proof (ages 18 to 54)", intr
   { k: "scores", l: "Speaking and listening scores", t: "t", if: "language.proof=CELPIP General or CELPIP General LS|IELTS General Training|PTE Core|TEF Canada / TCF Canada" },
   { k: "school", l: "School, program and years studied", t: "t", if: "language.proof=Diploma or degree studied in English or French (in Canada or abroad)", full: 1 },
   { k: "test_lang", l: "Language for the citizenship test and interview", t: "s", r: 1, if: "language.age_band=Yes", o: ["English", "French"] },
+  { k: "test_online", l: "Can the applicant take the test online (computer with webcam, quiet private room, stable internet)?", t: "s", r: 1, if: "language.age_band=Yes", o: ["Yes", "No – needs an in-person test", "Not sure"], h: "The test is online by default: 45 minutes, 20 questions, up to 3 attempts." },
 ]};
 const CIT_PROHIB = { id: "prohib", title: "Prohibitions and background", intro: "These are IRCC's own questions. Answer Yes if it applies in any country, even if the matter was closed or pardoned. A wrong answer can lead to refusal or a 5-year bar.", fields: [
   { k: "charged_now", l: "Is the applicant now charged with, on trial for, or appealing an offence in Canada or outside Canada?", t: "yn", r: 1, full: 1 },
@@ -1685,6 +1967,35 @@ export const FORMS = Object.fromEntries([TRV_OUT, SUPERVISA_OUT, ETA, TRANSIT_OU
 
 /* ---------- consent shown before every submission (stored word for word with the submission) ----------
    Bump CONSENT_V when the wording changes. KEEP_DAYS must match functions/_intake_file.js. */
+/* ---------- versions and document requests ---------- */
+export const FORM_V = 2;
+// The form an intake uses: its own version, plus any documents the team requested for it. extra = custom documents,
+// asked = keys still being requested: those always show (whatever the answers) and are required until uploaded.
+export function formOf(row, extra, asked) {
+  if (!row) return null;
+  const k = row.form_key, f = (Number(row.form_v) || 1) >= 2 ? FORMS[k] : FORMS_V1[k] || FORMS[k];
+  if (!f) return null;
+  const add = (extra || []).filter((x) => !f.docs.some((d) => d.k === x.k));
+  let docs = add.length ? [...add, ...f.docs] : f.docs;
+  const ask = asked instanceof Set ? asked : new Set(asked || []);
+  if (ask.size) docs = docs.map((d) => (ask.has(d.k) ? { ...d, r: 1, if: undefined } : d));
+  return docs === f.docs ? f : { ...f, docs };
+}
+// Document requests the team sent for an intake. Each item is either a document already on the form ({ k }) or a
+// custom document ({ k: "x_…", l, h }). Returns the custom ones as extra document types (required while the request
+// is open) and the keys of every document still being asked for.
+export function requestDocs(reqs, form) {
+  const extra = [], asked = new Set();
+  for (const q of reqs || []) {
+    const open = q.status === "open";
+    for (const it of q.items || []) {
+      if (open) asked.add(it.k);
+      if (it.l && !(form && form.docs.some((d) => d.k === it.k)) && !extra.some((x) => x.k === it.k))
+        extra.push({ k: it.k, l: it.l, h: it.note || "Requested by our team.", r: open ? 1 : 0, req: 1 });
+    }
+  }
+  return { extra, asked };
+}
 export const CONSENT_V = "2026-11-03";
 export const KEEP_DAYS = 30;
 export const CONSENT_TEXT = "I give my consent to WorkerPool to use the information and documents in this form only to prepare my application. I understand that once my file is complete, the WorkerPool team will permanently destroy all the documents I uploaded, and will share the complete submitted file (my answers and all my documents) with me for my future reference.";
@@ -1704,7 +2015,7 @@ function ageOf(dob) {
 }
 export function when(cond, data, row) {
   if (!cond) return true;
-  return String(cond).split("&").every((c) => {
+  return String(cond).split("&").every((part) => part.split(";").some((c) => {
     c = c.trim();
     if (c === "$minor") return ageOf((data.personal || {}).dob) < 18;
     const m = c.match(/^([@\w.]+?)(!=|=)(.*)$/);
@@ -1716,7 +2027,7 @@ export function when(cond, data, row) {
     if (!m) return !!v;
     const opts = m[3].split("|");
     return m[2] === "=" ? opts.includes(v) : !!v && !opts.includes(v);
-  });
+  }));
 }
 export const sectionOn = (s, data) => when(s.if, data);
 export const fieldOn = (f, data, row) => f.t !== "h" && when(f.if, data, row);
