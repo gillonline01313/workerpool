@@ -495,7 +495,23 @@ const css = `
 .pt-th{position:relative;border:2px solid var(--line);border-radius:10px;background:var(--bg);padding:6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font:inherit;color:var(--fg)}
 .pt-th canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
 .pt-th .ph{width:84px;height:108px;background:var(--line);border-radius:4px}
-.pt-th span{font-size:.75rem;font-weight:600}
+.pt-th span{font-size:.75rem;font-weight:600;text-align:center}
+.pt-th span small{display:block;font-weight:500;color:var(--muted)}
+.pt-tw{position:relative;display:flex}.pt-tw .pt-th{flex:1;min-width:0}
+.pt-vw{position:absolute;top:6px;left:6px;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;display:grid;place-items:center;font-size:.85rem;box-shadow:0 1px 3px rgba(0,0,0,.2);opacity:.9;padding:0}
+.pt-vw:hover,.pt-vw:focus-visible{opacity:1;border-color:var(--accent);outline:none}
+#ptView{position:fixed;inset:0;z-index:9999;background:rgba(20,28,30,.92);display:flex;flex-direction:column;font-family:var(--body,system-ui,sans-serif)}
+#ptView .bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:#1b2426;color:#e3eaeb;border-bottom:1px solid #2c3a3d}
+#ptView .bar b{font-size:.95rem;margin-right:6px}
+#ptView .bar .sp{flex:1}
+#ptView .bar small{color:#97a6a8;font-size:.82rem}
+#ptView button{font:inherit;font-size:.85rem;font-weight:600;border:1px solid #3a4b4e;background:#243033;color:#e3eaeb;border-radius:999px;padding:6px 13px;cursor:pointer}
+#ptView button:hover{border-color:#8cc4ba}
+#ptView button:disabled{opacity:.4;cursor:default}
+#ptView button.on{background:#8cc4ba;color:#0f2220;border-color:#8cc4ba}
+#ptView .stage{flex:1;overflow:auto;display:flex;padding:16px}
+#ptView .stage canvas{margin:auto;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.5);display:block}
+#ptView .msg{margin:auto;color:#e3eaeb}
 .pt-th[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
 .pt-th[aria-pressed="true"]::after{content:"✓";position:absolute;top:4px;right:6px;background:var(--accent);color:var(--surface);border-radius:50%;width:20px;height:20px;font-size:.75rem;display:grid;place-items:center;font-weight:800}
 .pt-prog{font-size:.86rem;color:var(--muted);display:flex;gap:8px;align-items:center}
@@ -677,10 +693,84 @@ function viewMerge() {
       <label class="pt-chk"><input type="checkbox" id="ptSFlat"${sp.flatten ? " checked" : ""}><span>Flatten fillable form fields</span></label>
       <div class="pt-row"><button class="pt-b p" type="button" id="ptSGo"${S.busy || !groups || !groups.length ? " disabled" : ""}>${groups && groups.length > 1 ? `Split into ${groups.length} files & download ZIP` : "Save & download"}</button></div>${prog()}
       ${m.res ? resultBox(m.res) : ""}
-      <div class="pt-thumbs" id="ptThumbs">${Array.from({ length: sp.pages }, (_, i) => `<button type="button" class="pt-th" data-th="${i}" aria-pressed="${sp.mode === "pick" && sp.sel.has(i)}">${sp.thumbs[i] ? "" : `<div class="ph"></div>`}<span>Page ${i + 1}</span></button>`).join("")}</div>`;
+      <p class="pt-note" style="margin:0">Click a page to ${sp.mode === "pick" ? "select it" : "switch to picking pages"}. Press 🔍 (or double-click) to view a page full size before you split.</p>
+      <div class="pt-thumbs" id="ptThumbs">${Array.from({ length: sp.pages }, (_, i) => `<div class="pt-tw"><button type="button" class="pt-th" data-th="${i}" aria-pressed="${sp.mode === "pick" && sp.sel.has(i)}">${sp.thumbs[i] ? "" : `<div class="ph"></div>`}<span>Page ${i + 1}${sp.mode !== "pick" ? `<small>${fileTag(groups, i)}</small>` : ""}</span></button><button type="button" class="pt-vw" data-vw="${i}" title="View page ${i + 1} full size" aria-label="View page ${i + 1} full size">🔍</button></div>`).join("")}</div>`;
   }
   return h + `</div>`;
 }
+const fileTag = (groups, i) => { const f = (groups || []).map((g, k) => (g.includes(i) ? k + 1 : 0)).filter(Boolean); return f.length ? `file ${f.join(", ")}` : "not included"; };
+
+/* ---------- full-size page viewer (split): check a page before splitting ---------- */
+let VW = null;   // { i, zoom (1 = fit), rot, tok }
+function openViewer(i) {
+  const sp = S.m.split; if (!sp) return;
+  VW = { i, zoom: 1, rot: 0, tok: 0 };
+  if (!document.getElementById("ptView")) {
+    const v = document.createElement("div"); v.id = "ptView"; v.setAttribute("role", "dialog"); v.setAttribute("aria-modal", "true");
+    v.innerHTML = `<div class="bar"><b id="pvT"></b><small id="pvF"></small><span class="sp"></span>
+      <button type="button" data-pv="prev" title="Previous page (←)">◀ Prev</button><button type="button" data-pv="next" title="Next page (→)">Next ▶</button>
+      <button type="button" data-pv="out" title="Zoom out (−)">−</button><button type="button" data-pv="fit" title="Fit to screen">Fit</button><button type="button" data-pv="in" title="Zoom in (+)">+</button>
+      <button type="button" data-pv="rot" title="Turn the view (doesn't change the file)">⟳ Turn</button>
+      <button type="button" data-pv="sel" id="pvSel" title="Select or unselect this page (Space)"></button>
+      <button type="button" data-pv="close" title="Close (Esc)">✕ Close</button></div><div class="stage" id="pvStage"><div class="msg">Loading…</div></div>`;
+    document.body.appendChild(v);
+    v.addEventListener("click", (e) => { const b = e.target.closest("[data-pv]"); if (!b) { if (e.target.id === "pvStage") closeViewer(); return; } vAct(b.dataset.pv); });
+    document.addEventListener("keydown", vKey, true);
+    window.addEventListener("resize", vResize);
+  }
+  drawViewer();
+}
+function closeViewer() { VW = null; const v = document.getElementById("ptView"); if (v) v.remove(); document.removeEventListener("keydown", vKey, true); window.removeEventListener("resize", vResize); }
+let vRT = 0; function vResize() { clearTimeout(vRT); vRT = setTimeout(() => { if (VW && VW.zoom === 1) drawViewer(); }, 150); }
+function vKey(e) {
+  if (!VW) return;
+  const k = e.key, map = { Escape: "close", ArrowRight: "next", PageDown: "next", ArrowLeft: "prev", PageUp: "prev", " ": "sel", Enter: "sel", "+": "in", "=": "in", "-": "out", r: "rot" };
+  if (!map[k]) return; e.preventDefault(); e.stopPropagation(); vAct(map[k]);
+}
+function vAct(a) {
+  const sp = S.m.split; if (!VW || !sp) return closeViewer();
+  if (a === "close") return closeViewer();
+  if (a === "prev" && VW.i > 0) { VW.i--; VW.zoom = 1; }
+  else if (a === "next" && VW.i < sp.pages - 1) { VW.i++; VW.zoom = 1; }
+  else if (a === "in") VW.zoom = Math.min(6, VW.zoom * 1.35);
+  else if (a === "out") VW.zoom = Math.max(0.3, VW.zoom / 1.35);
+  else if (a === "fit") VW.zoom = 1;
+  else if (a === "rot") VW.rot = (VW.rot + 90) % 360;
+  else if (a === "sel") {
+    if (sp.mode !== "pick") { sp.mode = "pick"; sp.sel = new Set(); }
+    sp.sel.has(VW.i) ? sp.sel.delete(VW.i) : sp.sel.add(VW.i); S.m.res = null; render(); drawThumbs();
+    return vBar();
+  } else return;
+  drawViewer();
+}
+function vBar() {
+  const sp = S.m.split, v = document.getElementById("ptView"); if (!v || !VW || !sp) return;
+  v.querySelector("#pvT").textContent = `Page ${VW.i + 1} of ${sp.pages}`;
+  const sel = sp.mode === "pick" && sp.sel.has(VW.i), b = v.querySelector("#pvSel");
+  b.textContent = sel ? "✓ Selected" : "Select this page"; b.classList.toggle("on", sel);
+  v.querySelector("#pvF").textContent = sp.mode === "pick" ? `${sp.sel.size} page${sp.sel.size === 1 ? "" : "s"} selected` : (() => { try { return `Goes into ${fileTag(splitGroups(sp), VW.i)}`; } catch (e) { return ""; } })();
+  v.querySelector('[data-pv="prev"]').disabled = VW.i === 0; v.querySelector('[data-pv="next"]').disabled = VW.i === sp.pages - 1;
+}
+async function drawViewer() {
+  const sp = S.m.split, v = document.getElementById("ptView"); if (!v || !VW || !sp) return;
+  vBar();
+  const tok = ++VW.tok, stage = v.querySelector("#pvStage");
+  try {
+    const doc = sp.doc || (sp.doc = await pjsOpen(sp.bytes));
+    const page = await doc.getPage(VW.i + 1);
+    const base = page.getViewport({ scale: 1, rotation: (page.rotate + VW.rot) % 360 });
+    const fit = Math.min((stage.clientWidth - 32) / base.width, (stage.clientHeight - 32) / base.height);
+    const css = Math.max(0.1, fit * VW.zoom), dpr = Math.min(3, window.devicePixelRatio || 1);
+    const vp = page.getViewport({ scale: css * dpr, rotation: (page.rotate + VW.rot) % 360 });
+    const c = document.createElement("canvas"); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+    c.style.width = Math.ceil(vp.width / dpr) + "px"; c.style.height = Math.ceil(vp.height / dpr) + "px";
+    await page.render({ canvasContext: c.getContext("2d"), viewport: vp, intent: "print", annotationMode: (await pdfjs()).AnnotationMode.ENABLE_STORAGE }).promise;
+    page.cleanup();
+    if (tok !== VW?.tok) return;
+    stage.replaceChildren(c);
+  } catch (e) { if (VW && tok === VW.tok) stage.innerHTML = `<div class="msg">Couldn't show this page: ${String(e.message || e).replace(/[<>&]/g, "")}</div>`; }
+}
+
 function splitGroups(sp) {
   const n = sp.pages;
   if (sp.mode === "pick") { const s = [...sp.sel].sort((a, b) => a - b); if (!s.length) return []; const g = [s]; if (sp.rest) { const r = [...Array(n).keys()].filter((i) => !sp.sel.has(i)); if (r.length) g.push(r); } return g; }
@@ -703,6 +793,7 @@ async function addMerge(files) {
 }
 async function openSplit(f) {
   const bytes = await readFile(f), d = await libOpen(bytes);
+  closeViewer();
   S.m.split = { name: f.name, bytes, pages: d.getPageCount(), sel: new Set(), mode: "pick", ranges: "", n: 1, rest: false, flatten: false, thumbs: {} };
   S.m.res = null;
 }
@@ -818,6 +909,8 @@ function wire() {
       const sp = m.split; if (!sp) return;
       const keepRes = () => { m.res = null; };
       ROOT.querySelectorAll("[data-sm]").forEach((b) => (b.onclick = () => { sp.mode = b.dataset.sm; keepRes(); render(); drawThumbs(); }));
+      ROOT.querySelectorAll("[data-vw]").forEach((b) => (b.onclick = () => openViewer(+b.dataset.vw)));
+      ROOT.querySelectorAll("[data-th]").forEach((b) => (b.ondblclick = () => openViewer(+b.dataset.th)));
       ROOT.querySelectorAll("[data-th]").forEach((b) => (b.onclick = () => {
         const i = +b.dataset.th; if (sp.mode !== "pick") { sp.mode = "pick"; sp.sel = new Set(); }
         sp.sel.has(i) ? sp.sel.delete(i) : sp.sel.add(i); keepRes(); render(); drawThumbs();
@@ -856,7 +949,7 @@ async function load(key, body) {
   mount(body);
 }
 function leave() { // on lock: forget every file
-  gen++; ROOT = null; clearPrint();
+  gen++; ROOT = null; clearPrint(); closeViewer();
   if (S.m.split && S.m.split.doc) pjsClose(S.m.split.doc);
   S.x = null; S.c = null; S.m = { mode: "merge", items: [], flatten: true, name: "merged", res: null, split: null }; S.busy = false; S.err = ""; fontCssCache = null;
 }
