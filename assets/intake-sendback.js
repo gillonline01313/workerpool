@@ -41,8 +41,9 @@ export function pickerHtml(form, data, opts = {}) {
 .sbp{display:flex;flex-direction:column;gap:2px;max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px 10px}
 .sbp-s{border-bottom:1px solid var(--line);padding:5px 0}.sbp-s:last-child{border-bottom:0}
 .sbp-h{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.sbp label{display:flex;gap:8px;align-items:flex-start;font-size:.86rem;font-weight:500;cursor:pointer;margin:0}
-.sbp label input{width:auto;margin-top:3px;flex:none}
+.sbp label{display:flex;flex-direction:row;gap:8px;align-items:flex-start;font-size:.86rem;font-weight:500;cursor:pointer;margin:0;color:inherit}
+.sbp label input{display:inline-block;width:auto;height:auto;margin:3px 0 0;padding:0;flex:none}
+.sbp-h>label{flex:1;min-width:0}
 .sbp-q{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 16px;padding:6px 0 4px 26px}
 .sbp-q label{color:var(--muted)}.sbp-q label:has(input:checked){color:inherit}
 .sbp-acts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
