@@ -236,6 +236,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="pdftools" aria-pressed="false">PDF tools</button>
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
+      <button type="button" data-t="crm" aria-pressed="false">CRM</button>
       <button type="button" data-t="intake" aria-pressed="false" id="inTab">Intake forms</button>
       <button type="button" data-t="partners" aria-pressed="false" id="ptTab">Partners</button>
       <button type="button" data-t="esign" aria-pressed="false">eSign</button>
@@ -278,6 +279,7 @@ async function load(){
   const days = range===0?3650:Math.max(range,1);
   try{
     if(tab==="chat"){ await chatList(); render(); return; }
+    if(tab==="crm"){ if(window.WPCrm) await window.WPCrm.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">CRM didn't load. Refresh the page.</div>`; return; }
     if(tab==="intake"){ if(window.WPIntake) await window.WPIntake.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">Intake forms didn't load. Refresh the page.</div>`; return; }
     if(tab==="pscan"){ if(window.WPScan) await window.WPScan.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">Profile scanner didn't load. Refresh the page.</div>`; return; }
     if(tab==="aitext"){ if(window.WPAiText) await window.WPAiText.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">AI text check didn't load. Refresh the page.</div>`; return; }
@@ -318,7 +320,7 @@ async function load(){
     $("#wpaBody").innerHTML=`<div class="wpa-empty">Couldn't load data: ${esc(e.message)}</div>`;
   }
 }
-function lock(msg){ KEY=""; if(window.WPScan) window.WPScan.leave(); if(window.WPAiText) window.WPAiText.leave(); if(window.WPPdfTools) window.WPPdfTools.leave(); try{sessionStorage.removeItem("wp_admin");}catch(e){} $("#app").hidden=true; $("#gate").hidden=false; $("#gErr").textContent=msg||""; }
+function lock(msg){ KEY=""; if(window.WPScan) window.WPScan.leave(); if(window.WPAiText) window.WPAiText.leave(); if(window.WPPdfTools) window.WPPdfTools.leave(); if(window.WPCrm) window.WPCrm.leave(); try{sessionStorage.removeItem("wp_admin");}catch(e){} $("#app").hidden=true; $("#gate").hidden=false; $("#gErr").textContent=msg||""; }
 $("#gate").onsubmit=e=>{ e.preventDefault(); KEY=$("#key").value.trim(); if(!KEY) return; try{sessionStorage.setItem("wp_admin",KEY);}catch(x){} start(); };
 $("#out").onclick=()=>lock("");
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; newsEdit=null; drEdit=null; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
@@ -388,7 +390,7 @@ function controls(){
   } else if(tab==="mail"){
     c.innerHTML=`<button class="dl" type="button" id="mlRefresh">Refresh list</button>`;
     $("#mlRefresh").onclick=()=>{ ml.reload=true; load(); };
-  } else if(tab==="intake"||tab==="partners"||tab==="pscan"||tab==="aitext"||tab==="pdftools"||tab==="esign"){
+  } else if(tab==="crm"||tab==="intake"||tab==="partners"||tab==="pscan"||tab==="aitext"||tab==="pdftools"||tab==="esign"){
     c.innerHTML="";
   } else if(tab==="chat"){
     c.innerHTML=`<span class="chat-live"><i id="chatDot"></i><span id="chatHrs"></span></span>`; chatStatus();
@@ -508,7 +510,7 @@ const place=v=>v.city?`${v.city}, ${v.country||"?"}`:(v.country||(v.tz&&v.tz.spl
 
 function render(){
   const body=$("#wpaBody");
-  if(tab==="intake"||tab==="partners"||tab==="pscan"||tab==="aitext"||tab==="pdftools"||tab==="esign") return;
+  if(tab==="crm"||tab==="intake"||tab==="partners"||tab==="pscan"||tab==="aitext"||tab==="pdftools"||tab==="esign") return;
   if(tab==="interest") return renderInterest(body);
   if(tab==="submissions") return renderSubs(body);
   if(tab==="b2b") return renderB2B(body);
@@ -1591,7 +1593,8 @@ document.addEventListener("click",async e=>{
 if(KEY) start();
 })();
 </script>
-<script src="/admin/intake.js?v=10"></script>
+<script src="/admin/intake.js?v=11"></script>
+<script src="/admin/crm.js?v=1"></script>
 <script src="/admin/partners.js?v=3"></script>
 <script src="/admin/profile-scan.js?v=1"></script>
 <script src="/admin/ai-text.js?v=3"></script>

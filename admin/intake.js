@@ -438,6 +438,7 @@
   async function back() { S.open = null; S.item = null; body.innerHTML = `<div class="wpa-empty">Loading…</div>`; try { S.list = await call("list"); } catch (e) {} draw(); badge(); }
   function leave() { S.open = null; S.item = null; }
 
-  window.WPIntake = { load, badge, leave };
+  function focus(id) { S.open = id; S.item = null; }   // CRM → open this form when the tab loads
+  window.WPIntake = { load, badge, leave, focus };
 })();
 try { const k = sessionStorage.getItem("wp_admin"); if (k) window.WPIntake.badge(k); } catch (e) {}
