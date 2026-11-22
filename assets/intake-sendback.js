@@ -95,7 +95,8 @@ export function questionsHtml(opts = {}) {
   return `<style>
 .sbq{display:flex;flex-direction:column;gap:6px}
 .sbq-r{display:grid;grid-template-columns:minmax(0,2.2fr) 130px minmax(0,1.3fr) auto;gap:6px;align-items:center}
-@media (max-width:760px){.sbq-r{grid-template-columns:1fr 1fr}.sbq-r [data-sbq-l]{grid-column:1/-1}}
+@media (max-width:760px){.sbq-r{grid-template-columns:1fr 1fr auto}.sbq-r [data-sbq-l]{grid-column:1/-1}}
+.sbq-r [data-sbq-x]{width:auto;justify-self:end}
 .sbq-r input,.sbq-r select{font:inherit;font-size:.86rem;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface,#fff);color:inherit;width:100%;min-width:0;margin:0}
 </style>
   <div class="sbq" data-sbq-list>${qRow(btn)}</div>
