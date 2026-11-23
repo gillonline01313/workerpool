@@ -15,6 +15,12 @@
       or split one PDF: pick pages from thumbnails, ranges ("1-3, 4-6, 7-"), every N pages or every page. Several
       outputs download as one ZIP.
 
+   4. Images → PDF: JPG/PNG (also WEBP, GIF, BMP) photos and scans into one PDF, in any order, turned the right way up
+      (phone photos' rotation is read), each on its own page: fitted to the picture, Letter or A4, with optional margins
+      and an option to shrink big phone photos.
+   5. Word → PDF: a .docx is read in this tab (admin/docx-html.js), shown as a preview and printed with the browser's
+      "Save as PDF" at the document's own page size and margins, header and footer on every page, text selectable.
+
    Libraries: pdf-lib (assets/vendor/pdf-lib) and pdf.js (assets/vendor/pdfjs), already used by the AI text check. */
 (function () {
 "use strict";
@@ -521,12 +527,22 @@ const css = `
 .pt-preview{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:10px;background:#8a9796;padding:12px}
 .pt-preview .pt-xpage{margin:0 auto 12px;box-shadow:0 2px 8px rgba(0,0,0,.3);transform-origin:top left}
 .pt-out{display:flex;flex-direction:column;gap:6px}
+.pt-imgs{display:flex;flex-direction:column;gap:6px}
+.pt-img{display:grid;grid-template-columns:28px 64px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--surface)}
+.pt-img .n{font-family:var(--display);font-weight:700;color:var(--muted);text-align:center}
+.pt-img .th{width:64px;height:64px;border-radius:6px;background:#fff center/contain no-repeat;border:1px solid var(--line);transition:transform .2s}
+.pt-img b{display:block;font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pt-img small{color:var(--muted);font-size:.76rem}
+.pt-img .acts{display:flex;gap:4px}
+.pt-wprev{overflow:auto;max-height:640px;border:1px solid var(--line);border-radius:10px;background:#8a9796;padding:14px}
+.pt-paper{background:#fff;margin:0 auto;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .pt-out a{font-size:.85rem;color:var(--accent);font-weight:600}
 .pt-bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden;position:relative}
 .pt-bar i{position:absolute;top:0;bottom:0;left:0;background:var(--accent);border-radius:5px}
 .pt-bar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#b4552d}
 `;
 const S = { tool: "xfa", busy: false, prog: "",
+  im: { items: [], size: "fit", margin: "0", quality: "original", name: "", res: null },   // images → PDF
+  w: null,      // Word → PDF: { name, doc }
   x: null,      // { name, bytes, info, render, res }
   c: null,      // { name, bytes, target, unit, value, allowRaster, gray, res }
   m: { mode: "merge", items: [], flatten: true, name: "merged", res: null, split: null } };
@@ -535,8 +551,8 @@ const $ = (s) => ROOT.querySelector(s);
 const setProg = (t) => { S.prog = t; const el = ROOT && ROOT.querySelector("#ptProg"); if (el) el.innerHTML = t ? `<i></i>${esc(t)}` : ""; };
 const prog = () => `<div class="pt-prog" id="ptProg">${S.busy && S.prog ? `<i></i>${esc(S.prog)}` : ""}</div>`;
 const readFile = async (f) => { const u = new Uint8Array(await f.arrayBuffer()); if (!isPdf(u)) throw new Error(`${f.name} isn't a PDF`); return u; };
-function dropZone(id, label, multiple) {
-  return `<label class="pt-drop" id="${id}"><b>${label}</b><br><span class="pt-note">or drag and drop ${multiple ? "PDF files" : "a PDF"} here</span><input type="file" accept="application/pdf,.pdf" ${multiple ? "multiple" : ""} hidden></label>`;
+function dropZone(id, label, multiple, accept = "application/pdf,.pdf", noun = multiple ? "PDF files" : "a PDF") {
+  return `<label class="pt-drop" id="${id}"><b>${label}</b><br><span class="pt-note">or drag and drop ${noun} here</span><input type="file" accept="${accept}" ${multiple ? "multiple" : ""} hidden></label>`;
 }
 function wireDrop(id, onFiles) {
   const z = $("#" + id); if (!z) return;
@@ -818,6 +834,169 @@ async function drawThumbs() {
   sp.drawing = false;
 }
 
+/* ---------- images → PDF ---------- */
+function imgKind(u) {
+  if (u[0] === 0xff && u[1] === 0xd8) return "jpg";
+  if (u[0] === 0x89 && u[1] === 0x50 && u[2] === 0x4e && u[3] === 0x47) return "png";
+  const head = String.fromCharCode(...u.subarray(0, 16));
+  if (head.startsWith("GIF8")) return "gif"; if (head.startsWith("BM")) return "bmp";
+  if (head.startsWith("RIFF") && head.slice(8, 12) === "WEBP") return "webp";
+  if (/ftyp(heic|heix|hevc|mif1|msf1|avif)/.test(head)) return "heic";
+  return "";
+}
+function jpegOrientation(u) {   // EXIF orientation of a phone photo (1 = upright)
+  try {
+    let i = 2;
+    while (i < Math.min(u.length, 65536)) {
+      if (u[i] !== 0xff) return 1;
+      const mk = u[i + 1], len = (u[i + 2] << 8) | u[i + 3];
+      if (mk === 0xe1 && String.fromCharCode(...u.subarray(i + 4, i + 8)) === "Exif") {
+        const t = i + 10, le = u[t] === 0x49, r16 = (o) => le ? u[o] | (u[o + 1] << 8) : (u[o] << 8) | u[o + 1], r32 = (o) => le ? (u[o] | (u[o + 1] << 8) | (u[o + 2] << 16) | (u[o + 3] << 24)) >>> 0 : ((u[o] << 24) | (u[o + 1] << 16) | (u[o + 2] << 8) | u[o + 3]) >>> 0;
+        const ifd = t + r32(t + 4), n = r16(ifd);
+        for (let k = 0; k < n; k++) { const e = ifd + 2 + k * 12; if (r16(e) === 0x0112) return r16(e + 8) || 1; }
+        return 1;
+      }
+      if (mk === 0xda) return 1;
+      i += 2 + len;
+    }
+  } catch (e) {}
+  return 1;
+}
+async function addImages(files) {
+  const im = S.im, bad = [];
+  for (const f of files) {
+    const bytes = new Uint8Array(await f.arrayBuffer()), kind = imgKind(bytes);
+    if (kind === "heic") { bad.push(`${f.name}: iPhone HEIC photos can't be read here. On the iPhone, share the photo as JPG (or set Settings → Camera → Formats → Most Compatible).`); continue; }
+    if (!kind) { bad.push(`${f.name} isn't a JPG, PNG, WEBP, GIF or BMP picture.`); continue; }
+    let w = 0, h = 0;
+    const url = URL.createObjectURL(new Blob([bytes], { type: "image/" + (kind === "jpg" ? "jpeg" : kind) }));
+    try { const bm = await createImageBitmap(new Blob([bytes])); w = bm.width; h = bm.height; bm.close && bm.close(); } catch (e) { URL.revokeObjectURL(url); bad.push(`${f.name} couldn't be opened.`); continue; }
+    im.items.push({ name: f.name, bytes, kind, url, w, h, rot: 0, exif: kind === "jpg" ? jpegOrientation(bytes) : 1 });
+  }
+  if (!im.name && im.items.length) im.name = baseName(im.items[0].name.replace(/\.(jpe?g|png|webp|gif|bmp)$/i, ""));
+  im.res = null;
+  if (bad.length) S.err = bad.join(" ");
+}
+const PAGE = { letter: [612, 792], a4: [595.28, 841.89] };
+async function imagesPdf(onp) {
+  const L = await pdflib(), im = S.im, out = await L.PDFDocument.create(), M = +im.margin || 0, small = im.quality === "small";
+  for (let i = 0; i < im.items.length; i++) {
+    const it = im.items[i]; onp(`Adding picture ${i + 1} of ${im.items.length}…`); await tick();
+    const keep = !small && !it.rot && it.exif === 1 && (it.kind === "jpg" || it.kind === "png");
+    let pic;
+    if (keep) pic = it.kind === "jpg" ? await out.embedJpg(it.bytes) : await out.embedPng(it.bytes);
+    else {   // re-draw: turn the right way up (EXIF + your rotation), shrink if asked, save as JPG (PNG kept as PNG when it may be transparent)
+      const bm = await createImageBitmap(new Blob([it.bytes]), { imageOrientation: "from-image" });
+      const quarter = (it.rot / 90) % 2 === 1, maxSide = small ? 2000 : 5000, sc = Math.min(1, maxSide / Math.max(bm.width, bm.height));
+      const bw = Math.round(bm.width * sc), bh = Math.round(bm.height * sc), c = document.createElement("canvas");
+      c.width = quarter ? bh : bw; c.height = quarter ? bw : bh;
+      const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; if (it.kind !== "png") ctx.fillRect(0, 0, c.width, c.height);
+      ctx.translate(c.width / 2, c.height / 2); ctx.rotate((it.rot * Math.PI) / 180); ctx.drawImage(bm, -bw / 2, -bh / 2, bw, bh); bm.close && bm.close();
+      const png = it.kind === "png" && !small, blob = await new Promise((r) => c.toBlob(r, png ? "image/png" : "image/jpeg", small ? 0.8 : 0.9));
+      const b = new Uint8Array(await blob.arrayBuffer()); pic = png ? await out.embedPng(b) : await out.embedJpg(b);
+    }
+    const iw = pic.width, ih = pic.height, land = iw > ih;
+    let pw, ph;
+    if (im.size === "fit") { const k = (land ? 792 : 612) / (land ? iw : iw); pw = iw * k + 2 * M; ph = ih * k + 2 * M; if (Math.max(pw, ph) > 1440) { const r = 1440 / Math.max(pw, ph); pw *= r; ph *= r; } }
+    else { [pw, ph] = PAGE[im.size]; if (land) [pw, ph] = [ph, pw]; }
+    const page = out.addPage([pw, ph]), aw = pw - 2 * M, ah = ph - 2 * M, k = Math.min(aw / iw, ah / ih), dw = iw * k, dh = ih * k;
+    page.drawImage(pic, { x: (pw - dw) / 2, y: (ph - dh) / 2, width: dw, height: dh });
+  }
+  out.setTitle(im.name || "images"); out.setProducer("WorkerPool"); out.setCreator("WorkerPool PDF tools");
+  return await out.save();
+}
+function viewImages() {
+  const im = S.im, n = im.items.length, tot = im.items.reduce((a, b) => a + b.bytes.length, 0);
+  let h = `<div class="pt-card"><h3>Images → PDF</h3><p class="sub">Photos and scans of documents (passport pages, certificates, pay stubs) into one PDF, one picture per page, in the order below.</p>
+    ${dropZone("ptIDrop", n ? "Add more pictures" : "Choose pictures", true, "image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.bmp,.heic", "JPG or PNG pictures")}`;
+  if (n) {
+    h += `<div class="pt-imgs">${im.items.map((it, i) => `<div class="pt-img"><span class="n">${i + 1}</span><span class="th" style="background-image:url('${it.url}');transform:rotate(${it.rot}deg)"></span>
+        <div><b title="${esc(it.name)}">${esc(it.name)}</b><small>${it.w}×${it.h} px · ${fmt(it.bytes.length)}${it.exif !== 1 ? " · turned upright from the phone's rotation" : ""}</small></div>
+        <div class="acts"><button class="pt-b sm" type="button" data-iu="${i}"${i ? "" : " disabled"} title="Move up">↑</button><button class="pt-b sm" type="button" data-id="${i}"${i < n - 1 ? "" : " disabled"} title="Move down">↓</button>
+          <button class="pt-b sm" type="button" data-ir="${i}" title="Turn 90° clockwise">⟳</button><button class="pt-b sm" type="button" data-ix="${i}" title="Remove">✕</button></div></div>`).join("")}</div>
+      <div class="pt-row">
+        <label class="pt-f">Page size<select id="ptISize">${[["fit", "Fit each page to its picture"], ["letter", "Letter (8.5 × 11 in)"], ["a4", "A4"]].map(([v, l]) => `<option value="${v}"${im.size === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="pt-f">Margin<select id="ptIMar">${[["0", "None"], ["18", "Small (¼ in)"], ["36", "Normal (½ in)"]].map(([v, l]) => `<option value="${v}"${im.margin === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="pt-f">Quality<select id="ptIQ">${[["original", "Original pictures"], ["small", "Smaller file (big photos shrunk)"]].map(([v, l]) => `<option value="${v}"${im.quality === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="pt-f">File name<input id="ptIName" value="${esc(im.name)}" placeholder="file name"></label></div>
+      <div class="pt-row"><button class="pt-b p" type="button" id="ptIGo"${S.busy ? " disabled" : ""}>Make PDF (${n} page${n > 1 ? "s" : ""}) & download</button><button class="pt-b" type="button" id="ptIClear">Start over</button>
+        <span class="pt-note">Pictures: ${fmt(tot)}${tot > 4e6 && im.quality === "original" ? " · over 4 MB: choose “Smaller file”, or use Compress PDF after" : ""}</span></div>${prog()}
+      ${im.res ? resultBox(im.res) : ""}`;
+  }
+  return h + `</div>`;
+}
+function wireImages(pick) {
+  const im = S.im;
+  wireDrop("ptIDrop", pick((fs) => addImages(fs)));
+  const move = (i, j) => { const [x] = im.items.splice(i, 1); im.items.splice(j, 0, x); im.res = null; render(); };
+  ROOT.querySelectorAll("[data-iu]").forEach((b) => (b.onclick = () => move(+b.dataset.iu, +b.dataset.iu - 1)));
+  ROOT.querySelectorAll("[data-id]").forEach((b) => (b.onclick = () => move(+b.dataset.id, +b.dataset.id + 1)));
+  ROOT.querySelectorAll("[data-ir]").forEach((b) => (b.onclick = () => { const it = im.items[+b.dataset.ir]; it.rot = (it.rot + 90) % 360; im.res = null; render(); }));
+  ROOT.querySelectorAll("[data-ix]").forEach((b) => (b.onclick = () => { const [x] = im.items.splice(+b.dataset.ix, 1); URL.revokeObjectURL(x.url); im.res = null; render(); }));
+  const set = (id, k) => { const el = $(id); if (el) el.onchange = () => { im[k] = el.value; im.res = null; render(); }; };
+  set("#ptISize", "size"); set("#ptIMar", "margin"); set("#ptIQ", "quality");
+  const nm = $("#ptIName"); if (nm) nm.oninput = () => { im.name = nm.value; };
+  const cl = $("#ptIClear"); if (cl) cl.onclick = () => { im.items.forEach((x) => URL.revokeObjectURL(x.url)); S.im = { items: [], size: im.size, margin: im.margin, quality: im.quality, name: "", res: null }; render(); };
+  const go = $("#ptIGo"); if (go) go.onclick = () => busy(async () => {
+    const bytes = await imagesPdf(setProg), blob = pdfBlob(bytes), fname = (baseName(im.name) || "images") + ".pdf";
+    im.res = { title: `Made ${fname}: ${im.items.length} page${im.items.length > 1 ? "s" : ""} · ${fmt(bytes.length)}`, msg: bytes.length > 4e6 ? "Over 4 MB: try “Smaller file”, or run it through Compress PDF." : "", blob, fname };
+    saveBlob(blob, fname);
+  });
+}
+
+/* ---------- Word → PDF ---------- */
+async function openWord(f) {
+  if (!window.WPDocx) throw new Error("The Word reader didn't load. Refresh the page.");
+  if (/\.doc$/i.test(f.name)) throw new Error(`${f.name} is an old .doc file. Open it in Word and use File → Save As → Word Document (.docx), then add that file here.`);
+  const bytes = new Uint8Array(await f.arrayBuffer());
+  if (!(bytes[0] === 0x50 && bytes[1] === 0x4b)) throw new Error(`${f.name} isn't a .docx file.`);
+  setProg("Reading the document…");
+  if (S.w && S.w.doc) window.WPDocx.release(S.w.doc);
+  S.w = { name: f.name, doc: await window.WPDocx.convert(bytes, f.name) };
+}
+function viewWord() {
+  const w = S.w;
+  let h = `<div class="pt-card"><h3>Word → PDF</h3><p class="sub">A Word document (.docx) to PDF at its own page size and margins, with its header and footer on every page. The text stays sharp and searchable.</p>
+    ${dropZone("ptWDrop", w ? "Choose a different Word file" : "Choose a Word file (.docx)", false, ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document", "a .docx file")}${prog()}`;
+  if (w) {
+    const p = w.doc.page, inch = (v) => (v / 72).toFixed(2).replace(/\.?0+$/, "");
+    h += `<div class="pt-v ok"><div><b>📄 ${esc(w.name)}</b> · page ${inch(p.w)} × ${inch(p.h)} in${Math.abs(p.w - 612) < 2 && Math.abs(p.h - 792) < 2 ? " (Letter)" : Math.abs(p.w - 595) < 3 && Math.abs(p.h - 842) < 3 ? " (A4)" : ""} · margins ${inch(p.top)}/${inch(p.right)}/${inch(p.bottom)}/${inch(p.left)} in${w.doc.header.html || w.doc.footer.html ? " · header/footer on every page" : ""}</div></div>
+      ${w.doc.warnings.length ? `<div class="pt-v mid"><div><b>Check these in the preview:</b><ul style="margin:4px 0 0;padding-left:18px">${w.doc.warnings.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div></div>` : ""}
+      <div class="pt-row"><button class="pt-b p" type="button" id="ptWPrint">Save as PDF</button></div>
+      <p class="pt-note"><b>Save as PDF</b> opens the print window: choose <b>Destination → Save as PDF</b>, keep Margins on <b>Default</b>, turn <b>Headers and footers</b> off and <b>Background graphics</b> on. For a document with complex layout (text boxes, shapes, several columns), compare with the original, or use Word's own File → Save As → PDF.</p>
+      <div class="pt-wprev" id="ptWPrev"></div>`;
+  }
+  return h + `</div>`;
+}
+function printWord(w) {
+  const L = window.WPDocx.layout(w.doc, { print: true });
+  let box = document.getElementById("ptPrint");
+  if (!box) { box = document.createElement("div"); box.id = "ptPrint"; document.body.appendChild(box); }
+  box.innerHTML = L.html;
+  let st = document.getElementById("ptPrintCss");
+  if (!st) { st = document.createElement("style"); st.id = "ptPrintCss"; document.head.appendChild(st); }
+  st.textContent = `${L.css}
+#ptPrint{position:fixed;left:-100000px;top:0;width:${w.doc.page.w - w.doc.page.left - w.doc.page.right}pt}
+@media print{${L.pageCss}html,body{background:#fff!important;margin:0!important;padding:0!important}body>*:not(#ptPrint){display:none!important}
+#ptPrint{position:static;left:auto;width:auto}#ptPrint *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
+  const old = document.title; document.title = baseName(w.name.replace(/\.docx$/i, ""));
+  const done = () => { document.title = old; window.removeEventListener("afterprint", done); };
+  window.addEventListener("afterprint", done);
+  setTimeout(() => window.print(), 80);
+}
+function wireWord(pick) {
+  wireDrop("ptWDrop", pick((fs) => openWord(fs[0])));
+  const w = S.w; if (!w) return;
+  const box = $("#ptWPrev");
+  if (box) {
+    const L = window.WPDocx.layout(w.doc), p = w.doc.page;
+    box.innerHTML = `<style>${L.css}</style><div class="pt-paper" style="width:${p.w}pt;padding:${w.doc.header.html || w.doc.footer.html ? p.header : p.top}pt ${p.right}pt ${w.doc.header.html || w.doc.footer.html ? p.footer : p.bottom}pt ${p.left}pt">${L.html}</div>`;
+    const fit = () => { const paper = box.querySelector(".pt-paper"); if (!paper) return; const k = Math.min(1, (box.clientWidth - 28) / paper.offsetWidth); paper.style.zoom = k < 1 ? k : ""; };
+    fit(); window.addEventListener("resize", fit, { once: true });
+  }
+  const pr = $("#ptWPrint"); if (pr) pr.onclick = () => printWord(w);
+}
+
 /* ---------- main render & wiring ---------- */
 function render() {
   if (!ROOT) return;
@@ -829,13 +1008,15 @@ function render() {
     <button type="button" data-tool="xfa" aria-pressed="${S.tool === "xfa"}">XFA → flat PDF<small>Flatten IRCC and other fillable forms</small></button>
     <button type="button" data-tool="compress" aria-pressed="${S.tool === "compress"}">Compress PDF<small>Shrink to a target size</small></button>
     <button type="button" data-tool="merge" aria-pressed="${S.tool === "merge"}">Merge / split PDF<small>Combine files or pull pages out</small></button>
+    <button type="button" data-tool="images" aria-pressed="${S.tool === "images"}">Images → PDF<small>JPG / PNG photos and scans</small></button>
+    <button type="button" data-tool="word" aria-pressed="${S.tool === "word"}">Word → PDF<small>.docx letters and documents</small></button>
   </div>${err}
-  ${S.tool === "xfa" ? viewXfa() : S.tool === "compress" ? viewCompress() : viewMerge()}`;
+  ${S.tool === "xfa" ? viewXfa() : S.tool === "compress" ? viewCompress() : S.tool === "images" ? viewImages() : S.tool === "word" ? viewWord() : viewMerge()}`;
   wire();
 }
 function wire() {
   ROOT.querySelectorAll("[data-tool]").forEach((b) => (b.onclick = () => { S.tool = b.dataset.tool; S.err = ""; render(); }));
-  ROOT.querySelectorAll("[data-dl]").forEach((b) => (b.onclick = () => { const r = S.tool === "xfa" ? S.x.res : S.tool === "compress" ? S.c.res : S.m.res; if (r && r.blob) saveBlob(r.blob, r.fname); }));
+  ROOT.querySelectorAll("[data-dl]").forEach((b) => (b.onclick = () => { const r = S.tool === "xfa" ? S.x.res : S.tool === "compress" ? S.c.res : S.tool === "images" ? S.im.res : S.m.res; if (r && r.blob) saveBlob(r.blob, r.fname); }));
   const pick = (fn) => (files) => busy(async () => { S.err = ""; await fn(files); });
   if (S.tool === "xfa") {
     wireDrop("ptXDrop", pick((fs) => openXfa(fs[0])));
@@ -870,6 +1051,8 @@ function wire() {
       if (r.size < c.bytes.length) saveBlob(blob, fname);
     });
   }
+  if (S.tool === "images") wireImages(pick);
+  if (S.tool === "word") wireWord(pick);
   if (S.tool === "merge") {
     const m = S.m;
     ROOT.querySelectorAll("[data-mm]").forEach((b) => (b.onclick = () => { m.mode = b.dataset.mm; m.res = null; render(); if (m.mode === "split") drawThumbs(); }));
@@ -951,7 +1134,9 @@ async function load(key, body) {
 function leave() { // on lock: forget every file
   gen++; ROOT = null; clearPrint(); closeViewer();
   if (S.m.split && S.m.split.doc) pjsClose(S.m.split.doc);
-  S.x = null; S.c = null; S.m = { mode: "merge", items: [], flatten: true, name: "merged", res: null, split: null }; S.busy = false; S.err = ""; fontCssCache = null;
+  S.x = null; S.c = null; S.m = { mode: "merge", items: [], flatten: true, name: "merged", res: null, split: null };
+  S.im.items.forEach((x) => URL.revokeObjectURL(x.url)); S.im = { items: [], size: "fit", margin: "0", quality: "original", name: "", res: null };
+  if (S.w && S.w.doc && window.WPDocx) window.WPDocx.release(S.w.doc); S.w = null; S.busy = false; S.err = ""; fontCssCache = null;
 }
 window.WPPdfTools = { load, leave, core: { inspectForm, flattenAcro, xfaRender, xfaImagePdf, xfaPageCanvas, rasterPdf, lossless, recompress, compressTo, mergePdfs, splitPdf, parseGroups, parsePages, describe, zipStore, unpredict } };
 })();
