@@ -1,10 +1,10 @@
 {
  "source": {
-  "name": "2025 Wages",
-  "url": "https://open.canada.ca/data/dataset/adad580f-76b0-4502-bd05-20c125de9116/resource/9da94d63-b178-4a64-aeb3-b6a3bd721ad2/download/2a71-das-wage2025opendata-esdc-all-19nov2025-vf.csv",
-  "year": 2025,
-  "modified": "2025-11-19T15:17:27.455766",
-  "revision": "2025-11-19"
+  "name": "2026 Wages",
+  "url": "https://open.canada.ca/data/dataset/adad580f-76b0-4502-bd05-20c125de9116/resource/d40ef986-af07-4682-8f7f-43f019a6e588/download/2a71-das-wage2026opendata-esdc-all-18nov2026-vf.csv",
+  "year": 2026,
+  "modified": "2026-11-18T15:14:21.806527",
+  "revision": "2026-11-18"
  },
  "regions": {
   "ER00": {
@@ -928,6 +928,6 @@
   "from": "Job Bank",
   "count": 45671
  },
- "checked": "2026-11-02T15:02:00.145Z",
- "updated": "2026-11-02T15:02:00.145Z"
+ "checked": "2026-11-23T15:28:41.544Z",
+ "updated": "2026-11-23T15:28:41.545Z"
 }
