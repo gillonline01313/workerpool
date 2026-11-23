@@ -10,7 +10,13 @@
   const toIso = (v) => { const t = new Date(v); return isNaN(t) ? new Date().toISOString() : t.toISOString(); };
   const digits = (p) => String(p || "").replace(/\D/g, "");
   // wa.me needs a full international number: 10 digits = North America (+1)
-  const waNum = (c) => { const w = String(c.whatsapp || ""); const d = digits(/[a-z]/i.test(w) ? "" : w) || digits(c.phone); return d.length >= 7 ? (d.length === 10 ? "1" + d : d) : ""; };
+  // wa.me target: a WhatsApp username (wa.me/username) or a full international number (10 digits = North America, +1);
+  // without a WhatsApp entry, the phone number.
+  const waNum = (c) => {
+    const w = String(c.whatsapp || "").trim();
+    if (/[a-z]/i.test(w)) { const u = w.replace(/^@/, "").replace(/^(https?:\/\/)?wa\.me\//i, "").replace(/[^a-z0-9._]/gi, ""); if (u.length >= 3) return u; }
+    const d = digits(/[a-z]/i.test(w) ? "" : w) || digits(c.phone); return d.length >= 7 ? (d.length === 10 ? "1" + d : d) : "";
+  };
   const tgUser = (c) => String(c.telegram || "").replace(/^@/, "");
   const reach = (c) => [c.phone, c.whatsapp && c.whatsapp !== c.phone ? "WA " + c.whatsapp : "", c.telegram ? "TG " + c.telegram : "", c.email].filter(Boolean).join(" · ");
   const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
@@ -286,7 +292,7 @@
         <div class="row sp" style="align-items:flex-start"><div><h3 style="font-size:1.35rem">${esc(c.name || "(no name)")}</h3>
             <div style="font-size:.9rem;margin-top:4px">${[
               c.phone ? `📞 <a href="tel:${esc(c.phone.replace(/[^\d+]/g, ""))}">${esc(c.phone)}</a>` : "",
-              wn ? `💬 <a href="https://wa.me/${esc(wn)}" target="_blank" rel="noopener">WhatsApp${c.whatsapp && c.whatsapp !== c.phone ? " " + esc(c.whatsapp) : ""}</a>` : c.whatsapp ? `💬 WhatsApp ${esc(c.whatsapp)}` : "",
+              wn ? `💬 <a href="https://wa.me/${esc(encodeURIComponent(wn))}" target="_blank" rel="noopener" title="Open a WhatsApp chat${/[a-z]/i.test(wn) ? " with this username (if they set a username key, WhatsApp asks for it)" : ""}">WhatsApp${c.whatsapp && c.whatsapp !== c.phone ? " " + esc(c.whatsapp) : ""}</a>` : c.whatsapp ? `💬 WhatsApp ${esc(c.whatsapp)}` : "",
               tg ? `✈️ <a href="https://t.me/${esc(tg)}" target="_blank" rel="noopener">Telegram @${esc(tg)}</a>` : "",
               c.email ? `✉️ <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : "", c.location ? esc(c.location) : ""].filter(Boolean).join(" · ") || "No contact details yet"}</div>
             <div class="note" style="margin-top:4px">In the CRM since ${day(c.created)}${c.source ? ` (${esc(c.source)})` : ""}${c.referred_by ? ` · referred by <b>${esc(c.referred_by)}</b>` : ""}</div></div>
@@ -308,7 +314,7 @@
           <td><span class="meter"><i style="width:${f.progress || 0}%"></i></span>${f.progress || 0}%${f.partial && f.status === "submitted" ? " · partial" : ""}</td><td>${f.status === "submitted" ? `Submitted ${day(f.resubmitted || f.submitted)}` : f.status === "editing" ? "Client editing" : `Filling · ${day(f.updated)}`}</td>
           <td><button class="btn g sm" type="button" data-form="${f.id}">Open</button></td></tr>`).join("")}</tbody></table></div>` : ""}
         ${invites.filter((v) => !forms.some((f) => f.invite_code === v.code)).map((v) => `<div class="row sp" style="font-size:.88rem;border-top:1px solid var(--line);padding-top:8px"><span>📋 <b>${esc(C && C.FORMS[v.form_key] ? C.FORMS[v.form_key].name : v.form_key)}</b> · link sent ${day(v.created)} · ${v.opens ? `opened ${v.opens}×, last ${day(v.last_open)}` : "not opened yet"}${v.archived ? " · turned off" : ""}</span>
-          <span class="row"><button class="btn g sm" type="button" data-cp="${esc(S.item.link + "/intake/?i=" + v.code)}">Copy link</button>${wn ? `<a class="btn g sm" target="_blank" rel="noopener" href="https://wa.me/${esc(wn)}?text=${encodeURIComponent(`Please fill your form here: ${S.item.link}/intake/?i=${v.code}`)}">WhatsApp</a>` : ""}</span></div>`).join("")}</div>` : ""}
+          <span class="row"><button class="btn g sm" type="button" data-cp="${esc(S.item.link + "/intake/?i=" + v.code)}">Copy link</button>${wn ? `<a class="btn g sm" target="_blank" rel="noopener" href="https://wa.me/${esc(encodeURIComponent(wn))}?text=${encodeURIComponent(`Please fill your form here: ${S.item.link}/intake/?i=${v.code}`)}">WhatsApp</a>` : ""}</span></div>`).join("")}</div>` : ""}
       <div class="wpa-card wide"><h3>History (${T.length})</h3><div class="tl">${T.length ? T.map((e) => `<div class="ev ${e.type}"><div class="ic">${ICON[e.type] || "•"}</div>
           <div><div class="t"><b>${esc(TYPE_LABEL[e.type] || e.type)}</b>${e.channel ? ` · ${esc(e.channel)}` : ""} · ${when(e.at)}</div>${e.detail ? `<div class="d">${esc(e.detail)}</div>` : ""}
           ${e.meta && e.meta.link ? `<div class="row" style="margin-top:4px"><button class="btn g sm" type="button" data-cp="${esc(e.meta.link)}">Copy form link</button></div>` : ""}</div>
