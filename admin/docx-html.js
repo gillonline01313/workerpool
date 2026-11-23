@@ -366,14 +366,19 @@ function docCss(page) {
 .dx table.dx-t{table-layout:fixed;max-width:100%}.dx table.dx-t td>.dx-p:first-child{margin-top:0}.dx table.dx-t tr{break-inside:avoid}
 .dx .dx-th{display:table-row}.dx a{color:#0563c1}.dx .dx-missing{background:repeating-linear-gradient(45deg,#eee,#eee 6px,#ddd 6px,#ddd 12px)}
 .dx .dx-pb{display:block;break-before:page}.dx .dx-box{border:0}.dx img{max-width:100%}
-.dx table.dx-page{width:100%;border-collapse:collapse}.dx table.dx-page>*>tr>td{padding:0}`;
+.dx table.dx-page{width:100%;border-collapse:collapse}.dx table.dx-page>*>tr>td{padding:0}
+.dx .dx-fh,.dx .dx-ff{display:none}
+@media print{.dx .dx-fh{display:block;position:fixed;top:0;left:0;right:0}.dx .dx-ff{display:block;position:fixed;bottom:0;left:0;right:0}.dx .dx-hd>*,.dx .dx-ft>*{visibility:hidden}}`;
 }
 function layout(r, { print } = {}) {
   const p = r.page, hasHF = !!(r.header.html || r.footer.html), first = r.titlePg ? { h: r.header.first, f: r.footer.first } : null;
   const top = hasHF ? Math.max(0, p.top - p.header) : 0, bot = hasHF ? Math.max(0, p.bottom - p.footer) : 0;
   const content = `${first && first.h ? `<div class="dx-first-h">${first.h}</div>` : ""}${r.html}${first && first.f ? `<div class="dx-first-f">${first.f}</div>` : ""}`;
-  const inner = hasHF ? `<table class="dx-page"><thead><tr><td style="height:${top}pt;vertical-align:top">${r.header.html || ""}</td></tr></thead>
-    <tfoot><tr><td style="height:${bot}pt;vertical-align:bottom">${r.footer.html || ""}</td></tr></tfoot><tbody><tr><td>${content}</td></tr></tbody></table>` : content;
+  // On screen the header/footer show in the table's header and footer rows. When printing, those rows only reserve the
+  // space (repeated on every page) and fixed copies are drawn at the page edges, so the last page's footer sits at the
+  // bottom too.
+  const inner = hasHF ? `${print ? `<div class="dx-fh">${r.header.html || ""}</div><div class="dx-ff">${r.footer.html || ""}</div>` : ""}<table class="dx-page"><thead><tr><td class="dx-hd" style="height:${top}pt;vertical-align:top">${r.header.html || ""}</td></tr></thead>
+    <tfoot><tr><td class="dx-ft" style="height:${bot}pt;vertical-align:bottom">${r.footer.html || ""}</td></tr></tfoot><tbody><tr><td>${content}</td></tr></tbody></table>` : content;
   return { html: `<div class="dx">${inner}</div>`, css: docCss(p),
     pageCss: `@page{size:${p.w}pt ${p.h}pt;margin:${hasHF ? p.header : p.top}pt ${p.right}pt ${hasHF ? p.footer : p.bottom}pt ${p.left}pt}` };
 }
