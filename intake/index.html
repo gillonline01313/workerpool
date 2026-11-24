@@ -131,7 +131,7 @@ footer a{color:var(--muted)}
 <footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents. We are not immigration representatives and do not give immigration advice. Your information is kept private and is used only to prepare your file. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
 <datalist id="countries"></datalist>
 <script>window.WP_CHAT_CTX = { hidden: true };</script>
-<script src="/assets/chat.js?v=6" defer></script>
+<script src="/assets/chat.js?v=7" defer></script>
 <script type="module">
 import { FORMS, formOf, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName, CONSENT_TEXT, KEEP_TEXT, KEEP_DAYS, partnerConsent, returnScope, returnLabels, RETURN_DOCS } from "/assets/intake-config.js?v=11";
 
@@ -234,7 +234,7 @@ async function snapNow() {
     return { blob, name: `screenshot-${slug}.png`, label: sp ? whereText(sp) : "" };
   } finally { if (hl) hl.classList.remove("snap-hl"); }
 }
-const chatNote = (firm, shot) => firm ? "" : `<p class="saved" style="margin:0">Have a question? <button class="linkbtn" type="button" data-open-chat>Chat with our team</button>.${shot ? " You can send a screenshot of the part you're stuck on." : ""} A real person replies, live 8 a.m. to 11 p.m. Mountain Time. Outside those hours, leave a message and we'll reply by email.</p>`;
+const chatNote = (firm, shot) => firm ? "" : `<p class="saved" style="margin:0">Have a question? <button class="linkbtn" type="button" data-open-chat>Chat with our team</button>${shot ? ` or <button class="linkbtn" type="button" data-chat-shot>📷 send us a screenshot of where you're stuck</button>` : ""}. A real person replies, live 8 a.m. to 11 p.m. Mountain Time. Outside those hours, leave a message and we'll reply by email.</p>`;
 $("#logout").onclick = async () => { await flush(); try { await fetch("/api/auth/logout", { method: "POST" }); } catch (e) {} me = null; cur = null; header(); authView("login"); };
 $("#myForms").onclick = async () => { await flush(); cur = null; history.replaceState(null, "", location.pathname + location.search); list(); };
 window.addEventListener("beforeunload", (e) => { if (dirty) { flush(); e.preventDefault(); e.returnValue = ""; } });
