@@ -16,6 +16,16 @@ async function api(path, body) {
   if (!r.ok || !j.ok) throw new Error(j.error || "Something went wrong. Try again.");
   return j;
 }
+const FILE_TYPES = ".pdf,.doc,.docx,.jpg,.jpeg,.png";
+const kb = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
+// Uploads one file to a lead. Returns an error message, or "" when it worked.
+async function upload(id, file, kind) {
+  try {
+    const r = await fetch("/api/leads/file?id=" + encodeURIComponent(id), { method: "POST", body: file, headers: { "x-file-name": encodeURIComponent(file.name), "x-kind": kind } });
+    const j = await r.json().catch(() => ({}));
+    return r.ok && j.ok ? "" : j.error || "upload failed";
+  } catch (e) { return "check your connection"; }
+}
 function header() { $("#who").hidden = !me; if (me) $("#whoName").textContent = me.name + (me.company ? " · " + me.company : ""); }
 const pill = (l) => `<span class="pill s-${esc(l.status)}">${esc(l.status_label)}</span>`;
 const go = (id) => { history.pushState(null, "", id ? "?id=" + encodeURIComponent(id) : location.pathname); route(); };
@@ -42,36 +52,46 @@ function signIn(notice = "") {
     <p class="lede" style="margin-top:6px">Refer clients to WorkerPool and follow every lead until the service is complete.</p></div>
     ${notice ? `<div class="note warn">${esc(notice)}</div>` : ""}
     <form id="fIn" class="stack" novalidate>
-      <div class="f"><label for="iEmail">Email</label><input id="iEmail" type="email" autocomplete="email"></div>
+      <div class="f"><label for="iEmail">Email or phone number</label><input id="iEmail" autocomplete="username" placeholder="you@example.com or +1 780 555 0100"></div>
       <div class="f"><label for="iPass">Password</label><input id="iPass" type="password" autocomplete="current-password"></div>
       <div class="err" id="iErr"></div>
       <button class="btn" type="submit">Sign in</button>
       <button class="linkbtn" type="button" id="forgot">Forgot your password?</button>
     </form>
-    <p class="muted" style="margin:0">Accounts are set up by WorkerPool. If you'd like to refer clients, contact info@workerpool.ca.</p></div>`;
+    <p class="muted" style="margin:0">New here? Sign up with the link WorkerPool sent you. If you'd like to refer clients, contact info@workerpool.ca.</p></div>`;
   $("#fIn").onsubmit = async (e) => {
     e.preventDefault(); $("#iErr").textContent = "";
-    try { await api("login", { email: $("#iEmail").value, password: $("#iPass").value }); boot(); }
+    try { await api("login", { login: $("#iEmail").value, password: $("#iPass").value }); boot(); }
     catch (x) { $("#iErr").textContent = x.message; }
   };
   $("#forgot").onclick = async () => {
     const email = $("#iEmail").value.trim();
-    if (!email) { $("#iErr").textContent = "Enter your email first, then press Forgot password."; return; }
-    try { await api("forgot", { email }); } catch (x) {}
-    $("#fIn").outerHTML = `<div class="note">If ${esc(email)} has a Lead Desk account, a link to reset the password is on its way. It works for 1 hour.</div>`;
+    if (!email) { $("#iErr").textContent = "Enter your email or phone first, then press Forgot password."; return; }
+    try { await api("forgot", { login: email }); } catch (x) {}
+    $("#fIn").outerHTML = `<div class="note">If that account has an email address, a link to reset the password is on its way (it works for 1 hour). If you signed up with a phone number only, ask WorkerPool to send you a new link.</div>`;
   };
 }
-function setPassword(token) {
-  view.innerHTML = `<div class="card" style="max-width:440px;margin:20px auto">
-    <div><span class="eyebrow">WorkerPool Lead Desk</span><h1 style="font-size:1.7rem;margin-top:4px">Choose your password</h1></div>
+async function setPassword(token) {
+  let info;
+  try { info = await api("invite?token=" + encodeURIComponent(token)); }
+  catch (e) { view.innerHTML = `<div class="card" style="max-width:440px;margin:20px auto"><h2>Link not working</h2><p class="err" style="margin:0">${esc(e.message)}</p><a class="btn ghost" href="/leads/">Go to sign in</a></div>`; return; }
+  const up = info.signup;
+  view.innerHTML = `<div class="card" style="max-width:460px;margin:20px auto">
+    <div><span class="eyebrow">WorkerPool Lead Desk</span><h1 style="font-size:1.7rem;margin-top:4px">${up ? `Welcome, ${esc(info.name.split(" ")[0])}` : "Choose a new password"}</h1>
+    ${up ? `<p class="lede" style="margin-top:6px">Sign up to refer clients to WorkerPool${info.company ? ` for ${esc(info.company)}` : ""} and follow every lead until the service is complete.</p>` : ""}</div>
     <form id="fSet" class="stack" novalidate>
-      <div class="f"><label for="sPass">New password</label><input id="sPass" type="password" autocomplete="new-password" placeholder="At least 10 characters"></div>
+      ${up ? `<p class="muted" style="margin:0">You'll sign in with your email or your phone number. Add at least one. With an email you can also reset your password yourself.</p>
+      <div class="f"><label for="sEmail">Email</label><input id="sEmail" type="email" autocomplete="email" value="${esc(info.email || "")}"></div>
+      <div class="f"><label for="sPhone">Phone number (with country code)</label><input id="sPhone" type="tel" autocomplete="tel" value="${esc(info.phone || "")}" placeholder="+1 780 555 0100"></div>` : ""}
+      <div class="f"><label for="sPass">${up ? "Password" : "New password"}</label><input id="sPass" type="password" autocomplete="new-password" placeholder="At least 10 characters"></div>
       <div class="f"><label for="sPass2">Type it again</label><input id="sPass2" type="password" autocomplete="new-password"></div>
-      <div class="err" id="sErr"></div><button class="btn" type="submit">Save and sign in</button></form></div>`;
+      <div class="err" id="sErr"></div><button class="btn" type="submit">${up ? "Sign up" : "Save and sign in"}</button></form></div>`;
   $("#fSet").onsubmit = async (e) => {
     e.preventDefault(); const p = $("#sPass").value;
     if (p !== $("#sPass2").value) { $("#sErr").textContent = "The two passwords don't match."; return; }
-    try { await api("set", { token, password: p }); history.replaceState(null, "", location.pathname); boot(); }
+    const body = { token, password: p };
+    if (up) { body.email = $("#sEmail").value; body.phone = $("#sPhone").value; if (!body.email.trim() && !body.phone.trim()) { $("#sErr").textContent = "Enter your email or your phone number."; return; } }
+    try { await api("set", body); history.replaceState(null, "", location.pathname); boot(); }
     catch (x) { $("#sErr").textContent = x.message; }
   };
 }
@@ -138,13 +158,21 @@ function newLead() {
   view.innerHTML = `<div class="stack" style="max-width:820px">
     <div><button class="linkbtn" type="button" id="back">← My leads</button><h1 style="margin-top:8px">New lead</h1><p class="lede">WorkerPool contacts the client and keeps this lead updated here until the service is complete.</p></div>
     <form class="card" id="fLead" novalidate>${fieldsHtml()}
+      <div class="f"><label for="lCv">Client's CV / resume (optional)</label><span class="help">PDF, Word (DOC, DOCX), JPG or PNG, up to 10 MB.</span><input id="lCv" type="file" accept="${FILE_TYPES}"></div>
       <label class="cb"><input type="checkbox" id="lConsent"><span>The client agreed to be referred to WorkerPool and to be contacted about this service. *</span></label>
       <div class="err" id="lErr"></div><div class="row"><button class="btn" type="submit">Send lead to WorkerPool</button><button class="btn ghost" type="button" id="cancel">Cancel</button></div></form></div>`;
   $("#back").onclick = $("#cancel").onclick = () => go("");
   $("#fLead").onsubmit = async (e) => {
     e.preventDefault(); $("#lErr").textContent = "";
     const btn = e.submitter || $("#fLead button[type=submit]"); btn.disabled = true;
-    try { const j = await api("lead", { ...readFields(), consent: $("#lConsent").checked }); history.replaceState(null, "", "?id=" + j.id); lead(j.id, `Lead ${j.ref} sent to WorkerPool.`); }
+    const cv = $("#lCv").files[0];
+    if (cv && cv.size > 10 * 1024 * 1024) { $("#lErr").textContent = "The CV is over 10 MB. Compress it or save it as a smaller PDF."; btn.disabled = false; return; }
+    try {
+      const j = await api("lead", { ...readFields(), consent: $("#lConsent").checked });
+      let msg = `Lead ${j.ref} sent to WorkerPool.`;
+      if (cv) { btn.textContent = "Uploading the CV…"; const e2 = await upload(j.id, cv, "cv"); msg += e2 ? ` The CV didn't upload (${e2}). Add it again below.` : " CV attached."; }
+      history.replaceState(null, "", "?id=" + j.id); lead(j.id, msg);
+    }
     catch (x) { $("#lErr").textContent = x.message; btn.disabled = false; }
   };
 }
@@ -155,7 +183,7 @@ async function lead(id, flash = "") {
   try { j = await api("item?id=" + encodeURIComponent(id)); } catch (e) { if (e.message !== "auth") view.innerHTML = `<div class="card"><p class="err">${esc(e.message)}</p><button class="btn ghost" type="button" onclick="history.back()">Back</button></div>`; return; }
   const l = j.lead, canEdit = l.status === "new" || l.action_needed;
   const bal = l.fee_cents ? l.fee_cents - (l.paid_cents || 0) : null;
-  const evIcon = { created: "Lead created", status: "Status", payment: "Payment", fee: "Fee", rcic: "RCIC", sendback: "Sent back to you", reply: "Your reply", comment: "Comment", edit: "Details updated" };
+  const evIcon = { created: "Lead created", status: "Status", payment: "Payment", fee: "Fee", rcic: "RCIC", sendback: "Sent back to you", reply: "Your reply", comment: "Comment", edit: "Details updated", file: "File" };
   view.innerHTML = `<div class="stack">
     <div><button class="linkbtn" type="button" id="back">← My leads</button>
       <div class="row sp" style="margin-top:8px"><div><span class="eyebrow">${esc(l.ref)} · referred ${day(l.created)}</span><h1>${esc(l.client_name)}</h1><p class="lede" style="margin-top:4px">${esc(l.service)}</p></div><div>${pill(l)}</div></div></div>
@@ -179,8 +207,21 @@ async function lead(id, flash = "") {
         <div class="card"><h2>Payments from the client</h2>
           <div class="money"><div><span class="muted">Fee</span><b>${l.fee_cents ? money(l.fee_cents) : "–"}</b></div><div><span class="muted">Received</span><b>${money(l.paid_cents)}</b></div>${bal !== null ? `<div><span class="muted">Balance</span><b>${money(Math.max(0, bal))}</b></div>` : ""}</div>
           ${j.payments.length ? `<div class="tbl"><table style="min-width:0"><thead><tr><th>Date</th><th>Amount</th><th>Method</th></tr></thead><tbody>${j.payments.map((p) => `<tr><td>${day(p.received_on)}</td><td>${money(p.amount_cents)}</td><td>${esc(p.method)}${p.note ? `<br><span class="muted">${esc(p.note)}</span>` : ""}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted" style="margin:0">No payments recorded yet.</p>`}</div>
+        <div class="card"><h2>CV and files</h2>
+          ${j.files.length ? `<ul class="tl">${j.files.map((x) => `<li class="${x.by === "manager" ? "manager" : "admin"}"><small>${x.kind === "cv" ? "CV" : "File"} · ${x.by === "manager" ? "added by you" : "added by WorkerPool"} · ${when(x.created)} · ${kb(x.size)}</small>
+            <a href="/api/leads/file?fid=${esc(x.id)}" target="_blank" rel="noopener">${esc(x.name)}</a>${x.by === "manager" ? ` · <button class="linkbtn" type="button" data-rm="${esc(x.id)}">Remove</button>` : ""}</li>`).join("")}</ul>` : `<p class="muted" style="margin:0">No CV yet.</p>`}
+          <div class="row"><label class="btn ghost sm" style="cursor:pointer">${j.files.some((x) => x.kind === "cv") ? "Add another file" : "Upload the client's CV"}<input type="file" id="fUp" accept="${FILE_TYPES}" hidden></label><span class="muted">PDF, DOC, DOCX, JPG or PNG · 10 MB</span></div>
+          <div class="err" id="fErr" style="min-height:0"></div></div>
       </div></div></div>`;
   $("#back").onclick = () => go("");
+  $("#fUp").onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { $("#fErr").textContent = "That file is over 10 MB."; return; }
+    $("#fErr").textContent = "Uploading…";
+    const err = await upload(id, file, j.files.some((x) => x.kind === "cv") ? "file" : "cv");
+    if (err) $("#fErr").textContent = err; else lead(id, "File uploaded.");
+  };
+  view.querySelectorAll("[data-rm]").forEach((b) => b.onclick = async () => { if (!confirm("Remove this file?")) return; try { await api("file-delete", { id, fid: b.dataset.rm }); lead(id, "File removed."); } catch (x) { $("#fErr").textContent = x.message; } });
   const ed = $("#edit"); if (ed) ed.onclick = () => {
     $("#det").innerHTML = `<form id="fEd" class="stack" novalidate>${fieldsHtml(l)}<div class="err" id="eErr"></div><div class="row"><button class="btn" type="submit">Save</button><button class="btn ghost" type="button" id="eCancel">Cancel</button></div></form>`;
     ed.hidden = true; $("#eCancel").onclick = () => lead(id);
