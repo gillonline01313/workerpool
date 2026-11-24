@@ -29,7 +29,9 @@ export async function onRequestPost({ request, env }) {
     if (r.error) return json({ ok: false, error: r.error }, r.status);
     t = r.t; cookie = r.cookie; isNew = true;
   } else {
-    await env.DB.prepare(`UPDATE chat_threads SET email = COALESCE(email, ?1) WHERE id = ?2`).bind(email || null, t.id).run();
+    const pg = hdr(request, "x-page", 120), tag = /^Intake form/.test(pg) ? pg : null;
+    await env.DB.prepare(`UPDATE chat_threads SET email = COALESCE(email, ?1), page = COALESCE(?3, page) WHERE id = ?2`).bind(email || null, t.id, tag).run();
+    if (tag) t.page = tag;
     if (!t.email && email) t.email = email;
   }
 

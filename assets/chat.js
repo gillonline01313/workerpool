@@ -1,6 +1,9 @@
 /* WorkerPool live chat widget. Add <script src="/assets/chat.js" defer></script> to any page.
    Live 8:00 a.m. to 11:00 p.m. Mountain Time (America/Edmonton), daily. Outside those hours it takes a message and an email.
-   Visitors can also leave a voice note (up to 2 minutes) from the mic button beside the chat button, or inside the chat. */
+   Visitors can also leave a voice note (up to 2 minutes) from the mic button beside the chat button, or inside the chat.
+   Pages can give the chat a context with window.wpChat.setContext({ label, name, email, hidden }):
+   label (e.g. "Intake form · Visitor visa (TRV)") is shown to the admin with the conversation, name/email prefill the start form,
+   hidden: true removes the chat from the page (used on partner firms' intake forms). */
 (function () {
   if (window.__wpChat) return; window.__wpChat = true;
   const TZ = "America/Edmonton", OPEN = 8, CLOSE = 23;
@@ -10,6 +13,8 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const time = (t) => new Date(t).toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" });
   const track = (n) => window.wpaSection && window.wpaSection(n);
+  let ctx = window.WP_CHAT_CTX || {};
+  const pageTag = () => String(ctx.label || location.pathname).slice(0, 120);
 
   const css = `
 .wpc-dock{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:900;display:flex;align-items:center;gap:10px}
@@ -97,7 +102,7 @@
     q(".wpc-lbl").textContent = o ? "Chat with us" : "Leave a message";
     return o;
   }
-  const intro = () => `<div class="wpc-info">${isOpen() ? "Message our team directly. A real person will reply here." : "We're offline right now. Leave a message with your email and we'll reply when we're back."} ${HOURS}.<br>You can send a voice note or attach files. They're stored privately and only our team can hear or see them.<br>We're not immigration representatives and can't give immigration advice.</div>`;
+  const intro = () => `<div class="wpc-info">${ctx.label ? "Questions about your form? Ask our team here. We'll see which form you're working on. " : ""}${isOpen() ? "Message our team directly. A real person will reply here." : "We're offline right now. Leave a message with your email and we'll reply when we're back."} ${HOURS}.<br>You can send a voice note or attach files. They're stored privately and only our team can hear or see them.<br>We're not immigration representatives and can't give immigration advice.</div>`;
   function renderMsgs(scroll) {
     const near = body.scrollHeight - body.scrollTop - body.clientHeight < 80;
     body.innerHTML = intro() + msgs.map((m) => `<div class="wpc-m ${m.sender === "admin" ? "a" : "v"}">${m.file_id ? fileHTML(m) : esc(m.body)}<small>${m.sender === "admin" ? "WorkerPool · " : ""}${time(m.created)}</small></div>`).join("")
@@ -143,8 +148,8 @@
   function renderStart() {
     inVoice = false; const o = isOpen();
     body.innerHTML = intro() + `<form class="wpc-form" novalidate>
-      <label>Your name<input name="name" autocomplete="name" maxlength="80" required></label>
-      <label>Email ${o ? '<span style="font-weight:400;color:var(--muted,#5a696b)">(optional, so we can reply if you leave)</span>' : ""}<input name="email" type="email" autocomplete="email" maxlength="160" ${o ? "" : "required"}></label>
+      <label>Your name<input name="name" autocomplete="name" maxlength="80" required value="${esc(ctx.name || "")}"></label>
+      <label>Email ${o ? '<span style="font-weight:400;color:var(--muted,#5a696b)">(optional, so we can reply if you leave)</span>' : ""}<input name="email" type="email" autocomplete="email" maxlength="160" ${o ? "" : "required"} value="${esc(ctx.email || "")}"></label>
       <label>Message<textarea name="body" rows="4" maxlength="2000" required></textarea></label>
       <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
       <button class="wpc-go" type="submit">${o ? "Start chat" : "Send message"}</button>
@@ -158,12 +163,12 @@
       if (!d.body.trim()) return errEl.textContent = "Type a message first.";
       if (!isOpen() && !d.email.trim()) return errEl.textContent = "Add your email so we can reply.";
       const b = f.querySelector("button"); b.disabled = true; b.textContent = "Sending…";
-      const r = await send({ ...d, page: location.pathname });
+      const r = await send({ ...d });
       if (!r) { b.disabled = false; b.textContent = isOpen() ? "Start chat" : "Send message"; return; }
       started = true; ls.set("wp_chat", "1"); thread = { name: d.name, hasEmail: !!d.email.trim(), status: "open" }; track("Chat started");
       showThread();
     };
-    setTimeout(() => f.querySelector("input").focus(), 50);
+    setTimeout(() => { const i = [...f.querySelectorAll("input,textarea")].find((x) => !x.value && x.name !== "website"); (i || f.querySelector("textarea")).focus(); }, 50);
   }
   function showThread() { inVoice = false; foot.hidden = false; renderMsgs(true); }
   function merge(list) {
@@ -175,7 +180,7 @@
   }
   async function send(payload) {
     try {
-      const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, after: lastId }) });
+      const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, page: pageTag(), after: lastId }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) { errEl.textContent = j.error || "Couldn't send. Try again."; if (j.needEmail) askEmail(); return null; }
       merge(j.messages); return j;
@@ -235,8 +240,8 @@
     const o = isOpen(), needEmail = !o && !(started && thread && thread.hasEmail);
     body.innerHTML = `<div class="wpc-info">${o ? "Leave a voice note (up to 2 minutes). Our team will listen and reply here, usually within minutes." : "We're offline. Leave a voice note (up to 2 minutes) and your email, and we'll listen and reply after 8:00 a.m. Mountain Time."} We can't give immigration advice.</div>
       <form class="wpc-form" novalidate onsubmit="return false">
-        ${started ? "" : `<label>Your name<input name="name" autocomplete="name" maxlength="80"></label>`}
-        ${started && !needEmail ? "" : `<label>Email ${needEmail ? "" : '<span style="font-weight:400;color:var(--muted,#5a696b)">(optional, so we can reply if you leave)</span>'}<input name="email" type="email" autocomplete="email" maxlength="160"></label>`}
+        ${started ? "" : `<label>Your name<input name="name" autocomplete="name" maxlength="80" value="${esc(ctx.name || "")}"></label>`}
+        ${started && !needEmail ? "" : `<label>Email ${needEmail ? "" : '<span style="font-weight:400;color:var(--muted,#5a696b)">(optional, so we can reply if you leave)</span>'}<input name="email" type="email" autocomplete="email" maxlength="160" value="${started ? "" : esc(ctx.email || "")}"></label>`}
         <label>Phone <span style="font-weight:400;color:var(--muted,#5a696b)">(optional, if you'd like a call back)</span><input name="phone" type="tel" autocomplete="tel" maxlength="40"></label>
       </form>
       <div class="wpc-rec">
@@ -315,7 +320,7 @@
     const enc = encodeURIComponent;
     try {
       const r = await fetch("/api/chat-voice", { method: "POST", body: voice.blob, headers: { "Content-Type": "application/octet-stream",
-        "X-Name": enc(name), "X-Email": enc(email), "X-Phone": enc(phone), "X-Duration": String(voice.secs), "X-Page": enc(location.pathname) } });
+        "X-Name": enc(name), "X-Email": enc(email), "X-Phone": enc(phone), "X-Duration": String(voice.secs), "X-Page": enc(pageTag()) } });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) { errEl.textContent = j.error || "Couldn't send. Try again."; go.disabled = false; go.textContent = "Send voice note"; return; }
     } catch (e) { errEl.textContent = "Couldn't send. Check your connection."; go.disabled = false; go.textContent = "Send voice note"; return; }
@@ -338,7 +343,14 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !panel.hidden) closePanel(); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
   window.addEventListener("hashchange", () => { if (location.hash === "#chat" && panel.hidden) openPanel(); });
-  document.addEventListener("click", (e) => { const v = e.target.closest('a[href="#voice"],[data-open-voice]'); if (v) { e.preventDefault(); openVoice(); return; } const a = e.target.closest('a[href="#chat"],[data-open-chat]'); if (a) { e.preventDefault(); if (panel.hidden) openPanel(); } });
+  document.addEventListener("click", (e) => { const v = e.target.closest('a[href="#voice"],[data-open-voice]'); if (v) { e.preventDefault(); if (!root.hidden) openVoice(); return; } const a = e.target.closest('a[href="#chat"],[data-open-chat]'); if (a) { e.preventDefault(); if (panel.hidden && !root.hidden) openPanel(); } });
+
+  // Public API for pages (see the note at the top).
+  window.wpChat = {
+    open: () => { if (!root.hidden && panel.hidden) openPanel(); },
+    setContext(c) { ctx = c || {}; root.hidden = !!ctx.hidden; if (ctx.hidden && !panel.hidden) closePanel(); else if (!panel.hidden && !started && !inVoice) renderStart(); },
+  };
+  root.hidden = !!ctx.hidden;
 
   status(); schedule();
   if (started) poll();
