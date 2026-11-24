@@ -1,6 +1,6 @@
 // Live chat files for visitors: send a file to the admin, or open a file in your own conversation.
 // Files are kept privately in R2 (RESUMES bucket, under chat/).
-import { json, chatOpen, chatThread, chatNotify, fileName, fileCheck, fileResponse, FILE_MAX } from "../_lib.js";
+import { json, str, chatOpen, chatThread, chatNotify, chatSchema, fileName, fileCheck, fileResponse, FILE_MAX } from "../_lib.js";
 export async function onRequestPost({ request, env }) {
   if (!env.RESUMES) return json({ ok: false, error: "File sharing isn't switched on yet." }, 503);
   const t = await chatThread(env, request);
@@ -10,16 +10,19 @@ export async function onRequestPost({ request, env }) {
   if (parseInt(request.headers.get("content-length") || "0") > FILE_MAX) return json({ ok: false, error: "That file is over 10 MB." }, 413);
   const count = await env.DB.prepare(`SELECT COUNT(*) AS n FROM chat_files WHERE thread_id = ?1 AND sender = 'visitor'`).bind(t.id).first();
   if (count && count.n >= 25) return json({ ok: false, error: "This chat has reached its 25-file limit. Email hello@workerpool.ca for more." }, 400);
+  await chatSchema(env);
+  let where = ""; try { where = str(decodeURIComponent(request.headers.get("x-where") || ""), 300); } catch {}
+  const shot = request.headers.get("x-screenshot") === "1";
   const name = fileName(request), buf = await request.arrayBuffer();
   const k = fileCheck(name, buf);
   if (k.error) return json({ ok: false, error: k.error }, 400);
   const now = new Date().toISOString(), fid = crypto.randomUUID(), key = `chat/${t.id}/${fid}.${k.ext}`;
   await env.RESUMES.put(key, buf, { httpMetadata: { contentType: k.type }, customMetadata: { name, thread: t.id, sender: "visitor" } });
-  const ins = await env.DB.prepare(`INSERT INTO chat_messages (thread_id, sender, body, created) VALUES (?1, 'visitor', '', ?2)`).bind(t.id, now).run();
+  const ins = await env.DB.prepare(`INSERT INTO chat_messages (thread_id, sender, body, ctx, created) VALUES (?1, 'visitor', ?2, ?3, ?4)`).bind(t.id, shot ? "📸 Screenshot of the form" : "", where || null, now).run();
   await env.DB.prepare(`INSERT INTO chat_files (id, thread_id, msg_id, sender, name, size, type, r2_key, created) VALUES (?1, ?2, ?3, 'visitor', ?4, ?5, ?6, ?7, ?8)`)
     .bind(fid, t.id, ins.meta.last_row_id, name, buf.byteLength, k.type, key, now).run();
   await env.DB.prepare(`UPDATE chat_threads SET status = 'open', updated = ?1, visitor_seen = ?1 WHERE id = ?2`).bind(now, t.id).run();
-  await chatNotify(env, t, { open, isNew: false, text: `[Sent a file: ${name}, ${Math.max(1, Math.round(buf.byteLength / 1024))} KB]` });
+  await chatNotify(env, t, { open, isNew: false, text: shot ? `[Sent a screenshot of the part of the form they're on. Open the Live chat tab to see it.]` : `[Sent a file: ${name}, ${Math.max(1, Math.round(buf.byteLength / 1024))} KB]`, where });
   return json({ ok: true });
 }
 export async function onRequestGet({ request, env }) {

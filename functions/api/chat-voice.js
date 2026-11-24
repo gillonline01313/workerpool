@@ -1,7 +1,7 @@
 // Voice notes from the chat widget: up to 2 minutes, stored privately in R2 (RESUMES bucket, under chat/).
 // A voice note joins the visitor's chat (or starts one), so the team listens and replies in the admin Live chat tab.
 // Same hours as chat: live 8:00 to 23:00 Edmonton time; outside them an email is required so we can reply.
-import { json, str, isEmail, chatOpen, chatThread, chatNotify, chatStartThread, voiceCheck, VOICE_MAX, VOICE_SECS } from "../_lib.js";
+import { json, str, isEmail, chatOpen, chatThread, chatNotify, chatStartThread, chatSchema, voiceCheck, VOICE_MAX, VOICE_SECS } from "../_lib.js";
 const hdr = (request, k, n) => { try { return str(decodeURIComponent(request.headers.get(k) || ""), n); } catch { return ""; } };
 
 export async function onRequestPost({ request, env }) {
@@ -40,11 +40,13 @@ export async function onRequestPost({ request, env }) {
   const stamp = now.slice(0, 16).replace(/[-:T]/g, "").replace(/^(\d{8})/, "$1-");
   const name = `voice-note-${stamp}.${k.ext}`, fid = crypto.randomUUID(), key = `chat/${t.id}/${fid}.${k.ext}`;
   await env.RESUMES.put(key, buf, { httpMetadata: { contentType: k.type }, customMetadata: { name, thread: t.id, sender: "visitor", seconds: String(secs) } });
-  const ins = await env.DB.prepare(`INSERT INTO chat_messages (thread_id, sender, body, created) VALUES (?1, 'visitor', ?2, ?3)`).bind(t.id, body, now).run();
+  await chatSchema(env);
+  const where = hdr(request, "x-where", 300);
+  const ins = await env.DB.prepare(`INSERT INTO chat_messages (thread_id, sender, body, ctx, created) VALUES (?1, 'visitor', ?2, ?3, ?4)`).bind(t.id, body, where || null, now).run();
   await env.DB.prepare(`INSERT INTO chat_files (id, thread_id, msg_id, sender, name, size, type, r2_key, created) VALUES (?1, ?2, ?3, 'visitor', ?4, ?5, ?6, ?7, ?8)`)
     .bind(fid, t.id, ins.meta.last_row_id, name, buf.byteLength, k.type, key, now).run();
   await env.DB.prepare(`UPDATE chat_threads SET status = 'open', updated = ?1, visitor_seen = ?1 WHERE id = ?2`).bind(now, t.id).run();
-  await chatNotify(env, t, { open, isNew, voice: true, text: `[Left a ${len} voice note${phone ? `. Phone: ${phone}` : ""}]\nListen to it in the Live chat tab.` });
+  await chatNotify(env, t, { open, isNew, voice: true, text: `[Left a ${len} voice note${phone ? `. Phone: ${phone}` : ""}]\nListen to it in the Live chat tab.`, where });
 
   const res = json({ ok: true, open });
   if (cookie) res.headers.append("set-cookie", cookie);

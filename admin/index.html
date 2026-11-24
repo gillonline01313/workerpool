@@ -117,6 +117,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
 .chat-item .r1{display:flex;justify-content:space-between;gap:8px;align-items:center}
 .chat-item small{color:var(--muted);font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chat-intake{color:var(--accent)!important;font-weight:600}
+.chat-where{display:block;margin-top:4px;padding:4px 8px;border-radius:8px;background:rgba(0,0,0,.06);font-weight:600;white-space:normal}
 .chat-unread{background:#d4572f;color:#fff;border-radius:999px;font-size:.7rem;font-weight:700;padding:1px 7px}
 .chat-conv{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;min-height:480px}
 .chat-top{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
@@ -1536,7 +1537,7 @@ async function chatThread(){
   if(!j.rows.length&&chat.msgs.length) return;
   j.rows.forEach(m=>{ if(m.id>chat.last){ chat.msgs.push(m); chat.last=m.id; } });
   const box=$("#chatMsgs"); const near=box.scrollHeight-box.scrollTop-box.clientHeight<80||!box.childElementCount;
-  box.innerHTML=chat.msgs.map(m=>`<div class="chat-m ${m.sender==="admin"?"a":"v"}">${m.file_id?chatFileHTML(m):esc(m.body)}<small>${m.sender==="admin"?"You · ":""}${when(m.created)}</small></div>`).join("")||`<div class="wpa-note">No messages.</div>`;
+  box.innerHTML=chat.msgs.map(m=>`<div class="chat-m ${m.sender==="admin"?"a":"v"}">${m.file_id?chatFileHTML(m):esc(m.body)}${m.ctx?`<small class="chat-where">📍 ${esc(m.ctx)}</small>`:""}<small>${m.sender==="admin"?"You · ":""}${when(m.created)}</small></div>`).join("")||`<div class="wpa-note">No messages.</div>`;
   chatImgs(box); chatAudio(box);
   if(near) box.scrollTop=box.scrollHeight;
 }

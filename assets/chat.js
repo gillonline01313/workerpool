@@ -3,7 +3,9 @@
    Visitors can also leave a voice note (up to 2 minutes) from the mic button beside the chat button, or inside the chat.
    Pages can give the chat a context with window.wpChat.setContext({ label, name, email, hidden }):
    label (e.g. "Intake form · Visitor visa (TRV)") is shown to the admin with the conversation, name/email prefill the start form,
-   hidden: true removes the chat from the page (used on partner firms' intake forms). */
+   hidden: true removes the chat from the page (used on partner firms' intake forms).
+   where(): returns where the person is on the page (e.g. intake form section and question); sent with each message.
+   snap(): resolves to { blob, name, label } — a PNG screenshot of that part of the page; adds a screenshot button to the chat. */
 (function () {
   if (window.__wpChat) return; window.__wpChat = true;
   const TZ = "America/Edmonton", OPEN = 8, CLOSE = 23;
@@ -15,6 +17,7 @@
   const track = (n) => window.wpaSection && window.wpaSection(n);
   let ctx = window.WP_CHAT_CTX || {};
   const pageTag = () => String(ctx.label || location.pathname).slice(0, 120);
+  const whereNow = () => { try { return ctx.where ? String(ctx.where() || "").slice(0, 300) : ""; } catch (e) { return ""; } };
 
   const css = `
 .wpc-dock{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:900;display:flex;align-items:center;gap:10px}
@@ -77,6 +80,11 @@
 .wpc-link{align-self:center;font:600 13px/1 var(--body,system-ui,sans-serif);background:none;border:0;color:var(--muted,#5a696b);text-decoration:underline;cursor:pointer;padding:6px}
 .wpc-voice{display:flex;flex-direction:column;gap:6px;min-width:220px}
 @media (prefers-reduced-motion:reduce){.wpc-recbtn.on{animation:none}}
+.wpc-cb{flex-direction:row!important;align-items:flex-start;gap:8px!important;font-weight:500!important}
+.wpc-cb input{width:18px!important;height:18px;flex:none;margin-top:2px;accent-color:var(--accent,#3f7a72)}
+.wpc-shot{display:flex;flex-direction:column;gap:8px}
+.wpc-shot img{max-width:100%;max-height:260px;object-fit:contain;border:1px solid var(--line,#d3dcda);border-radius:9px;background:#fff}
+.wpc-shot .wpc-recrow{justify-content:flex-start}
 .wpc [hidden]{display:none!important}`;
   const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
 
@@ -87,7 +95,7 @@
   <div class="wpc-head"><div><b>WorkerPool</b><small><i class="wpc-dot"></i><span class="wpc-status"></span></small></div><button class="wpc-x" type="button" aria-label="Close chat">×</button></div>
   <div class="wpc-body"></div>
   <div class="wpc-err" role="alert"></div><div class="wpc-up" aria-live="polite"></div>
-  <div class="wpc-foot" hidden><button class="wpc-clip" type="button" aria-label="Attach a file" title="Attach a file (PDF, JPG, PNG, DOC, DOCX up to 10 MB)"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.2-8.2a3.4 3.4 0 0 1 4.8 4.8l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.6-7.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button><input type="file" class="wpc-fin" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple hidden><button class="wpc-mic" type="button" aria-label="Record a voice note" title="Record a voice note (up to 2 minutes)"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><textarea rows="1" maxlength="2000" placeholder="Type a message" aria-label="Message"></textarea><button class="wpc-go" type="button">Send</button></div>
+  <div class="wpc-foot" hidden><button class="wpc-clip" type="button" aria-label="Attach a file" title="Attach a file (PDF, JPG, PNG, DOC, DOCX up to 10 MB)"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.2-8.2a3.4 3.4 0 0 1 4.8 4.8l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.6-7.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button><input type="file" class="wpc-fin" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple hidden><button class="wpc-clip wpc-cam" type="button" aria-label="Send a screenshot of where you are in the form" title="Send a screenshot of where you are in the form" hidden><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0 1 20 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><button class="wpc-mic" type="button" aria-label="Record a voice note" title="Record a voice note (up to 2 minutes)"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><textarea rows="1" maxlength="2000" placeholder="Type a message" aria-label="Message"></textarea><button class="wpc-go" type="button">Send</button></div>
 </div>`;
   document.body.appendChild(root);
   const q = (s) => root.querySelector(s);
@@ -104,10 +112,12 @@
   }
   const intro = () => `<div class="wpc-info">${ctx.label ? "Questions about your form? Ask our team here. We'll see which form you're working on. " : ""}${isOpen() ? "Message our team directly. A real person will reply here." : "We're offline right now. Leave a message with your email and we'll reply when we're back."} ${HOURS}.<br>You can send a voice note or attach files. They're stored privately and only our team can hear or see them.<br>We're not immigration representatives and can't give immigration advice.</div>`;
   function renderMsgs(scroll) {
+    const shotBox = body.querySelector(".wpc-shot");
     const near = body.scrollHeight - body.scrollTop - body.clientHeight < 80;
     body.innerHTML = intro() + msgs.map((m) => `<div class="wpc-m ${m.sender === "admin" ? "a" : "v"}">${m.file_id ? fileHTML(m) : esc(m.body)}<small>${m.sender === "admin" ? "WorkerPool · " : ""}${time(m.created)}</small></div>`).join("")
       + (thread && thread.status === "closed" ? `<div class="wpc-info">This conversation was closed. Send a message to start it again.</div>` : "")
       + (!isOpen() && msgs.length && msgs[msgs.length - 1].sender === "visitor" ? `<div class="wpc-info">Thanks. We're offline now and will reply ${thread && thread.hasEmail ? "here and by email" : "here"} after 8:00 a.m. Mountain Time.</div>` : "");
+    if (shotBox) body.appendChild(shotBox);
     if (scroll || near) body.scrollTop = body.scrollHeight;
     loadAudio();
   }
@@ -130,19 +140,19 @@
     if (/^image\//.test(m.file_type)) return `<a href="${url}" target="_blank" rel="noopener"><img class="wpc-img" src="${url}" alt="${esc(m.file_name)}" loading="lazy"></a>`;
     return `<a class="wpc-file" href="${url}" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>${esc(m.file_name)}</span><em>${kb(m.file_size || 0)}</em></a>`;
   }
-  async function uploadFiles(files) {
+  async function uploadFiles(files, shot) {
     const up = q(".wpc-up"), clip = q(".wpc-clip"); errEl.textContent = ""; clip.disabled = true;
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       if (f.size > 10485760) { errEl.textContent = `${f.name} is over 10 MB.`; continue; }
       up.textContent = `Sending ${f.name}${files.length > 1 ? ` (${i + 1} of ${files.length})` : ""}…`;
       try {
-        const r = await fetch("/api/chat-file", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(f.name) }, body: f });
+        const r = await fetch("/api/chat-file", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(f.name), "X-Where": encodeURIComponent(whereNow()), ...(shot ? { "X-Screenshot": "1" } : {}) }, body: f });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.ok) { errEl.textContent = `${f.name}: ${j.error || "couldn't send."}`; if (j.needEmail) askEmail(); }
       } catch (e) { errEl.textContent = `${f.name}: couldn't send. Check your connection.`; }
     }
-    up.textContent = ""; clip.disabled = false; track("Chat file sent");
+    up.textContent = ""; clip.disabled = false; track(shot ? "Chat screenshot sent" : "Chat file sent");
     await poll(); renderMsgs(true);
   }
   function renderStart() {
@@ -151,6 +161,7 @@
       <label>Your name<input name="name" autocomplete="name" maxlength="80" required value="${esc(ctx.name || "")}"></label>
       <label>Email ${o ? '<span style="font-weight:400;color:var(--muted,#5a696b)">(optional, so we can reply if you leave)</span>' : ""}<input name="email" type="email" autocomplete="email" maxlength="160" ${o ? "" : "required"} value="${esc(ctx.email || "")}"></label>
       <label>Message<textarea name="body" rows="4" maxlength="2000" required></textarea></label>
+      ${ctx.snap ? `<label class="wpc-cb"><input type="checkbox" name="shot" checked><span>Also send a screenshot of the part of the form I'm on</span></label>` : ""}
       <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
       <button class="wpc-go" type="submit">${o ? "Start chat" : "Send message"}</button>
       <button class="wpc-link" type="button" data-open-voice>Or leave a voice note instead</button></form>`;
@@ -163,14 +174,36 @@
       if (!d.body.trim()) return errEl.textContent = "Type a message first.";
       if (!isOpen() && !d.email.trim()) return errEl.textContent = "Add your email so we can reply.";
       const b = f.querySelector("button"); b.disabled = true; b.textContent = "Sending…";
+      const wantShot = d.shot === "on"; delete d.shot;
       const r = await send({ ...d });
       if (!r) { b.disabled = false; b.textContent = isOpen() ? "Start chat" : "Send message"; return; }
       started = true; ls.set("wp_chat", "1"); thread = { name: d.name, hasEmail: !!d.email.trim(), status: "open" }; track("Chat started");
       showThread();
+      if (wantShot) takeShot(true);
     };
     setTimeout(() => { const i = [...f.querySelectorAll("input,textarea")].find((x) => !x.value && x.name !== "website"); (i || f.querySelector("textarea")).focus(); }, 50);
   }
-  function showThread() { inVoice = false; foot.hidden = false; renderMsgs(true); }
+  function showThread() { inVoice = false; foot.hidden = false; q(".wpc-cam").hidden = !ctx.snap; renderMsgs(true); }
+  /* ---------- screenshot of where the person is on the page (intake forms) ---------- */
+  async function takeShot(direct) {
+    if (!ctx.snap) return;
+    const up = q(".wpc-up"), cam = q(".wpc-cam"); errEl.textContent = ""; cam.disabled = true;
+    up.textContent = "Taking a screenshot of the part of the form you're on…";
+    let s = null;
+    try { s = await ctx.snap(); } catch (e) {}
+    up.textContent = ""; cam.disabled = false;
+    if (!s || !s.blob) { errEl.textContent = "We couldn't take the screenshot here. Take one on your device and send it with the 📎 button."; return; }
+    const file = new File([s.blob], s.name || "screenshot.png", { type: "image/png" });
+    if (direct) return uploadFiles([file], true);
+    body.querySelectorAll(".wpc-shot").forEach((x) => x.remove());
+    const url = URL.createObjectURL(s.blob), w = document.createElement("div");
+    w.className = "wpc-info wpc-shot";
+    w.innerHTML = `<b>Send this screenshot?</b>${s.label ? `<span>${esc(s.label)}</span>` : ""}<img src="${url}" alt="Screenshot of the form"><div class="wpc-recrow"><button class="wpc-ghost" type="button" data-no>Cancel</button><button class="wpc-go" type="button" data-yes>Send screenshot</button></div>`;
+    body.appendChild(w); body.scrollTop = body.scrollHeight;
+    const done = () => { URL.revokeObjectURL(url); w.remove(); };
+    w.querySelector("[data-no]").onclick = done;
+    w.querySelector("[data-yes]").onclick = () => { done(); uploadFiles([file], true); };
+  }
   function merge(list) {
     for (const m of list || []) if (m.id > lastId) { msgs.push(m); lastId = m.id; }
     const seen = parseInt(ls.get("wp_chat_seen")) || 0;
@@ -180,7 +213,7 @@
   }
   async function send(payload) {
     try {
-      const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, page: pageTag(), after: lastId }) });
+      const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, page: pageTag(), where: whereNow(), after: lastId }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) { errEl.textContent = j.error || "Couldn't send. Try again."; if (j.needEmail) askEmail(); return null; }
       merge(j.messages); return j;
@@ -320,7 +353,7 @@
     const enc = encodeURIComponent;
     try {
       const r = await fetch("/api/chat-voice", { method: "POST", body: voice.blob, headers: { "Content-Type": "application/octet-stream",
-        "X-Name": enc(name), "X-Email": enc(email), "X-Phone": enc(phone), "X-Duration": String(voice.secs), "X-Page": enc(pageTag()) } });
+        "X-Name": enc(name), "X-Email": enc(email), "X-Phone": enc(phone), "X-Duration": String(voice.secs), "X-Page": enc(pageTag()), "X-Where": enc(whereNow()) } });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) { errEl.textContent = j.error || "Couldn't send. Try again."; go.disabled = false; go.textContent = "Send voice note"; return; }
     } catch (e) { errEl.textContent = "Couldn't send. Check your connection."; go.disabled = false; go.textContent = "Send voice note"; return; }
@@ -333,7 +366,8 @@
   q(".wpc-mic").onclick = openVoice;
 
   const fin = q(".wpc-fin");
-  q(".wpc-clip").onclick = () => { fin.value = ""; fin.click(); };
+  q(".wpc-clip:not(.wpc-cam)").onclick = () => { fin.value = ""; fin.click(); };
+  q(".wpc-cam").onclick = () => takeShot(false);
   fin.onchange = () => { const f = [...fin.files]; if (f.length) uploadFiles(f); };
   btn.onclick = openPanel;
   q(".wpc-x").onclick = closePanel;
@@ -348,7 +382,7 @@
   // Public API for pages (see the note at the top).
   window.wpChat = {
     open: () => { if (!root.hidden && panel.hidden) openPanel(); },
-    setContext(c) { ctx = c || {}; root.hidden = !!ctx.hidden; if (ctx.hidden && !panel.hidden) closePanel(); else if (!panel.hidden && !started && !inVoice) renderStart(); },
+    setContext(c) { ctx = c || {}; root.hidden = !!ctx.hidden; q(".wpc-cam").hidden = !ctx.snap || foot.hidden; if (ctx.hidden && !panel.hidden) closePanel(); else if (!panel.hidden && !started && !inVoice) renderStart(); },
   };
   root.hidden = !!ctx.hidden;
 
