@@ -116,6 +116,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
 .chat-item[aria-current="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .chat-item .r1{display:flex;justify-content:space-between;gap:8px;align-items:center}
 .chat-item small{color:var(--muted);font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-intake{color:var(--accent)!important;font-weight:600}
 .chat-unread{background:#d4572f;color:#fff;border-radius:999px;font-size:.7rem;font-weight:700;padding:1px 7px}
 .chat-conv{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;min-height:480px}
 .chat-top{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
@@ -1506,15 +1507,16 @@ function renderChatList(){
   $("#chatHead").textContent=`${chat.rows.length} conversation${chat.rows.length===1?"":"s"}${unread?` · ${unread} with new messages`:""}`;
   L.innerHTML=chat.rows.length?chat.rows.map(r=>`<button class="chat-item" type="button" data-chat="${esc(r.id)}" aria-current="${r.id===chat.cur}">
     <span class="r1"><b>${esc(r.name||"Visitor")}</b>${r.unread&&r.id!==chat.cur?`<span class="chat-unread">${r.unread}</span>`:`<small>${when(r.updated)}</small>`}</span>
+    ${/^Intake form/.test(r.page||"")?`<small class="chat-intake">📝 ${esc(r.page.replace(/^Intake form · /,""))}</small>`:""}
     <small>${r.last_sender==="admin"?"You: ":""}${esc((r.last_body||"").slice(0,80))}</small>
-    ${r.status==="closed"?`<small>Closed</small>`:""}</button>`).join(""):`<div class="wpa-empty">No chats yet. Visitors start them from the home page.</div>`;
+    ${r.status==="closed"?`<small>Closed</small>`:""}</button>`).join(""):`<div class="wpa-empty">No chats yet. Visitors start them from the home page, and clients from their intake forms.</div>`;
   L.querySelectorAll("[data-chat]").forEach(b=>b.onclick=()=>chatOpen(b.dataset.chat));
 }
 function chatOpen(id){
   const r=chat.rows.find(x=>x.id===id); if(!r) return;
   chat.cur=id; chat.msgs=[]; chat.last=0;
   const seen=r.visitor_seen&&Date.now()-Date.parse(r.visitor_seen)<12e4;
-  $("#chatConv").innerHTML=`<div class="chat-top"><div><b>${esc(r.name||"Visitor")}</b><small>${r.email?esc(r.email):"No email given"} · started ${when(r.created)}${r.page?" on "+(r.page==="/"?"the home page":esc(r.page)):""} · <span id="chatSeen">${seen?"on the page now":"not on the page"}</span></small></div>
+  $("#chatConv").innerHTML=`<div class="chat-top"><div><b>${esc(r.name||"Visitor")}</b><small>${r.email?esc(r.email):"No email given"} · started ${when(r.created)}${r.page?(/^Intake form/.test(r.page)?" · <b class=\"chat-intake\">from their "+esc(r.page.replace(/^Intake form/,"intake form"))+"</b>":" on "+(r.page==="/"?"the home page":esc(r.page))):""} · <span id="chatSeen">${seen?"on the page now":"not on the page"}</span></small></div>
     <button class="dl" type="button" id="chatClose">${r.status==="closed"?"Reopen":"Close chat"}</button></div>
     <div class="chat-msgs" id="chatMsgs"></div><div class="err" id="chatErr" style="padding:0 12px"></div>
     <div class="chat-reply"><button class="chat-clip" type="button" id="chatClip" title="PDF, JPG, PNG, DOC or DOCX up to 10 MB">Attach</button><input type="file" id="chatFile" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple hidden><textarea id="chatText" rows="2" maxlength="2000" placeholder="Reply to ${esc(r.name||"visitor")} (Enter to send, Shift+Enter for a new line)"></textarea><button class="gate-btn dl" type="button" id="chatSend" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">Send</button></div>`;

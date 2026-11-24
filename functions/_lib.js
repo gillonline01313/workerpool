@@ -102,7 +102,7 @@ export async function chatNotify(env, t, { open, isNew, text, voice }) {
   if (!(voice || isNew || !open || !t.last_notified || Date.now() - Date.parse(t.last_notified) > 6e5)) return;
   await env.DB.prepare(`UPDATE chat_threads SET last_notified = ?1 WHERE id = ?2`).bind(new Date().toISOString(), t.id).run();
   await sendEmail(env, env.ADMIN_EMAIL, `${voice ? "Voice note" : open ? "Live chat" : "Offline chat message"} from ${t.name}`,
-    `${t.name}${t.email ? " (" + t.email + ")" : ""} ${voice ? "left a voice note" : isNew ? "started a chat" : "sent a message"}${open ? "" : " outside live hours"}:\n\n${text}\n\nReply in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Live chat tab)`, t.email);
+    `${t.name}${t.email ? " (" + t.email + ")" : ""} ${voice ? "left a voice note" : isNew ? "started a chat" : "sent a message"}${open ? "" : " outside live hours"}${/^Intake form/.test(t.page || "") ? " from their " + t.page.replace(/^Intake form/, "intake form") : ""}:\n\n${text}\n\nReply in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Live chat tab)`, t.email);
 }
 
 /* ---------- uploaded file checks (PDF, JPG, PNG, DOC, DOCX up to 10 MB) ---------- */
@@ -157,7 +157,7 @@ export async function chatStartThread(env, request, { name, email, page, open })
   const recent = await env.DB.prepare(`SELECT COUNT(*) AS n FROM chat_threads WHERE ip_hash = ?1 AND created > ?2`).bind(ipHash, new Date(Date.now() - 36e5).toISOString()).first();
   if (recent && recent.n >= 5) return { error: "Too many new chats from this connection. Try again later or email hello@workerpool.ca.", status: 429 };
   const token = randomToken(), now = new Date().toISOString();
-  const t = { id: id(), name, email, last_notified: null };
+  const t = { id: id(), name, email, page: page || "", last_notified: null };
   await env.DB.prepare(`INSERT INTO chat_threads (id, token_hash, name, email, page, ip_hash, status, created, updated, visitor_seen) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'open', ?7, ?7, ?7)`)
     .bind(t.id, await sha256hex(token), name, email || null, page || "", ipHash, now).run();
   return { t, cookie: `wp_chat=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 86400}` };

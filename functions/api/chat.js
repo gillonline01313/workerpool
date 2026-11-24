@@ -32,7 +32,10 @@ export async function onRequestPost({ request, env }) {
     const burst = await env.DB.prepare(`SELECT COUNT(*) AS n FROM chat_messages WHERE thread_id = ?1 AND sender = 'visitor' AND created > ?2`).bind(t.id, new Date(Date.now() - 6e5).toISOString()).first();
     if (burst && burst.n >= 30) return json({ ok: false, error: "You're sending messages too fast. Wait a few minutes." }, 429);
     if (!open && !t.email && !email) return json({ ok: false, error: "We're offline right now. Add your email so we can reply.", needEmail: true }, 400);
-    await env.DB.prepare(`UPDATE chat_threads SET status = 'open', updated = ?1, visitor_seen = ?1, email = COALESCE(email, ?2) WHERE id = ?3`).bind(now, email || null, t.id).run();
+    // A chat continued from an intake form is tagged with that form, so the admin sees what the client is working on.
+    const pg = str(b.page, 120), tag = /^Intake form/.test(pg) ? pg : null;
+    await env.DB.prepare(`UPDATE chat_threads SET status = 'open', updated = ?1, visitor_seen = ?1, email = COALESCE(email, ?2), page = COALESCE(?4, page) WHERE id = ?3`).bind(now, email || null, t.id, tag).run();
+    if (tag) t.page = tag;
     if (!t.email && email) t.email = email;
   }
   await env.DB.prepare(`INSERT INTO chat_messages (thread_id, sender, body, created) VALUES (?1, 'visitor', ?2, ?3)`).bind(t.id, body, now).run();
