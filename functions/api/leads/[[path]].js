@@ -1,8 +1,12 @@
 // Lead Desk API (/leads/ portal and admin → Lead Desk). See functions/_leads.js.
 //
 // Lead manager routes (signed in with the wp_lm cookie):
-//   POST login · logout · forgot · set { token, password }        account (new managers set their password from the invite link)
+//   POST login { login, password } (login = email or phone) · logout · forgot { login }
+//   GET  invite?token=                                              the sign-up / reset link: name, email, phone, first time or not
+//   POST set { token, password, email?, phone? }                     sign up (first time: own email and/or phone) or reset the password
 //   GET  me                                                         who's signed in, services, statuses
+//   POST file?id=  (raw body, x-file-name)                           attach a file (the client's CV) to my lead
+//   GET  file?fid=  ·  POST file-delete { id, fid }                  open one of my lead's files · remove a file I added
 //   GET  list                                                       my leads (never the RCIC's name)
 //   GET  item?id=                                                   one of my leads: details, payments, timeline (no internal notes)
 //   POST lead { client_name, phone, whatsapp, email, location, service, details, consent }   punch a new lead
@@ -11,12 +15,13 @@
 //   POST password { current, password }
 // Admin routes (x-admin-key) under /api/leads/admin/:
 //   GET  list · item?id= · managers · count
-//   POST manager { id?, name, email, phone, company, note } (new managers are emailed a link to set their password)
-//   POST manager-status { id, status } · manager-invite { id }
+//   POST manager { id?, name, email?, phone?, company, note, send } → sign-up link (emailed too if send and there's an email)
+//   POST manager-status { id, status } · manager-invite { id, send } → a fresh sign-up / reset link
+//   POST file?id= (raw body) · GET file?fid= · POST file-delete { id, fid }
 //   POST status { id, status, note } · fee { id, fee } · payment { id, amount, date, method, note } · payment-delete { id, pid }
 //   POST rcic { id, attached, name, licence } · sendback { id, message } · comment { id, text, internal } · edit { id, ... } · delete { id }
-import { json, readJson, str, isEmail, sendEmail, hashPassword, checkPassword, sha256hex } from "../../_lib.js";
-import { ensureLeads, LEAD_STATUS, LEAD_SERVICES, PAY_METHODS, leadRef, money, getManager, createLeadSession, leadCookie, leadToken, passwordLink, leadEvent } from "../../_leads.js";
+import { json, readJson, str, isEmail, sendEmail, hashPassword, checkPassword, sha256hex, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
+import { ensureLeads, LEAD_STATUS, LEAD_SERVICES, PAY_METHODS, leadRef, money, getManager, createLeadSession, leadCookie, leadToken, passwordLink, leadEvent, findManager, phoneKey } from "../../_leads.js";
 
 const site = (env) => env.SITE_URL || "https://workerpool.ca";
 const nowIso = () => new Date().toISOString();
@@ -75,17 +80,39 @@ async function manager({ request, env }, route, m) {
     return withCookie({ ok: true }, leadCookie("", 0));
   }
   if (route === "forgot" && m === "POST") {
-    const b = await readJson(request, 1000) || {}, email = str(b.email, 160).toLowerCase();
-    const mg = email ? await env.DB.prepare(`SELECT id, name FROM lead_managers WHERE email = ?1 AND status = 'active'`).bind(email).first() : null;
-    if (mg) await sendEmail(env, email, "Reset your WorkerPool Lead Desk password",
+    const b = await readJson(request, 1000) || {};
+    const mg = await findManager(env, str(b.login || b.email, 160)), email = mg && mg.status === "active" ? mg.email : "";
+    if (email) await sendEmail(env, email, "Reset your WorkerPool Lead Desk password",
       `Hi ${first(mg.name)},\n\nUse this link to choose a new password for the WorkerPool Lead Desk. It works for 1 hour:\n${await passwordLink(env, mg.id, 1)}\n\nIf you didn't ask for this, you can ignore this email.\n\nWorkerPool`);
     return json({ ok: true });   // same answer either way
+  }
+  const linkMgr = async (token) => {
+    const r = await env.DB.prepare(`SELECT * FROM lead_resets WHERE token_hash = ?1 AND expires > ?2`).bind(await sha256hex(str(token, 100)), nowIso()).first();
+    return r ? await env.DB.prepare(`SELECT * FROM lead_managers WHERE id = ?1 AND status = 'active'`).bind(r.manager_id).first() : null;
+  };
+  const expired = () => json({ ok: false, error: "This link has expired or was already used. Ask WorkerPool for a new one." }, 400);
+  if (route === "invite" && m === "GET") {
+    const mg = await linkMgr(url.searchParams.get("token"));
+    if (!mg) return expired();
+    return json({ ok: true, name: mg.name, company: mg.company, email: mg.email, phone: mg.phone, signup: !mg.pass_hash });
   }
   if (route === "set" && m === "POST") {
     const b = await readJson(request, 2000) || {}, pass = typeof b.password === "string" ? b.password : "";
     if (pass.length < 10 || pass.length > 200) return json({ ok: false, error: "Password needs at least 10 characters." }, 400);
-    const r = await env.DB.prepare(`SELECT * FROM lead_resets WHERE token_hash = ?1 AND expires > ?2`).bind(await sha256hex(str(b.token, 100)), nowIso()).first();
-    if (!r) return json({ ok: false, error: "This link has expired or was already used. Ask WorkerPool for a new one, or use Forgot password." }, 400);
+    const mg = await linkMgr(b.token);
+    if (!mg) return expired();
+    const r = { manager_id: mg.id };
+    if (!mg.pass_hash) {
+      // First time: the manager chooses the email and/or phone they'll sign in with.
+      const email = str(b.email, 160).toLowerCase(), phone = str(b.phone, 40);
+      if (!email && !phoneKey(phone)) return json({ ok: false, error: "Enter your email or your phone number. You'll sign in with it." }, 400);
+      if (email && !isEmail(email)) return json({ ok: false, error: "Check your email address." }, 400);
+      if (phone && !phoneKey(phone)) return json({ ok: false, error: "Check your phone number." }, 400);
+      const clash = await env.DB.prepare(`SELECT id FROM lead_managers WHERE id != ?1 AND ((?2 != '' AND email = ?2) OR (?3 != '' AND phone_key = ?3))`).bind(mg.id, email, phoneKey(phone)).first();
+      if (clash) return json({ ok: false, error: "That email or phone is already used by another Lead Desk account." }, 400);
+      await env.DB.prepare(`UPDATE lead_managers SET email = ?1, phone = ?2, phone_key = ?3 WHERE id = ?4`).bind(email || null, phone || null, phoneKey(phone) || null, mg.id).run();
+      await sendEmail(env, env.ADMIN_EMAIL, `${mg.name} signed up to the Lead Desk`, `${mg.name}${mg.company ? ` (${mg.company})` : ""} signed up to the WorkerPool Lead Desk and can now send you leads.\nSigns in with: ${[email, phone].filter(Boolean).join(" or ")}`);
+    }
     await env.DB.batch([
       env.DB.prepare(`UPDATE lead_managers SET pass_hash = ?1, fail_count = 0, locked_until = '', last_login = ?3 WHERE id = ?2`).bind(await hashPassword(pass), r.manager_id, nowIso()),
       env.DB.prepare(`DELETE FROM lead_resets WHERE manager_id = ?1`).bind(r.manager_id),
@@ -97,7 +124,7 @@ async function manager({ request, env }, route, m) {
   const me = await getManager(request, env);
   if (!me) return json({ ok: false, error: "Sign in first.", auth: true }, 401);
 
-  if (route === "me" && m === "GET") return json({ ok: true, me: { name: me.name, email: me.email, phone: me.phone, company: me.company }, services: LEAD_SERVICES, statuses: LEAD_STATUS });
+  if (route === "me" && m === "GET") return json({ ok: true, me: { name: me.name, email: me.email, phone: me.phone, company: me.company }, fileTypes: ".pdf,.doc,.docx,.jpg,.jpeg,.png" , services: LEAD_SERVICES, statuses: LEAD_STATUS });
   if (route === "list" && m === "GET") {
     const r = await env.DB.prepare(`SELECT ${MGR_COLS} FROM leads WHERE manager_id = ?1 ORDER BY action_needed DESC, updated DESC LIMIT 1000`).bind(me.id).all();
     return json({ ok: true, rows: r.results.map(pubLead) });
@@ -109,7 +136,16 @@ async function manager({ request, env }, route, m) {
     const ev = await env.DB.prepare(`SELECT id, who, kind, text, created FROM lead_events WHERE lead_id = ?1 AND priv = 0 ORDER BY id`).bind(l.id).all();
     const pay = await env.DB.prepare(`SELECT id, amount_cents, received_on, method, note FROM lead_payments WHERE lead_id = ?1 ORDER BY received_on, created`).bind(l.id).all();
     await env.DB.prepare(`UPDATE leads SET mgr_seen = ?1 WHERE id = ?2`).bind(nowIso(), l.id).run();
-    return json({ ok: true, lead: pubLead(l), events: ev.results, payments: pay.results });
+    return json({ ok: true, lead: pubLead(l), events: ev.results, payments: pay.results, files: await files(env, l.id) });
+  }
+  if (route === "file" && m === "GET") {
+    const f = await env.DB.prepare(`SELECT f.* FROM lead_files f JOIN leads l ON l.id = f.lead_id WHERE f.id = ?1 AND l.manager_id = ?2`).bind(str(url.searchParams.get("fid"), 64), me.id).first();
+    return await sendFile(env, f);
+  }
+  if (route === "file" && m === "POST") {
+    const l = await own(url.searchParams.get("id"));
+    if (!l) return json({ ok: false, error: "Lead not found." }, 404);
+    return await addFile(env, request, l, "manager", me.name);
   }
   if (m !== "POST") return json({ ok: false, error: "Not found." }, 404);
   const b = await readJson(request, 12000);
@@ -157,6 +193,14 @@ async function manager({ request, env }, route, m) {
       `${me.name} ${done ? "finished what you sent back and returned the lead" : "commented on the lead"} ${leadRef(l.num)} · ${l.client_name} · ${l.service}:\n\n${text || "Done."}\n\nOpen it in the admin dashboard: ${site(env)}/admin/ (Lead Desk tab)`, me.email);
     return json({ ok: true });
   }
+  if (route === "file-delete") {
+    const f = await env.DB.prepare(`SELECT * FROM lead_files WHERE id = ?1 AND lead_id = ?2`).bind(str(b.fid, 64), l.id).first();
+    if (!f) return json({ ok: false, error: "File not found." }, 404);
+    if (f.by !== "manager") return json({ ok: false, error: "Only WorkerPool can remove a file WorkerPool added." }, 403);
+    await removeFile(env, f);
+    await leadEvent(env, l.id, "manager", "file", `${me.name} removed the file ${f.name}.`);
+    return json({ ok: true });
+  }
   if (route === "password") {
     const pass = typeof b.password === "string" ? b.password : "";
     if (!(await checkPassword(typeof b.current === "string" ? b.current : "", me.pass_hash))) return json({ ok: false, error: "Your current password doesn't match." }, 400);
@@ -170,13 +214,13 @@ async function manager({ request, env }, route, m) {
 async function login(request, env) {
   const b = await readJson(request, 2000);
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
-  const email = str(b.email, 160).toLowerCase(), pass = typeof b.password === "string" ? b.password : "";
-  const bad = () => json({ ok: false, error: "Email or password doesn't match." }, 401);
-  const mg = email ? await env.DB.prepare(`SELECT * FROM lead_managers WHERE email = ?1`).bind(email).first() : null;
+  const pass = typeof b.password === "string" ? b.password : "";
+  const bad = () => json({ ok: false, error: "Email / phone or password doesn't match." }, 401);
+  const mg = await findManager(env, str(b.login || b.email, 160));
   if (!mg) return bad();
   const now = new Date();
   if (mg.locked_until && mg.locked_until > now.toISOString()) return json({ ok: false, error: `Too many attempts. Try again in ${LOCK_MIN} minutes, or reset your password.` }, 429);
-  if (!mg.pass_hash) return json({ ok: false, error: "Set your password first with the link WorkerPool emailed you, or use Forgot password." }, 400);
+  if (!mg.pass_hash) return json({ ok: false, error: "Sign up first with the link WorkerPool sent you." }, 400);
   if (!(await checkPassword(pass, mg.pass_hash))) {
     const fails = (mg.fail_count || 0) + 1;
     await env.DB.prepare(`UPDATE lead_managers SET fail_count = ?1, locked_until = ?2 WHERE id = ?3`)
@@ -198,6 +242,7 @@ async function admin({ request, env }, route, m) {
       return json({ ok: true, fresh: (r && r.fresh) || 0, replies: (r && r.replies) || 0 });
     }
     if (route === "managers") return json({ ok: true, rows: await managers(env) });
+    if (route === "file") return await sendFile(env, await env.DB.prepare(`SELECT * FROM lead_files WHERE id = ?1`).bind(str(url.searchParams.get("fid"), 64)).first());
     if (route === "list") {
       const r = await env.DB.prepare(`SELECT l.*, m.name AS manager_name, m.company AS manager_company FROM leads l LEFT JOIN lead_managers m ON m.id = l.manager_id ORDER BY l.updated DESC LIMIT 2000`).all();
       return json({ ok: true, rows: r.results.map(pubLead), managers: await managers(env), statuses: LEAD_STATUS, services: LEAD_SERVICES, methods: PAY_METHODS });
@@ -208,33 +253,42 @@ async function admin({ request, env }, route, m) {
       const ev = await env.DB.prepare(`SELECT id, who, kind, text, priv, created FROM lead_events WHERE lead_id = ?1 ORDER BY id`).bind(l.id).all();
       const pay = await env.DB.prepare(`SELECT * FROM lead_payments WHERE lead_id = ?1 ORDER BY received_on, created`).bind(l.id).all();
       await env.DB.prepare(`UPDATE leads SET admin_seen = ?1 WHERE id = ?2`).bind(nowIso(), l.id).run();
-      return json({ ok: true, lead: pubLead(l), events: ev.results, payments: pay.results });
+      return json({ ok: true, lead: pubLead(l), events: ev.results, payments: pay.results, files: await files(env, l.id) });
     }
     return json({ ok: false, error: "Not found." }, 404);
+  }
+  if (route === "file") {
+    const l = await env.DB.prepare(`SELECT * FROM leads WHERE id = ?1`).bind(str(url.searchParams.get("id"), 64)).first();
+    if (!l) return json({ ok: false, error: "Lead not found." }, 404);
+    return await addFile(env, request, l, "admin", "WorkerPool");
   }
   const b = await readJson(request, 12000);
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
 
   /* ----- lead managers ----- */
   if (route === "manager") {
+    // Only the name is needed. Email and phone are optional: the manager can add their own when they sign up.
     const f = { name: str(b.name, 120), email: str(b.email, 160).toLowerCase(), phone: str(b.phone, 40), company: str(b.company, 160), note: str(b.note, 2000) };
     if (!f.name) return json({ ok: false, error: "Enter the manager's name." }, 400);
-    if (!isEmail(f.email)) return json({ ok: false, error: "Enter a valid email address." }, 400);
-    const clash = await env.DB.prepare(`SELECT id FROM lead_managers WHERE email = ?1 AND id != ?2`).bind(f.email, str(b.id, 64)).first();
-    if (clash) return json({ ok: false, error: "Another lead manager already uses that email." }, 400);
-    if (b.id) {
-      await env.DB.prepare(`UPDATE lead_managers SET name=?1, email=?2, phone=?3, company=?4, note=?5 WHERE id = ?6`).bind(f.name, f.email, f.phone, f.company, f.note, str(b.id, 64)).run();
+    if (f.email && !isEmail(f.email)) return json({ ok: false, error: "Check the email address, or leave it empty." }, 400);
+    if (f.phone && !phoneKey(f.phone)) return json({ ok: false, error: "Check the phone number, or leave it empty." }, 400);
+    const pk = phoneKey(f.phone), mid = str(b.id, 64);
+    const clash = await env.DB.prepare(`SELECT id FROM lead_managers WHERE id != ?1 AND ((?2 != '' AND email = ?2) OR (?3 != '' AND phone_key = ?3))`).bind(mid, f.email, pk).first();
+    if (clash) return json({ ok: false, error: "Another lead manager already uses that email or phone." }, 400);
+    if (mid) {
+      await env.DB.prepare(`UPDATE lead_managers SET name=?1, email=?2, phone=?3, phone_key=?4, company=?5, note=?6 WHERE id = ?7`).bind(f.name, f.email || null, f.phone || null, pk || null, f.company, f.note, mid).run();
       return json({ ok: true });
     }
     const id = crypto.randomUUID();
-    await env.DB.prepare(`INSERT INTO lead_managers (id, name, email, phone, company, note, status, created) VALUES (?1,?2,?3,?4,?5,?6,'active',?7)`).bind(id, f.name, f.email, f.phone, f.company, f.note, nowIso()).run();
-    const inv = await invite(env, { id, ...f });
+    await env.DB.prepare(`INSERT INTO lead_managers (id, name, email, phone, phone_key, company, note, status, created) VALUES (?1,?2,?3,?4,?5,?6,?7,'active',?8)`)
+      .bind(id, f.name, f.email || null, f.phone || null, pk || null, f.company, f.note, nowIso()).run();
+    const inv = await invite(env, { id, ...f }, !!b.send);
     return json({ ok: true, id, ...inv });
   }
   if (route === "manager-invite") {
     const mg = await env.DB.prepare(`SELECT * FROM lead_managers WHERE id = ?1`).bind(str(b.id, 64)).first();
     if (!mg) return json({ ok: false, error: "Manager not found." }, 404);
-    return json({ ok: true, ...(await invite(env, mg)) });
+    return json({ ok: true, ...(await invite(env, mg, !!b.send)) });
   }
   if (route === "manager-status") {
     const st = b.status === "paused" ? "paused" : "active", id = str(b.id, 64);
@@ -320,7 +374,15 @@ async function admin({ request, env }, route, m) {
     await leadEvent(env, l.id, "admin", "edit", "WorkerPool updated the client details.");
     return json({ ok: true });
   }
+  if (route === "file-delete") {
+    const f = await env.DB.prepare(`SELECT * FROM lead_files WHERE id = ?1 AND lead_id = ?2`).bind(str(b.fid, 64), l.id).first();
+    if (!f) return json({ ok: false, error: "File not found." }, 404);
+    await removeFile(env, f);
+    await leadEvent(env, l.id, "admin", "file", `WorkerPool removed the file ${f.name}.`);
+    return json({ ok: true });
+  }
   if (route === "delete") {
+    for (const f of await files(env, l.id)) await removeFile(env, f);
     await env.DB.batch([
       env.DB.prepare(`DELETE FROM lead_events WHERE lead_id = ?1`).bind(l.id),
       env.DB.prepare(`DELETE FROM lead_payments WHERE lead_id = ?1`).bind(l.id),
@@ -342,11 +404,41 @@ async function managers(env) {
     FROM lead_managers m ORDER BY m.created DESC`).all();
   return r.results;
 }
-async function invite(env, mg) {
+// A fresh sign-up link (or password reset link, if they've already signed up), valid 7 days. Admin copies it or
+// shares it by WhatsApp / text; it's also emailed when admin asks and there's an email.
+async function invite(env, mg, send) {
   const link = await passwordLink(env, mg.id, 24 * 7);
   await env.DB.prepare(`UPDATE lead_managers SET invited = ?1 WHERE id = ?2`).bind(nowIso(), mg.id).run();
-  // The link is also shown to admin, to share by WhatsApp or text if the email doesn't arrive.
-  const emailed = await sendEmail(env, mg.email, "Your WorkerPool Lead Desk account",
-    `Hi ${first(mg.name)},\n\nWorkerPool has set up a Lead Desk account for you${mg.company ? ` (${mg.company})` : ""}. Use it to refer clients to WorkerPool and follow each one until the service is complete.\n\nSet your password here (the link works for 7 days):\n${link}\n\nAfter that, sign in any time at ${site(env)}/leads/ with ${mg.email}.\n\nWorkerPool`);
-  return { emailed: !!emailed, link };
+  let emailed = false;
+  if (send && mg.email) emailed = !!(await sendEmail(env, mg.email, mg.pass_hash ? "Reset your WorkerPool Lead Desk password" : "Your WorkerPool Lead Desk account",
+    mg.pass_hash ? `Hi ${first(mg.name)},\n\nUse this link to choose a new password for the WorkerPool Lead Desk (it works for 7 days):\n${link}\n\nWorkerPool`
+      : `Hi ${first(mg.name)},\n\nWorkerPool has set up a Lead Desk account for you${mg.company ? ` (${mg.company})` : ""}. Use it to refer clients to WorkerPool and follow each one until the service is complete.\n\nSign up here (the link works for 7 days):\n${link}\n\nAfter that, sign in any time at ${site(env)}/leads/.\n\nWorkerPool`));
+  return { emailed, link, signup: !mg.pass_hash };
+}
+
+/* ---------- files on a lead (the client's CV), private in R2 under leads/ ---------- */
+const files = async (env, leadId) => (await env.DB.prepare(`SELECT id, kind, name, size, type, by, created FROM lead_files WHERE lead_id = ?1 ORDER BY created`).bind(leadId).all()).results;
+async function addFile(env, request, l, by, byName) {
+  if (!env.RESUMES) return json({ ok: false, error: "File storage isn't switched on." }, 503);
+  if (parseInt(request.headers.get("content-length") || "0") > FILE_MAX) return json({ ok: false, error: "That file is over 10 MB." }, 413);
+  const n = await env.DB.prepare(`SELECT COUNT(*) AS n FROM lead_files WHERE lead_id = ?1`).bind(l.id).first();
+  if (n && n.n >= 20) return json({ ok: false, error: "This lead already has 20 files." }, 400);
+  const name = fileName(request), buf = await request.arrayBuffer(), k = fileCheck(name, buf);
+  if (k.error) return json({ ok: false, error: k.error.replace("Send a", "Upload a") }, 400);
+  const kind = request.headers.get("x-kind") === "cv" ? "cv" : "file";
+  const id = crypto.randomUUID(), key = `leads/${l.id}/${id}.${k.ext}`;
+  await env.RESUMES.put(key, buf, { httpMetadata: { contentType: k.type }, customMetadata: { name, lead: l.id, by } });
+  await env.DB.prepare(`INSERT INTO lead_files (id, lead_id, kind, name, size, type, r2_key, by, created) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)`).bind(id, l.id, kind, name, buf.byteLength, k.type, key, by, nowIso()).run();
+  await leadEvent(env, l.id, by, "file", `${byName} added ${kind === "cv" ? "the client's CV" : "a file"}: ${name}.`);
+  return json({ ok: true, id });
+}
+async function sendFile(env, f) {
+  if (!f || !env.RESUMES) return json({ ok: false, error: "File not found." }, 404);
+  const obj = await env.RESUMES.get(f.r2_key);
+  if (!obj) return json({ ok: false, error: "That file was removed." }, 404);
+  return fileResponse(obj, f.name, f.type);
+}
+async function removeFile(env, f) {
+  try { if (env.RESUMES) await env.RESUMES.delete(f.r2_key); } catch {}
+  await env.DB.prepare(`DELETE FROM lead_files WHERE id = ?1`).bind(f.id).run();
 }

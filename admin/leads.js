@@ -7,8 +7,9 @@
   const when = (t) => t ? new Date(t).toLocaleString("en-CA", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "–";
   const day = (t) => t ? new Date(t.length === 10 ? t + "T12:00:00" : t).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" }) : "–";
   const money = (c) => "$" + ((c || 0) / 100).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const kbs = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round((n || 0) / 1024)) + " KB";
   const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
-  let KEY = "", body = null, D = null, open = null, item = null, f = { view: "attention", status: "", mgr: "", q: "" }, showMgrs = false, editMgr = null, flash = "";
+  let KEY = "", body = null, D = null, open = null, item = null, f = { view: "attention", status: "", mgr: "", q: "" }, showMgrs = false, editMgr = null, flash = "", share = null;
 
   async function call(path, opts = {}) {
     const r = await fetch("/api/leads/admin/" + path, { ...opts, headers: { "x-admin-key": KEY, "Content-Type": "application/json", ...(opts.headers || {}) } });
@@ -97,7 +98,7 @@ textarea.ld-in{resize:vertical;min-height:64px}
             <td>${l.fee_cents ? money(l.fee_cents) : "–"}<br><span class="ld-note">${money(l.paid_cents)} received</span></td><td>${when(l.updated)}</td></tr>`).join("")}
         </tbody></table></div>` : `<div class="wpa-empty">${R.length ? "No lead matches." : mg.length ? "No leads yet. They appear here when a lead manager sends one." : "No lead managers yet. Press Lead managers above to add your first one."}</div>`}</div></div>`;
     const $ = (s) => body.querySelector(s);
-    $("#ldMg").onclick = () => { showMgrs = !showMgrs; editMgr = null; flash = ""; draw(); };
+    $("#ldMg").onclick = () => { showMgrs = !showMgrs; editMgr = null; share = null; flash = ""; draw(); };
     $("#ldSeg").onclick = (e) => { const b = e.target.closest("[data-v]"); if (b) { f.view = b.dataset.v; draw(); } };
     $("#ldSt").onchange = (e) => { f.status = e.target.value; if (f.status) f.view = "all"; draw(); };
     $("#ldM").onchange = (e) => { f.mgr = e.target.value; if (f.mgr) f.view = "all"; draw(); };
@@ -111,34 +112,57 @@ textarea.ld-in{resize:vertical;min-height:64px}
     const e = editMgr && editMgr !== "new" ? mg.find((m) => m.id === editMgr) || {} : {};
     return `<div class="ld-box"><h4>Lead managers</h4>
       ${mg.length ? `<div class="wpa-tbl"><table><thead><tr><th>Manager</th><th>Account</th><th>Leads</th><th>Finalized</th><th>Received</th><th>Last sign-in</th><th></th></tr></thead><tbody>
-        ${mg.map((m) => `<tr><td><b>${esc(m.name)}</b>${m.company ? ` · ${esc(m.company)}` : ""}<br><span class="ld-note">${esc(m.email)}${m.phone ? " · " + esc(m.phone) : ""}</span>${m.note ? `<br><span class="ld-note">${esc(m.note)}</span>` : ""}</td>
-          <td>${m.status === "paused" ? `<span class="ld-pill">Paused</span>` : m.has_password ? `<span class="ld-pill s-process">Active</span>` : `<span class="ld-pill s-pending">Invited</span><br><span class="ld-note">${day(m.invited)}</span>`}</td>
+        ${mg.map((m) => `<tr><td><b>${esc(m.name)}</b>${m.company ? ` · ${esc(m.company)}` : ""}<br><span class="ld-note">${[m.email, m.phone].filter(Boolean).map(esc).join(" · ") || "No email or phone yet"}</span>${m.note ? `<br><span class="ld-note">${esc(m.note)}</span>` : ""}</td>
+          <td>${m.status === "paused" ? `<span class="ld-pill">Paused</span>` : m.has_password ? `<span class="ld-pill s-process">Signed up</span>` : `<span class="ld-pill s-pending">Not signed up yet</span><br><span class="ld-note">Link made ${day(m.invited)}</span>`}</td>
           <td>${m.leads}</td><td>${m.won}</td><td>${money(m.paid)}</td><td>${when(m.last_login)}</td>
-          <td style="white-space:nowrap"><button class="ld-btn g" type="button" data-me="${m.id}">Edit</button> <button class="ld-btn g" type="button" data-mi="${m.id}">${m.has_password ? "Send reset link" : "Resend invite"}</button>
+          <td style="white-space:nowrap"><button class="ld-btn g" type="button" data-me="${m.id}">Edit</button> <button class="ld-btn g" type="button" data-mi="${m.id}">${m.has_password ? "Password reset link" : "Sign-up link"}</button>
             <button class="ld-btn ${m.status === "paused" ? "" : "red"}" type="button" data-mp="${m.id}" data-st="${m.status === "paused" ? "active" : "paused"}">${m.status === "paused" ? "Activate" : "Pause"}</button></td></tr>`).join("")}
       </tbody></table></div>` : `<p class="ld-note" style="margin:0">No lead managers yet.</p>`}
+      ${share ? shareHtml() : ""}
       ${editMgr ? `<form id="ldMf" class="ld-box" style="background:var(--bg)"><h4>${editMgr === "new" ? "Add a lead manager" : "Edit " + esc(e.name)}</h4>
         <div class="ld-grid"><label class="ld-lab">Name *<input class="ld-in" id="mfN" value="${esc(e.name || "")}" maxlength="120"></label>
-          <label class="ld-lab">Email (they sign in with it) *<input class="ld-in" id="mfE" type="email" value="${esc(e.email || "")}" maxlength="160"></label>
-          <label class="ld-lab">Phone<input class="ld-in" id="mfP" value="${esc(e.phone || "")}" maxlength="40"></label>
+          <label class="ld-lab">Email (optional)<input class="ld-in" id="mfE" type="email" value="${esc(e.email || "")}" maxlength="160"></label>
+          <label class="ld-lab">Phone / WhatsApp (optional)<input class="ld-in" id="mfP" type="tel" value="${esc(e.phone || "")}" maxlength="40" placeholder="+1 780 555 0100"></label>
           <label class="ld-lab">Company / partner<input class="ld-in" id="mfC" value="${esc(e.company || "")}" maxlength="160"></label></div>
         <label class="ld-lab">Note (admin only: commission agreed, how you know them…)<textarea class="ld-in" id="mfO" maxlength="2000">${esc(e.note || "")}</textarea></label>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="ld-btn" type="submit">${editMgr === "new" ? "Add and email the sign-in link" : "Save"}</button><button class="ld-btn g" type="button" id="mfX">Cancel</button><span class="ld-note" id="mfErr"></span></div></form>`
+        ${editMgr === "new" ? `<label class="ld-note"><input type="checkbox" id="mfS" checked> Also email them the sign-up link (if you entered an email)</label>
+        <span class="ld-note">Only the name is needed. You'll get a sign-up link to send by WhatsApp, text or email, or to copy. They choose their own sign-in (email or phone) and password.</span>` : ""}
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="ld-btn" type="submit">${editMgr === "new" ? "Add and get the sign-up link" : "Save"}</button><button class="ld-btn g" type="button" id="mfX">Cancel</button><span class="ld-note" id="mfErr"></span></div></form>`
         : `<div><button class="ld-btn" type="button" id="ldMAdd">+ Add lead manager</button></div>`}</div>`;
   }
-  const linkMsg = (r, who) => r.emailed ? `Emailed ${esc(who)} a link to set the password.` : `<b>The email didn't go out.</b> Send ${esc(who)} this link yourself (works for 7 days): <input class="ld-in" readonly value="${esc(r.link)}" onclick="this.select()" style="margin-top:6px">`;
+  // The sign-up (or reset) link with ways to send it: copy, WhatsApp, text message, email.
+  function shareHtml() {
+    const { m, link, signup, emailed } = share, digits = String(m.phone || "").replace(/\D/g, "");
+    const text = signup ? `Hi ${m.name.split(" ")[0]}, here is your WorkerPool Lead Desk sign-up link. Open it to create your login and refer clients: ${link}` : `Hi ${m.name.split(" ")[0]}, here is a link to reset your WorkerPool Lead Desk password: ${link}`;
+    const enc = encodeURIComponent(text);
+    return `<div class="ld-box" style="border-color:var(--accent);background:var(--accent-soft)"><h4>${signup ? "Sign-up link" : "Password reset link"} for ${esc(m.name)}</h4>
+      ${emailed ? `<span class="ld-note">✓ Emailed to ${esc(m.email)}.</span>` : ""}
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><input class="ld-in" id="shL" readonly value="${esc(link)}" style="flex:1;min-width:240px"><button class="ld-btn" type="button" id="shC">Copy link</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="ld-btn g" href="https://wa.me/${digits.length >= 10 ? digits : ""}?text=${enc}" target="_blank" rel="noopener">WhatsApp</a>
+        ${digits ? `<a class="ld-btn g" href="sms:${esc(m.phone)}?&body=${enc}">Text message</a>` : ""}
+        ${m.email ? `<button class="ld-btn g" type="button" id="shE">${emailed ? "Email again" : "Email it"}</button><a class="ld-btn g" href="mailto:${esc(m.email)}?subject=${encodeURIComponent("WorkerPool Lead Desk")}&body=${enc}">Open in my email</a>` : ""}
+        <button class="ld-btn g" type="button" id="shX">Done</button></div>
+      <span class="ld-note">Works for 7 days and only once. ${signup ? "They choose their own sign-in (email or phone) and password." : "Their old password stops working once they choose a new one."}${digits && digits.length < 11 ? " For WhatsApp, include the country code in their phone number." : ""}</span></div>`;
+  }
   function wireMgrs() {
     const $ = (s) => body.querySelector(s);
-    const add = $("#ldMAdd"); if (add) add.onclick = () => { editMgr = "new"; draw(); $("#mfN").focus(); };
-    body.querySelectorAll("[data-me]").forEach((b) => b.onclick = () => { editMgr = b.dataset.me; draw(); });
-    body.querySelectorAll("[data-mi]").forEach((b) => b.onclick = async () => { const m = D.managers.find((x) => x.id === b.dataset.mi); if (!confirm(`Email ${m.name} a new link to set their password?`)) return; try { const r = await post("manager-invite", { id: m.id }); await refresh(linkMsg(r, m.name)); } catch (e) { alert(e.message); } });
+    const add = $("#ldMAdd"); if (add) add.onclick = () => { editMgr = "new"; share = null; draw(); $("#mfN").focus(); };
+    body.querySelectorAll("[data-me]").forEach((b) => b.onclick = () => { editMgr = b.dataset.me; share = null; draw(); });
+    body.querySelectorAll("[data-mi]").forEach((b) => b.onclick = async () => { const m = D.managers.find((x) => x.id === b.dataset.mi); try { const r = await post("manager-invite", { id: m.id }); share = { m, ...r }; editMgr = null; await refresh(); } catch (e) { alert(e.message); } });
+    if (share) {
+      $("#shC").onclick = async () => { const i = $("#shL"); i.select(); try { await navigator.clipboard.writeText(i.value); } catch (e) { document.execCommand("copy"); } $("#shC").textContent = "Copied ✓"; };
+      $("#shX").onclick = () => { share = null; draw(); };
+      const se = $("#shE"); if (se) se.onclick = async () => { se.disabled = true; try { const r = await post("manager-invite", { id: share.m.id, send: true }); share = { ...share, ...r }; if (!r.emailed) alert("The email didn't go out. Copy the link or send it by WhatsApp instead."); draw(); } catch (e) { alert(e.message); se.disabled = false; } };
+    }
     body.querySelectorAll("[data-mp]").forEach((b) => b.onclick = async () => { const m = D.managers.find((x) => x.id === b.dataset.mp); if (b.dataset.st === "paused" && !confirm(`Pause ${m.name}? They're signed out and can't sign in until you activate them. Their leads stay.`)) return; await post("manager-status", { id: m.id, status: b.dataset.st }); await refresh(); });
     const fm = $("#ldMf"); if (fm) {
       $("#mfX").onclick = () => { editMgr = null; draw(); };
       fm.onsubmit = async (e) => {
-        e.preventDefault(); const isNew = editMgr === "new", nm = $("#mfN").value;
-        try { const r = await post("manager", { id: isNew ? "" : editMgr, name: $("#mfN").value, email: $("#mfE").value, phone: $("#mfP").value, company: $("#mfC").value, note: $("#mfO").value });
-          editMgr = null; await refresh(isNew ? `Lead manager added. ${linkMsg(r, nm)}` : "Saved."); }
+        e.preventDefault(); const isNew = editMgr === "new", fields = { name: $("#mfN").value, email: $("#mfE").value.trim(), phone: $("#mfP").value.trim(), company: $("#mfC").value, note: $("#mfO").value };
+        try { const r = await post("manager", { id: isNew ? "" : editMgr, ...fields, send: isNew && $("#mfS").checked });
+          if (isNew) share = { m: { id: r.id, ...fields }, ...r };
+          editMgr = null; await refresh(isNew ? "Lead manager added. Send them the sign-up link below." : "Saved."); }
         catch (x) { $("#mfErr").textContent = x.message; }
       };
     }
@@ -147,7 +171,7 @@ textarea.ld-in{resize:vertical;min-height:64px}
   /* ---------- one lead ---------- */
   function drawItem() {
     const l = item.lead, st = D.statuses, bal = l.fee_cents ? l.fee_cents - (l.paid_cents || 0) : null;
-    const kind = { created: "Lead created", status: "Status", payment: "Payment", fee: "Fee", rcic: "RCIC", sendback: "Sent back to manager", reply: "Manager finished and returned it", comment: "Comment", note: "Internal note", edit: "Details" };
+    const kind = { created: "Lead created", status: "Status", payment: "Payment", fee: "Fee", rcic: "RCIC", sendback: "Sent back to manager", reply: "Manager finished and returned it", comment: "Comment", note: "Internal note", edit: "Details", file: "File" };
     body.innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">
       <div class="wpa-card wide"><div><button class="ld-btn g" type="button" id="ldBack">← All leads</button></div>
         <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
@@ -161,6 +185,9 @@ textarea.ld-in{resize:vertical;min-height:64px}
             <div id="ldDet"><dl class="ld-dl"><dt>Phone</dt><dd>${esc(l.phone || "–")}</dd><dt>WhatsApp</dt><dd>${esc(l.whatsapp || "–")}</dd><dt>Email</dt><dd>${esc(l.email || "–")}</dd><dt>Location</dt><dd>${esc(l.location || "–")}</dd>
               <dt>Service</dt><dd>${esc(l.service)}</dd><dt>Details</dt><dd>${esc(l.details || "–")}</dd><dt>Consent</dt><dd>${l.consent_at ? "Manager confirmed the client agreed to be referred · " + when(l.consent_at) : "–"}</dd>
               <dt>Lead manager</dt><dd>${esc(l.manager_name || "–")}${l.manager_email ? `\n${esc(l.manager_email)}` : ""}${l.manager_phone ? ` · ${esc(l.manager_phone)}` : ""}</dd></dl></div></div>
+          <div class="wpa-card"><h3>CV and files</h3>
+            ${item.files.length ? `<div class="wpa-tbl"><table><tbody>${item.files.map((x) => `<tr><td><button class="ld-btn g" type="button" data-fo="${x.id}" data-n="${esc(x.name)}" style="white-space:normal;text-align:left">📎 ${esc(x.name)}</button></td><td class="ld-note">${x.kind === "cv" ? "CV" : "File"} · ${kbs(x.size)}<br>${x.by === "manager" ? esc(l.manager_name || "Manager") : "WorkerPool"} · ${when(x.created)}</td><td><button class="ld-btn red" type="button" data-fr="${x.id}" title="Remove">×</button></td></tr>`).join("")}</tbody></table></div>` : `<p class="ld-note" style="margin:0">No CV yet.</p>`}
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label class="ld-btn g" style="cursor:pointer">Upload CV / file<input type="file" id="ldUp" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" hidden></label><span class="ld-note" id="ldUpMsg">PDF, DOC, DOCX, JPG or PNG · 10 MB. The manager sees these files too.</span></div></div>
           <div class="wpa-card"><h3>Timeline</h3>
             <ul class="ld-tl">${item.events.map((e) => `<li class="${e.kind === "sendback" ? "sendback" : e.who}${e.priv ? " priv" : ""}"><small>${e.who === "manager" ? esc(l.manager_name || "Manager") : "WorkerPool"} · ${esc(kind[e.kind] || e.kind)}${e.priv ? " · 🔒 only you see this" : ""} · ${when(e.created)}</small>${esc(e.text)}</li>`).join("")}</ul>
             <div class="ld-box"><h4>Comment</h4><textarea class="ld-in" id="ldC" maxlength="4000" placeholder="Write a comment…"></textarea>
@@ -214,6 +241,17 @@ textarea.ld-in{resize:vertical;min-height:64px}
     $("#ldFs").onclick = () => act("fee", { fee: $("#ldF").value }, "Fee saved.");
     $("#ldPs").onclick = () => act("payment", { amount: $("#ldPa").value, date: $("#ldPd").value, method: $("#ldPm").value, note: $("#ldPn").value }, "Payment recorded.");
     body.querySelectorAll("[data-pd]").forEach((b) => b.onclick = () => { if (confirm("Remove this payment entry?")) act("payment-delete", { pid: b.dataset.pd }, "Payment removed."); });
+    body.querySelectorAll("[data-fo]").forEach((b) => b.onclick = async () => {
+      try { const r = await fetch("/api/leads/admin/file?fid=" + encodeURIComponent(b.dataset.fo), { headers: { "x-admin-key": KEY } }); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Couldn't open the file.");
+        const url = URL.createObjectURL(await r.blob()), a = document.createElement("a"); a.href = url; a.download = b.dataset.n; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 6e4); } catch (e) { alert(e.message); } });
+    body.querySelectorAll("[data-fr]").forEach((b) => b.onclick = () => { if (confirm("Remove this file? The manager won't see it any more.")) act("file-delete", { fid: b.dataset.fr }, "File removed."); });
+    $("#ldUp").onchange = async (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      if (file.size > 10 * 1024 * 1024) { $("#ldUpMsg").textContent = "That file is over 10 MB."; return; }
+      $("#ldUpMsg").textContent = "Uploading…";
+      try { const r = await fetch("/api/leads/admin/file?id=" + encodeURIComponent(l.id), { method: "POST", body: file, headers: { "x-admin-key": KEY, "x-file-name": encodeURIComponent(file.name), "x-kind": item.files.some((x) => x.kind === "cv") ? "file" : "cv" } });
+        const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) throw new Error(j.error || "Upload failed."); await refresh("File uploaded."); } catch (x) { $("#ldUpMsg").textContent = x.message; }
+    };
     $("#ldR").onchange = (e) => { $("#ldRf").hidden = !e.target.checked; };
     $("#ldRs").onclick = () => act("rcic", { attached: $("#ldR").checked, name: $("#ldRn").value, licence: $("#ldRl").value }, "RCIC saved.");
     $("#ldBs").onclick = () => act("sendback", { message: $("#ldB").value }, `Sent back to ${esc(l.manager_name || "the manager")}. They've been emailed.`);

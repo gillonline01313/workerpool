@@ -2,8 +2,10 @@
 // tracked to the end: status, payments received, RCIC attached, comments both ways, and leads sent back to the
 // manager for more work. Only admin and lead managers use it. A manager sees only their own leads, and never the
 // RCIC's name (only whether an RCIC is attached) or admin's internal notes.
-// Admin creates manager accounts in admin → Lead Desk; the manager gets an email link to set a password and signs
-// in at /leads/. Tables are created automatically.
+// Admin adds a manager in admin → Lead Desk (name; email and phone optional) and shares a sign-up link by WhatsApp,
+// text, email or copy-paste. The manager opens it, signs up with their own email and/or phone and a password, and
+// signs in at /leads/ with either. Leads can carry files (the client's CV), kept privately in R2 under leads/.
+// Tables are created automatically.
 import { randomToken, sha256hex } from "./_lib.js";
 
 export const LEAD_STATUS = {
@@ -22,12 +24,25 @@ export const LEAD_SERVICES = ["Visitor visa (TRV)", "Super visa", "Study permit"
   "Citizenship", "PR card / PRTD", "LMIA (employer)", "Federal Court judicial review", "Job search / Employer Match", "Data entry / file preparation", "Other"];
 const COOKIE = "wp_lm", SESSION_DAYS = 30;
 
+// email and phone are both optional; a manager signs in with whichever they gave (phone matched on its last 10 digits)
+const MGR_TABLE = `id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT UNIQUE, phone TEXT, phone_key TEXT, company TEXT, note TEXT,
+  pass_hash TEXT, status TEXT DEFAULT 'active', created TEXT, invited TEXT, last_login TEXT, fail_count INTEGER DEFAULT 0, locked_until TEXT DEFAULT ''`;
+const MGR_COLS = ["id", "name", "email", "phone", "phone_key", "company", "note", "pass_hash", "status", "created", "invited", "last_login", "fail_count", "locked_until"];
+export const phoneKey = (p) => { const d = String(p || "").replace(/\D/g, ""); return d.length >= 7 ? d.slice(-10) : ""; };
+// Finds a manager by what they type to sign in: an email address or a phone number.
+export async function findManager(env, ident) {
+  const v = String(ident || "").trim().toLowerCase();
+  if (!v) return null;
+  if (v.includes("@")) return await env.DB.prepare(`SELECT * FROM lead_managers WHERE email = ?1`).bind(v).first();
+  const k = phoneKey(v);
+  return k ? await env.DB.prepare(`SELECT * FROM lead_managers WHERE phone_key = ?1 ORDER BY created LIMIT 1`).bind(k).first() : null;
+}
+
 let ready = false;
 export async function ensureLeads(env) {
   if (ready) return;
   for (const q of [
-    `CREATE TABLE IF NOT EXISTS lead_managers (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, phone TEXT, company TEXT, note TEXT,
-      pass_hash TEXT, status TEXT DEFAULT 'active', created TEXT, invited TEXT, last_login TEXT, fail_count INTEGER DEFAULT 0, locked_until TEXT DEFAULT '')`,
+    `CREATE TABLE IF NOT EXISTS lead_managers (${MGR_TABLE})`,
     `CREATE TABLE IF NOT EXISTS lead_sessions (token_hash TEXT PRIMARY KEY, manager_id TEXT NOT NULL, expires TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS lead_resets (token_hash TEXT PRIMARY KEY, manager_id TEXT NOT NULL, expires TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS leads (id TEXT PRIMARY KEY, num INTEGER UNIQUE, manager_id TEXT NOT NULL,
@@ -43,7 +58,24 @@ export async function ensureLeads(env) {
     `CREATE INDEX IF NOT EXISTS lead_events_lead ON lead_events (lead_id, id)`,
     `CREATE TABLE IF NOT EXISTS lead_payments (id TEXT PRIMARY KEY, lead_id TEXT NOT NULL, amount_cents INTEGER NOT NULL, received_on TEXT, method TEXT, note TEXT, created TEXT)`,
     `CREATE INDEX IF NOT EXISTS lead_payments_lead ON lead_payments (lead_id)`,
+    // files on a lead (kind 'cv' = the client's CV / resume). by: 'manager' or 'admin'
+    `CREATE TABLE IF NOT EXISTS lead_files (id TEXT PRIMARY KEY, lead_id TEXT NOT NULL, kind TEXT, name TEXT, size INTEGER, type TEXT, r2_key TEXT, by TEXT, created TEXT)`,
+    `CREATE INDEX IF NOT EXISTS lead_files_lead ON lead_files (lead_id)`,
   ]) await env.DB.prepare(q).run();
+  // The first version required an email for every manager. Rebuild that table once so email is optional.
+  const cols = (await env.DB.prepare(`PRAGMA table_info(lead_managers)`).all()).results;
+  const em = cols.find((c) => c.name === "email");
+  if (em && em.notnull) {
+    const keep = cols.map((c) => c.name).filter((n) => MGR_COLS.includes(n)).join(", ");
+    await env.DB.batch([
+      env.DB.prepare(`CREATE TABLE lead_managers_v2 (${MGR_TABLE})`),
+      env.DB.prepare(`INSERT INTO lead_managers_v2 (${keep}) SELECT ${keep} FROM lead_managers`),
+      env.DB.prepare(`DROP TABLE lead_managers`),
+      env.DB.prepare(`ALTER TABLE lead_managers_v2 RENAME TO lead_managers`),
+    ]);
+  }
+  await env.DB.prepare(`UPDATE lead_managers SET phone_key = substr(replace(replace(replace(replace(replace(phone, ' ', ''), '-', ''), '(', ''), ')', ''), '+', ''), -10) WHERE phone_key IS NULL AND phone IS NOT NULL AND phone != ''`).run();
+  await env.DB.prepare(`CREATE INDEX IF NOT EXISTS lead_managers_phone ON lead_managers (phone_key)`).run();
   ready = true;
 }
 
@@ -67,7 +99,7 @@ export async function getManager(request, env) {
   return await env.DB.prepare(`SELECT m.* FROM lead_sessions s JOIN lead_managers m ON m.id = s.manager_id WHERE s.token_hash = ?1 AND s.expires > ?2 AND m.status = 'active'`)
     .bind(await sha256hex(t), new Date().toISOString()).first() || null;
 }
-// A link to set (or reset) the password: 7 days for a new account's invite, 1 hour for "forgot password".
+// A link to sign up (new manager) or reset the password: 7 days when admin makes it, 1 hour for "forgot password".
 export async function passwordLink(env, managerId, hours) {
   const token = randomToken();
   await env.DB.prepare(`DELETE FROM lead_resets WHERE manager_id = ?1`).bind(managerId).run();
