@@ -1,10 +1,11 @@
 // Live chat for visitors: read your conversation, or send a message to the admin.
 // Live hours are 8:00 to 23:00 Edmonton time; outside them messages are still taken (email required) and answered later.
-import { json, readJson, str, isEmail, chatOpen, chatThread, chatNotify, chatStartThread, CHAT_MSG_SQL } from "../_lib.js";
+import { json, readJson, str, isEmail, chatOpen, chatThread, chatNotify, chatStartThread, chatSchema, CHAT_MSG_SQL } from "../_lib.js";
 const thread = (env, req) => chatThread(env, req);
 const msgs = (env, tid, after) => env.DB.prepare(CHAT_MSG_SQL).bind(tid, after, 300).all();
 
 export async function onRequestGet({ request, env }) {
+  await chatSchema(env);
   const open = chatOpen();
   const t = await thread(env, request);
   if (!t) return json({ ok: true, open, thread: null, messages: [] });
@@ -18,7 +19,8 @@ export async function onRequestPost({ request, env }) {
   const b = await readJson(request, 6000);
   if (!b) return json({ ok: false, error: "Invalid request." }, 400);
   if (b.website) return json({ ok: true, messages: [] }); // honeypot
-  const body = str(b.body, 2000);
+  await chatSchema(env);
+  const body = str(b.body, 2000), where = str(b.where, 300);
   if (!body) return json({ ok: false, error: "Type a message first." }, 400);
   const open = chatOpen(), now = new Date().toISOString();
   const email = str(b.email, 160).toLowerCase();
@@ -38,8 +40,8 @@ export async function onRequestPost({ request, env }) {
     if (tag) t.page = tag;
     if (!t.email && email) t.email = email;
   }
-  await env.DB.prepare(`INSERT INTO chat_messages (thread_id, sender, body, created) VALUES (?1, 'visitor', ?2, ?3)`).bind(t.id, body, now).run();
-  await chatNotify(env, t, { open, isNew, text: body });
+  await env.DB.prepare(`INSERT INTO chat_messages (thread_id, sender, body, ctx, created) VALUES (?1, 'visitor', ?2, ?3, ?4)`).bind(t.id, body, where || null, now).run();
+  await chatNotify(env, t, { open, isNew, text: body, where });
   const r = await msgs(env, t.id, Math.max(0, parseInt(b.after) || 0));
   const res = json({ ok: true, open, messages: r.results });
   if (cookie) res.headers.append("set-cookie", cookie);

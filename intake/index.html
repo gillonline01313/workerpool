@@ -117,6 +117,7 @@ dl.ro dt{color:var(--muted)}dl.ro dd{margin:0;white-space:pre-wrap;overflow-wrap
 @media (max-width:560px){dl.ro{grid-template-columns:1fr}dl.ro dd{margin-bottom:6px}}
 footer{border-top:1px solid var(--line);padding-block:22px 36px;color:var(--muted);font-size:.82rem}
 footer a{color:var(--muted)}
+.snap-hl{outline:3px solid #e0483a!important;outline-offset:3px;border-radius:6px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -130,7 +131,7 @@ footer a{color:var(--muted)}
 <footer><div class="in">WorkerPool is an Alberta-based data processing company. We collect and organize application information and documents. We are not immigration representatives and do not give immigration advice. Your information is kept private and is used only to prepare your file. · <a href="/privacy/">Privacy policy</a> · <a href="/terms/">Terms of use</a></div></footer>
 <datalist id="countries"></datalist>
 <script>window.WP_CHAT_CTX = { hidden: true };</script>
-<script src="/assets/chat.js?v=5" defer></script>
+<script src="/assets/chat.js?v=6" defer></script>
 <script type="module">
 import { FORMS, formOf, COUNTRIES, when, sectionOn, fieldOn, missing, progress, applicantName, CONSENT_TEXT, KEEP_TEXT, KEEP_DAYS, partnerConsent, returnScope, returnLabels, RETURN_DOCS } from "/assets/intake-config.js?v=11";
 
@@ -158,11 +159,82 @@ function header() { $("#who").hidden = !me; if (me) $("#whoName").textContent = 
    Hidden on partner firms' forms: those clients deal with their own firm, not with WorkerPool. */
 function chat(f, firm) {
   const who = f && applicantName(data);
-  const c = { hidden: !!firm, name: me ? me.name : "", email: me ? me.email : "",
+  const c = { hidden: !!firm, name: me ? me.name : "", email: me ? me.email : "", where: f ? whereNow : null, snap: f ? snapNow : null,
     label: ("Intake form · " + (f ? f.name : linkInfo ? linkInfo.name : "My forms") + (who ? " · Applicant: " + who : "")).slice(0, 120) };
   window.WP_CHAT_CTX = c; if (window.wpChat) window.wpChat.setContext(c);
 }
-const chatNote = (firm) => firm ? "" : `<p class="saved" style="margin:0">Have a question? <button class="linkbtn" type="button" data-open-chat>Chat with our team</button>. A real person replies, live 8 a.m. to 11 p.m. Mountain Time. Outside those hours, leave a message and we'll reply by email.</p>`;
+/* Where the client is in the form, so the admin knows what a chat question is about.
+   Exact: the question they last clicked or typed in (within the last 20 minutes). Otherwise approximate: what's on screen. */
+let spot = null;
+const SPOT_SEL = "#ff .f:not(.hd), #ff .doc, #ff details[data-sec] > summary, #finish";
+document.addEventListener("focusin", (e) => markSpot(e.target));
+document.addEventListener("click", (e) => markSpot(e.target));
+function markSpot(t) { const el = t && t.closest && t.closest(SPOT_SEL); if (el) spot = { el, t: Date.now() }; }
+const clean = (x) => (x ? x.textContent : "").replace(/\*/g, "").replace(/\s+/g, " ").trim();
+function describe(el) {
+  if (el.id === "finish") return { sec: "Review and submit" };
+  const sec = el.closest("details[data-sec]"), title = sec ? clean(sec.querySelector("summary h2")) : "";
+  if (el.matches("summary")) return { sec: title };
+  const rep = el.closest(".rep"), entry = rep ? clean(rep.querySelector(".rep-h span")) : "";
+  const q = el.matches(".doc") ? clean(el.querySelector(".doc-h b")) : clean(el.querySelector(":scope > label:not(.cb), :scope > .lab, label.cb > span"));
+  return { sec: title, entry, q };
+}
+function nearestSpot() {
+  const mid = innerHeight * 0.4; let best = null, bd = Infinity;
+  view.querySelectorAll(SPOT_SEL).forEach((el) => {
+    if (!el.offsetParent && el.tagName !== "SUMMARY") return;
+    if (el.matches(".f, .doc") && !el.closest("details[open]")) return;
+    const r = el.getBoundingClientRect(); if (!r.height || r.bottom < 0 || r.top > innerHeight) return;
+    const d = Math.abs(r.top + r.height / 2 - mid); if (d < bd) { bd = d; best = el; }
+  });
+  return best;
+}
+function curSpot() {
+  if (spot && spot.el.isConnected && Date.now() - spot.t < 20 * 60e3) return { el: spot.el, exact: true };
+  const el = nearestSpot(); return el ? { el, exact: false } : null;
+}
+function whereText(sp) {
+  const d = describe(sp.el);
+  return `Section: ${d.sec || "?"}${d.entry ? ` (entry ${d.entry})` : ""}${d.q ? ` · Question: ${d.q}` : ""}`;
+}
+function whereNow() {
+  if (!cur) return "";
+  if (!$("#ff")) return "Viewing their submitted form";
+  const sp = curSpot(); if (!sp) return "Top of the form";
+  return whereText(sp) + (sp.exact ? " (exact: the question they were last on)" : " (approximate: what they had on screen)");
+}
+/* Screenshot of the section they're on, with the question outlined in red. Drawn from the page itself, nothing leaves the browser until they press Send. */
+let h2i = null;
+const loadH2I = () => h2i || (h2i = new Promise((ok, no) => { if (window.htmlToImage) return ok(); const sc = document.createElement("script"); sc.src = "/assets/vendor/html-to-image/html-to-image.js"; sc.onload = ok; sc.onerror = () => { h2i = null; no(); }; document.head.appendChild(sc); }));
+const within = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("timeout")), ms))]);
+async function snapNow() {
+  if (!$("#ff")) return null;
+  const sp = curSpot(), el = sp ? sp.el : null;
+  const node = (el && (el.closest("details[data-sec]") || el.closest("#finish"))) || $("#ff");
+  await loadH2I();
+  const hl = el && el.matches(".f, .doc") ? el : null;
+  if (hl) hl.classList.add("snap-hl");
+  try {
+    const r = node.getBoundingClientRect();
+    const opts = { pixelRatio: Math.max(0.5, Math.min(2, devicePixelRatio || 1, 7000 / Math.max(1, r.height))), backgroundColor: getComputedStyle(document.body).backgroundColor || "#fff" };
+    let cv;
+    try { cv = await within(htmlToImage.toCanvas(node, opts), 9000); } catch (e) { cv = await within(htmlToImage.toCanvas(node, { ...opts, skipFonts: true }), 9000); }
+    // Long sections: keep the part around the question (about one screen tall).
+    const pr = cv.width / r.width, MAXH = 1000;
+    let top = 0, h = r.height;
+    if (h > MAXH) {
+      const hr = hl ? hl.getBoundingClientRect() : null, c = hr ? hr.top - r.top + hr.height / 2 : innerHeight * 0.4 - r.top;
+      top = Math.max(0, Math.min(h - MAXH, c - MAXH / 2)); h = MAXH;
+    }
+    const out = document.createElement("canvas"); out.width = cv.width; out.height = Math.round(h * pr);
+    out.getContext("2d").drawImage(cv, 0, Math.round(top * pr), cv.width, out.height, 0, 0, cv.width, out.height);
+    const blob = await new Promise((ok) => out.toBlob(ok, "image/png"));
+    const d = sp ? describe(sp.el) : { sec: "Form" };
+    const slug = (d.q || d.sec || "form").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "form";
+    return { blob, name: `screenshot-${slug}.png`, label: sp ? whereText(sp) : "" };
+  } finally { if (hl) hl.classList.remove("snap-hl"); }
+}
+const chatNote = (firm, shot) => firm ? "" : `<p class="saved" style="margin:0">Have a question? <button class="linkbtn" type="button" data-open-chat>Chat with our team</button>.${shot ? " You can send a screenshot of the part you're stuck on." : ""} A real person replies, live 8 a.m. to 11 p.m. Mountain Time. Outside those hours, leave a message and we'll reply by email.</p>`;
 $("#logout").onclick = async () => { await flush(); try { await fetch("/api/auth/logout", { method: "POST" }); } catch (e) {} me = null; cur = null; header(); authView("login"); };
 $("#myForms").onclick = async () => { await flush(); cur = null; history.replaceState(null, "", location.pathname + location.search); list(); };
 window.addEventListener("beforeunload", (e) => { if (dirty) { flush(); e.preventDefault(); e.returnValue = ""; } });
@@ -335,7 +407,7 @@ function draw() {
   view.innerHTML = `<div>
     <span class="eyebrow">${cur.status === "editing" ? "Making changes to a submitted form" : "Intake form"}</span>
     <h1>${esc(form.name)}</h1>
-    <p class="lede">${esc(form.intro)}</p>${chatNote(cur.firm)}</div>
+    <p class="lede">${esc(form.intro)}</p>${chatNote(cur.firm, true)}</div>
     ${reqs.length ? `<div class="note warn" id="reqNote"><b>${esc(cur.firm || "Our team")} asked you for ${[...asked].length} document${[...asked].length === 1 ? "" : "s"}.</b> They are at the top of the Documents section, marked "Requested by our team". ${reqs.filter((q) => q.message).map((q) => `<br>Message: ${esc(q.message)}`).join("")} <button class="linkbtn" type="button" id="toDocs">Go to the documents</button></div>` : ""}
     ${ret ? `<div class="note warn" id="retNote"><b>${esc(cur.firm || "Our team")} sent back these parts of your form for you to review:</b><ul class="miss" style="margin-top:4px">${returnLabels(form, ret.sections).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
       ${ret.message ? `<div style="margin:6px 0"><b>Message:</b> ${esc(ret.message)}</div>` : ""}These are outlined and open below (single questions are marked with a line on the left). Everything else is locked as it is. When you're done, press <b>Send back</b> at the bottom.</div>` : ""}

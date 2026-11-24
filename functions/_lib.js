@@ -95,14 +95,21 @@ export async function chatThread(env, request) {
   if (!m) return null;
   return env.DB.prepare(`SELECT * FROM chat_threads WHERE token_hash = ?1`).bind(await sha256hex(m[1])).first();
 }
-export const CHAT_MSG_SQL = `SELECT m.id, m.sender, m.body, m.created, f.id AS file_id, f.name AS file_name, f.size AS file_size, f.type AS file_type
+// chat_messages.ctx: where the client was when they sent the message (intake form section and question).
+let chatCtxReady = false;
+export async function chatSchema(env) {
+  if (chatCtxReady) return;
+  try { await env.DB.prepare(`ALTER TABLE chat_messages ADD COLUMN ctx TEXT`).run(); } catch (e) { /* already there */ }
+  chatCtxReady = true;
+}
+export const CHAT_MSG_SQL = `SELECT m.id, m.sender, m.body, m.ctx, m.created, f.id AS file_id, f.name AS file_name, f.size AS file_size, f.type AS file_type
   FROM chat_messages m LEFT JOIN chat_files f ON f.msg_id = m.id WHERE m.thread_id = ?1 AND m.id > ?2 ORDER BY m.id LIMIT ?3`;
 // Email the admin for a new chat, any message outside live hours, or after 10 quiet minutes on an ongoing chat.
-export async function chatNotify(env, t, { open, isNew, text, voice }) {
+export async function chatNotify(env, t, { open, isNew, text, voice, where }) {
   if (!(voice || isNew || !open || !t.last_notified || Date.now() - Date.parse(t.last_notified) > 6e5)) return;
   await env.DB.prepare(`UPDATE chat_threads SET last_notified = ?1 WHERE id = ?2`).bind(new Date().toISOString(), t.id).run();
   await sendEmail(env, env.ADMIN_EMAIL, `${voice ? "Voice note" : open ? "Live chat" : "Offline chat message"} from ${t.name}`,
-    `${t.name}${t.email ? " (" + t.email + ")" : ""} ${voice ? "left a voice note" : isNew ? "started a chat" : "sent a message"}${open ? "" : " outside live hours"}${/^Intake form/.test(t.page || "") ? " from their " + t.page.replace(/^Intake form/, "intake form") : ""}:\n\n${text}\n\nReply in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Live chat tab)`, t.email);
+    `${t.name}${t.email ? " (" + t.email + ")" : ""} ${voice ? "left a voice note" : isNew ? "started a chat" : "sent a message"}${open ? "" : " outside live hours"}${/^Intake form/.test(t.page || "") ? " from their " + t.page.replace(/^Intake form/, "intake form") : ""}:\n\n${text}${where ? "\n\nWhere they are in the form: " + where : ""}\n\nReply in the admin dashboard: ${env.SITE_URL || "https://workerpool.ca"}/admin/ (Live chat tab)`, t.email);
 }
 
 /* ---------- uploaded file checks (PDF, JPG, PNG, DOC, DOCX up to 10 MB) ---------- */

@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS chat_threads (
 CREATE INDEX IF NOT EXISTS chat_threads_updated ON chat_threads (updated);
 CREATE INDEX IF NOT EXISTS chat_threads_ip ON chat_threads (ip_hash, created);
 CREATE TABLE IF NOT EXISTS chat_messages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, thread_id TEXT NOT NULL, sender TEXT NOT NULL, body TEXT, created TEXT
+  id INTEGER PRIMARY KEY AUTOINCREMENT, thread_id TEXT NOT NULL, sender TEXT NOT NULL, body TEXT, ctx TEXT, created TEXT
 );
 CREATE INDEX IF NOT EXISTS chat_messages_thread ON chat_messages (thread_id, id);
 CREATE TABLE IF NOT EXISTS chat_files (

@@ -1,6 +1,6 @@
 // Admin data API. Every request must carry the ADMIN_KEY secret set in Cloudflare.
 import { refreshDraws, BATCH, AUTO_SOURCE_IDS } from "../../_drawstore.js";
-import { json, readJson, str, sendEmail, ensureSignupLog, chatOpen, CHAT_MSG_SQL, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
+import { json, readJson, str, sendEmail, ensureSignupLog, chatOpen, chatSchema, CHAT_MSG_SQL, fileName, fileCheck, fileResponse, FILE_MAX } from "../../_lib.js";
 import { NEWS_SEED } from "../../_news.js";
 import { ensureTable as ensureStudents, STATUSES as STUDENT_STATUSES } from "../../_students.js";
 import { ensureStudyTables, matchAll, LEVELS as STUDY_LEVELS, FIELDS as STUDY_FIELDS, slug as studySlug } from "../../_study.js";
@@ -191,6 +191,7 @@ export async function onRequestGet({ request, env, params }) {
     return json({ ok: true, open: chatOpen(), rows: r.results });
   }
   if (route === "chat-thread") {
+    await chatSchema(env);
     const tid = url.searchParams.get("id") || "", after = Math.max(0, parseInt(url.searchParams.get("after")) || 0);
     const r = await env.DB.prepare(CHAT_MSG_SQL).bind(tid, after, 500).all();
     if (r.results.length) await env.DB.prepare(`UPDATE chat_threads SET admin_read = MAX(admin_read, ?1) WHERE id = ?2`).bind(r.results[r.results.length - 1].id, tid).run();
