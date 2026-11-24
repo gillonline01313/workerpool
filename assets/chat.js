@@ -61,6 +61,11 @@
 .wpc-img{display:block;max-width:100%;max-height:220px;border-radius:9px;margin:2px 0}
 .wpc-up{font-size:.8rem;color:var(--muted,#5a696b);padding:0 12px 6px;background:var(--surface,#fff)}
 .wpc-up:empty{display:none}
+.wpc-shotbar{padding:8px 10px 0;background:var(--surface,#fff);border-top:1px solid var(--line,#d3dcda)}
+.wpc-shotbar+.wpc-foot{border-top:0}
+.wpc-shotbtn{width:100%;font:inherit;font-size:.88rem;font-weight:600;padding:9px 12px;border-radius:10px;border:1.5px dashed var(--accent,#3f7a72);background:var(--accent-soft,#e3efed);color:var(--fg,#1d2b2c);cursor:pointer}
+.wpc-shotbtn:disabled{opacity:.6;cursor:default}
+.wpc-cbshot{border:1.5px dashed var(--accent,#3f7a72);background:var(--accent-soft,#e3efed);border-radius:10px;padding:9px 10px}
 .wpc-err{color:#c0532b;font-size:.82rem;padding:0 12px 6px;background:var(--surface,#fff)}
 .wpc-err:empty{display:none}
 .wpc-mic{flex:none;width:42px;height:42px;border-radius:50%;border:1px solid var(--line,#d3dcda);background:var(--surface,#fff);color:#e0483a;display:grid;place-items:center;cursor:pointer}
@@ -95,6 +100,7 @@
   <div class="wpc-head"><div><b>WorkerPool</b><small><i class="wpc-dot"></i><span class="wpc-status"></span></small></div><button class="wpc-x" type="button" aria-label="Close chat">×</button></div>
   <div class="wpc-body"></div>
   <div class="wpc-err" role="alert"></div><div class="wpc-up" aria-live="polite"></div>
+  <div class="wpc-shotbar" hidden><button type="button" class="wpc-shotbtn">📷 Send a screenshot of where I'm stuck</button></div>
   <div class="wpc-foot" hidden><button class="wpc-clip" type="button" aria-label="Attach a file" title="Attach a file (PDF, JPG, PNG, DOC, DOCX up to 10 MB)"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.2-8.2a3.4 3.4 0 0 1 4.8 4.8l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.6-7.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button><input type="file" class="wpc-fin" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple hidden><button class="wpc-clip wpc-cam" type="button" aria-label="Send a screenshot of where you are in the form" title="Send a screenshot of where you are in the form" hidden><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0 1 20 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><button class="wpc-mic" type="button" aria-label="Record a voice note" title="Record a voice note (up to 2 minutes)"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><textarea rows="1" maxlength="2000" placeholder="Type a message" aria-label="Message"></textarea><button class="wpc-go" type="button">Send</button></div>
 </div>`;
   document.body.appendChild(root);
@@ -161,11 +167,11 @@
       <label>Your name<input name="name" autocomplete="name" maxlength="80" required value="${esc(ctx.name || "")}"></label>
       <label>Email ${o ? '<span style="font-weight:400;color:var(--muted,#5a696b)">(optional, so we can reply if you leave)</span>' : ""}<input name="email" type="email" autocomplete="email" maxlength="160" ${o ? "" : "required"} value="${esc(ctx.email || "")}"></label>
       <label>Message<textarea name="body" rows="4" maxlength="2000" required></textarea></label>
-      ${ctx.snap ? `<label class="wpc-cb"><input type="checkbox" name="shot" checked><span>Also send a screenshot of the part of the form I'm on</span></label>` : ""}
+      ${ctx.snap ? `<label class="wpc-cb wpc-cbshot"><input type="checkbox" name="shot" checked><span>📷 <b>Send a screenshot</b> of the part of the form I'm stuck on</span></label>` : ""}
       <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
       <button class="wpc-go" type="submit">${o ? "Start chat" : "Send message"}</button>
       <button class="wpc-link" type="button" data-open-voice>Or leave a voice note instead</button></form>`;
-    foot.hidden = true;
+    foot.hidden = true; shotBar();
     const f = body.querySelector("form");
     f.onsubmit = async (e) => {
       e.preventDefault(); errEl.textContent = "";
@@ -183,15 +189,16 @@
     };
     setTimeout(() => { const i = [...f.querySelectorAll("input,textarea")].find((x) => !x.value && x.name !== "website"); (i || f.querySelector("textarea")).focus(); }, 50);
   }
-  function showThread() { inVoice = false; foot.hidden = false; q(".wpc-cam").hidden = !ctx.snap; renderMsgs(true); }
+  function showThread() { inVoice = false; foot.hidden = false; q(".wpc-cam").hidden = !ctx.snap; shotBar(); renderMsgs(true); }
+  const shotBar = () => { q(".wpc-shotbar").hidden = !ctx.snap || foot.hidden; };
   /* ---------- screenshot of where the person is on the page (intake forms) ---------- */
   async function takeShot(direct) {
     if (!ctx.snap) return;
-    const up = q(".wpc-up"), cam = q(".wpc-cam"); errEl.textContent = ""; cam.disabled = true;
+    const up = q(".wpc-up"), cam = q(".wpc-cam"), sb = q(".wpc-shotbtn"); errEl.textContent = ""; cam.disabled = sb.disabled = true;
     up.textContent = "Taking a screenshot of the part of the form you're on…";
     let s = null;
     try { s = await ctx.snap(); } catch (e) {}
-    up.textContent = ""; cam.disabled = false;
+    up.textContent = ""; cam.disabled = sb.disabled = false;
     if (!s || !s.blob) { errEl.textContent = "We couldn't take the screenshot here. Take one on your device and send it with the 📎 button."; return; }
     const file = new File([s.blob], s.name || "screenshot.png", { type: "image/png" });
     if (direct) return uploadFiles([file], true);
@@ -269,7 +276,7 @@
   }
   async function openVoice() {
     if (panel.hidden) { panel.hidden = false; dock.hidden = true; status(); schedule(); if (started) await poll(); }
-    inVoice = true; errEl.textContent = ""; foot.hidden = true; track("Voice note opened");
+    inVoice = true; errEl.textContent = ""; foot.hidden = true; shotBar(); track("Voice note opened");
     const o = isOpen(), needEmail = !o && !(started && thread && thread.hasEmail);
     body.innerHTML = `<div class="wpc-info">${o ? "Leave a voice note (up to 2 minutes). Our team will listen and reply here, usually within minutes." : "We're offline. Leave a voice note (up to 2 minutes) and your email, and we'll listen and reply after 8:00 a.m. Mountain Time."} We can't give immigration advice.</div>
       <form class="wpc-form" novalidate onsubmit="return false">
@@ -367,7 +374,7 @@
 
   const fin = q(".wpc-fin");
   q(".wpc-clip:not(.wpc-cam)").onclick = () => { fin.value = ""; fin.click(); };
-  q(".wpc-cam").onclick = () => takeShot(false);
+  q(".wpc-cam").onclick = q(".wpc-shotbtn").onclick = () => takeShot(false);
   fin.onchange = () => { const f = [...fin.files]; if (f.length) uploadFiles(f); };
   btn.onclick = openPanel;
   q(".wpc-x").onclick = closePanel;
@@ -377,12 +384,19 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !panel.hidden) closePanel(); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
   window.addEventListener("hashchange", () => { if (location.hash === "#chat" && panel.hidden) openPanel(); });
-  document.addEventListener("click", (e) => { const v = e.target.closest('a[href="#voice"],[data-open-voice]'); if (v) { e.preventDefault(); if (!root.hidden) openVoice(); return; } const a = e.target.closest('a[href="#chat"],[data-open-chat]'); if (a) { e.preventDefault(); if (panel.hidden && !root.hidden) openPanel(); } });
+  document.addEventListener("click", (e) => { const v = e.target.closest('a[href="#voice"],[data-open-voice]'); if (v) { e.preventDefault(); if (!root.hidden) openVoice(); return; } const sh = e.target.closest("[data-chat-shot]"); if (sh) { e.preventDefault(); window.wpChat.screenshot(); return; } const a = e.target.closest('a[href="#chat"],[data-open-chat]'); if (a) { e.preventDefault(); if (panel.hidden && !root.hidden) openPanel(); } });
 
   // Public API for pages (see the note at the top).
   window.wpChat = {
     open: () => { if (!root.hidden && panel.hidden) openPanel(); },
-    setContext(c) { ctx = c || {}; root.hidden = !!ctx.hidden; q(".wpc-cam").hidden = !ctx.snap || foot.hidden; if (ctx.hidden && !panel.hidden) closePanel(); else if (!panel.hidden && !started && !inVoice) renderStart(); },
+    // Opens the chat ready to send a screenshot: a preview in a started chat, or the start form with the box ticked.
+    async screenshot() {
+      if (root.hidden || !ctx.snap) return;
+      if (panel.hidden) await openPanel();
+      if (started && !inVoice) takeShot(false);
+      else { const t = q(".wpc-form textarea"); if (t) t.focus(); }
+    },
+    setContext(c) { ctx = c || {}; root.hidden = !!ctx.hidden; q(".wpc-cam").hidden = !ctx.snap || foot.hidden; shotBar(); if (ctx.hidden && !panel.hidden) closePanel(); else if (!panel.hidden && !started && !inVoice) renderStart(); },
   };
   root.hidden = !!ctx.hidden;
 
