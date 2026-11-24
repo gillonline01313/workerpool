@@ -239,6 +239,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-
       <button type="button" data-t="submissions" aria-pressed="false">Candidates</button>
       <button type="button" data-t="interest" aria-pressed="false">Employer interest</button>
       <button type="button" data-t="crm" aria-pressed="false">CRM</button>
+      <button type="button" data-t="leads" aria-pressed="false" id="ldTab">Lead Desk</button>
       <button type="button" data-t="intake" aria-pressed="false" id="inTab">Intake forms</button>
       <button type="button" data-t="partners" aria-pressed="false" id="ptTab">Partners</button>
       <button type="button" data-t="esign" aria-pressed="false">eSign</button>
@@ -287,6 +288,7 @@ async function load(){
     if(tab==="aitext"){ if(window.WPAiText) await window.WPAiText.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">AI text check didn't load. Refresh the page.</div>`; return; }
     if(tab==="pdftools"){ if(window.WPPdfTools) await window.WPPdfTools.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">PDF tools didn't load. Refresh the page.</div>`; return; }
     if(tab==="esign"){ if(window.WPEsignAdmin) await window.WPEsignAdmin.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">eSign didn't load. Refresh the page.</div>`; return; }
+    if(tab==="leads"){ if(window.WPLeads) await window.WPLeads.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">Lead Desk didn't load. Refresh the page.</div>`; return; }
     if(tab==="partners"){ if(window.WPPartners) await window.WPPartners.load(KEY,$("#wpaBody")); else $("#wpaBody").innerHTML=`<div class="wpa-empty">Partners didn't load. Refresh the page.</div>`; return; }
     if(tab==="mail"){ if(!data.mail||ml.reload){ ml.reload=false; data.mail=await chatFetch("mail"); mailInit(); render(); } else if(!$("#mlForm")) render(); return; }
     if(tab==="analytics"&&anView==="signups") data.signups=await api("signups?days="+days);
@@ -322,12 +324,12 @@ async function load(){
     $("#wpaBody").innerHTML=`<div class="wpa-empty">Couldn't load data: ${esc(e.message)}</div>`;
   }
 }
-function lock(msg){ KEY=""; if(window.WPScan) window.WPScan.leave(); if(window.WPAiText) window.WPAiText.leave(); if(window.WPPdfTools) window.WPPdfTools.leave(); if(window.WPCrm) window.WPCrm.leave(); try{sessionStorage.removeItem("wp_admin");}catch(e){} $("#app").hidden=true; $("#gate").hidden=false; $("#gErr").textContent=msg||""; }
+function lock(msg){ KEY=""; if(window.WPScan) window.WPScan.leave(); if(window.WPAiText) window.WPAiText.leave(); if(window.WPPdfTools) window.WPPdfTools.leave(); if(window.WPCrm) window.WPCrm.leave(); if(window.WPLeads) window.WPLeads.leave(); try{sessionStorage.removeItem("wp_admin");}catch(e){} $("#app").hidden=true; $("#gate").hidden=false; $("#gErr").textContent=msg||""; }
 $("#gate").onsubmit=e=>{ e.preventDefault(); KEY=$("#key").value.trim(); if(!KEY) return; try{sessionStorage.setItem("wp_admin",KEY);}catch(x){} start(); };
 $("#out").onclick=()=>lock("");
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ tab=b.dataset.t; newsEdit=null; drEdit=null; document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); controls(); $("#wpaBody").innerHTML=`<div class="wpa-empty">Loading…</div>`; load(); });
 let iv=null;
-function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); vsStart(); if(window.WPIntake) window.WPIntake.badge(KEY); if(window.WPCrm) window.WPCrm.badge(KEY); if(window.WPPartners) window.WPPartners.badge(KEY); }
+function start(){ $("#gate").hidden=true; $("#app").hidden=false; controls(); load(); clearInterval(iv); iv=setInterval(load,60000); chatStart(); vsStart(); if(window.WPIntake) window.WPIntake.badge(KEY); if(window.WPCrm) window.WPCrm.badge(KEY); if(window.WPPartners) window.WPPartners.badge(KEY); if(window.WPLeads) window.WPLeads.badge(KEY); }
 /* ---------- Live visitors (unique visitors, Edmonton time; refreshed every 30 seconds) ---------- */
 let vsIv=null; const vsShown={};
 function vsAnim(el,to){ const from=vsShown[el.dataset.k]??0; vsShown[el.dataset.k]=to; const f0=n=>Number(n||0).toLocaleString("en-CA");
@@ -392,7 +394,7 @@ function controls(){
   } else if(tab==="mail"){
     c.innerHTML=`<button class="dl" type="button" id="mlRefresh">Refresh list</button>`;
     $("#mlRefresh").onclick=()=>{ ml.reload=true; load(); };
-  } else if(tab==="crm"||tab==="intake"||tab==="partners"||tab==="pscan"||tab==="aitext"||tab==="pdftools"||tab==="esign"){
+  } else if(tab==="crm"||tab==="leads"||tab==="intake"||tab==="partners"||tab==="pscan"||tab==="aitext"||tab==="pdftools"||tab==="esign"){
     c.innerHTML="";
   } else if(tab==="chat"){
     c.innerHTML=`<span class="chat-live"><i id="chatDot"></i><span id="chatHrs"></span></span>`; chatStatus();
@@ -1599,6 +1601,7 @@ if(KEY) start();
 <script src="/admin/intake.js?v=11"></script>
 <script src="/admin/crm.js?v=7"></script>
 <script src="/admin/partners.js?v=3"></script>
+<script src="/admin/leads.js?v=1"></script>
 <script src="/admin/profile-scan.js?v=1"></script>
 <script src="/admin/ai-text.js?v=3"></script>
 <script src="/admin/ai-text-files.js?v=2"></script>

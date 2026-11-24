@@ -1,6 +1,7 @@
 User-agent: *
 Disallow: /admin/
 Disallow: /reset/
+Disallow: /leads/
 Disallow: /api/
 Disallow: /tools/src/
 
