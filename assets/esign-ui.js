@@ -69,6 +69,8 @@
 .es-page canvas{display:block;width:100%;height:auto}
 .es-page .pn{position:absolute;right:-2px;top:-18px;font-size:.7rem;color:var(--muted)}
 .es-page.arm{cursor:crosshair}
+.es-arm{font-size:.8rem;line-height:1.35;background:color-mix(in srgb,var(--accent) 12%,transparent);border:1px solid var(--accent);border-radius:9px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.es-arm kbd{font:inherit;font-size:.75rem;border:1px solid var(--line);border-radius:4px;padding:0 4px;background:var(--surface)}
 .es-f{position:absolute;border:1.5px solid rgba(0,0,0,.45);border-radius:3px;font:600 11px/1.1 system-ui,sans-serif;color:#1b2628;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:move;user-select:none;touch-action:none;opacity:.92}
 .es-f.sel{outline:2px solid #1b4fd6;outline-offset:1px;z-index:3}
 .es-f .rs{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;background:#1b4fd6;cursor:nwse-resize;border-radius:2px 0 2px 0}
@@ -233,7 +235,7 @@
         <textarea class="es-in" id="bMsg" rows="3" maxlength="2000" placeholder="Optional message shown in the email, e.g. Please review and sign by Friday."></textarea>
         <div class="es-row"><label class="es-note">Expires after <input class="es-in" id="bExp" type="number" min="1" max="120" style="width:70px"> days</label>
           <label class="es-note">Remind every <input class="es-in" id="bRem" type="number" min="0" max="30" style="width:64px"> days (0 = no reminders)</label></div></div>
-      <div class="es-card"><div class="es-row es-sp"><h3>4 · Place fields</h3><span class="es-note">Pick a field, then click the page where it goes (or drag it on). Drag to move, corner to resize, Delete key to remove.</span></div>
+      <div class="es-card"><div class="es-row es-sp"><h3>4 · Place fields</h3><span class="es-note">Pick a field once, then click every spot it goes — it stays selected until Esc (or drag it on). Drag to move, corner to resize, Delete key to remove.</span></div>
         <div class="es-build"><div class="es-pal" id="bPal"></div><div class="es-pages" id="bPages"><div class="es-note">Upload a document to place fields.</div></div></div></div>`;
       const $ = (s) => root.querySelector(s);
       $("#bTitle").value = B.title; $("#bMsg").value = B.message; $("#bSeq").checked = B.seq; $("#bExp").value = B.expires_days; $("#bRem").value = B.remind_days;
@@ -260,8 +262,10 @@
       document.addEventListener("keydown", keyDel);
     }
     function keyDel(ev) {
-      const B = S.B; if (S.view !== "build" || !B || !B.sel) return;
+      const B = S.B; if (S.view !== "build" || !B) return;
       if (document.querySelector(".es-modal")) return;
+      if (ev.key === "Escape" && B.armed) { ev.preventDefault(); disarm(); return; }
+      if (!B.sel) return;
       if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement && document.activeElement.tagName)) return;
       if (ev.key === "Delete" || ev.key === "Backspace") { ev.preventDefault(); B.fields = B.fields.filter((f) => f.key !== B.sel); B.sel = null; drawFields(); drawFieldPanel(); dirty(); }
     }
@@ -408,17 +412,20 @@
       pal.innerHTML = signers.length ? `<label class="es-note">Fields for<select class="es-in" id="bCur" style="width:100%;margin-top:4px">${signers.map((r) => `<option value="${r.key}">${esc(r.name || r.email || "Signer")}</option>`).join("")}</select></label>
         <span style="height:6px;border-radius:3px;background:${color(B.cur)}"></span>
         ${FIELDS.map((f) => `<button class="f" type="button" draggable="true" data-t="${f.t}" aria-pressed="${B.armed === f.t}"><i style="background:${color(B.cur)}">${f.icon}</i>${f.label}</button>`).join("")}
+        ${B.armed ? `<div class="es-arm"><b>Stamping ${esc(FMAP[B.armed].label)}</b><span>Click each spot on the pages to place it. Stays on until you press <kbd>Esc</kbd>, click it again, or pick another field.</span><button class="es-btn g sm" type="button" id="bDisarm">Done placing</button></div>` : `<div class="es-note">Tip: click a field once, then click as many spots as you need.</div>`}
         <div class="es-note">${B.fields.length} field${B.fields.length === 1 ? "" : "s"} placed</div><div id="bFp"></div>`
         : `<div class="es-note">Add a signer first.</div>`;
       if (!signers.length) return;
       pal.querySelector("#bCur").value = B.cur;
       pal.querySelector("#bCur").onchange = (ev) => { B.cur = ev.target.value; drawPalette(); };
+      if (pal.querySelector("#bDisarm")) pal.querySelector("#bDisarm").onclick = disarm;
       pal.querySelectorAll("button.f").forEach((b) => {
         b.onclick = () => { B.armed = B.armed === b.dataset.t ? null : b.dataset.t; drawPalette(); B.pageEls.forEach((p) => p.classList.toggle("arm", !!B.armed)); };
         b.ondragstart = (ev) => { ev.dataTransfer.setData("text/plain", "esf:" + b.dataset.t); ev.dataTransfer.effectAllowed = "copy"; };
       });
       drawFieldPanel();
     }
+    function disarm() { const B = S.B; if (!B || !B.armed) return; B.armed = null; drawPalette(); B.pageEls.forEach((x) => x.classList.remove("arm")); }
     async function drawPages() {
       const B = S.B, host = root.querySelector("#bPages");
       B.pageEls = [];
@@ -433,7 +440,7 @@
         p.addEventListener("click", (ev) => {
           if (ev.target.closest(".es-f")) return;
           if (!B.armed) { if (B.sel) { B.sel = null; drawFields(); drawFieldPanel(); } return; }
-          place(+p.dataset.page, B.armed, ev, p); B.armed = null; drawPalette(); B.pageEls.forEach((x) => x.classList.remove("arm"));
+          place(+p.dataset.page, B.armed, ev, p);   // tool stays selected so the same stamp can be placed again and again; Esc or clicking the tool again stops
         });
         p.addEventListener("dragover", (ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = "copy"; });
         p.addEventListener("drop", (ev) => { const d = ev.dataTransfer.getData("text/plain"); if (!d.startsWith("esf:")) return; ev.preventDefault(); place(+p.dataset.page, d.slice(4), ev, p); });
@@ -488,11 +495,24 @@
         <label class="es-note">Signer<select class="es-in" id="fpR" style="width:100%">${signers.map((r) => `<option value="${r.key}">${esc(r.name || r.email || "Signer")}</option>`).join("")}</select></label>
         ${f.type === "text" ? `<label class="es-note">Label (what to type)<input class="es-in" id="fpL" maxlength="80" style="width:100%" value="${esc(f.label || "")}"></label>` : ""}
         ${f.type === "text" || f.type === "checkbox" ? `<label class="es-row es-note" style="gap:6px"><input type="checkbox" id="fpQ" ${f.required ? "checked" : ""}> Required</label>` : `<span class="es-note">${["date", "name", "email"].includes(f.type) ? "Filled in automatically when they sign." : "Always required."}</span>`}
+        ${B.pages > 1 ? `<button class="es-btn g sm" type="button" id="fpAll" title="Put a copy at this same spot on every other page">Repeat on every page</button>` : ""}
         <button class="es-btn red sm" type="button" id="fpD">Delete field</button></div>`;
       box.querySelector("#fpR").value = f.rcpt_id;
       box.querySelector("#fpR").onchange = (e) => { f.rcpt_id = e.target.value; drawFields(); dirty(); };
       if (box.querySelector("#fpL")) box.querySelector("#fpL").oninput = (e) => { f.label = e.target.value; drawFields(); dirty(); };
       if (box.querySelector("#fpQ")) box.querySelector("#fpQ").onchange = (e) => { f.required = e.target.checked ? 1 : 0; dirty(); };
+      if (box.querySelector("#fpAll")) box.querySelector("#fpAll").onclick = () => {
+        const near = (a, b) => Math.abs(a - b) < 0.01;
+        let added = 0;
+        for (let pg = 0; pg < B.pages; pg++) {
+          if (pg === f.page || B.fields.some((x) => x.page === pg && x.type === f.type && x.rcpt_id === f.rcpt_id && near(x.x, f.x) && near(x.y, f.y))) continue;
+          const s0 = B.sizes[f.page] || [612, 792], s1 = B.sizes[pg] || s0;   // keep the same printed size on pages of a different size
+          const w = Math.min(1, f.w * s0[0] / s1[0]), h = Math.min(1, f.h * s0[1] / s1[1]);
+          B.fields.push({ ...f, key: "f" + Math.random().toString(36).slice(2, 9), id: undefined, page: pg, w, h, x: Math.min(f.x, 1 - w), y: Math.min(f.y, 1 - h) }); added++;
+        }
+        drawFields(); drawPalette(); if (added) dirty();
+        toast(added ? `Added ${added} more ${FMAP[f.type].label.toLowerCase()} field${added > 1 ? "s" : ""}, one on each page` : "Already on every page");
+      };
       box.querySelector("#fpD").onclick = () => { B.fields = B.fields.filter((x) => x.key !== f.key); B.sel = null; drawFields(); drawPalette(); dirty(); };
     }
     async function send() {
