@@ -161,12 +161,37 @@
       root.querySelectorAll("#esF button").forEach((b) => b.onclick = () => { S.filter = b.dataset.f; drawList(); });
       const q = S.q.trim().toLowerCase();
       const L = S.rows.filter((r) => (S.filter === "all" || (S.filter === "ended" ? ["voided", "declined", "expired"].includes(r.status) : r.status === S.filter)) && (!q || [r.title, r.names, r.owner_name, r.owner_email, r.id].some((x) => String(x || "").toLowerCase().includes(q))));
-      box.innerHTML = L.length ? `<div class="es-tbl"><table><thead><tr><th>Document</th><th>Signers</th><th>Status</th><th>Last change</th></tr></thead><tbody>
+      box.innerHTML = L.length ? `<div class="es-tbl"><table><thead><tr><th>Document</th><th>Signers</th><th>Status</th><th>Last change</th><th></th></tr></thead><tbody>
         ${L.map((r) => { const st = STATUS[r.status] || [r.status, ""]; return `<tr class="click" data-id="${r.id}" tabindex="0"><td><b>${esc(r.title)}</b><br><span class="es-note">${r.pages || 0} page${r.pages === 1 ? "" : "s"}${opts.admin && r.owner !== "admin" ? ` · from ${esc(r.owner_name)} (${esc(r.owner_email)})` : ""}</span></td>
           <td>${esc(r.names || "–")}<br><span class="es-note">${r.signed}/${r.signers} signed</span></td><td><span class="es-badge ${st[1]}">${st[0]}</span>${r.final_error ? `<br><span class="es-err">Final PDF failed</span>` : ""}</td>
-          <td>${when(r.updated || r.created)}${r.status === "sent" && r.expires_at ? `<br><span class="es-note">Expires ${when(r.expires_at)}</span>` : ""}</td></tr>`; }).join("")}</tbody></table></div>`
+          <td>${when(r.updated || r.created)}${r.status === "sent" && r.expires_at ? `<br><span class="es-note">Expires ${when(r.expires_at)}</span>` : ""}</td>
+          <td style="text-align:right">${r.status === "draft" ? `<button class="es-btn red sm" type="button" data-del-draft="${r.id}" title="Delete this draft">Delete</button>` : ""}</td></tr>`; }).join("")}</tbody></table></div>`
         : `<div class="es-note" style="padding:12px 2px">${S.rows.length ? "Nothing matches." : "No envelopes yet. Press <b>+ New envelope</b> to upload a document and send it for signature."}</div>`;
-      box.querySelectorAll("tr[data-id]").forEach((tr) => { tr.onclick = () => open(tr.dataset.id); tr.onkeydown = (e) => { if (e.key === "Enter") open(tr.dataset.id); }; });
+      box.querySelectorAll("tr[data-id]").forEach((tr) => { tr.onclick = () => open(tr.dataset.id); tr.onkeydown = (e) => { if (e.key === "Enter" && e.target === tr) open(tr.dataset.id); }; });
+      box.querySelectorAll("[data-del-draft]").forEach((b) => b.onclick = (ev) => {
+        ev.stopPropagation();
+        const r = S.rows.find((x) => x.id === b.dataset.delDraft);
+        if (r) confirmDeleteDraft({ id: r.id, title: r.title, pages: r.pages, names: r.names }, () => { S.rows = S.rows.filter((x) => x.id !== r.id); drawList(); });
+      });
+    }
+    // Asks before deleting a draft envelope; deleting removes its uploaded document, recipients, fields and history for good.
+    function confirmDeleteDraft(d, done) {
+      const who = String(d.names || "").trim();
+      modal(`<h3>Delete this draft?</h3>
+        <div><b>${esc(d.title || "Untitled document")}</b><div class="es-note">${d.pages || 0} page${d.pages === 1 ? "" : "s"}${who ? ` · ${esc(who)}` : ""}</div></div>
+        <div class="es-note">The draft, its uploaded document, recipients and placed fields are deleted permanently. Nothing was sent, so no one is notified. This can't be undone.</div>
+        <div class="es-err" id="ddE"></div>
+        <div class="es-row"><button class="es-btn red" type="button" id="ddGo">Delete draft</button><button class="es-btn g" type="button" id="ddNo">Cancel</button></div>`, (m, close) => {
+        const go = m.querySelector("#ddGo");
+        m.querySelector("#ddNo").onclick = close;
+        m.querySelector("#ddNo").focus();
+        m.addEventListener("keydown", (ev) => { if (ev.key === "Escape") close(); });
+        go.onclick = async () => {
+          go.disabled = true; go.textContent = "Deleting…";
+          try { clearTimeout(saveTimer); if (saving) await saving; await post("delete", { id: d.id, confirm: true }); close(); toast("Draft deleted"); done && done(); }
+          catch (x) { m.querySelector("#ddE").textContent = x.message; go.disabled = false; go.textContent = "Delete draft"; }
+        };
+      });
     }
     async function newEnvelope() {
       try { const j = await post("new", { title: "Untitled document" }); await open(j.id); } catch (e) { toast(e.message); }
@@ -193,7 +218,7 @@
       B.cur = (B.recipients.find((r) => r.role === "signer") || B.recipients[0]).key;
       root.innerHTML = `
       <div class="es-row es-sp"><button class="es-btn g" type="button" id="bBack">← Envelopes</button>
-        <div class="es-row"><span class="es-note" id="bSaved"></span><button class="es-btn g" type="button" id="bSave">Save draft</button><button class="es-btn" type="button" id="bSend">Send for signature</button></div></div>
+        <div class="es-row"><span class="es-note" id="bSaved"></span><button class="es-btn red" type="button" id="bDel">Delete draft</button><button class="es-btn g" type="button" id="bSave">Save draft</button><button class="es-btn" type="button" id="bSend">Send for signature</button></div></div>
       <div class="es-card"><h3>1 · Document</h3>
         <label class="es-note">Envelope name (signers see this in the email subject)<input class="es-in" id="bTitle" style="width:100%;margin-top:4px" maxlength="160" placeholder="e.g. Employment agreement – Jasmine Kaur"></label>
         <div id="bDoc"></div>
@@ -220,6 +245,9 @@
       $("#bBack").onclick = async () => { closeSug(); if (S.dirty) await save(true); showList(); };
       loadContacts();
       $("#bSave").onclick = () => save();
+      $("#bDel").onclick = () => confirmDeleteDraft({ id: B.id, title: B.title.trim() || e.title, pages: B.pages, names: B.recipients.filter((r) => r.name).map((r) => r.name).join(", ") }, () => {
+        clearTimeout(saveTimer); S.dirty = false; S.B = null; closeSug(); document.removeEventListener("keydown", keyDel); showList();
+      });
       $("#bSend").onclick = send;
       $("#bAdd").onclick = () => { B.recipients.push({ key: "k" + Math.random().toString(36).slice(2, 8), role: "signer", name: "", email: "", ord: B.recipients.length + 1 }); drawRecipients(); dirty(); };
       if ($("#bMe")) $("#bMe").onclick = () => { B.recipients.push({ key: "k" + Math.random().toString(36).slice(2, 8), role: "signer", name: opts.me.name || "", email: opts.me.email || "", ord: B.recipients.length + 1 }); drawRecipients(); dirty(); };
@@ -233,6 +261,7 @@
     }
     function keyDel(ev) {
       const B = S.B; if (S.view !== "build" || !B || !B.sel) return;
+      if (document.querySelector(".es-modal")) return;
       if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement && document.activeElement.tagName)) return;
       if (ev.key === "Delete" || ev.key === "Backspace") { ev.preventDefault(); B.fields = B.fields.filter((f) => f.key !== B.sel); B.sel = null; drawFields(); drawFieldPanel(); dirty(); }
     }
