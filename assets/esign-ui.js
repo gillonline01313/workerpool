@@ -1,6 +1,6 @@
 /* WorkerPool eSign — sender screens, shared by the admin console (admin/esign.js) and the subscriber portal (/esign/).
    Envelope list, envelope builder (upload, recipients, message, drag-and-drop fields on the rendered PDF) and the
-   envelope detail view (recipient status, reminders, void, downloads, audit trail).
+   envelope detail view (recipient status, reminders, correcting a wrong email, void, downloads, audit trail).
    Usage: WPEsign.mount(element, { base: "/api/esign/admin/", headers: { "x-admin-key": KEY }, admin: true, me: { name, email }, onNeedPlan })
    Uses the page's CSS variables (--accent, --line, --surface, --fg, --muted, --accent-soft). PDF pages are drawn with pdf.js (assets/vendor/pdfjs). */
 (function () {
@@ -560,7 +560,8 @@
           ${r.signed_at ? `<div class="es-note">IP ${esc(r.ip || "–")}${r.geo ? " · " + esc(r.geo) : ""}</div>` : ""}
           ${r.sig_png ? `<img class="es-sig" alt="Signature of ${esc(r.name)}" src="${r.sig_png}">` : ""}</div>
         <div style="text-align:right"><span class="es-badge ${r.status === "signed" || r.status === "completed" ? "done" : r.status === "declined" ? "bad" : r.status === "created" ? "" : "out"}">${RSTATUS[r.status] || r.status}</span>
-          ${e.status === "sent" && r.role === "signer" && ["sent", "viewed", "verified"].includes(r.status) ? `<br><button class="es-btn g sm" type="button" data-rem="${r.id}" style="margin-top:6px">Resend</button>` : ""}</div></div>`).join("")}</div></div>
+          ${e.status === "sent" && r.role === "signer" && ["sent", "viewed", "verified"].includes(r.status) ? `<br><button class="es-btn g sm" type="button" data-rem="${r.id}" style="margin-top:6px">Resend</button>` : ""}
+          ${e.status === "sent" && (r.role === "cc" || !["signed", "declined"].includes(r.status)) ? `<br><button class="es-btn g sm" type="button" data-fix="${r.id}" style="margin-top:6px">Correct email</button>` : ""}</div></div>`).join("")}</div></div>
       <div class="es-card"><div class="es-row es-sp"><h3>Audit trail</h3><span class="es-note">${j.chain.ok ? `✓ Hash chain intact (${j.chain.count} events)` : `<b style="color:#b3412e">⚠ Audit trail was altered at event ${j.chain.at}</b>`}</span></div>
         <div class="es-tbl"><table><thead><tr><th>Time</th><th>Action</th><th>By</th><th>IP / location</th></tr></thead><tbody>
         ${j.events.map((v) => `<tr><td style="white-space:nowrap">${when(v.at)}</td><td><b>${esc(v.action)}</b>${v.detail ? `<br><span class="es-note" style="word-break:break-all">${esc(v.detail)}</span>` : ""}</td><td>${esc(v.actor)}</td><td>${esc(v.ip || "")}${v.geo ? `<br><span class="es-note">${esc(v.geo)}</span>` : ""}</td></tr>`).join("")}</tbody></table></div>
@@ -586,6 +587,32 @@
       });
       root.querySelector("#dBack").onclick = showList;
       root.querySelectorAll("[data-rem]").forEach((b) => b.onclick = async () => { try { await post("remind", { id: e.id, rcpt: b.dataset.rem }); toast("Reminder sent"); open(e.id); } catch (x) { toast(x.message); } });
+      root.querySelectorAll("[data-fix]").forEach((b) => b.onclick = () => correctRecipient(e, j.recipients.find((r) => r.id === b.dataset.fix)));
+    }
+    // Fix a wrong email (or name) for someone who hasn't signed yet, or a CC, while the envelope is out for signature.
+    function correctRecipient(e, r) {
+      if (!r) return;
+      const emailed = r.role === "signer" && r.status !== "created";
+      modal(`<h3>Correct recipient</h3><div class="es-note">${emailed ? `The link sent to <b>${esc(r.email)}</b> stops working and a new signing email goes to the corrected address.`
+          : r.role === "cc" ? "The completed copy will go to the corrected address." : "Nothing has been sent to this person yet. They'll get the signing email at the corrected address when it's their turn."} The change is recorded in the audit trail.</div>
+        <label class="es-note">Name<input class="es-in" id="cN" type="text" maxlength="120" style="display:block;width:100%;margin-top:4px"></label>
+        <label class="es-note">Email<input class="es-in" id="cE" type="email" maxlength="160" autocomplete="off" style="display:block;width:100%;margin-top:4px"></label>
+        <div class="es-err" id="cErr"></div><div class="es-row"><button class="es-btn" type="button" id="cGo">${emailed ? "Save and resend" : "Save"}</button><button class="es-btn g" type="button" id="cNo">Cancel</button></div>`, (m, close) => {
+        const n = m.querySelector("#cN"), em = m.querySelector("#cE"), go = m.querySelector("#cGo");
+        n.value = r.name || ""; em.value = r.email || ""; em.focus(); em.select();
+        m.querySelector("#cNo").onclick = close;
+        const submit = async () => {
+          const email = em.value.trim();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { m.querySelector("#cErr").textContent = "Enter a valid email address."; return; }
+          go.disabled = true;
+          try {
+            const res = await post("correct", { id: e.id, rcpt: r.id, email, name: n.value.trim() });
+            close(); toast(res.sent ? (res.delivered === false ? "Saved, but the email couldn't be delivered" : "Corrected and resent to " + email) : "Recipient corrected"); open(e.id);
+          } catch (x) { m.querySelector("#cErr").textContent = x.message; go.disabled = false; }
+        };
+        go.onclick = submit;
+        em.addEventListener("keydown", (ev) => { if (ev.key === "Enter") submit(); });
+      });
     }
 
     showList();
