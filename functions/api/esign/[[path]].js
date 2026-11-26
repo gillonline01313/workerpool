@@ -5,7 +5,7 @@
 //   /api/esign/app/*     Subscribers, signed in with their WorkerPool account (wp_s cookie).
 //   Shared routes:  GET list · GET item?id= · POST new {title} · POST upload?id= (raw file, x-file-name) · POST clear {id}
 //                   GET doc?id= (original) · GET final?id= · GET cert?id= · POST save {...} · POST send {id} · POST void {id, reason}
-//                   POST remind {id} · POST copy {id} · POST delete {id} · POST rebuild {id}
+//                   POST remind {id} · POST correct {id, rcpt, email, name} · POST copy {id} · POST delete {id} · POST rebuild {id}
 //   Admin only:     GET bill · POST plan-save · plan-delete · promo-save · promo-delete · comp · sub-end · settings
 //   Subscriber:     GET me · POST promo-check · POST checkout · GET paid?session_id= · POST cancel · POST resume · POST portal
 // Signers (personal link token t, then a session s from the one-time code)
@@ -247,6 +247,37 @@ async function ownerRoutes({ request, env }, owner, route, m) {
       await logEvent(env, e, { rcpt: r.id, actor, action: "Reminder sent", detail: `${r.name} <${r.email}>`, request });
     }
     return json({ ok: true, sent: rs.length });
+  }
+  // Fix a recipient's email (or name) while the envelope is out for signature: for someone who hasn't signed or declined yet,
+  // or a CC. The old signing link and any code or session sent to the wrong address stop working, and if the person had
+  // already been emailed, a fresh invitation goes to the corrected address. The change is recorded in the audit trail.
+  if (route === "correct" && m === "POST") {
+    if (e.status !== "sent") return bad("Only an envelope that is out for signature can have a recipient corrected.");
+    if (e.expires_at && e.expires_at < now()) return bad("This envelope has expired. Make a copy and send it again.");
+    const r = await env.DB.prepare(`SELECT * FROM esign_recipients WHERE id = ?1 AND env_id = ?2`).bind(str(b.rcpt, 40), e.id).first();
+    if (!r) return bad("That recipient wasn't found.", 404);
+    if (r.role === "signer" && (r.status === "signed" || r.status === "declined")) return bad(`${r.name} has already ${r.status}, so their details can't be changed.`);
+    const email = str(b.email, 160).trim().toLowerCase(), name = str(b.name, 120).trim() || r.name;
+    if (!isEmail(email)) return bad("Enter a valid email address.");
+    const oldEmail = String(r.email || "").toLowerCase(), emailChanged = email !== oldEmail, nameChanged = name !== r.name;
+    if (!emailChanged && !nameChanged) return bad("The email and name are the same as before.");
+    const changes = [emailChanged && `email changed from ${r.email} to ${email}`, nameChanged && `name changed from ${r.name} to ${name}`].filter(Boolean).join("; ");
+    if (!emailChanged) {
+      await env.DB.prepare(`UPDATE esign_recipients SET name = ?1 WHERE id = ?2`).bind(name, r.id).run();
+      await logEvent(env, e, { rcpt: r.id, actor, action: "Recipient corrected", detail: changes, request });
+      return json({ ok: true, sent: false });
+    }
+    const invited = r.role === "signer" && r.status !== "created";   // 'created' = still waiting for earlier signers; they're emailed when it's their turn
+    const t = now(), nonce = randomToken().slice(0, 16);
+    await env.DB.prepare(`UPDATE esign_recipients SET email = ?1, name = ?2, nonce = ?3, otp_hash = NULL, otp_expires = NULL, otp_tries = 0, otp_sent_at = NULL, otp_count = 0,
+      sess_hash = NULL, sess_expires = NULL, viewed_at = NULL, verified_at = NULL, consent_at = NULL, last_remind = NULL, remind_count = 0,
+      status = CASE WHEN ?4 = 1 THEN 'sent' ELSE status END, sent_at = CASE WHEN ?4 = 1 THEN ?5 ELSE sent_at END WHERE id = ?6`)
+      .bind(email, name, nonce, invited ? 1 : 0, t, r.id).run();
+    let ok = false;
+    if (invited) ok = await sendInvite(env, e, { ...r, email, name, nonce });
+    await logEvent(env, e, { rcpt: r.id, actor, action: "Recipient corrected",
+      detail: `${changes}; previous signing link cancelled${invited ? `; new invitation sent to ${email}${ok ? "" : " (email not delivered)"}` : r.role === "cc" ? "; the completed copy will go to the new address" : "; they'll be emailed when it's their turn"}`, request });
+    return json({ ok: true, sent: invited, delivered: ok });
   }
   if (route === "copy" && m === "POST") {
     const nid = envId(), t = now();
