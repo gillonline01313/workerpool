@@ -141,6 +141,7 @@ async function partner({ request, env }, route, m) {
     const b = await readJson(request, 1000) || {}, pr = await prices(env, p), rk = readyKinds();
     const q = { tr: Math.max(0, Math.min(MAX_QTY, parseInt(b.tr) || 0)), pr: Math.max(0, Math.min(MAX_QTY, parseInt(b.pr) || 0)) };
     if (q.pr && !rk.pr) return json({ ok: false, error: "Permanent residence forms aren't available yet." }, 400);
+    for (const k of ["tr", "pr"]) if (pr[k] === 0) q[k] = 0;   // free for this firm: nothing to buy
     if (!q.tr && !q.pr) return json({ ok: false, error: "Choose how many forms to buy." }, 400);
     const items = {}; let i = 0;
     for (const k of ["tr", "pr"]) if (q[k]) items[i++] = { quantity: q[k], price_data: { currency: "cad", unit_amount: pr[k],
@@ -161,10 +162,11 @@ async function partner({ request, env }, route, m) {
     if (!label) return json({ ok: false, error: "Enter your client's name." }, 400);
     if (email && !isEmail(email)) return json({ ok: false, error: "That email doesn't look right." }, 400);
     const kind = kindOf(fk), pr = await prices(env, p), code = randomToken().slice(0, 14);
-    const spent = await spendCredit(env, p.id, kind, `Client link: ${FORMS[fk].name} – ${label}`, code);
+    // $0 price for this firm: the link is free and uses no credit (comp = 2 marks it, so turning it off gives nothing back)
+    const spent = pr[kind] === 0 ? { comp: false, free: true } : await spendCredit(env, p.id, kind, `Client link: ${FORMS[fk].name} – ${label}`, code);
     if (!spent) return json({ ok: false, error: `You have no ${KIND_LABEL[kind]} form credits left. Buy more to create this link.`, need: kind }, 402);
     await env.DB.prepare(`INSERT INTO intake_invites (code, form_key, label, email, note, created, partner_id, price_kind, price_cents, comp) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`)
-      .bind(code, fk, label, email || null, str(b.note, 500) || null, new Date().toISOString(), p.id, kind, spent.comp ? 0 : pr[kind], spent.comp ? 1 : null).run();
+      .bind(code, fk, label, email || null, str(b.note, 500) || null, new Date().toISOString(), p.id, kind, spent.comp || spent.free ? 0 : pr[kind], spent.free ? 2 : spent.comp ? 1 : null).run();
     const link = `${site(env)}/intake/?i=${code}`;
     let emailed = false;
     if (b.send && email) emailed = await sendEmail(env, email, `${p.firm}: your ${FORMS[fk].name} form`,
@@ -177,9 +179,10 @@ async function partner({ request, env }, route, m) {
     if (!v) return json({ ok: false, error: "Link not found." }, 404);
     if (v.archived) return json({ ok: true, already: true });
     const started = (await env.DB.prepare(`SELECT COUNT(*) AS n FROM intakes WHERE invite_code = ?1`).bind(v.code).first()).n;
-    await env.DB.prepare(`UPDATE intake_invites SET archived = 1, refunded = ?1 WHERE code = ?2`).bind(started ? 0 : 1, v.code).run();
-    if (!started && v.price_kind) await addCredits(env, p.id, v.price_kind, 1, `Refund: link turned off before use – ${v.label || ""}`, v.code, null, !!v.comp);
-    return json({ ok: true, refunded: !started, credits: await credits(env, p.id) });
+    const back = !started && v.comp !== 2;   // a free ($0) link used no credit
+    await env.DB.prepare(`UPDATE intake_invites SET archived = 1, refunded = ?1 WHERE code = ?2`).bind(back ? 1 : 0, v.code).run();
+    if (back && v.price_kind) await addCredits(env, p.id, v.price_kind, 1, `Refund: link turned off before use – ${v.label || ""}`, v.code, null, !!v.comp);
+    return json({ ok: true, refunded: back, credits: await credits(env, p.id) });
   }
   if (route === "profile" && m === "POST") {
     const b = await readJson(request, 4000) || {};
@@ -392,7 +395,7 @@ async function admin({ request, env }, route, m) {
   }
   if (route === "firm-prices") { // this firm's own prices; empty = standard price
     const tr = cents(b.tr), pr = cents(b.pr);
-    for (const v of [tr, pr]) if (v !== null && !(v >= 50 && v <= 100000)) return json({ ok: false, error: "Prices must be between $0.50 and $1,000, or empty for the standard price. For free forms, add complimentary forms instead." }, 400);
+    for (const v of [tr, pr]) if (v !== null && !(v === 0 || v >= 50 && v <= 100000)) return json({ ok: false, error: "Enter $0 (free), a price between $0.50 and $1,000, or leave it empty for the standard price." }, 400);
     await env.DB.prepare(`UPDATE partners SET price_tr = ?1, price_pr = ?2 WHERE id = ?3`).bind(tr, pr, p.id).run();
     return json({ ok: true, prices: await prices(env, { price_tr: tr, price_pr: pr }) });
   }
@@ -408,7 +411,7 @@ async function admin({ request, env }, route, m) {
 
 function setupEmail(env, p, link, pr) {
   const fr = [p.free_tr && `${p.free_tr} Temporary residence`, p.free_pr && `${p.free_pr} Permanent residence & citizenship`].filter(Boolean);
-  return `Hi ${String(p.contact || "").split(" ")[0] || "there"},\n\nWorkerPool has set up a partner account for ${p.firm} so you can send secure intake forms to your clients.\n\nChoose your password and accept the partner terms here (the link works for ${SETUP_DAYS} days):\n${link}\n\nYour sign-in email: ${p.email}\nYour price per form: ${money(pr.tr)} Temporary residence · ${money(pr.pr)} Permanent residence & citizenship${fr.length ? `\nComplimentary forms on your account: ${fr.join(" and ")} (used before paid credits)` : ""}\n\nHow it works:\n1. Create a personal link for each client and send it by email or WhatsApp. Each link uses one form.\n2. Your client fills the form and uploads documents. You get an email when they submit.\n3. Open the form in your portal to view every answer and document, and download everything as one ZIP.\n\nWorkerPool`;
+  return `Hi ${String(p.contact || "").split(" ")[0] || "there"},\n\nWorkerPool has set up a partner account for ${p.firm} so you can send secure intake forms to your clients.\n\nChoose your password and accept the partner terms here (the link works for ${SETUP_DAYS} days):\n${link}\n\nYour sign-in email: ${p.email}\nYour price per form: ${pr.tr ? money(pr.tr) : "free"} Temporary residence · ${pr.pr ? money(pr.pr) : "free"} Permanent residence & citizenship${fr.length ? `\nComplimentary forms on your account: ${fr.join(" and ")} (used before paid credits)` : ""}\n\nHow it works:\n1. Create a personal link for each client and send it by email or WhatsApp. Each link uses one form.\n2. Your client fills the form and uploads documents. You get an email when they submit.\n3. Open the form in your portal to view every answer and document, and download everything as one ZIP.\n\nWorkerPool`;
 }
 
 // Admin signs up a firm directly: it's approved straight away, can have its own prices and complimentary forms,
@@ -424,7 +427,7 @@ async function adminCreate(env, b) {
   if (!isEmail(f.email)) return json({ ok: false, error: "Enter a valid email address (they sign in with it)." }, 400);
   if (await env.DB.prepare(`SELECT id FROM partners WHERE email = ?1`).bind(f.email).first()) return json({ ok: false, error: "A partner account already uses this email." }, 409);
   const tr = cents(b.price_tr), pr = cents(b.price_pr);
-  for (const v of [tr, pr]) if (v !== null && !(v >= 50 && v <= 100000)) return json({ ok: false, error: "Prices must be between $0.50 and $1,000, or empty for the standard price." }, 400);
+  for (const v of [tr, pr]) if (v !== null && !(v === 0 || v >= 50 && v <= 100000)) return json({ ok: false, error: "Enter $0 (free), a price between $0.50 and $1,000, or leave it empty for the standard price." }, 400);
   const free = { tr: Math.max(0, Math.min(1000, parseInt(b.free_tr) || 0)), pr: Math.max(0, Math.min(1000, parseInt(b.free_pr) || 0)) };
   if (f.kind === "rcic") f.licence = "R" + f.licence.replace(/\D/g, "");
   const id = crypto.randomUUID(), now = new Date().toISOString();

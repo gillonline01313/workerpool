@@ -10,8 +10,10 @@
   const KINDS = [["rcic", "Regulated Canadian Immigration Consultant (RCIC)"], ["lawyer", "Lawyer"], ["paralegal", "Paralegal (Law Society of Ontario)"], ["notary", "Notary (Quebec)"], ["firm", "Immigration law or consulting firm"]];
   const PROV = ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan", "Northwest Territories", "Nunavut", "Yukon", "Outside Canada"];
   const lbl = (t, inner, extra = "") => `<label style="display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted)${extra}">${t}${inner}</label>`;
-  const priceOf = (p, k) => p["price_" + k] >= 50 ? p["price_" + k] : D.prices[k];
-  const custom = (p) => p.price_tr >= 50 || p.price_pr >= 50;
+  const own = (p, k) => p["price_" + k] === 0 || p["price_" + k] >= 50;
+  const priceOf = (p, k) => own(p, k) ? p["price_" + k] : D.prices[k];
+  const custom = (p) => own(p, "tr") || own(p, "pr");
+  const pm = (c) => c === 0 ? "Free" : money(c);
   const notSetUp = (p) => p.added_by === "admin" && !p.agreed_at;
   const credText = (p, k) => `${k.toUpperCase()} ${(p["credits_" + k] || 0) + (p["free_" + k] || 0)}${p["free_" + k] ? ` <span class="ik-note">(${p["free_" + k]} free)</span>` : ""}`;
 
@@ -63,7 +65,7 @@
           ${L.map((p) => `<tr class="ik-row${open === p.id ? " new" : ""}" data-p="${p.id}" tabindex="0"><td><b>${esc(p.firm)}</b><br><span class="ik-note">${esc(p.kind_label)} · ${esc(p.licence)}</span></td>
             <td>${esc(p.contact)}<br><span class="ik-note">${esc(p.email)} · ${esc(p.phone)}</span></td>
             <td>${p.status === "active" && notSetUp(p) ? `<span class="ik-badge edit" title="You signed them up; they haven't set their password yet">Invited · not set up</span>` : p.status === "active" ? `<span class="ik-badge sub">Active</span>` : p.status === "pending" ? `<span class="ik-badge new" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">Needs approval</span>` : p.status === "declined" ? `<span class="ik-badge">Declined</span>` : `<span class="ik-badge edit">Paused</span>`}</td>
-            <td>TR ${money(priceOf(p, "tr"))} · PR ${money(priceOf(p, "pr"))}${custom(p) ? `<br><span class="ik-badge sub">Own price</span>` : ""}</td>
+            <td>TR ${pm(priceOf(p, "tr"))} · PR ${pm(priceOf(p, "pr"))}${custom(p) ? `<br><span class="ik-badge sub">Own price</span>` : ""}</td>
             <td>${credText(p, "tr")} · ${credText(p, "pr")}</td><td>${p.links}</td><td>${p.submitted} submitted${p.filling ? ` · ${p.filling} filling` : ""}</td><td>${money(p.paid)}</td>
             <td>${when(p.created)}<br><span class="ik-note">Last sign-in ${when(p.last_login)}</span></td></tr>
             ${open === p.id ? `<tr><td colspan="9" style="background:var(--surface)">${detailHtml(p)}</td></tr>` : ""}`).join("")}
@@ -85,10 +87,10 @@
       <div style="border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px">
         <b style="font-size:.85rem">Price for this firm</b>
         <form id="ptFP" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
-          ${lbl("Temporary residence ($ CAD)", `<input class="ik-in" id="ptFTr" type="number" step="0.01" min="0.5" placeholder="${(D.prices.tr / 100).toFixed(2)} standard" value="${p.price_tr >= 50 ? (p.price_tr / 100).toFixed(2) : ""}" style="width:170px">`)}
-          ${lbl("Permanent residence & citizenship ($ CAD)", `<input class="ik-in" id="ptFPr" type="number" step="0.01" min="0.5" placeholder="${(D.prices.pr / 100).toFixed(2)} standard" value="${p.price_pr >= 50 ? (p.price_pr / 100).toFixed(2) : ""}" style="width:170px">`)}
+          ${lbl("Temporary residence ($ CAD)", `<input class="ik-in" id="ptFTr" type="number" step="0.01" min="0" placeholder="${(D.prices.tr / 100).toFixed(2)} standard" value="${own(p, "tr") ? (p.price_tr / 100).toFixed(2) : ""}" style="width:170px">`)}
+          ${lbl("Permanent residence & citizenship ($ CAD)", `<input class="ik-in" id="ptFPr" type="number" step="0.01" min="0" placeholder="${(D.prices.pr / 100).toFixed(2)} standard" value="${own(p, "pr") ? (p.price_pr / 100).toFixed(2) : ""}" style="width:170px">`)}
           <button class="ik-btn" type="submit">Save price</button>${custom(p) ? `<button class="ik-btn g" type="button" id="ptFPStd">Use standard prices</button>` : ""}</form>
-        <span class="ik-note">Leave a box empty for the standard price. Applies to their next purchases and links; credits they already have stay. Lowest price $0.50 (card payments) — for free forms, add complimentary forms below.</span></div>
+        <span class="ik-note">Leave a box empty for the standard price. Enter <b>0</b> to make that form type free for this firm: unlimited client links, no credits needed. Otherwise the lowest price is $0.50 (card payments). Applies to their next purchases and links; credits they already have stay.</span></div>
       <div style="border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px">
         <b style="font-size:.85rem">Forms on the account</b>
         <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:.88rem"><span>Complimentary: <b>TR ${p.free_tr || 0} · PR ${p.free_pr || 0}</b> left${p.comp_used ? ` · ${p.comp_used} used` : ""}</span><span>Paid credits: <b>TR ${p.credits_tr || 0} · PR ${p.credits_pr || 0}</b></span></div>
@@ -106,7 +108,7 @@
         ${p.status === "pending" ? `<button class="ik-btn" type="button" id="ptApprove">Approve firm</button><button class="ik-btn red" type="button" id="ptDecline">Decline</button>` : p.status === "active" ? `<button class="ik-btn red" type="button" id="ptPause" title="Signs them out, stops their links working and stops new links">Pause account</button>` : `<button class="ik-btn" type="button" id="ptResume">Reactivate account</button>`}</div>
       <div class="ik-note" id="ptMsg"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><b style="font-size:.85rem">Client links (${d.links.length})</b><div class="wpa-tbl"><table style="min-width:0"><tbody>${d.links.map((v) => `<tr><td>${esc(v.label || "–")}<br><span class="ik-note">${esc(v.form_key)} · ${when(v.created)}</span></td><td>${v.archived ? (v.refunded ? "Off · refunded" : "Off") : v.done ? "Submitted" : v.opens ? `Opened ${v.opens}×` : "Not opened"}<br><span class="ik-note">${v.comp ? "Complimentary" : v.price_cents ? money(v.price_cents) : ""}</span></td></tr>`).join("") || `<tr><td class="ik-note">None yet</td></tr>`}</tbody></table></div></div>
+        <div><b style="font-size:.85rem">Client links (${d.links.length})</b><div class="wpa-tbl"><table style="min-width:0"><tbody>${d.links.map((v) => `<tr><td>${esc(v.label || "–")}<br><span class="ik-note">${esc(v.form_key)} · ${when(v.created)}</span></td><td>${v.archived ? (v.refunded ? "Off · refunded" : "Off") : v.done ? "Submitted" : v.opens ? `Opened ${v.opens}×` : "Not opened"}<br><span class="ik-note">${v.comp === 2 ? "Free ($0 price)" : v.comp ? "Complimentary" : v.price_cents ? money(v.price_cents) : ""}</span></td></tr>`).join("") || `<tr><td class="ik-note">None yet</td></tr>`}</tbody></table></div></div>
         <div><b style="font-size:.85rem">Credit history</b><div class="wpa-tbl"><table style="min-width:0"><tbody>${d.ledger.map((x) => `<tr><td>${when(x.created)}</td><td>${x.delta > 0 ? "+" : ""}${x.delta} ${x.kind.toUpperCase()}${x.comp ? " <span class='ik-badge sub'>free</span>" : ""}</td><td class="ik-note">${esc(x.reason || "")}</td></tr>`).join("") || `<tr><td class="ik-note">No changes yet</td></tr>`}</tbody></table></div></div>
       </div></div>`;
   }
@@ -128,8 +130,8 @@
         ${lbl("Website", i("nWeb", "https://"))}
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">
-        ${lbl("Price · Temporary residence ($)", i("nPTr", (D.prices.tr / 100).toFixed(2) + " standard", "number", 'step="0.01" min="0.5"'))}
-        ${lbl("Price · Permanent residence & citizenship ($)", i("nPPr", (D.prices.pr / 100).toFixed(2) + " standard", "number", 'step="0.01" min="0.5"'))}
+        ${lbl("Price · Temporary residence ($)", i("nPTr", (D.prices.tr / 100).toFixed(2) + " standard · 0 = free", "number", 'step="0.01" min="0"'))}
+        ${lbl("Price · Permanent residence & citizenship ($)", i("nPPr", (D.prices.pr / 100).toFixed(2) + " standard · 0 = free", "number", 'step="0.01" min="0"'))}
         ${lbl("Complimentary Temporary residence forms", i("nFTr", "0", "number", 'min="0" max="1000"'))}
         ${lbl("Complimentary Permanent residence & citizenship forms", i("nFPr", "0", "number", 'min="0" max="1000"'))}
       </div>

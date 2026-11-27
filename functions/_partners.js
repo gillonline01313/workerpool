@@ -89,7 +89,8 @@ export async function prices(env, firm = null) {
   const r = await env.DB.prepare(`SELECT k, v FROM partner_settings WHERE k IN ('price_tr', 'price_pr')`).all();
   const p = { ...PRICE_DEFAULT };
   for (const x of r.results) { const n = parseInt(x.v); if (n >= 50) p[x.k.slice(6)] = n; }
-  if (firm) for (const k of ["tr", "pr"]) { const n = parseInt(firm["price_" + k]); if (n >= 50) p[k] = n; }
+  // a firm's own price can be $0: its client links of that kind are then free and need no credits
+  if (firm) for (const k of ["tr", "pr"]) { const n = parseInt(firm["price_" + k]); if (n === 0 || n >= 50) p[k] = n; }
   return p;
 }
 
