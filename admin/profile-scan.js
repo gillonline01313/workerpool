@@ -788,5 +788,7 @@ async function load(key, body) {
   mount(body);
 }
 function leave() { ROOT = null; S.jobs = []; S.rels = []; } // on lock: forget the profile
-window.WPScan = { load, leave, _test: { boot: () => boot(), derive: (P) => derive(P), federal, provinces, pilots, readForm: () => readForm(), scan: () => scan() } };
+// Shared with admin → Smart Tool: the same grids, profile shape (readForm) and federal / provincial / pilot scoring.
+async function engine() { if (!X) X = await boot(); return { X, derive, federal, provinces, pilots, run }; }
+window.WPScan = { load, leave, engine, _test: { boot: () => boot(), derive: (P) => derive(P), federal, provinces, pilots, readForm: () => readForm(), scan: () => scan() } };
 })();
