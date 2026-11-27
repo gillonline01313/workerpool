@@ -37,6 +37,10 @@ export async function ensurePartners(env) {
     `CREATE TABLE IF NOT EXISTS partner_payments (session_id TEXT PRIMARY KEY, partner_id TEXT NOT NULL, tr INTEGER, pr INTEGER, amount INTEGER, currency TEXT, created TEXT)`,
     `CREATE TABLE IF NOT EXISTS partner_settings (k TEXT PRIMARY KEY, v TEXT)`,
   ]) await env.DB.prepare(q).run();
+  // per-firm prices (empty = standard price), complimentary form balances, and firms the admin signed up
+  for (const c of ["price_tr INTEGER", "price_pr INTEGER", "free_tr INTEGER DEFAULT 0", "free_pr INTEGER DEFAULT 0", "added_by TEXT", "invited_at TEXT"])
+    try { await env.DB.prepare(`ALTER TABLE partners ADD COLUMN ${c}`).run(); } catch {}
+  try { await env.DB.prepare(`ALTER TABLE partner_ledger ADD COLUMN comp INTEGER`).run(); } catch {}
   ready = true;
 }
 
@@ -60,7 +64,7 @@ export async function ensureIntake(env) {
     "final_expires TEXT", "final_downloads INTEGER DEFAULT 0", "docs_destroyed_at TEXT", "docs_destroyed_count INTEGER",
     // partner firms: who owns the form, and the firm's own work status, notes and downloads
     "partner_id TEXT", "partner_seen TEXT", "partner_status TEXT DEFAULT 'new'", "partner_note TEXT", "partner_downloads INTEGER DEFAULT 0"]);
-  await add("intake_invites", ["partner_id TEXT", "price_kind TEXT", "price_cents INTEGER", "refunded INTEGER DEFAULT 0"]);
+  await add("intake_invites", ["partner_id TEXT", "price_kind TEXT", "price_cents INTEGER", "refunded INTEGER DEFAULT 0", "comp INTEGER"]);
   // form versions (empty = version 1) and document requests from the team
   await add("intakes", ["form_v INTEGER", "req_new TEXT"]);
   await add("intake_docs", ["req_id TEXT"]);
@@ -80,12 +84,18 @@ export async function ensureIntake(env) {
   intakeReady = true;
 }
 
-export async function prices(env) {
+// Standard prices (admin → Partners), or this firm's own prices when the admin set them for the firm.
+export async function prices(env, firm = null) {
   const r = await env.DB.prepare(`SELECT k, v FROM partner_settings WHERE k IN ('price_tr', 'price_pr')`).all();
   const p = { ...PRICE_DEFAULT };
   for (const x of r.results) { const n = parseInt(x.v); if (n >= 50) p[x.k.slice(6)] = n; }
+  if (firm) for (const k of ["tr", "pr"]) { const n = parseInt(firm["price_" + k]); if (n >= 50) p[k] = n; }
   return p;
 }
+
+// What a firm can spend: paid + complimentary together (tr / pr), and the complimentary part on its own (free).
+export const creditView = (p) => ({ tr: (p.credits_tr || 0) + (p.free_tr || 0), pr: (p.credits_pr || 0) + (p.free_pr || 0),
+  free: { tr: p.free_tr || 0, pr: p.free_pr || 0 }, paid: { tr: p.credits_tr || 0, pr: p.credits_pr || 0 } });
 
 /* ---------- partner sessions (separate from client accounts) ---------- */
 export const partnerCookie = (token, maxAge) => `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
@@ -106,15 +116,23 @@ export async function getPartner(request, env) {
 }
 
 // Changes a firm's balance and writes the ledger line. Spending (delta < 0) only succeeds if the credit is there.
-export async function addCredits(env, partnerId, kind, delta, reason, ref = null, amount = null) {
+// comp = true changes the complimentary balance (free forms the admin gave the firm) instead of the paid one.
+export async function addCredits(env, partnerId, kind, delta, reason, ref = null, amount = null, comp = false) {
   if (kind !== "tr" && kind !== "pr" || !delta) return false;
-  const col = kind === "tr" ? "credits_tr" : "credits_pr";
+  const col = (comp ? "free_" : "credits_") + kind;
   const r = await env.DB.prepare(`UPDATE partners SET ${col} = ${col} + ?1 WHERE id = ?2${delta < 0 ? ` AND ${col} >= ?3` : ""}`)
     .bind(delta, partnerId, ...(delta < 0 ? [-delta] : [])).run();
   if (!r.meta || !r.meta.changes) return false;
-  await env.DB.prepare(`INSERT INTO partner_ledger (partner_id, kind, delta, reason, ref, amount, created) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`)
-    .bind(partnerId, kind, delta, reason, ref, amount, new Date().toISOString()).run();
+  await env.DB.prepare(`INSERT INTO partner_ledger (partner_id, kind, delta, reason, ref, amount, created, comp) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`)
+    .bind(partnerId, kind, delta, reason, ref, amount, new Date().toISOString(), comp ? 1 : null).run();
   return true;
+}
+
+// One client link: uses a complimentary form first, then a paid credit. Returns { comp } or null when none is left.
+export async function spendCredit(env, partnerId, kind, reason, ref) {
+  if (await addCredits(env, partnerId, kind, -1, reason, ref, null, true)) return { comp: true };
+  if (await addCredits(env, partnerId, kind, -1, reason, ref)) return { comp: false };
+  return null;
 }
 
 // Forms a partner can send, grouped like the admin catalog, with the price kind of each.

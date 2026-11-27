@@ -11,14 +11,16 @@
 //   POST link-off { code }                                  turns a link off; the credit comes back if no form was started
 //   GET  item?id= · doc?id=[&view=1] · zip?id=              a submitted form, one document, everything as one ZIP
 //   POST status { id, status, note } · unlock { id } · destroy { id } · profile { contact, phone, website, password? }
-// Admin routes (x-admin-key) under /api/partners/admin/: list, ledger, status, grant, prices.
+//   GET  setup-info?token=  ·  POST reset { token, password, agree }   set-password link (a firm the admin signed up accepts the terms here)
+// Admin routes (x-admin-key) under /api/partners/admin/: list, ledger, status, grant (paid or complimentary), prices (standard),
+//   create (sign up a firm: approved, own prices, complimentary forms, set-password link), firm-prices, setup-link.
 import { json, readJson, str, isEmail, sendEmail, hashPassword, checkPassword, randomToken, sha256hex } from "../../_lib.js";
 import { FORMS, upgradeIntake, missing, applicantName } from "../../../assets/intake-config.js";
 import { intakeForm } from "../../_intake_req.js";
 import { listReturns, sendBack, returnAction, closeReturns } from "../../_intake_return.js";
 import { buildCompleteFile } from "../../_intake_file.js";
 import { stripe } from "../../_scanpass.js";
-import { ensureIntake, getPartner, createPartnerSession, partnerCookie, partnerToken, addCredits, prices, kindOf, money,
+import { ensureIntake, getPartner, createPartnerSession, partnerCookie, partnerToken, addCredits, spendCredit, creditView, prices, kindOf, money,
   KIND_LABEL, MAX_QTY, partnerCatalog, PARTNER_TERMS, PARTNER_TERMS_V } from "../../_partners.js";
 
 const site = (env) => env.SITE_URL || "https://workerpool.ca";
@@ -34,7 +36,16 @@ const isAdmin = (request, env) => !!env.ADMIN_KEY && same(request.headers.get("x
 const withCookie = (o, cookie) => new Response(JSON.stringify(o), { headers: { "content-type": "application/json", "cache-control": "no-store", "set-cookie": cookie } });
 const readyKinds = () => ({ tr: Object.keys(FORMS).some((k) => kindOf(k) === "tr"), pr: Object.keys(FORMS).some((k) => kindOf(k) === "pr") });
 const pub = (p) => ({ id: p.id, firm: p.firm, kind: p.kind, kind_label: KINDS[p.kind] || p.kind, licence: p.licence, contact: p.contact, email: p.email, phone: p.phone,
-  website: p.website, city: p.city, province: p.province, status: p.status, credits: { tr: p.credits_tr || 0, pr: p.credits_pr || 0 }, created: p.created });
+  website: p.website, city: p.city, province: p.province, status: p.status, credits: creditView(p), created: p.created });
+const SETUP_DAYS = 14;
+// A set-password link for a firm the admin signed up (or a fresh one to resend). Replaces any older link.
+async function setupLink(env, pid) {
+  const token = randomToken();
+  await env.DB.prepare(`DELETE FROM partner_resets WHERE partner_id = ?1`).bind(pid).run();
+  await env.DB.prepare(`INSERT INTO partner_resets (token_hash, partner_id, expires) VALUES (?1, ?2, ?3)`).bind(await sha256hex(token), pid, new Date(Date.now() + SETUP_DAYS * 864e5).toISOString()).run();
+  return `${site(env)}/partners/?setup=${token}`;
+}
+const cents = (v) => { const t = String(v ?? "").trim(); if (!t) return null; const n = Math.round(parseFloat(t) * 100); return Number.isFinite(n) ? n : NaN; };
 
 export async function onRequest(ctx) {
   const { request, env, params } = ctx;
@@ -76,13 +87,23 @@ async function partner({ request, env }, route, m) {
     }
     return json({ ok: true });   // same answer either way
   }
+  if (route === "setup-info" && m === "GET") { // who a set-password / reset link is for, and whether they still have to accept the terms
+    const r = await env.DB.prepare(`SELECT p.firm, p.contact, p.email, p.agreed_at FROM partner_resets x JOIN partners p ON p.id = x.partner_id WHERE x.token_hash = ?1 AND x.expires > ?2`)
+      .bind(await sha256hex(str(url.searchParams.get("token"), 100)), new Date().toISOString()).first();
+    if (!r) return json({ ok: false, error: "This link has expired or was already used. Ask WorkerPool for a new one, or use Forgot your password." }, 404);
+    return json({ ok: true, firm: r.firm, contact: r.contact, email: r.email, needTerms: !r.agreed_at, terms: PARTNER_TERMS });
+  }
   if (route === "reset" && m === "POST") {
     const b = await readJson(request, 2000) || {}, pass = typeof b.password === "string" ? b.password : "";
     if (pass.length < 10 || pass.length > 200) return json({ ok: false, error: "Password needs at least 10 characters." }, 400);
-    const r = await env.DB.prepare(`SELECT * FROM partner_resets WHERE token_hash = ?1 AND expires > ?2`).bind(await sha256hex(str(b.token, 100)), new Date().toISOString()).first();
-    if (!r) return json({ ok: false, error: "This reset link has expired or was already used. Request a new one." }, 400);
+    const r = await env.DB.prepare(`SELECT x.*, p.agreed_at FROM partner_resets x JOIN partners p ON p.id = x.partner_id WHERE x.token_hash = ?1 AND x.expires > ?2`).bind(await sha256hex(str(b.token, 100)), new Date().toISOString()).first();
+    if (!r) return json({ ok: false, error: "This link has expired or was already used. Request a new one." }, 400);
+    if (!r.agreed_at && b.agree !== true) return json({ ok: false, error: "Read and accept the partner terms to continue." }, 400);
+    const now = new Date().toISOString();
     await env.DB.batch([
       env.DB.prepare(`UPDATE partners SET pass_hash = ?1, fail_count = 0, locked_until = '' WHERE id = ?2`).bind(await hashPassword(pass), r.partner_id),
+      ...(r.agreed_at ? [] : [env.DB.prepare(`UPDATE partners SET agreed_at = ?1, agreed_text = ?2, ip_hash = ?3 WHERE id = ?4`)
+        .bind(now, `[${PARTNER_TERMS_V}] ${PARTNER_TERMS}`, await sha256hex("partner:" + (request.headers.get("cf-connecting-ip") || "")), r.partner_id)]),
       env.DB.prepare(`DELETE FROM partner_resets WHERE partner_id = ?1`).bind(r.partner_id),
       env.DB.prepare(`DELETE FROM partner_sessions WHERE partner_id = ?1`).bind(r.partner_id),
     ]);
@@ -94,13 +115,13 @@ async function partner({ request, env }, route, m) {
   const p = await getPartner(request, env);
   if (!p) return json({ ok: false, error: "Sign in to continue." }, 401);
   if (p.status === "pending") { // waiting for WorkerPool to approve the firm: they can sign in and see that, nothing else
-    if (route === "me" && m === "GET") return json({ ok: true, pending: true, partner: pub(p), prices: await prices(env), ready: readyKinds(), payments: !!env.STRIPE_SECRET_KEY, catalog: partnerCatalog(), forms: Object.keys(FORMS) });
+    if (route === "me" && m === "GET") return json({ ok: true, pending: true, partner: pub(p), prices: await prices(env, p), ready: readyKinds(), payments: !!env.STRIPE_SECRET_KEY, catalog: partnerCatalog(), forms: Object.keys(FORMS) });
     return json({ ok: false, pending: true, error: "Your partner account is waiting for approval. We'll email you as soon as it's approved." }, 403);
   }
   if (p.status !== "active") return json({ ok: false, error: p.status === "declined" ? "Your partner application wasn't approved. Contact WorkerPool at info@workerpool.ca if you have questions." : "Your partner account is paused. Contact WorkerPool at info@workerpool.ca." }, 403);
 
   if (route === "me" && m === "GET") {
-    const pr = await prices(env), rk = readyKinds();
+    const pr = await prices(env, p), rk = readyKinds();
     return json({ ok: true, partner: pub(p), prices: pr, ready: rk, payments: !!env.STRIPE_SECRET_KEY, catalog: partnerCatalog(), forms: Object.keys(FORMS) });
   }
   if (route === "dash" && m === "GET") {
@@ -111,13 +132,13 @@ async function partner({ request, env }, route, m) {
         i.docs_destroyed_at, i.partner_downloads, i.partial, i.missing_n, (SELECT COUNT(*) FROM intake_returns t WHERE t.intake_id = i.id AND t.status = 'open') AS ret_open, u.name AS acct_name, u.email AS acct_email, u.phone AS acct_phone, v.label AS invite_label,
         (SELECT COUNT(*) FROM intake_docs d WHERE d.intake_id = i.id) AS files
       FROM intakes i JOIN users u ON u.id = i.user_id LEFT JOIN intake_invites v ON v.code = i.invite_code WHERE i.partner_id = ?1 ORDER BY COALESCE(i.resubmitted, i.submitted, i.updated) DESC LIMIT 2000`).bind(p.id).all();
-    const ledger = await env.DB.prepare(`SELECT kind, delta, reason, ref, amount, created FROM partner_ledger WHERE partner_id = ?1 ORDER BY id DESC LIMIT 100`).bind(p.id).all();
+    const ledger = await env.DB.prepare(`SELECT kind, delta, reason, ref, amount, created, comp FROM partner_ledger WHERE partner_id = ?1 ORDER BY id DESC LIMIT 100`).bind(p.id).all();
     return json({ ok: true, partner: pub(p), links: links.results, ledger: ledger.results,
       rows: rows.results.map((r) => { const d = parse(r.data); delete r.data; return { ...r, name: applicantName(d) }; }) });
   }
   if (route === "checkout" && m === "POST") {
     if (!env.STRIPE_SECRET_KEY) return json({ ok: false, error: "Online payment isn't switched on yet. Contact WorkerPool to add credits." }, 503);
-    const b = await readJson(request, 1000) || {}, pr = await prices(env), rk = readyKinds();
+    const b = await readJson(request, 1000) || {}, pr = await prices(env, p), rk = readyKinds();
     const q = { tr: Math.max(0, Math.min(MAX_QTY, parseInt(b.tr) || 0)), pr: Math.max(0, Math.min(MAX_QTY, parseInt(b.pr) || 0)) };
     if (q.pr && !rk.pr) return json({ ok: false, error: "Permanent residence forms aren't available yet." }, 400);
     if (!q.tr && !q.pr) return json({ ok: false, error: "Choose how many forms to buy." }, 400);
@@ -139,11 +160,11 @@ async function partner({ request, env }, route, m) {
     const label = str(b.label, 120), email = str(b.email, 120).toLowerCase();
     if (!label) return json({ ok: false, error: "Enter your client's name." }, 400);
     if (email && !isEmail(email)) return json({ ok: false, error: "That email doesn't look right." }, 400);
-    const kind = kindOf(fk), pr = await prices(env), code = randomToken().slice(0, 14);
-    if (!(await addCredits(env, p.id, kind, -1, `Client link: ${FORMS[fk].name} – ${label}`, code)))
-      return json({ ok: false, error: `You have no ${KIND_LABEL[kind]} form credits left. Buy more to create this link.`, need: kind }, 402);
-    await env.DB.prepare(`INSERT INTO intake_invites (code, form_key, label, email, note, created, partner_id, price_kind, price_cents) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`)
-      .bind(code, fk, label, email || null, str(b.note, 500) || null, new Date().toISOString(), p.id, kind, pr[kind]).run();
+    const kind = kindOf(fk), pr = await prices(env, p), code = randomToken().slice(0, 14);
+    const spent = await spendCredit(env, p.id, kind, `Client link: ${FORMS[fk].name} – ${label}`, code);
+    if (!spent) return json({ ok: false, error: `You have no ${KIND_LABEL[kind]} form credits left. Buy more to create this link.`, need: kind }, 402);
+    await env.DB.prepare(`INSERT INTO intake_invites (code, form_key, label, email, note, created, partner_id, price_kind, price_cents, comp) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`)
+      .bind(code, fk, label, email || null, str(b.note, 500) || null, new Date().toISOString(), p.id, kind, spent.comp ? 0 : pr[kind], spent.comp ? 1 : null).run();
     const link = `${site(env)}/intake/?i=${code}`;
     let emailed = false;
     if (b.send && email) emailed = await sendEmail(env, email, `${p.firm}: your ${FORMS[fk].name} form`,
@@ -157,7 +178,7 @@ async function partner({ request, env }, route, m) {
     if (v.archived) return json({ ok: true, already: true });
     const started = (await env.DB.prepare(`SELECT COUNT(*) AS n FROM intakes WHERE invite_code = ?1`).bind(v.code).first()).n;
     await env.DB.prepare(`UPDATE intake_invites SET archived = 1, refunded = ?1 WHERE code = ?2`).bind(started ? 0 : 1, v.code).run();
-    if (!started && v.price_kind) await addCredits(env, p.id, v.price_kind, 1, `Refund: link turned off before use – ${v.label || ""}`, v.code);
+    if (!started && v.price_kind) await addCredits(env, p.id, v.price_kind, 1, `Refund: link turned off before use – ${v.label || ""}`, v.code, null, !!v.comp);
     return json({ ok: true, refunded: !started, credits: await credits(env, p.id) });
   }
   if (route === "profile" && m === "POST") {
@@ -239,8 +260,8 @@ async function partner({ request, env }, route, m) {
 }
 
 async function credits(env, pid) {
-  const c = await env.DB.prepare(`SELECT credits_tr, credits_pr FROM partners WHERE id = ?1`).bind(pid).first();
-  return { tr: (c && c.credits_tr) || 0, pr: (c && c.credits_pr) || 0 };
+  const c = await env.DB.prepare(`SELECT credits_tr, credits_pr, free_tr, free_pr FROM partners WHERE id = ?1`).bind(pid).first();
+  return creditView(c || {});
 }
 
 async function signup(request, env) {
@@ -318,6 +339,8 @@ async function admin({ request, env }, route, m) {
   const url = new URL(request.url);
   if (route === "list" && m === "GET") {
     const r = await env.DB.prepare(`SELECT p.id, p.firm, p.kind, p.licence, p.contact, p.email, p.phone, p.website, p.city, p.province, p.status, p.credits_tr, p.credits_pr, p.created, p.last_login, p.admin_note,
+        p.price_tr, p.price_pr, p.free_tr, p.free_pr, p.added_by, p.invited_at, p.agreed_at,
+        (SELECT COUNT(*) FROM intake_invites v WHERE v.partner_id = p.id AND v.comp = 1 AND COALESCE(v.refunded, 0) = 0) AS comp_used,
         (SELECT COUNT(*) FROM intake_invites v WHERE v.partner_id = p.id) AS links,
         (SELECT COUNT(*) FROM intakes i WHERE i.partner_id = p.id AND i.submitted IS NOT NULL) AS submitted,
         (SELECT COUNT(*) FROM intakes i WHERE i.partner_id = p.id AND i.submitted IS NULL) AS filling,
@@ -328,8 +351,8 @@ async function admin({ request, env }, route, m) {
   }
   if (route === "ledger" && m === "GET") {
     const pid = url.searchParams.get("id") || "";
-    const l = await env.DB.prepare(`SELECT kind, delta, reason, ref, amount, created FROM partner_ledger WHERE partner_id = ?1 ORDER BY id DESC LIMIT 300`).bind(pid).all();
-    const links = await env.DB.prepare(`SELECT v.code, v.form_key, v.label, v.email, v.created, v.opens, v.archived, v.refunded, v.price_kind,
+    const l = await env.DB.prepare(`SELECT kind, delta, reason, ref, amount, created, comp FROM partner_ledger WHERE partner_id = ?1 ORDER BY id DESC LIMIT 300`).bind(pid).all();
+    const links = await env.DB.prepare(`SELECT v.code, v.form_key, v.label, v.email, v.created, v.opens, v.archived, v.refunded, v.price_kind, v.price_cents, v.comp,
         (SELECT COUNT(*) FROM intakes i WHERE i.invite_code = v.code AND i.submitted IS NOT NULL) AS done FROM intake_invites v WHERE v.partner_id = ?1 ORDER BY v.created DESC LIMIT 500`).bind(pid).all();
     return json({ ok: true, ledger: l.results, links: links.results });
   }
@@ -343,6 +366,7 @@ async function admin({ request, env }, route, m) {
       env.DB.prepare(`INSERT OR REPLACE INTO partner_settings (k, v) VALUES ('price_pr', ?1)`).bind(String(pr))]);
     return json({ ok: true, prices: await prices(env) });
   }
+  if (route === "create") return await adminCreate(env, b);
   const p = await env.DB.prepare(`SELECT * FROM partners WHERE id = ?1`).bind(str(b.id, 60)).first();
   if (!p) return json({ ok: false, error: "Partner not found." }, 404);
   if (route === "status") {
@@ -356,12 +380,61 @@ async function admin({ request, env }, route, m) {
       `Hi ${first},\n\nThank you for applying for a WorkerPool partner account for ${p.firm}. We weren't able to approve it at this time${typeof b.reason === "string" && b.reason.trim() ? `:\n\n${b.reason.trim().slice(0, 1000)}` : "."}\n\nIf you think this is a mistake, reply to this email.\n\nWorkerPool`);
     return json({ ok: true });
   }
-  if (route === "grant") {
-    const kind = b.kind === "pr" ? "pr" : "tr", qty = parseInt(b.qty) || 0;
-    if (!qty || Math.abs(qty) > 1000) return json({ ok: false, error: "Enter a number of credits (use a minus sign to remove)." }, 400);
-    const okd = await addCredits(env, p.id, kind, qty, `${qty > 0 ? "Added" : "Removed"} by WorkerPool${b.note ? ": " + str(b.note, 200) : ""}`);
-    if (!okd) return json({ ok: false, error: "They don't have that many credits to remove." }, 400);
+  if (route === "grant") { // comp: complimentary forms (free, used first) · otherwise paid credits (e.g. paid by e-Transfer)
+    const kind = b.kind === "pr" ? "pr" : "tr", qty = parseInt(b.qty) || 0, comp = b.comp === true;
+    if (!qty || Math.abs(qty) > 1000) return json({ ok: false, error: "Enter a number of forms (use a minus sign to remove)." }, 400);
+    const what = comp ? (qty > 0 ? "Complimentary forms from WorkerPool" : "Complimentary forms removed by WorkerPool") : `${qty > 0 ? "Added" : "Removed"} by WorkerPool`;
+    const okd = await addCredits(env, p.id, kind, qty, `${what}${b.note ? ": " + str(b.note, 200) : ""}`, null, null, comp);
+    if (!okd) return json({ ok: false, error: comp ? "They don't have that many complimentary forms to remove." : "They don't have that many paid credits to remove." }, 400);
+    if (comp && qty > 0 && b.notify && p.status === "active") await sendEmail(env, p.email, `${qty} complimentary ${KIND_LABEL[kind]} form${qty === 1 ? "" : "s"} added to your WorkerPool account`,
+      `Hi ${String(p.contact || "").split(" ")[0] || "there"},\n\nWe added ${qty} complimentary ${KIND_LABEL[kind]} intake form${qty === 1 ? "" : "s"} to ${p.firm}'s WorkerPool partner account${b.note ? ` (${str(b.note, 200)})` : ""}. They're used before your paid credits whenever you create a client link.\n\nSign in: ${site(env)}/partners/\n\nWorkerPool`);
     return json({ ok: true, credits: await credits(env, p.id) });
   }
+  if (route === "firm-prices") { // this firm's own prices; empty = standard price
+    const tr = cents(b.tr), pr = cents(b.pr);
+    for (const v of [tr, pr]) if (v !== null && !(v >= 50 && v <= 100000)) return json({ ok: false, error: "Prices must be between $0.50 and $1,000, or empty for the standard price. For free forms, add complimentary forms instead." }, 400);
+    await env.DB.prepare(`UPDATE partners SET price_tr = ?1, price_pr = ?2 WHERE id = ?3`).bind(tr, pr, p.id).run();
+    return json({ ok: true, prices: await prices(env, { price_tr: tr, price_pr: pr }) });
+  }
+  if (route === "setup-link") { // a new set-password link for a firm the admin signed up (or any firm that lost access)
+    const link = await setupLink(env, p.id);
+    let emailed = false;
+    if (b.send) emailed = await sendEmail(env, p.email, `Set up your WorkerPool partner account – ${p.firm}`, setupEmail(env, p, link, await prices(env, p)));
+    await env.DB.prepare(`UPDATE partners SET invited_at = ?1 WHERE id = ?2`).bind(new Date().toISOString(), p.id).run();
+    return json({ ok: true, link, emailed });
+  }
   return json({ ok: false, error: "Not found." }, 404);
+}
+
+function setupEmail(env, p, link, pr) {
+  const fr = [p.free_tr && `${p.free_tr} Temporary residence`, p.free_pr && `${p.free_pr} Permanent residence & citizenship`].filter(Boolean);
+  return `Hi ${String(p.contact || "").split(" ")[0] || "there"},\n\nWorkerPool has set up a partner account for ${p.firm} so you can send secure intake forms to your clients.\n\nChoose your password and accept the partner terms here (the link works for ${SETUP_DAYS} days):\n${link}\n\nYour sign-in email: ${p.email}\nYour price per form: ${money(pr.tr)} Temporary residence · ${money(pr.pr)} Permanent residence & citizenship${fr.length ? `\nComplimentary forms on your account: ${fr.join(" and ")} (used before paid credits)` : ""}\n\nHow it works:\n1. Create a personal link for each client and send it by email or WhatsApp. Each link uses one form.\n2. Your client fills the form and uploads documents. You get an email when they submit.\n3. Open the form in your portal to view every answer and document, and download everything as one ZIP.\n\nWorkerPool`;
+}
+
+// Admin signs up a firm directly: it's approved straight away, can have its own prices and complimentary forms,
+// and gets a set-password link (emailed, and returned so the admin can also send it by WhatsApp).
+async function adminCreate(env, b) {
+  const f = { firm: str(b.firm, 140), kind: KINDS[b.kind] ? b.kind : "", licence: str(b.licence, 60), contact: str(b.contact, 120), email: str(b.email, 120).toLowerCase(),
+    phone: str(b.phone, 40), website: str(b.website, 200), city: str(b.city, 80), province: str(b.province, 40) };
+  if (!f.firm) return json({ ok: false, error: "Enter the firm or practice name." }, 400);
+  if (!f.kind) return json({ ok: false, error: "Choose what kind of representative they are." }, 400);
+  if (f.licence.length < 3) return json({ ok: false, error: "Enter their licence number." }, 400);
+  if (f.kind === "rcic" && !/^R?\d{6}$/i.test(f.licence.replace(/\s/g, ""))) return json({ ok: false, error: "A CICC licence number looks like R712345." }, 400);
+  if (!f.contact) return json({ ok: false, error: "Enter the contact person's name." }, 400);
+  if (!isEmail(f.email)) return json({ ok: false, error: "Enter a valid email address (they sign in with it)." }, 400);
+  if (await env.DB.prepare(`SELECT id FROM partners WHERE email = ?1`).bind(f.email).first()) return json({ ok: false, error: "A partner account already uses this email." }, 409);
+  const tr = cents(b.price_tr), pr = cents(b.price_pr);
+  for (const v of [tr, pr]) if (v !== null && !(v >= 50 && v <= 100000)) return json({ ok: false, error: "Prices must be between $0.50 and $1,000, or empty for the standard price." }, 400);
+  const free = { tr: Math.max(0, Math.min(1000, parseInt(b.free_tr) || 0)), pr: Math.max(0, Math.min(1000, parseInt(b.free_pr) || 0)) };
+  if (f.kind === "rcic") f.licence = "R" + f.licence.replace(/\D/g, "");
+  const id = crypto.randomUUID(), now = new Date().toISOString();
+  await env.DB.prepare(`INSERT INTO partners (id, firm, kind, licence, contact, email, phone, website, city, province, pass_hash, status, created, admin_note, price_tr, price_pr, added_by, invited_at)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'active', ?12, ?13, ?14, ?15, 'admin', ?12)`)
+    .bind(id, f.firm, f.kind, f.licence, f.contact, f.email, f.phone || null, f.website || null, f.city || null, f.province || null,
+      await hashPassword(randomToken() + randomToken()), now, str(b.note, 3000) || null, tr, pr).run();   // unusable password until they set their own
+  for (const k of ["tr", "pr"]) if (free[k]) await addCredits(env, id, k, free[k], `Complimentary forms from WorkerPool${b.free_note ? ": " + str(b.free_note, 200) : " (welcome)"}`, null, null, true);
+  const p = await env.DB.prepare(`SELECT * FROM partners WHERE id = ?1`).bind(id).first();
+  const link = await setupLink(env, id);
+  const emailed = b.send !== false ? await sendEmail(env, f.email, `Set up your WorkerPool partner account – ${f.firm}`, setupEmail(env, p, link, await prices(env, p))) : false;
+  return json({ ok: true, id, link, emailed });
 }
