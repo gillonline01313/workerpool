@@ -8,8 +8,11 @@
 // Workers AI in memory, and are gone when the response is sent. No content is written to D1, R2, KV, logs or email.
 import { json } from "../../_lib.js";
 
-const MODELS = ["@cf/meta/llama-4-scout-17b-16e-instruct", "@cf/mistralai/mistral-small-3.1-24b-instruct"];
-const MAX_BODY = 9_000_000, MAX_IMAGES = 4, MAX_TEXT = 40000;
+// Text-only documents go to the fast 70B model first; page images need a vision model.
+const TEXT_MODELS = ["@cf/meta/llama-3.3-70b-instruct-fp8-fast", "@cf/meta/llama-4-scout-17b-16e-instruct", "@cf/mistralai/mistral-small-3.1-24b-instruct"];
+const VISION_MODELS = ["@cf/meta/llama-4-scout-17b-16e-instruct", "@cf/mistralai/mistral-small-3.1-24b-instruct"];
+const PER_MODEL_MS = 40000; // give up on a slow model and try the next one
+const MAX_BODY = 9_000_000, MAX_IMAGES = 4, MAX_TEXT = 30000;
 const NO_STORE = { "cache-control": "no-store", "x-stored": "none" };
 const reply = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", ...NO_STORE } });
 
@@ -35,7 +38,7 @@ export async function onRequestPost({ request, env }) {
       candidates: (Array.isArray(j.candidates) ? j.candidates : []).slice(0, 14).filter((c) => Array.isArray(c) && /^\d{5}$/.test(c[0])).map((c) => [c[0], str(c[1], 140), str(c[2], 300)]),
     })).filter((j) => j.title || j.duties);
     if (!jobs.length) return reply({ ok: true, picks: [] });
-    const out = await ask(env, NOC_SYSTEM, nocPrompt(jobs), [], 1200);
+    const out = await ask(env, NOC_SYSTEM, nocPrompt(jobs), [], 900);
     if (!out) return reply({ ok: false, error: "The NOC check didn't answer. Pick the NOCs by hand." }, 502);
     const picks = (Array.isArray(out.picks) ? out.picks : []).map((p) => ({
       i: Number.isInteger(+p.i) ? +p.i : -1, noc: /^\d{5}$/.test(String(p.noc || "")) ? String(p.noc) : null,
@@ -50,17 +53,20 @@ export async function onRequestPost({ request, env }) {
   const text = typeof b.text === "string" ? b.text.slice(0, MAX_TEXT) : "";
   b = null;
   if (!images.length && !text.trim()) return reply({ ok: false, error: "We couldn't find any text or pages in that file." }, 400);
-  const out = await ask(env, SYSTEM, readPrompt(text, today, images.length), images, 3200);
+  const out = await ask(env, SYSTEM, readPrompt(text, today, images.length), images, 2600);
   images.length = 0;
   if (!out) return reply({ ok: false, error: "The document couldn't be read automatically. Fill in the fields by hand." }, 502);
   return reply({ ok: true, stored: false, result: clean(out) });
 }
 
 async function ask(env, system, prompt, images, maxTokens) {
-  for (const model of MODELS) {
+  for (const model of images.length ? VISION_MODELS : TEXT_MODELS) {
     try {
       const content = images.length ? [{ type: "text", text: prompt }, ...images.map((url) => ({ type: "image_url", image_url: { url } }))] : prompt;
-      const r = await env.AI.run(model, { messages: [{ role: "system", content: system }, { role: "user", content }], max_tokens: maxTokens, temperature: 0 });
+      const r = await Promise.race([
+        env.AI.run(model, { messages: [{ role: "system", content: system }, { role: "user", content }], max_tokens: maxTokens, temperature: 0 }),
+        new Promise((_, no) => setTimeout(() => no(new Error("timeout")), PER_MODEL_MS)),
+      ]);
       const o = parse(r && (r.response ?? r.result ?? r));
       if (o) return o;
     } catch (e) { /* try the next model */ }

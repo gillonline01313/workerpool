@@ -222,8 +222,12 @@ const nocTitle = (c) => (NOCM[c] ? NOCM[c].t : "");
 const nocLine = (c) => (/^\d{5}$/.test(c || "") ? `${c} · ${nocTitle(c) || "Not in NOC 2021"} · TEER ${c[1]}` : "");
 
 /* ---------------- server calls ---------------- */
-async function post(body) {
-  const r = await fetch("/api/tools/smart-read", { method: "POST", headers: { "content-type": "application/json", "x-admin-key": KEY }, body: JSON.stringify(body) });
+async function post(body, ms = 95000) {
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
+  let r;
+  try { r = await fetch("/api/tools/smart-read", { method: "POST", headers: { "content-type": "application/json", "x-admin-key": KEY }, body: JSON.stringify(body), signal: ac.signal }); }
+  catch (e) { const x = new Error(e.name === "AbortError" ? "The AI reader took too long." : "The AI reader couldn't be reached."); x.code = "timeout"; throw x; }
+  finally { clearTimeout(t); }
   let j = {}; try { j = await r.json(); } catch (e) {}
   if (r.status === 401) throw new Error("The admin key was rejected. Lock and sign in again.");
   if (!r.ok || !j.ok) { const e = new Error(j.message || j.error || "The reader didn't answer (" + r.status + ")"); e.code = j.error; throw e; }
@@ -795,7 +799,7 @@ async function resolveNocs(jobs) {
   const cand = jobs.map((j) => { const m = matchNoc(j.title, `${j.duties} ${j.employer}`); const codes = m.map((x) => x.c); if (j.aiNoc && NOCM[j.aiNoc] && !codes.includes(j.aiNoc)) codes.unshift(j.aiNoc); return { m, codes: codes.slice(0, 14) }; });
   let picks = [];
   if (AI && jobs.length) {
-    try { picks = (await post({ mode: "noc", jobs: jobs.map((j, i) => ({ title: j.title, employer: j.employer, duties: j.duties, candidates: cand[i].codes.map((c) => [c, NOCM[c].t, NOCM[c].ill.slice(0, 6).join(", ")]) })) })).picks || []; }
+    try { picks = (await post({ mode: "noc", jobs: jobs.map((j, i) => ({ title: j.title, employer: j.employer, duties: j.duties, candidates: cand[i].codes.map((c) => [c, NOCM[c].t, NOCM[c].ill.slice(0, 6).join(", ")]) })) }, 50000)).picks || []; }
     catch (e) { console.warn("noc pass", e); }
   }
   jobs.forEach((j, i) => {
@@ -823,7 +827,12 @@ function uploadHtml() {
   <div id="stOut" class="st"></div>`;
 }
 const STEPS = ["Opening the file", "Reading every detail", "Identifying the NOCs", "Scoring"];
-function steps(n, done) { const el = ROOT.querySelector("#stSteps"); el.innerHTML = STEPS.map((s, i) => `<span class="${i < n || done ? "ok" : i === n ? "on" : ""}">${i < n || done ? "✓ " : ""}${s}</span>`).join(""); }
+let TICK = 0;
+function steps(n, done) {
+  clearInterval(TICK); const el = ROOT.querySelector("#stSteps"), t0 = Date.now();
+  const draw = () => { el.innerHTML = STEPS.map((s, i) => `<span class="${i < n || done ? "ok" : i === n ? "on" : ""}">${i < n || done ? "✓ " : ""}${s}${i === n && !done && Date.now() - t0 > 3000 ? ` · ${Math.round((Date.now() - t0) / 1000)}s` : ""}</span>`).join("") + (n === 1 && !done && Date.now() - t0 > 20000 ? `<span style="border:0">A long CV can take up to a minute…</span>` : ""); };
+  draw(); if (!done) TICK = setInterval(() => { if (!ROOT) return clearInterval(TICK); draw(); }, 1000);
+}
 async function handle(file) {
   if (BUSY || !file) return; BUSY = true;
   const err = ROOT.querySelector("#stErr"); err.textContent = "";
@@ -833,14 +842,14 @@ async function handle(file) {
     const meta = { name: file.name, kind: f.kind };
     steps(1);
     let r = null;
-    if (AI !== false) { try { r = (await post({ mode: "read", text: f.text, images: f.images, today: isoDay(TODAY()) })).result; } catch (e) { if (e.code === "ai-off") AI = false; else err.textContent = e.message + " The fields below come from the text only — check them."; } }
+    if (AI !== false) { try { r = (await post({ mode: "read", text: f.text, images: f.images, today: isoDay(TODAY()) })).result; } catch (e) { if (e.code === "ai-off") AI = false; else err.textContent = e.message + " The fields below come from the text only — check every field and add the jobs."; } }
     const loc = localFacts(f.text);
     if (!r) r = { person: {}, spouse: {}, education: [], language_tests: [], work: [], job_offer: {}, family_in_canada: [], skills: [], certifications_licences: [], other_facts: [], issues: f.images.length && !f.text ? ["This is a scanned file and the AI reader isn't available: enter the details by hand."] : [] };
     DOC = fromDoc(r, loc, meta); ST = DOC.S;
     steps(2); await resolveNocs(ST.jobs);
     steps(3); mountForm(); steps(4, true);
     ROOT.querySelector("#stNew").classList.remove("st-hide"); ROOT.querySelector("#stBlank").classList.add("st-hide");
-  } catch (e) { console.error(e); err.textContent = "Couldn't read that file: " + e.message + "."; ROOT.querySelector("#stSteps").innerHTML = ""; }
+  } catch (e) { console.error(e); clearInterval(TICK); err.textContent = "Couldn't read that file: " + e.message + "."; ROOT.querySelector("#stSteps").innerHTML = ""; }
   BUSY = false; f0();
 }
 function f0() { const i = ROOT && ROOT.querySelector("#stFile"); if (i) i.value = ""; }
